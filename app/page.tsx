@@ -22,21 +22,7 @@ export default function HomePage() {
           </h2>
           <p className="text-xl text-gray-600 mb-8 transform rotate-1 font-body">
             Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde neue Mitspieler und entdecke großartige Spiele!
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild variant="outline" className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white px-8 py-3 text-lg transform rotate-1 hover:rotate-0 transition-all font-handwritten">
-              <Link href="/marketplace">
-                <Search className="w-5 h-5 mr-2" />
-                Markplatz erkunden
-              </Link>
-            </Button>
-            <Button asChild className="bg-teal-400 hover:bg-teal-500 text-white px-8 py-3 text-lg transform rotate-1 hover:rotate-0 transition-all font-handwritten">
-              <Link href="/register">
-                <Dice6 className="w-5 h-5 mr-2" />
-                Jetzt loslegen
-              </Link>
-            </Button>
-          </div>
+          </p>          
         </div>
       </section>
 

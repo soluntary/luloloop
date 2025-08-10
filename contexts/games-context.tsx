@@ -1,15 +1,13 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from './auth-context'
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { supabase } from "@/lib/supabase"
+import { useAuth } from "./auth-context"
 
 interface Game {
   id: string
-  user_id: string
   title: string
   publisher?: string
-  description?: string
   condition: string
   players?: string
   duration?: string
@@ -17,34 +15,25 @@ interface Game {
   language?: string
   available: string[]
   image?: string
-  category?: string
-  min_players?: number
-  max_players?: number
-  play_time?: number
-  age_rating?: string
-  created_at: string
-  updated_at: string
+  user_id?: string
+  created_at?: string
 }
 
 interface MarketplaceOffer {
-  id: string
-  user_id: string
-  game_id?: string
+  id?: string
   title: string
   publisher?: string
   condition: string
-  type: 'lend' | 'trade' | 'sell'
-  price?: string
-  location?: string
-  distance?: string
-  description?: string
+  type: "lend" | "trade" | "sell"
+  price: string
+  location: string
+  distance: string
   image?: string
+  game_id?: string
+  user_id?: string
+  description?: string
   active: boolean
-  created_at: string
-  updated_at: string
-  owner?: string
-  rating?: number
-  gameId?: number
+  created_at?: string
 }
 
 interface GamesContextType {
@@ -53,302 +42,348 @@ interface GamesContextType {
   loading: boolean
   error: string | null
   databaseConnected: boolean
-  addGame: (gameData: Omit<Game, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>
-  updateGame: (id: string, gameData: Partial<Game>) => Promise<void>
-  deleteGame: (id: string) => Promise<void>
-  addMarketplaceOffer: (offerData: Omit<MarketplaceOffer, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>
-  updateMarketplaceOffer: (id: string, offerData: Partial<MarketplaceOffer>) => Promise<void>
-  deleteMarketplaceOffer: (id: string) => Promise<void>
+  addGame: (gameData: Omit<Game, "id" | "user_id" | "created_at">) => Promise<void>
+  updateGame: (gameId: string, gameData: Partial<Omit<Game, "id" | "user_id" | "created_at">>) => Promise<void>
+  deleteGame: (gameId: string) => Promise<void>
+  addMarketplaceOffer: (offerData: Omit<MarketplaceOffer, "id" | "user_id" | "created_at">) => Promise<void>
+  updateMarketplaceOffer: (
+    offerId: string,
+    offerData: Partial<Omit<MarketplaceOffer, "id" | "user_id" | "created_at">>,
+  ) => Promise<void>
+  deleteMarketplaceOffer: (offerId: string) => Promise<void>
   refreshData: () => Promise<void>
 }
 
 const GamesContext = createContext<GamesContextType | undefined>(undefined)
 
 export function GamesProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
   const [games, setGames] = useState<Game[]>([])
   const [marketplaceOffers, setMarketplaceOffers] = useState<MarketplaceOffer[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [databaseConnected, setDatabaseConnected] = useState(false)
-  const { user } = useAuth()
 
-  useEffect(() => {
-    loadData()
-  }, [user])
+  const FALLBACK_IMAGE = "/images/ludoloop-game-placeholder.png"
 
-  const testDatabaseConnection = async (): Promise<boolean> => {
+  // Test database connection
+  const testDatabaseConnection = async () => {
     try {
-      const { error } = await supabase.from('users').select('id').limit(1)
+      const { error } = await supabase.from("games").select("count", { count: "exact", head: true })
       if (error) {
-        console.error('Database connection test failed:', error)
+        console.error("Database connection test failed:", error)
+        setError(
+          `Datenbank-Verbindung fehlgeschlagen: ${error.message}. Bitte führe die SQL-Skripte aus (01-create-tables.sql, 02-create-policies.sql).`,
+        )
+        setDatabaseConnected(false)
         return false
       }
+      setDatabaseConnected(true)
+      setError(null)
       return true
-    } catch (error) {
-      console.error('Database connection test failed:', error)
+    } catch (err) {
+      console.error("Database connection error:", err)
+      setError("Datenbank-Verbindung fehlgeschlagen. Bitte überprüfe deine Supabase-Konfiguration.")
+      setDatabaseConnected(false)
       return false
     }
   }
 
-  const loadData = async () => {
+  // Load games from database
+  const loadGames = async () => {
+    if (!user || !databaseConnected) return
+
     try {
-      setLoading(true)
-      setError(null)
+      const { data, error } = await supabase
+        .from("games")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("title", { ascending: true })
 
-      // Test database connection
-      const isConnected = await testDatabaseConnection()
-      setDatabaseConnected(isConnected)
-
-      if (!isConnected) {
-        setError('Database tables not found. Please run the SQL setup scripts.')
-        setLoading(false)
+      if (error) {
+        console.error("Error loading games:", error)
         return
       }
 
-      // Load games and marketplace offers in parallel
-      const [gamesResult, offersResult] = await Promise.all([
-        loadGames(),
-        loadMarketplaceOffers()
-      ])
-
-      if (!gamesResult || !offersResult) {
-        setError('Failed to load data from database.')
-      }
-    } catch (error) {
-      console.error('Error loading data:', error)
-      setError('Failed to connect to database. Please check your setup.')
-      setDatabaseConnected(false)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadGames = async (): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase
-        .from('games')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error loading games:', error)
-        return false
-      }
-
-      setGames(data || [])
-      return true
-    } catch (error) {
-      console.error('Error loading games:', error)
-      return false
-    }
-  }
-
-  const loadMarketplaceOffers = async (): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase
-        .from('marketplace_offers')
-        .select(`
-          *,
-          users!marketplace_offers_user_id_fkey(name)
-        `)
-        .eq('active', true)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error loading marketplace offers:', error)
-        // Try without the join if it fails
-        const { data: simpleData, error: simpleError } = await supabase
-          .from('marketplace_offers')
-          .select('*')
-          .eq('active', true)
-          .order('created_at', { ascending: false })
-
-        if (simpleError) {
-          console.error('Error loading marketplace offers (simple):', simpleError)
-          return false
-        }
-
-        // Transform data to match expected format
-        const transformedOffers = (simpleData || []).map(offer => ({
-          ...offer,
-          owner: 'Unbekannt',
-          rating: 5.0,
-          gameId: parseInt(offer.game_id || '0') || undefined
-        }))
-
-        setMarketplaceOffers(transformedOffers)
-        return true
-      }
-
-      // Transform data to match expected format
-      const transformedOffers = (data || []).map(offer => ({
-        ...offer,
-        owner: offer.users?.name || 'Unbekannt',
-        rating: 5.0,
-        gameId: parseInt(offer.game_id || '0') || undefined
+      // Ensure fallback image is applied
+      const gamesWithFallback = (data || []).map((game) => ({
+        ...game,
+        image: game.image || FALLBACK_IMAGE,
       }))
 
-      setMarketplaceOffers(transformedOffers)
-      return true
-    } catch (error) {
-      console.error('Error loading marketplace offers:', error)
-      return false
+      setGames(gamesWithFallback)
+    } catch (err) {
+      console.error("Error loading games:", err)
     }
   }
 
-  const addGame = async (gameData: Omit<Game, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-    if (!user) throw new Error('User not authenticated')
-    if (!databaseConnected) throw new Error('Database not connected')
+  // Load marketplace offers from database
+  const loadMarketplaceOffers = async () => {
+    if (!databaseConnected) return
 
     try {
       const { data, error } = await supabase
-        .from('games')
-        .insert([{
-          ...gameData,
-          user_id: user.id
-        }])
-        .select()
-        .single()
+        .from("marketplace_offers")
+        .select(`
+          *,
+          profiles:user_id (
+            username,
+            avatar_url
+          )
+        `)
+        .eq("active", true)
+        .order("created_at", { ascending: false })
 
-      if (error) throw error
-
-      setGames(prev => [data, ...prev])
-    } catch (error) {
-      console.error('Error adding game:', error)
-      throw error
-    }
-  }
-
-  const updateGame = async (id: string, gameData: Partial<Game>) => {
-    if (!user) throw new Error('User not authenticated')
-    if (!databaseConnected) throw new Error('Database not connected')
-
-    try {
-      const { data, error } = await supabase
-        .from('games')
-        .update(gameData)
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      setGames(prev => prev.map(game => game.id === id ? data : game))
-    } catch (error) {
-      console.error('Error updating game:', error)
-      throw error
-    }
-  }
-
-  const deleteGame = async (id: string) => {
-    if (!user) throw new Error('User not authenticated')
-    if (!databaseConnected) throw new Error('Database not connected')
-
-    try {
-      const { error } = await supabase
-        .from('games')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id)
-
-      if (error) throw error
-
-      setGames(prev => prev.filter(game => game.id !== id))
-    } catch (error) {
-      console.error('Error deleting game:', error)
-      throw error
-    }
-  }
-
-  const addMarketplaceOffer = async (offerData: Omit<MarketplaceOffer, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-    if (!user) throw new Error('User not authenticated')
-    if (!databaseConnected) throw new Error('Database not connected')
-
-    try {
-      const { data, error } = await supabase
-        .from('marketplace_offers')
-        .insert([{
-          title: offerData.title,
-          publisher: offerData.publisher,
-          condition: offerData.condition,
-          type: offerData.type,
-          price: offerData.price,
-          location: offerData.location,
-          distance: offerData.distance,
-          description: offerData.description,
-          image: offerData.image,
-          game_id: offerData.game_id,
-          user_id: user.id,
-          active: true
-        }])
-        .select()
-        .single()
-
-      if (error) throw error
-
-      // Transform data to match expected format
-      const transformedOffer = {
-        ...data,
-        owner: user.name,
-        rating: 5.0,
-        gameId: parseInt(data.game_id || '0') || undefined
+      if (error) {
+        console.error("Error loading marketplace offers:", error)
+        return
       }
 
-      setMarketplaceOffers(prev => [transformedOffer, ...prev])
-    } catch (error) {
-      console.error('Error adding marketplace offer:', error)
-      throw error
+      // Ensure fallback image is applied
+      const offersWithFallback = (data || []).map((offer) => ({
+        ...offer,
+        image: offer.image || FALLBACK_IMAGE,
+      }))
+
+      setMarketplaceOffers(offersWithFallback)
+    } catch (err) {
+      console.error("Error loading marketplace offers:", err)
     }
   }
 
-  const updateMarketplaceOffer = async (id: string, offerData: Partial<MarketplaceOffer>) => {
-    if (!user) throw new Error('User not authenticated')
-    if (!databaseConnected) throw new Error('Database not connected')
+  // Add new game
+  const addGame = async (gameData: Omit<Game, "id" | "user_id" | "created_at">) => {
+    if (!user || !databaseConnected) {
+      throw new Error("User not authenticated or database not connected")
+    }
 
     try {
-      const { data, error } = await supabase
-        .from('marketplace_offers')
-        .update(offerData)
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
+      const gameWithFallback = {
+        ...gameData,
+        image: gameData.image || FALLBACK_IMAGE,
+        user_id: user.id,
+      }
+
+      const { data, error } = await supabase.from("games").insert([gameWithFallback]).select()
+
+      if (error) {
+        console.error("Error adding game:", error)
+        throw new Error(`Fehler beim Hinzufügen des Spiels: ${error.message}`)
+      }
+
+      if (data && data.length > 0) {
+        const newGame = {
+          ...data[0],
+          image: data[0].image || FALLBACK_IMAGE,
+        }
+        setGames((prev) => [...prev, newGame])
+      }
+    } catch (err) {
+      console.error("Error adding game:", err)
+      throw err
+    }
+  }
+
+  // Update existing game
+  const updateGame = async (gameId: string, gameData: Partial<Omit<Game, "id" | "user_id" | "created_at">>) => {
+    if (!user || !databaseConnected) {
+      throw new Error("User not authenticated or database not connected")
+    }
+
+    try {
+      // First check if the game exists and belongs to the user
+      const { data: existingGame, error: checkError } = await supabase
+        .from("games")
+        .select("*")
+        .eq("id", gameId)
+        .eq("user_id", user.id)
         .single()
 
-      if (error) throw error
+      if (checkError || !existingGame) {
+        throw new Error("Spiel nicht gefunden oder keine Berechtigung")
+      }
 
-      setMarketplaceOffers(prev => prev.map(offer => offer.id === id ? data : offer))
-    } catch (error) {
-      console.error('Error updating marketplace offer:', error)
-      throw error
+      const gameWithFallback = {
+        ...gameData,
+        image: gameData.image || FALLBACK_IMAGE,
+      }
+
+      const { data, error } = await supabase
+        .from("games")
+        .update(gameWithFallback)
+        .eq("id", gameId)
+        .eq("user_id", user.id)
+        .select()
+
+      if (error) {
+        console.error("Error updating game:", error)
+        throw new Error(`Fehler beim Aktualisieren des Spiels: ${error.message}`)
+      }
+
+      if (data && data.length > 0) {
+        const updatedGame = {
+          ...data[0],
+          image: data[0].image || FALLBACK_IMAGE,
+        }
+        setGames((prev) => prev.map((game) => (game.id === gameId ? updatedGame : game)))
+      } else {
+        // Fallback: update local state manually
+        setGames((prev) => prev.map((game) => (game.id === gameId ? { ...game, ...gameWithFallback } : game)))
+      }
+    } catch (err) {
+      console.error("Error updating game:", err)
+      throw err
     }
   }
 
-  const deleteMarketplaceOffer = async (id: string) => {
-    if (!user) throw new Error('User not authenticated')
-    if (!databaseConnected) throw new Error('Database not connected')
+  // Delete game
+  const deleteGame = async (gameId: string) => {
+    if (!user || !databaseConnected) {
+      throw new Error("User not authenticated or database not connected")
+    }
 
     try {
-      const { error } = await supabase
-        .from('marketplace_offers')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id)
+      const { error } = await supabase.from("games").delete().eq("id", gameId).eq("user_id", user.id)
 
-      if (error) throw error
+      if (error) {
+        console.error("Error deleting game:", error)
+        throw new Error(`Fehler beim Löschen des Spiels: ${error.message}`)
+      }
 
-      setMarketplaceOffers(prev => prev.filter(offer => offer.id !== id))
-    } catch (error) {
-      console.error('Error deleting marketplace offer:', error)
-      throw error
+      setGames((prev) => prev.filter((game) => game.id !== gameId))
+    } catch (err) {
+      console.error("Error deleting game:", err)
+      throw err
     }
   }
 
-  const refreshData = async () => {
-    await loadData()
+  // Add marketplace offer
+  const addMarketplaceOffer = async (offerData: Omit<MarketplaceOffer, "id" | "user_id" | "created_at">) => {
+    if (!user || !databaseConnected) {
+      throw new Error("User not authenticated or database not connected")
+    }
+
+    try {
+      const offerWithFallback = {
+        ...offerData,
+        image: offerData.image || FALLBACK_IMAGE,
+        user_id: user.id,
+      }
+
+      const { data, error } = await supabase.from("marketplace_offers").insert([offerWithFallback]).select()
+
+      if (error) {
+        console.error("Error adding marketplace offer:", error)
+        throw new Error(`Fehler beim Hinzufügen des Angebots: ${error.message}`)
+      }
+
+      if (data && data.length > 0) {
+        const newOffer = {
+          ...data[0],
+          image: data[0].image || FALLBACK_IMAGE,
+        }
+        setMarketplaceOffers((prev) => [newOffer, ...prev])
+      }
+    } catch (err) {
+      console.error("Error adding marketplace offer:", err)
+      throw err
+    }
   }
 
-  const value = {
+  // Update marketplace offer
+  const updateMarketplaceOffer = async (
+    offerId: string,
+    offerData: Partial<Omit<MarketplaceOffer, "id" | "user_id" | "created_at">>,
+  ) => {
+    if (!user || !databaseConnected) {
+      throw new Error("User not authenticated or database not connected")
+    }
+
+    try {
+      // First check if the offer exists and belongs to the user
+      const { data: existingOffer, error: checkError } = await supabase
+        .from("marketplace_offers")
+        .select("*")
+        .eq("id", offerId)
+        .eq("user_id", user.id)
+        .single()
+
+      if (checkError || !existingOffer) {
+        throw new Error("Angebot nicht gefunden oder keine Berechtigung")
+      }
+
+      const offerWithFallback = {
+        ...offerData,
+        image: offerData.image || FALLBACK_IMAGE,
+      }
+
+      const { data, error } = await supabase
+        .from("marketplace_offers")
+        .update(offerWithFallback)
+        .eq("id", offerId)
+        .eq("user_id", user.id)
+        .select()
+
+      if (error) {
+        console.error("Error updating marketplace offer:", error)
+        throw new Error(`Fehler beim Aktualisieren des Angebots: ${error.message}`)
+      }
+
+      if (data && data.length > 0) {
+        const updatedOffer = {
+          ...data[0],
+          image: data[0].image || FALLBACK_IMAGE,
+        }
+        setMarketplaceOffers((prev) => prev.map((offer) => (offer.id === offerId ? updatedOffer : offer)))
+      } else {
+        // Fallback: update local state manually
+        setMarketplaceOffers((prev) =>
+          prev.map((offer) => (offer.id === offerId ? { ...offer, ...offerWithFallback } : offer)),
+        )
+      }
+    } catch (err) {
+      console.error("Error updating marketplace offer:", err)
+      throw err
+    }
+  }
+
+  // Delete marketplace offer
+  const deleteMarketplaceOffer = async (offerId: string) => {
+    if (!user || !databaseConnected) {
+      throw new Error("User not authenticated or database not connected")
+    }
+
+    try {
+      const { error } = await supabase.from("marketplace_offers").delete().eq("id", offerId).eq("user_id", user.id)
+
+      if (error) {
+        console.error("Error deleting marketplace offer:", error)
+        throw new Error(`Fehler beim Löschen des Angebots: ${error.message}`)
+      }
+
+      setMarketplaceOffers((prev) => prev.filter((offer) => offer.id !== offerId))
+    } catch (err) {
+      console.error("Error deleting marketplace offer:", err)
+      throw err
+    }
+  }
+
+  // Refresh all data
+  const refreshData = async () => {
+    setLoading(true)
+    const connected = await testDatabaseConnection()
+    if (connected) {
+      await Promise.all([loadGames(), loadMarketplaceOffers()])
+    }
+    setLoading(false)
+  }
+
+  // Initialize data on mount and user change
+  useEffect(() => {
+    refreshData()
+  }, [user])
+
+  const value: GamesContextType = {
     games,
     marketplaceOffers,
     loading,
@@ -369,7 +404,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 export function useGames() {
   const context = useContext(GamesContext)
   if (context === undefined) {
-    throw new Error('useGames must be used within a GamesProvider')
+    throw new Error("useGames must be used within a GamesProvider")
   }
   return context
 }

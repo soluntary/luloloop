@@ -16,6 +16,9 @@ import {
   Upload,
   Camera,
   Database,
+  Edit,
+  Trash2,
+  ChevronDown,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useState, Suspense, useRef } from "react"
@@ -25,8 +28,60 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
+
+const AGE_OPTIONS = [
+  "bis 4 Jahren",
+  "ab 4 bis 5 Jahren",
+  "ab 6 bis 7 Jahren",
+  "ab 8 bis 9 Jahren",
+  "ab 10 bis 11 Jahren",
+  "ab 12 bis 13 Jahren",
+  "ab 14 bis 17 Jahren",
+  "ab 18 Jahren",
+]
+
+const GAME_TYPE_OPTIONS = [
+  "Aktions- und Reaktionsspiel",
+  "Brettspiel",
+  "Würfelspiel",
+  "Kartenspiel",
+  "Merkspiel",
+  "Partyspiel",
+  "Quizspiel",
+  "Geschicklichkeitsspiel",
+  "Strategiespiel",
+  "Legespiel",
+  "Detektiv- & Escapespiel",
+  "Roll-and-Write-Spiel",
+  "Pen-&-Paper-Rollenspiel",
+  "Outdoor-Spiel",
+  "Glücksspiel",
+  "Trinkspiel",
+  "Erweiterung",
+  "Wissenspiel",
+]
+
+const PUBLISHER_OPTIONS = [
+  "Kosmos Spiele",
+  "Pegasus",
+  "Feuerland",
+  "Ravensburger",
+  "Schmidt Spiele",
+  "Asmodée",
+  "Haba",
+  "Hasbro",
+  "Hans im Glück",
+  "Amigo",
+  "Queen Games",
+  "Zoch Verlag",
+  "Abacusspiele",
+]
+
+const LANGUAGE_OPTIONS = ["Deutsch", "Französisch", "Englisch", "Italienisch"]
 
 function LibraryLoading() {
   return (
@@ -52,7 +107,7 @@ function LibraryLoading() {
 }
 
 function LibraryContent() {
-  const { games, addGame, addMarketplaceOffer, loading, error, databaseConnected } = useGames()
+  const { games, addGame, updateGame, deleteGame, addMarketplaceOffer, loading, error, databaseConnected } = useGames()
   const { user } = useAuth()
   const [selectedGame, setSelectedGame] = useState<(typeof games)[0] | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -67,14 +122,39 @@ function LibraryContent() {
   // Neues Spiel hinzufügen Dialog States
   const [isAddGameDialogOpen, setIsAddGameDialogOpen] = useState(false)
   const [newGameTitle, setNewGameTitle] = useState("")
-  const [newGamePublisher, setNewGamePublisher] = useState("")
+  const [newGamePublisher, setNewGamePublisher] = useState<string[]>([])
+  const [newGameCustomPublisher, setNewGameCustomPublisher] = useState("")
   const [newGameCondition, setNewGameCondition] = useState("")
   const [newGamePlayers, setNewGamePlayers] = useState("")
   const [newGameDuration, setNewGameDuration] = useState("")
-  const [newGameAge, setNewGameAge] = useState("")
-  const [newGameLanguage, setNewGameLanguage] = useState("")
+  const [newGameAge, setNewGameAge] = useState<string[]>([])
+  const [newGameLanguage, setNewGameLanguage] = useState<string[]>([])
+  const [newGameCustomLanguage, setNewGameCustomLanguage] = useState("")
+  const [newGameType, setNewGameType] = useState<string[]>([])
+  const [newGameCustomType, setNewGameCustomType] = useState("")
   const [newGameImage, setNewGameImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Spiel bearbeiten Dialog States
+  const [isEditGameDialogOpen, setIsEditGameDialogOpen] = useState(false)
+  const [editGame, setEditGame] = useState<(typeof games)[0] | null>(null)
+  const [editGameTitle, setEditGameTitle] = useState("")
+  const [editGamePublisher, setEditGamePublisher] = useState<string[]>([])
+  const [editGameCustomPublisher, setEditGameCustomPublisher] = useState("")
+  const [editGameCondition, setEditGameCondition] = useState("")
+  const [editGamePlayers, setEditGamePlayers] = useState("")
+  const [editGameDuration, setEditGameDuration] = useState("")
+  const [editGameAge, setEditGameAge] = useState<string[]>([])
+  const [editGameLanguage, setEditGameLanguage] = useState<string[]>([])
+  const [editGameCustomLanguage, setEditGameCustomLanguage] = useState("")
+  const [editGameType, setEditGameType] = useState<string[]>([])
+  const [editGameCustomType, setEditGameCustomType] = useState("")
+  const [editGameImage, setEditGameImage] = useState<string | null>(null)
+  const editFileInputRef = useRef<HTMLInputElement>(null)
+
+  // Spiel löschen Dialog States
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [gameToDelete, setGameToDelete] = useState<(typeof games)[0] | null>(null)
 
   const [sortBy, setSortBy] = useState("title")
   const [filterCondition, setFilterCondition] = useState("all")
@@ -85,7 +165,7 @@ function LibraryContent() {
       // Suchfilter
       const matchesSearch =
         game.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        game.publisher.toLowerCase().includes(searchTerm.toLowerCase())
+        game.publisher?.toLowerCase().includes(searchTerm.toLowerCase())
 
       // Zustandsfilter
       const matchesCondition = filterCondition === "all" || game.condition === filterCondition
@@ -100,7 +180,7 @@ function LibraryContent() {
         case "title":
           return a.title.localeCompare(b.title)
         case "publisher":
-          return a.publisher.localeCompare(b.publisher)
+          return (a.publisher || "").localeCompare(b.publisher || "")
         case "condition":
           const conditionOrder = ["Wie neu", "Sehr gut", "Gut", "Akzeptabel"]
           return conditionOrder.indexOf(a.condition) - conditionOrder.indexOf(b.condition)
@@ -132,6 +212,86 @@ function LibraryContent() {
         return "Verkaufen"
       default:
         return type
+    }
+  }
+
+  // Multi-select functions
+  const handleNewGameAgeToggle = (age: string) => {
+    setNewGameAge((prev) => (prev.includes(age) ? prev.filter((a) => a !== age) : [...prev, age]))
+  }
+
+  const handleEditGameAgeToggle = (age: string) => {
+    setEditGameAge((prev) => (prev.includes(age) ? prev.filter((a) => a !== age) : [...prev, age]))
+  }
+
+  const handleNewGameTypeToggle = (type: string) => {
+    setNewGameType((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]))
+  }
+
+  const handleEditGameTypeToggle = (type: string) => {
+    setEditGameType((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]))
+  }
+
+  const handleNewGamePublisherToggle = (publisher: string) => {
+    setNewGamePublisher((prev) =>
+      prev.includes(publisher) ? prev.filter((p) => p !== publisher) : [...prev, publisher],
+    )
+  }
+
+  const handleEditGamePublisherToggle = (publisher: string) => {
+    setEditGamePublisher((prev) =>
+      prev.includes(publisher) ? prev.filter((p) => p !== publisher) : [...prev, publisher],
+    )
+  }
+
+  const handleNewGameLanguageToggle = (language: string) => {
+    setNewGameLanguage((prev) => (prev.includes(language) ? prev.filter((l) => l !== language) : [...prev, language]))
+  }
+
+  const handleEditGameLanguageToggle = (language: string) => {
+    setEditGameLanguage((prev) => (prev.includes(language) ? prev.filter((l) => l !== language) : [...prev, language]))
+  }
+
+  // Custom input handlers
+  const handleAddCustomPublisher = () => {
+    if (newGameCustomPublisher.trim() && !newGamePublisher.includes(newGameCustomPublisher.trim())) {
+      setNewGamePublisher((prev) => [...prev, newGameCustomPublisher.trim()])
+      setNewGameCustomPublisher("")
+    }
+  }
+
+  const handleAddCustomType = () => {
+    if (newGameCustomType.trim() && !newGameType.includes(newGameCustomType.trim())) {
+      setNewGameType((prev) => [...prev, newGameCustomType.trim()])
+      setNewGameCustomType("")
+    }
+  }
+
+  const handleAddCustomLanguage = () => {
+    if (newGameCustomLanguage.trim() && !newGameLanguage.includes(newGameCustomLanguage.trim())) {
+      setNewGameLanguage((prev) => [...prev, newGameCustomLanguage.trim()])
+      setNewGameCustomLanguage("")
+    }
+  }
+
+  const handleEditAddCustomPublisher = () => {
+    if (editGameCustomPublisher.trim() && !editGamePublisher.includes(editGameCustomPublisher.trim())) {
+      setEditGamePublisher((prev) => [...prev, editGameCustomPublisher.trim()])
+      setEditGameCustomPublisher("")
+    }
+  }
+
+  const handleEditAddCustomType = () => {
+    if (editGameCustomType.trim() && !editGameType.includes(editGameCustomType.trim())) {
+      setEditGameType((prev) => [...prev, editGameCustomType.trim()])
+      setEditGameCustomType("")
+    }
+  }
+
+  const handleEditAddCustomLanguage = () => {
+    if (editGameCustomLanguage.trim() && !editGameLanguage.includes(editGameCustomLanguage.trim())) {
+      setEditGameLanguage((prev) => [...prev, editGameCustomLanguage.trim()])
+      setEditGameCustomLanguage("")
     }
   }
 
@@ -172,7 +332,7 @@ function LibraryContent() {
         price: price || (offerType === "trade" ? "Tausch angeboten" : "Preis auf Anfrage"),
         location: "Berlin Mitte", // Would come from user profile
         distance: "0.5 km",
-        image: offerGame.image,
+        image: offerGame.image || "/images/ludoloop-game-placeholder.png",
         game_id: offerGame.id,
         description: description.trim() || undefined,
         active: true,
@@ -209,7 +369,7 @@ function LibraryContent() {
   const handleAddGameSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!newGameTitle || !newGamePublisher || !newGameCondition) {
+    if (!newGameTitle || newGamePublisher.length === 0 || !newGameCondition) {
       alert("Bitte fülle mindestens Titel, Verlag und Zustand aus!")
       return
     }
@@ -222,14 +382,15 @@ function LibraryContent() {
     try {
       const newGameData = {
         title: newGameTitle,
-        publisher: newGamePublisher,
+        publisher: newGamePublisher.length > 0 ? newGamePublisher.join(", ") : "Unbekannt",
         condition: newGameCondition,
         players: newGamePlayers || "1-4",
         duration: newGameDuration || "30-60 min",
-        age: newGameAge || "8+",
-        language: newGameLanguage || "Deutsch",
+        age: newGameAge.length > 0 ? newGameAge.join(", ") : "8+",
+        language: newGameLanguage.length > 0 ? newGameLanguage.join(", ") : "Deutsch",
+        type: newGameType.length > 0 ? newGameType.join(", ") : "Brettspiel",
         available: ["lend", "trade", "sell"],
-        image: newGameImage || `/placeholder.svg?height=200&width=150&text=${encodeURIComponent(newGameTitle)}`,
+        image: newGameImage || "/images/ludoloop-game-placeholder.png",
       }
 
       await addGame(newGameData)
@@ -238,17 +399,150 @@ function LibraryContent() {
 
       // Reset form
       setNewGameTitle("")
-      setNewGamePublisher("")
+      setNewGamePublisher([])
+      setNewGameCustomPublisher("")
       setNewGameCondition("")
       setNewGamePlayers("")
       setNewGameDuration("")
-      setNewGameAge("")
-      setNewGameLanguage("")
+      setNewGameAge([])
+      setNewGameLanguage([])
+      setNewGameCustomLanguage("")
+      setNewGameType([])
+      setNewGameCustomType("")
       setNewGameImage(null)
       setIsAddGameDialogOpen(false)
     } catch (error) {
       console.error("Error adding game:", error)
       alert("Fehler beim Hinzufügen des Spiels!")
+    }
+  }
+
+  // Spiel bearbeiten Funktionen
+  const handleEditGame = (game: (typeof games)[0]) => {
+    setEditGame(game)
+    setEditGameTitle(game.title)
+
+    // Parse existing publisher string back to array
+    const existingPublishers = game.publisher
+      ? game.publisher.split(", ").filter((pub) => PUBLISHER_OPTIONS.includes(pub))
+      : []
+    setEditGamePublisher(existingPublishers)
+
+    setEditGameCondition(game.condition)
+    setEditGamePlayers(game.players || "")
+    setEditGameDuration(game.duration || "")
+
+    // Parse existing age string back to array
+    const existingAges = game.age ? game.age.split(", ").filter((age) => AGE_OPTIONS.includes(age)) : []
+    setEditGameAge(existingAges)
+
+    // Parse existing language string back to array
+    const existingLanguages = game.language
+      ? game.language.split(", ").filter((lang) => LANGUAGE_OPTIONS.includes(lang))
+      : []
+    setEditGameLanguage(existingLanguages)
+
+    // Parse existing type string back to array
+    const existingTypes = game.type ? game.type.split(", ").filter((type) => GAME_TYPE_OPTIONS.includes(type)) : []
+    setEditGameType(existingTypes)
+
+    setEditGameImage(game.image)
+    setIsEditGameDialogOpen(true)
+  }
+
+  const handleEditImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setEditGameImage(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleEditGameSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!editGame || !editGameTitle || editGamePublisher.length === 0 || !editGameCondition) {
+      alert("Bitte fülle mindestens Titel, Verlag und Zustand aus!")
+      return
+    }
+
+    if (!databaseConnected) {
+      alert("Datenbank ist nicht verfügbar. Bitte führe zuerst die SQL-Skripte aus.")
+      return
+    }
+
+    try {
+      const updatedGameData = {
+        title: editGameTitle,
+        publisher: editGamePublisher.length > 0 ? editGamePublisher.join(", ") : "Unbekannt",
+        condition: editGameCondition,
+        players: editGamePlayers || "1-4",
+        duration: editGameDuration || "30-60 min",
+        age: editGameAge.length > 0 ? editGameAge.join(", ") : "8+",
+        language: editGameLanguage.length > 0 ? editGameLanguage.join(", ") : "Deutsch",
+        type: editGameType.length > 0 ? editGameType.join(", ") : "Brettspiel",
+        image: editGameImage || "/images/ludoloop-game-placeholder.png",
+      }
+
+      await updateGame(editGame.id, updatedGameData)
+
+      alert(`${updatedGameData.title} wurde erfolgreich aktualisiert!`)
+
+      // Reset form
+      setEditGame(null)
+      setEditGameTitle("")
+      setEditGamePublisher([])
+      setEditGameCustomPublisher("")
+      setEditGameCondition("")
+      setEditGamePlayers("")
+      setEditGameDuration("")
+      setEditGameAge([])
+      setEditGameLanguage([])
+      setEditGameCustomLanguage("")
+      setEditGameType([])
+      setEditGameCustomType("")
+      setEditGameImage(null)
+      setIsEditGameDialogOpen(false)
+
+      // Update selected game if it was the one being edited
+      if (selectedGame?.id === editGame.id) {
+        setSelectedGame({ ...editGame, ...updatedGameData })
+      }
+    } catch (error) {
+      console.error("Error updating game:", error)
+      alert("Fehler beim Aktualisieren des Spiels!")
+    }
+  }
+
+  // Spiel löschen Funktionen
+  const handleDeleteGame = (game: (typeof games)[0]) => {
+    setGameToDelete(game)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!gameToDelete || !databaseConnected) {
+      alert("Fehler beim Löschen des Spiels!")
+      return
+    }
+
+    try {
+      await deleteGame(gameToDelete.id)
+      alert(`${gameToDelete.title} wurde erfolgreich aus deiner Bibliothek entfernt!`)
+
+      // Clear selected game if it was the one being deleted
+      if (selectedGame?.id === gameToDelete.id) {
+        setSelectedGame(null)
+      }
+
+      setGameToDelete(null)
+      setIsDeleteDialogOpen(false)
+    } catch (error) {
+      console.error("Error deleting game:", error)
+      alert("Fehler beim Löschen des Spiels!")
     }
   }
 
@@ -294,19 +588,10 @@ function LibraryContent() {
           <h2 className="text-4xl font-bold text-gray-800 transform -rotate-1 font-handwritten">
             Meine Spielbibliothek
           </h2>
-          <Dialog open={isAddGameDialogOpen} onOpenChange={setIsAddGameDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                className="bg-teal-400 hover:bg-teal-500 text-white transform rotate-1 hover:rotate-0 transition-all font-handwritten"
-                disabled={!databaseConnected}
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Neues Spiel hinzufügen
-              </Button>
-            </DialogTrigger>
+          <Dialog open={isAddGameDialogOpen} onOpenChange={setIsAddGameDialogOpen}>            
             <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="font-handwritten text-2xl text-center">🎲 Neues Spiel hinzufügen</DialogTitle>
+                <DialogTitle className="font-handwritten text-2xl text-center">Neues Spiel hinzufügen</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleAddGameSubmit} className="space-y-4">
                 {/* Bild Upload */}
@@ -357,13 +642,164 @@ function LibraryContent() {
 
                 <div>
                   <Label className="font-body">Verlag *</Label>
-                  <Input
-                    value={newGamePublisher}
-                    onChange={(e) => setNewGamePublisher(e.target.value)}
-                    placeholder="z.B. Kosmos"
-                    className="font-body"
-                    required
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between font-body bg-transparent"
+                        type="button"
+                      >
+                        {newGamePublisher.length > 0 ? `${newGamePublisher.length} ausgewählt` : "Verlag wählen..."}
+                        <ChevronDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-0">
+                      <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                        <h4 className="font-medium text-sm font-body">Verlag auswählen:</h4>
+                        {PUBLISHER_OPTIONS.map((publisher) => (
+                          <div key={publisher} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`new-publisher-${publisher}`}
+                              checked={newGamePublisher.includes(publisher)}
+                              onCheckedChange={() => handleNewGamePublisherToggle(publisher)}
+                            />
+                            <Label htmlFor={`new-publisher-${publisher}`} className="text-sm font-body cursor-pointer">
+                              {publisher}
+                            </Label>
+                          </div>
+                        ))}
+
+                        {/* Custom Publisher Input */}
+                        <div className="border-t pt-2 mt-2">
+                          <h5 className="font-medium text-xs font-body text-gray-600 mb-2">
+                            Eigenen Verlag hinzufügen:
+                          </h5>
+                          <div className="flex gap-2">
+                            <Input
+                              value={newGameCustomPublisher}
+                              onChange={(e) => setNewGameCustomPublisher(e.target.value)}
+                              placeholder="Verlag eingeben..."
+                              className="text-xs font-body"
+                              onKeyPress={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  handleAddCustomPublisher()
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleAddCustomPublisher}
+                              className="bg-teal-400 hover:bg-teal-500 text-white px-2"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Selected Publishers */}
+                        {newGamePublisher.length > 0 && (
+                          <div className="border-t pt-2 mt-2">
+                            <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Ausgewählt:</h5>
+                            <div className="flex flex-wrap gap-1">
+                              {newGamePublisher.map((publisher) => (
+                                <Badge
+                                  key={publisher}
+                                  variant="secondary"
+                                  className="text-xs cursor-pointer"
+                                  onClick={() => handleNewGamePublisherToggle(publisher)}
+                                >
+                                  {publisher} ×
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div>
+                  <Label className="font-body">Kategorie</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between font-body bg-transparent"
+                        type="button"
+                      >
+                        {newGameType.length > 0 ? `${newGameType.length} ausgewählt` : "Spieltyp wählen..."}
+                        <ChevronDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-0">
+                      <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                        <h4 className="font-medium text-sm font-body">Spieltyp auswählen:</h4>
+                        {GAME_TYPE_OPTIONS.map((type) => (
+                          <div key={type} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`new-type-${type}`}
+                              checked={newGameType.includes(type)}
+                              onCheckedChange={() => handleNewGameTypeToggle(type)}
+                            />
+                            <Label htmlFor={`new-type-${type}`} className="text-sm font-body cursor-pointer">
+                              {type}
+                            </Label>
+                          </div>
+                        ))}
+
+                        {/* Custom Type Input */}
+                        <div className="border-t pt-2 mt-2">
+                          <h5 className="font-medium text-xs font-body text-gray-600 mb-2">
+                            Eigenen Kategorie hinzufügen:
+                          </h5>
+                          <div className="flex gap-2">
+                            <Input
+                              value={newGameCustomType}
+                              onChange={(e) => setNewGameCustomType(e.target.value)}
+                              placeholder="Kategorie eingeben..."
+                              className="text-xs font-body"
+                              onKeyPress={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  handleAddCustomType()
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleAddCustomType}
+                              className="bg-teal-400 hover:bg-teal-500 text-white px-2"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Selected Types */}
+                        {newGameType.length > 0 && (
+                          <div className="border-t pt-2 mt-2">
+                            <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Ausgewählt:</h5>
+                            <div className="flex flex-wrap gap-1">
+                              {newGameType.map((type) => (
+                                <Badge
+                                  key={type}
+                                  variant="secondary"
+                                  className="text-xs cursor-pointer"
+                                  onClick={() => handleNewGameTypeToggle(type)}
+                                >
+                                  {type} ×
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div>
@@ -392,7 +828,7 @@ function LibraryContent() {
                 {/* Zusätzliche Details */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="font-body">Spieler</Label>
+                    <Label className="font-body">Spieleranzahl</Label>
                     <Input
                       value={newGamePlayers}
                       onChange={(e) => setNewGamePlayers(e.target.value)}
@@ -401,7 +837,7 @@ function LibraryContent() {
                     />
                   </div>
                   <div>
-                    <Label className="font-body">Dauer</Label>
+                    <Label className="font-body">Spieldauer</Label>
                     <Input
                       value={newGameDuration}
                       onChange={(e) => setNewGameDuration(e.target.value)}
@@ -413,22 +849,116 @@ function LibraryContent() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="font-body">Alter</Label>
-                    <Input
-                      value={newGameAge}
-                      onChange={(e) => setNewGameAge(e.target.value)}
-                      placeholder="z.B. 10+"
-                      className="font-body"
-                    />
+                    <Label className="font-body">Altersempfehlung</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-between font-body bg-transparent"
+                          type="button"
+                        >
+                          {newGameAge.length > 0 ? `${newGameAge.length} ausgewählt` : "Altersgruppen wählen..."}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-0">
+                        <div className="p-4 space-y-2">
+                          <h4 className="font-medium text-sm font-body">Altersempfehlung auswählen:</h4>
+                          {AGE_OPTIONS.map((age) => (
+                            <div key={age} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`new-age-${age}`}
+                                checked={newGameAge.includes(age)}
+                                onCheckedChange={() => handleNewGameAgeToggle(age)}
+                              />
+                              <Label htmlFor={`new-age-${age}`} className="text-sm font-body cursor-pointer">
+                                {age}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div>
                     <Label className="font-body">Sprache</Label>
-                    <Input
-                      value={newGameLanguage}
-                      onChange={(e) => setNewGameLanguage(e.target.value)}
-                      placeholder="z.B. Deutsch"
-                      className="font-body"
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-between font-body bg-transparent"
+                          type="button"
+                        >
+                          {newGameLanguage.length > 0 ? `${newGameLanguage.length} ausgewählt` : "Sprachen wählen..."}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-0">
+                        <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                          <h4 className="font-medium text-sm font-body">Sprachen auswählen:</h4>
+                          {LANGUAGE_OPTIONS.map((language) => (
+                            <div key={language} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`new-language-${language}`}
+                                checked={newGameLanguage.includes(language)}
+                                onCheckedChange={() => handleNewGameLanguageToggle(language)}
+                              />
+                              <Label htmlFor={`new-language-${language}`} className="text-sm font-body cursor-pointer">
+                                {language}
+                              </Label>
+                            </div>
+                          ))}
+
+                          {/* Custom Language Input */}
+                          <div className="border-t pt-2 mt-2">
+                            <h5 className="font-medium text-xs font-body text-gray-600 mb-2">
+                              Eigene Sprache hinzufügen:
+                            </h5>
+                            <div className="flex gap-2">
+                              <Input
+                                value={newGameCustomLanguage}
+                                onChange={(e) => setNewGameCustomLanguage(e.target.value)}
+                                placeholder="Sprache eingeben..."
+                                className="text-xs font-body"
+                                onKeyPress={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault()
+                                    handleAddCustomLanguage()
+                                  }
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={handleAddCustomLanguage}
+                                className="bg-teal-400 hover:bg-teal-500 text-white px-2"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Selected Languages */}
+                          {newGameLanguage.length > 0 && (
+                            <div className="border-t pt-2 mt-2">
+                              <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Ausgewählt:</h5>
+                              <div className="flex flex-wrap gap-1">
+                                {newGameLanguage.map((language) => (
+                                  <Badge
+                                    key={language}
+                                    variant="secondary"
+                                    className="text-xs cursor-pointer"
+                                    onClick={() => handleNewGameLanguageToggle(language)}
+                                  >
+                                    {language} ×
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
 
@@ -577,32 +1107,110 @@ function LibraryContent() {
               {/* Shelf Rows */}
               <div className="space-y-8">
                 {databaseConnected ? (
-                  Array.from({ length: Math.ceil(filteredGames.length / 3) || 1 }, (_, shelfIndex) => (
-                    <div key={shelfIndex} className="relative">
-                      {/* Shelf Board */}
-                      <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-b from-amber-600 to-amber-700 rounded-lg shadow-md"></div>
+                  <>
+                    {/* Add Game Cover and First Row */}
+                    {filteredGames.length > 0 && (
+                      <div className="relative">
+                        {/* Shelf Board */}
+                        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-b from-amber-600 to-amber-700 rounded-lg shadow-md"></div>
 
-                      {/* Games on Shelf */}
-                      <div className="flex gap-2 pb-4 overflow-x-auto">
-                        {filteredGames.slice(shelfIndex * 3, shelfIndex * 3 + 3).map((game) => (
+                        {/* First row with Add Game Cover and up to 5 games */}
+                        <div className="flex gap-2 pb-4 overflow-x-auto">
+                          {/* Add Game Cover - always first */}
                           <div
-                            key={game.id}
                             className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300"
-                            onClick={() => setSelectedGame(game)}
+                            onClick={() => setIsAddGameDialogOpen(true)}
                           >
-                            <div className="w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 border-gray-300 overflow-hidden">
-                              <img
-                                src={game.image || "/placeholder.svg"}
-                                alt={game.title}
-                                className="w-full h-full object-cover"
-                              />
+                            <div className="w-24 h-32 bg-gradient-to-br from-teal-100 to-teal-200 rounded-t-lg shadow-lg border-2 border-dashed border-teal-400 overflow-hidden relative flex items-center justify-center">
+                              <div className="text-center">
+                                <Plus className="w-8 h-8 text-teal-600 mx-auto mb-1" />
+                                <p className="text-xs text-teal-700 font-bold font-handwritten">Spiel hinzufügen</p>
+                              </div>
                             </div>
                             <div className="w-24 h-2 bg-gradient-to-b from-gray-300 to-gray-400 rounded-b-sm"></div>
                           </div>
-                        ))}
+
+                          {/* First 5 games in the same row */}
+                          {filteredGames.slice(0, 5).map((game) => (
+                            <div
+                              key={game.id}
+                              className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300"
+                              onClick={() => setSelectedGame(game)}
+                            >
+                              <div className="w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 border-gray-300 overflow-hidden relative">
+                                <img
+                                  src={game.image || "/images/ludoloop-game-placeholder.png"}
+                                  alt={game.title}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-1">
+                                  <p className="text-white text-xs font-bold text-center leading-tight font-handwritten truncate">
+                                    {game.title}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="w-24 h-2 bg-gradient-to-b from-gray-300 to-gray-400 rounded-b-sm"></div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    )}
+
+                    {/* Remaining games in subsequent rows */}
+                    {filteredGames.length > 5 &&
+                      Array.from({ length: Math.ceil((filteredGames.length - 5) / 6) }, (_, shelfIndex) => (
+                        <div key={shelfIndex + 1} className="relative">
+                          {/* Shelf Board */}
+                          <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-b from-amber-600 to-amber-700 rounded-lg shadow-md"></div>
+
+                          {/* Games on Shelf - 6 per row */}
+                          <div className="flex gap-2 pb-4 overflow-x-auto">
+                            {filteredGames.slice(5 + shelfIndex * 6, 5 + shelfIndex * 6 + 6).map((game) => (
+                              <div
+                                key={game.id}
+                                className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300"
+                                onClick={() => setSelectedGame(game)}
+                              >
+                                <div className="w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 border-gray-300 overflow-hidden relative">
+                                  <img
+                                    src={game.image || "/images/ludoloop-game-placeholder.png"}
+                                    alt={game.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-1">
+                                    <p className="text-white text-xs font-bold text-center leading-tight font-handwritten truncate">
+                                      {game.title}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="w-24 h-2 bg-gradient-to-b from-gray-300 to-gray-400 rounded-b-sm"></div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+
+                    {/* Show Add Game Cover alone if no games */}
+                    {filteredGames.length === 0 && (
+                      <div className="relative">
+                        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-b from-amber-600 to-amber-700 rounded-lg shadow-md"></div>
+                        <div className="flex gap-2 pb-4">
+                          <div
+                            className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300"
+                            onClick={() => setIsAddGameDialogOpen(true)}
+                          >
+                            <div className="w-24 h-32 bg-gradient-to-br from-teal-100 to-teal-200 rounded-t-lg shadow-lg border-2 border-dashed border-teal-400 overflow-hidden relative flex items-center justify-center">
+                              <div className="text-center">
+                                <Plus className="w-8 h-8 text-teal-600 mx-auto mb-1" />
+                                <p className="text-xs text-teal-700 font-bold font-handwritten">Spiel hinzufügen</p>
+                              </div>
+                            </div>
+                            <div className="w-24 h-2 bg-gradient-to-b from-gray-300 to-gray-400 rounded-b-sm"></div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="text-center py-12">
                     <Database className="w-16 h-16 text-amber-600 mx-auto mb-4" />
@@ -610,14 +1218,6 @@ function LibraryContent() {
                     <p className="text-amber-600 text-sm font-body mt-2">
                       Führe die SQL-Skripte aus, um deine Spiele zu sehen
                     </p>
-                  </div>
-                )}
-
-                {filteredGames.length === 0 && databaseConnected && (
-                  <div className="text-center py-12">
-                    <BookOpen className="w-16 h-16 text-amber-600 mx-auto mb-4" />
-                    <p className="text-amber-700 text-lg font-handwritten">Keine Spiele gefunden</p>
-                    <p className="text-amber-600 text-sm font-body mt-2">Füge dein erstes Spiel hinzu!</p>
                   </div>
                 )}
               </div>
@@ -630,11 +1230,19 @@ function LibraryContent() {
               <Card className="sticky top-8 transform rotate-1 hover:rotate-0 transition-all border-2 border-teal-200">
                 <CardContent className="p-6">
                   <div className="text-center mb-4">
-                    <img
-                      src={selectedGame.image || "/placeholder.svg"}
-                      alt={selectedGame.title}
-                      className="w-32 h-40 mx-auto rounded-lg shadow-lg mb-4"
-                    />
+                    <div className="relative w-32 h-40 mx-auto rounded-lg shadow-lg mb-4 overflow-hidden">
+                      <img
+                        src={selectedGame.image || "/images/ludoloop-game-placeholder.png"}
+                        alt={selectedGame.title}
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Game Title Overlay for Detail View */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-2">
+                        <p className="text-white text-sm font-bold text-center leading-tight font-handwritten">
+                          {selectedGame.title}
+                        </p>
+                      </div>
+                    </div>
                     <h3 className="text-2xl font-bold text-gray-800 mb-2 font-handwritten">{selectedGame.title}</h3>
                     <p className="text-gray-600 font-body">{selectedGame.publisher}</p>
                   </div>
@@ -647,31 +1255,59 @@ function LibraryContent() {
                       </Badge>
                     </div>
                     <div className="flex justify-between">
-                      <span className="font-medium font-body">Spieler:</span>
+                      <span className="font-medium font-body">Spieleranzahl:</span>
                       <span className="font-body">{selectedGame.players}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="font-medium font-body">Dauer:</span>
+                      <span className="font-medium font-body">Spieldauer:</span>
                       <span className="font-body">{selectedGame.duration}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="font-medium font-body">Alter:</span>
+                      <span className="font-medium font-body">Altersempfehlung:</span>
                       <span className="font-body">{selectedGame.age}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium font-body">Sprache:</span>
                       <span className="font-body">{selectedGame.language}</span>
                     </div>
+                    {selectedGame.type && (
+                      <div className="flex justify-between">
+                        <span className="font-medium font-body">Kategorie:</span>
+                        <span className="font-body">{selectedGame.type}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mb-6">
-                    <h4 className="font-bold mb-2 font-body">Anbieten als:</h4>
+                    <h4 className="font-bold mb-2 font-body">Anbieten zum:</h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedGame.available.map((type) => (
                         <Badge key={type} className={`${getAvailabilityColor(type)} text-white font-body`}>
                           {getAvailabilityText(type)}
                         </Badge>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* Edit and Delete Buttons */}
+                  <div className="space-y-2 mb-4">
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleEditGame(selectedGame)}
+                        className="flex-1 bg-blue-400 hover:bg-blue-500 text-white font-handwritten"
+                        disabled={!databaseConnected}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Bearbeiten
+                      </Button>
+                      <Button
+                        onClick={() => handleDeleteGame(selectedGame)}
+                        className="flex-1 bg-red-400 hover:bg-red-500 text-white font-handwritten"
+                        disabled={!databaseConnected}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Löschen
+                      </Button>
                     </div>
                   </div>
 
@@ -723,11 +1359,19 @@ function LibraryContent() {
           </DialogHeader>
           <form onSubmit={handleOfferSubmit} className="space-y-4">
             <div className="text-center">
-              <img
-                src={offerGame?.image || "/placeholder.svg"}
-                alt={offerGame?.title}
-                className="w-24 h-32 mx-auto rounded-lg shadow-lg mb-4"
-              />
+              <div className="relative w-24 h-32 mx-auto rounded-lg shadow-lg mb-4 overflow-hidden">
+                <img
+                  src={offerGame?.image || "/images/ludoloop-game-placeholder.png"}
+                  alt={offerGame?.title}
+                  className="w-full h-full object-cover"
+                />
+                {/* Game Title Overlay for Dialog */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-1">
+                  <p className="text-white text-xs font-bold text-center leading-tight font-handwritten truncate">
+                    {offerGame?.title}
+                  </p>
+                </div>
+              </div>
               <p className="text-sm text-gray-600 font-body">
                 {getAvailabilityText(offerType)} - {offerGame?.condition}
               </p>
@@ -774,6 +1418,436 @@ function LibraryContent() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Spiel bearbeiten Dialog */}
+      <Dialog open={isEditGameDialogOpen} onOpenChange={setIsEditGameDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-handwritten text-2xl text-center">✏️ Spiel bearbeiten</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditGameSubmit} className="space-y-4">
+            {/* Bild Upload */}
+            <div className="text-center">
+              <div className="w-32 h-40 mx-auto mb-4 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden relative">
+                {editGameImage ? (
+                  <>
+                    <img
+                      src={editGameImage || "/placeholder.svg"}
+                      alt="Spiel Cover"
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Game Title Overlay for Edit Dialog */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-1">
+                      <p className="text-white text-xs font-bold text-center leading-tight font-handwritten truncate">
+                        {editGameTitle || "Spieltitel"}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center">
+                    <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500 font-body">Spiel Cover</p>
+                  </div>
+                )}
+              </div>
+              <input
+                type="file"
+                ref={editFileInputRef}
+                onChange={handleEditImageUpload}
+                accept="image/*"
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => editFileInputRef.current?.click()}
+                className="font-handwritten"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Bild ändern
+              </Button>
+            </div>
+
+            {/* Grunddaten */}
+            <div>
+              <Label className="font-body">Spieltitel *</Label>
+              <Input
+                value={editGameTitle}
+                onChange={(e) => setEditGameTitle(e.target.value)}
+                placeholder="z.B. Catan"
+                className="font-body"
+                required
+              />
+            </div>
+
+            <div>
+              <Label className="font-body">Verlag *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between font-body bg-transparent" type="button">
+                    {editGamePublisher.length > 0 ? `${editGamePublisher.length} ausgewählt` : "Verlag wählen..."}
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-0">
+                  <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                    <h4 className="font-medium text-sm font-body">Verlag auswählen:</h4>
+                    {PUBLISHER_OPTIONS.map((publisher) => (
+                      <div key={publisher} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`edit-publisher-${publisher}`}
+                          checked={editGamePublisher.includes(publisher)}
+                          onCheckedChange={() => handleEditGamePublisherToggle(publisher)}
+                        />
+                        <Label htmlFor={`edit-publisher-${publisher}`} className="text-sm font-body cursor-pointer">
+                          {publisher}
+                        </Label>
+                      </div>
+                    ))}
+
+                    {/* Custom Publisher Input */}
+                    <div className="border-t pt-2 mt-2">
+                      <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Eigenen Verlag hinzufügen:</h5>
+                      <div className="flex gap-2">
+                        <Input
+                          value={editGameCustomPublisher}
+                          onChange={(e) => setEditGameCustomPublisher(e.target.value)}
+                          placeholder="Verlag eingeben..."
+                          className="text-xs font-body"
+                          onKeyPress={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              handleEditAddCustomPublisher()
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleEditAddCustomPublisher}
+                          className="bg-teal-400 hover:bg-teal-500 text-white px-2"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Selected Publishers */}
+                    {editGamePublisher.length > 0 && (
+                      <div className="border-t pt-2 mt-2">
+                        <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Ausgewählt:</h5>
+                        <div className="flex flex-wrap gap-1">
+                          {editGamePublisher.map((publisher) => (
+                            <Badge
+                              key={publisher}
+                              variant="secondary"
+                              className="text-xs cursor-pointer"
+                              onClick={() => handleEditGamePublisherToggle(publisher)}
+                            >
+                              {publisher} ×
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div>
+              <Label className="font-body">Kategorie</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between font-body bg-transparent" type="button">
+                    {editGameType.length > 0 ? `${editGameType.length} ausgewählt` : "Kategorie wählen..."}
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-0">
+                  <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                    <h4 className="font-medium text-sm font-body">Kategorie auswählen:</h4>
+                    {GAME_TYPE_OPTIONS.map((type) => (
+                      <div key={type} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`edit-type-${type}`}
+                          checked={editGameType.includes(type)}
+                          onCheckedChange={() => handleEditGameTypeToggle(type)}
+                        />
+                        <Label htmlFor={`edit-type-${type}`} className="text-sm font-body cursor-pointer">
+                          {type}
+                        </Label>
+                      </div>
+                    ))}
+
+                    {/* Custom Type Input */}
+                    <div className="border-t pt-2 mt-2">
+                      <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Eigenen Kategorie hinzufügen:</h5>
+                      <div className="flex gap-2">
+                        <Input
+                          value={editGameCustomType}
+                          onChange={(e) => setEditGameCustomType(e.target.value)}
+                          placeholder="Kategorie eingeben..."
+                          className="text-xs font-body"
+                          onKeyPress={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              handleEditAddCustomType()
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleEditAddCustomType}
+                          className="bg-teal-400 hover:bg-teal-500 text-white px-2"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Selected Types */}
+                    {editGameType.length > 0 && (
+                      <div className="border-t pt-2 mt-2">
+                        <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Ausgewählt:</h5>
+                        <div className="flex flex-wrap gap-1">
+                          {editGameType.map((type) => (
+                            <Badge
+                              key={type}
+                              variant="secondary"
+                              className="text-xs cursor-pointer"
+                              onClick={() => handleEditGameTypeToggle(type)}
+                            >
+                              {type} ×
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div>
+              <Label className="font-body">Zustand *</Label>
+              <Select value={editGameCondition} onValueChange={setEditGameCondition}>
+                <SelectTrigger className="font-body">
+                  <SelectValue placeholder="Zustand wählen..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Wie neu" className="font-body">
+                    Wie neu
+                  </SelectItem>
+                  <SelectItem value="Sehr gut" className="font-body">
+                    Sehr gut
+                  </SelectItem>
+                  <SelectItem value="Gut" className="font-body">
+                    Gut
+                  </SelectItem>
+                  <SelectItem value="Akzeptabel" className="font-body">
+                    Akzeptabel
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Zusätzliche Details */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="font-body">Spieleranzahl</Label>
+                <Input
+                  value={editGamePlayers}
+                  onChange={(e) => setEditGamePlayers(e.target.value)}
+                  placeholder="z.B. 2-4"
+                  className="font-body"
+                />
+              </div>
+              <div>
+                <Label className="font-body">Spieldauer</Label>
+                <Input
+                  value={editGameDuration}
+                  onChange={(e) => setEditGameDuration(e.target.value)}
+                  placeholder="z.B. 60 min"
+                  className="font-body"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="font-body">Altersempfehlung</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between font-body bg-transparent" type="button">
+                      {editGameAge.length > 0 ? `${editGameAge.length} ausgewählt` : "Altersgruppen wählen..."}
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-0">
+                    <div className="p-4 space-y-2">
+                      <h4 className="font-medium text-sm font-body">Altersgruppen auswählen:</h4>
+                      {AGE_OPTIONS.map((age) => (
+                        <div key={age} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`edit-age-${age}`}
+                            checked={editGameAge.includes(age)}
+                            onCheckedChange={() => handleEditGameAgeToggle(age)}
+                          />
+                          <Label htmlFor={`edit-age-${age}`} className="text-sm font-body cursor-pointer">
+                            {age}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <Label className="font-body">Sprache</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between font-body bg-transparent" type="button">
+                      {editGameLanguage.length > 0 ? `${editGameLanguage.length} ausgewählt` : "Sprachen wählen..."}
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-0">
+                    <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                      <h4 className="font-medium text-sm font-body">Sprachen auswählen:</h4>
+                      {LANGUAGE_OPTIONS.map((language) => (
+                        <div key={language} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`edit-language-${language}`}
+                            checked={editGameLanguage.includes(language)}
+                            onCheckedChange={() => handleEditGameLanguageToggle(language)}
+                          />
+                          <Label htmlFor={`edit-language-${language}`} className="text-sm font-body cursor-pointer">
+                            {language}
+                          </Label>
+                        </div>
+                      ))}
+
+                      {/* Custom Language Input */}
+                      <div className="border-t pt-2 mt-2">
+                        <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Eigene Sprache hinzufügen:</h5>
+                        <div className="flex gap-2">
+                          <Input
+                            value={editGameCustomLanguage}
+                            onChange={(e) => setEditGameCustomLanguage(e.target.value)}
+                            placeholder="Sprache eingeben..."
+                            className="text-xs font-body"
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault()
+                                handleEditAddCustomLanguage()
+                              }
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleEditAddCustomLanguage}
+                            className="bg-teal-400 hover:bg-teal-500 text-white px-2"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Selected Languages */}
+                      {editGameLanguage.length > 0 && (
+                        <div className="border-t pt-2 mt-2">
+                          <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Ausgewählt:</h5>
+                          <div className="flex flex-wrap gap-1">
+                            {editGameLanguage.map((language) => (
+                              <Badge
+                                key={language}
+                                variant="secondary"
+                                className="text-xs cursor-pointer"
+                                onClick={() => handleEditGameLanguageToggle(language)}
+                              >
+                                {language} ×
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditGameDialogOpen(false)}
+                className="flex-1 font-handwritten"
+              >
+                Abbrechen
+              </Button>
+              <Button type="submit" className="flex-1 bg-blue-400 hover:bg-blue-500 text-white font-handwritten">
+                Speichern
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Spiel löschen Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-handwritten text-2xl text-center">🗑️ Spiel löschen</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="relative w-24 h-32 mx-auto rounded-lg shadow-lg mb-4 overflow-hidden">
+                <img
+                  src={gameToDelete?.image || "/images/ludoloop-game-placeholder.png"}
+                  alt={gameToDelete?.title}
+                  className="w-full h-full object-cover"
+                />
+                {/* Game Title Overlay for Delete Dialog */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-1">
+                  <p className="text-white text-xs font-bold text-center leading-tight font-handwritten truncate">
+                    {gameToDelete?.title}
+                  </p>
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2 font-handwritten">{gameToDelete?.title}</h3>
+              <p className="text-gray-600 font-body">{gameToDelete?.publisher}</p>
+            </div>
+
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-700 font-body text-center">
+                Möchtest du dieses Spiel wirklich aus deiner Bibliothek entfernen? Diese Aktion kann nicht rückgängig
+                gemacht werden.
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+                className="flex-1 font-handwritten"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                onClick={handleConfirmDelete}
+                className="flex-1 bg-red-400 hover:bg-red-500 text-white font-handwritten"
+              >
+                Löschen
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

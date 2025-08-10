@@ -13,6 +13,7 @@ interface AuthUser {
   website?: string
   twitter?: string
   instagram?: string
+  facebook?: string
   settings?: any
 }
 
@@ -23,7 +24,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
-  updateProfile: (data: Partial<AuthUser>) => Promise<void>
+  updateProfile: (data: Partial<AuthUser>) => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         website: null,
         twitter: null,
         instagram: null,
+        facebook: null,
         settings: {
           notifications: {
             email: true,
@@ -145,8 +147,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (data: Partial<AuthUser>) => {
     if (!user) throw new Error("No user logged in")
 
-    // Update local user state
-    setUser((prev) => (prev ? { ...prev, ...data } : null))
+    try {
+      // Update auth metadata if name or avatar changed
+      if (data.name || data.avatar) {
+        const { error: authError } = await supabase.auth.updateUser({
+          data: {
+            name: data.name || user.name,
+            avatar_url: data.avatar || user.avatar,
+          },
+        })
+
+        if (authError) {
+          console.error("Error updating auth metadata:", authError)
+          throw authError
+        }
+      }
+
+      // Update local user state
+      const updatedUser = { ...user, ...data }
+      setUser(updatedUser)
+
+      return true
+    } catch (error) {
+      console.error("Error updating profile:", error)
+      throw error
+    }
   }
 
   const value = {

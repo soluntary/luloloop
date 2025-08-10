@@ -1,691 +1,421 @@
 "use client"
 
-import type React from "react"
-
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Dice6, Search, Filter, MapPin, Users, Plus, LogIn, UserPlus, HandCoins, RefreshCw } from "lucide-react"
-import Link from "next/link"
-import { Suspense, useState } from "react"
-import { Navigation } from "@/components/navigation"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Search, LogIn, UserPlus, MapPin, Star, MessageCircle, Heart, Filter, SortAsc, ShoppingCart, Database } from "lucide-react"
+import { Navigation } from "@/components/navigation"
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
-import { useMessages } from "@/contexts/messages-context"
 
-const getTypeColor = (type: string) => {
-  switch (type) {
-    case "lend":
-      return "bg-teal-400"
-    case "trade":
-      return "bg-orange-400"
-    case "sell":
-      return "bg-pink-400"
-    default:
-      return "bg-gray-400"
+export default function MarketplacePage() {
+  const { marketplaceOffers, loading, error, databaseConnected } = useGames()
+  const { user } = useAuth()
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedType, setSelectedType] = useState("all")
+  const [selectedCondition, setSelectedCondition] = useState("all")
+  const [sortBy, setSortBy] = useState("newest")
+  const [selectedOffer, setSelectedOffer] = useState<(typeof marketplaceOffers)[0] | null>(null)
+  const [isContactDialogOpen, setIsContactDialogOpen] = useState(false)
+  const [contactMessage, setContactMessage] = useState("")
+
+  const filteredOffers = marketplaceOffers
+    .filter((offer) => {
+      const matchesSearch =
+        offer.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        offer.publisher?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        offer.owner?.toLowerCase().includes(searchTerm.toLowerCase())
+
+      const matchesType = selectedType === "all" || offer.type === selectedType
+      const matchesCondition = selectedCondition === "all" || offer.condition === selectedCondition
+
+      return matchesSearch && matchesType && matchesCondition
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        case "oldest":
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        case "price-low":
+          const priceA = Number.parseFloat(a.price?.replace(/[^\d,.-]/g, "").replace(",", ".") || "0")
+          const priceB = Number.parseFloat(b.price?.replace(/[^\d,.-]/g, "").replace(",", ".") || "0")
+          return priceA - priceB
+        case "price-high":
+          const priceA2 = Number.parseFloat(a.price?.replace(/[^\d,.-]/g, "").replace(",", ".") || "0")
+          const priceB2 = Number.parseFloat(b.price?.replace(/[^\d,.-]/g, "").replace(",", ".") || "0")
+          return priceB2 - priceA2
+        case "title":
+          return a.title.localeCompare(b.title)
+        default:
+          return 0
+      }
+    })
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "lend":
+        return "bg-teal-400"
+      case "trade":
+        return "bg-orange-400"
+      case "sell":
+        return "bg-pink-400"
+      default:
+        return "bg-gray-400"
+    }
   }
-}
 
-const getTypeText = (type: string) => {
-  switch (type) {
-    case "lend":
-      return "Verleihen"
-    case "trade":
-      return "Tauschen"
-    case "sell":
-      return "Verkaufen"
-    default:
-      return type
+  const getTypeText = (type: string) => {
+    switch (type) {
+      case "lend":
+        return "Verleihen"
+      case "trade":
+        return "Tauschen"
+      case "sell":
+        return "Verkaufen"
+      default:
+        return type
+    }
   }
-}
 
-function MarketplaceLoading() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-20 h-20 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce transform rotate-12">
-          <Search className="w-10 h-10 text-white" />
-        </div>
-        <h2 className="text-3xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-          Marktplatz wird geladen...
-        </h2>
-        <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
-          Wir sammeln die besten Spiele-Angebote für dich!
-        </p>
-        <div className="mt-8 flex justify-center space-x-2">
-          <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-          <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-          <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+  const handleContactSeller = (offer: (typeof marketplaceOffers)[0]) => {
+    setSelectedOffer(offer)
+    setContactMessage(
+      `Hallo! Ich interessiere mich für dein Spiel "${offer.title}". Können wir uns darüber unterhalten?`,
+    )
+    setIsContactDialogOpen(true)
+  }
+
+  const handleSendMessage = () => {
+    // Here you would typically send the message to the seller
+    alert(`Nachricht an ${selectedOffer?.owner} gesendet!`)
+    setIsContactDialogOpen(false)
+    setContactMessage("")
+    setSelectedOffer(null)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-20 h-20 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce transform rotate-12">
+            <ShoppingCart className="w-10 h-10 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
+            Marktplatz wird geladen...
+          </h2>
+          <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
+            Die besten Angebote werden für dich gesucht!
+          </p>
+          <div className="mt-8 flex justify-center space-x-2">
+            <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+            <div
+              className="w-3 h-3 bg-orange-400 rounded-full animate-bounce"
+              style={{ animationDelay: "150ms" }}
+            ></div>
+            <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+          </div>
         </div>
       </div>
-    </div>
-  )
-}
-
-function MarketplaceContent() {
-  const { games: libraryGames, marketplaceOffers, addMarketplaceOffer } = useGames()
-  const { user } = useAuth()
-  const { sendMessage } = useMessages()
-  const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false)
-  const [selectedGame, setSelectedGame] = useState("")
-  const [offerType, setOfferType] = useState("")
-  const [price, setPrice] = useState("")
-  const [description, setDescription] = useState("")
-
-  // Anfrage Dialog States
-  const [isInquiryDialogOpen, setIsInquiryDialogOpen] = useState(false)
-  const [selectedOffer, setSelectedOffer] = useState<any>(null)
-  const [inquiryMessage, setInquiryMessage] = useState("")
-
-  // Detail Dialog States
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
-  const [selectedDetailOffer, setSelectedDetailOffer] = useState<any>(null)
-
-  // Filter states
-  const [searchTerm, setSearchTerm] = useState("")
-  const [activeFilter, setActiveFilter] = useState<"all" | "lend" | "trade" | "sell">("all")
-
-  // Filter marketplace offers
-  const filteredOffers = marketplaceOffers.filter((offer) => {
-    const matchesSearch =
-      offer.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      offer.publisher.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = activeFilter === "all" || offer.type === activeFilter
-
-    return matchesSearch && matchesFilter
-  })
-
-  const handleOfferSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!selectedGame || !offerType) {
-      alert("Bitte wähle ein Spiel und einen Angebotstyp aus!")
-      return
-    }
-
-    const game = libraryGames.find((g) => g.id.toString() === selectedGame)
-    if (!game) return
-
-    // Add to marketplace using context
-    addMarketplaceOffer({
-      title: game.title,
-      publisher: game.publisher,
-      condition: game.condition,
-      type: offerType as "lend" | "trade" | "sell",
-      price: price || (offerType === "trade" ? "Tausch angeboten" : "Preis auf Anfrage"),
-      location: "Berlin Mitte",
-      distance: "0.5 km",
-      owner: user?.name || "Du",
-      rating: 5.0,
-      image: game.image,
-      gameId: game.id,
-      description: description.trim() || undefined,
-    })
-
-    alert(`${game.title} wurde erfolgreich zum ${getTypeText(offerType)} angeboten!`)
-
-    // Reset form
-    setSelectedGame("")
-    setOfferType("")
-    setPrice("")
-    setDescription("")
-    setIsOfferDialogOpen(false)
-  }
-
-  const handleInquiry = (offer: any) => {
-    setSelectedOffer(offer)
-    setInquiryMessage("")
-    setIsInquiryDialogOpen(true)
-  }
-
-  const handleInquirySubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!inquiryMessage.trim() || !selectedOffer || !user) {
-      alert("Bitte gib eine Nachricht ein!")
-      return
-    }
-
-    // Send message to offer owner
-    sendMessage({
-      fromUser: user.name,
-      toUser: selectedOffer.owner,
-      gameTitle: selectedOffer.title,
-      gameId: selectedOffer.gameId,
-      offerType: selectedOffer.type,
-      message: inquiryMessage.trim(),
-      gameImage: selectedOffer.image,
-    })
-
-    alert(`Deine Anfrage wurde an ${selectedOffer.owner} gesendet!`)
-
-    // Reset form
-    setInquiryMessage("")
-    setSelectedOffer(null)
-    setIsInquiryDialogOpen(false)
-  }
-
-  const handleOfferClick = (offer: any) => {
-    setSelectedDetailOffer(offer)
-    setIsDetailDialogOpen(true)
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 font-body">
-      {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
       <Navigation currentPage="marketplace" />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Page Header */}
-        <div className="text-center mb-8">
-          <h2 className="text-4xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-            Spiele-Marktplatz
-          </h2>
-          <p className="text-xl text-gray-600 transform rotate-1 font-body">
-            Entdecke großartige Spiele in deiner Nähe!
-          </p>
-        </div>
-
-        {/* Search and Filter */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
-          <div className="flex-1">
-            <Input
-              placeholder="Nach Spielen suchen..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="border-2 border-teal-200 focus:border-teal-400 font-body text-base"
-            />
-          </div>
-          <div className="flex gap-2 sm:gap-4">
-            <Button
-              variant="outline"
-              className="flex-1 sm:flex-none border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten text-sm bg-transparent"
-            >
-              <Filter className="w-4 h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Filter</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-1 sm:flex-none border-2 border-pink-400 text-pink-600 hover:bg-pink-400 hover:text-white font-handwritten text-sm bg-transparent"
-            >
-              <MapPin className="w-4 h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Standort</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Filter Tabs */}
-        <div className="flex gap-2 sm:gap-4 mb-8 justify-center flex-wrap">
-          <Button
-            onClick={() => setActiveFilter("all")}
-            className={`text-xs sm:text-sm ${
-              activeFilter === "all"
-                ? "bg-teal-400 hover:bg-teal-500 text-white"
-                : "bg-white border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white"
-            } transform -rotate-1 hover:rotate-0 transition-all font-handwritten px-3 py-2`}
-          >
-            Alle ({marketplaceOffers.length})
-          </Button>
-          <Button
-            onClick={() => setActiveFilter("lend")}
-            className={`text-xs sm:text-sm ${
-              activeFilter === "lend"
-                ? "bg-teal-400 hover:bg-teal-500 text-white"
-                : "bg-white border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white"
-            } transform rotate-1 hover:rotate-0 transition-all font-handwritten px-3 py-2`}
-          >
-            Verleihen ({marketplaceOffers.filter((o) => o.type === "lend").length})
-          </Button>
-          <Button
-            onClick={() => setActiveFilter("trade")}
-            className={`text-xs sm:text-sm ${
-              activeFilter === "trade"
-                ? "bg-orange-400 hover:bg-orange-500 text-white"
-                : "bg-white border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white"
-            } transform -rotate-1 hover:rotate-0 transition-all font-handwritten px-3 py-2`}
-          >
-            Tauschen ({marketplaceOffers.filter((o) => o.type === "trade").length})
-          </Button>
-          <Button
-            onClick={() => setActiveFilter("sell")}
-            className={`text-xs sm:text-sm ${
-              activeFilter === "sell"
-                ? "bg-pink-400 hover:bg-pink-500 text-white"
-                : "bg-white border-2 border-pink-400 text-pink-600 hover:bg-pink-400 hover:text-white"
-            } transform rotate-1 hover:rotate-0 transition-all font-handwritten px-3 py-2`}
-          >
-            Verkaufen ({marketplaceOffers.filter((o) => o.type === "sell").length})
-          </Button>
-        </div>
-
-        {/* Results Counter */}
-        <div className="text-center mb-6">
-          <p className="text-gray-600 font-body">
-            {filteredOffers.length} {filteredOffers.length === 1 ? "Angebot" : "Angebote"} gefunden
-            {searchTerm && ` für "${searchTerm}"`}
-            {activeFilter !== "all" && ` in der Kategorie "${getTypeText(activeFilter)}"`}
-          </p>
-        </div>
-
-        {/* Marketplace Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-          {/* Spiel anbieten Card - nur für eingeloggte Benutzer */}
-          {user && (
-            <Dialog open={isOfferDialogOpen} onOpenChange={setIsOfferDialogOpen}>
-              <DialogTrigger asChild>
-                <Card className="transform rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-dashed border-teal-400 bg-gradient-to-br from-teal-50 to-teal-100 cursor-pointer">
-                  <CardContent className="p-6 text-center h-full flex flex-col justify-center">
-                    <div className="w-16 h-16 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
-                      <Plus className="w-8 h-8 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-teal-700 mb-2 font-handwritten">Spiel anbieten</h3>
-                    <p className="text-teal-600 font-body">
-                      Biete deine eigenen Spiele zum Verleihen, Tauschen oder Verkaufen an!
-                    </p>
-                  </CardContent>
-                </Card>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="font-handwritten text-2xl text-center">Spiel anbieten</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleOfferSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 font-body">
-                      Spiel aus deiner Bibliothek wählen:
-                    </label>
-                    <Select value={selectedGame} onValueChange={setSelectedGame}>
-                      <SelectTrigger className="font-body">
-                        <SelectValue placeholder="Spiel auswählen..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {libraryGames.map((game) => (
-                          <SelectItem key={game.id} value={game.id.toString()} className="font-body">
-                            {game.title} ({game.condition})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 font-body">Angebotstyp:</label>
-                    <Select value={offerType} onValueChange={setOfferType}>
-                      <SelectTrigger className="font-body">
-                        <SelectValue placeholder="Typ auswählen..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="lend" className="font-body">
-                          Verleihen
-                        </SelectItem>
-                        <SelectItem value="trade" className="font-body">
-                          Tauschen
-                        </SelectItem>
-                        <SelectItem value="sell" className="font-body">
-                          Verkaufen
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {(offerType === "lend" || offerType === "sell") && (
-                    <div>
-                      <label className="block text-sm font-medium mb-2 font-body">
-                        {offerType === "lend" ? "Preis pro Woche:" : "Verkaufspreis:"}
-                      </label>
-                      <Input
-                        type="text"
-                        placeholder={offerType === "lend" ? "z.B. 5€/Woche" : "z.B. 25€"}
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        className="font-body"
-                      />
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 font-body">Beschreibung (optional):</label>
-                    <Textarea
-                      placeholder="Zusätzliche Informationen zum Spiel..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="font-body"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsOfferDialogOpen(false)}
-                      className="flex-1 font-handwritten"
-                    >
-                      Abbrechen
-                    </Button>
-                    <Button type="submit" className="flex-1 bg-teal-400 hover:bg-teal-500 text-white font-handwritten">
-                      Anbieten
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          )}
-
-          {/* Dynamic marketplace items */}
-          {filteredOffers.map((item, index) => (
-            <Card
-              key={item.id}
-              className={`transform ${index % 2 === 0 ? "rotate-1" : "-rotate-1"} hover:rotate-0 transition-all hover:shadow-xl border-2 border-gray-200 hover:border-teal-300 font-body cursor-pointer`}
-              onClick={() => handleOfferClick(item)}
-            >
-              <CardContent className="p-4">
-                <div className="relative mb-3">
-                  <img
-                    src={item.image || "/placeholder.svg"}
-                    alt={item.title}
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                  <Badge className={`absolute top-2 right-2 ${getTypeColor(item.type)} text-white font-body`}>
-                    {getTypeText(item.type)}
-                  </Badge>
+        {/* Database Error Banner */}
+        {error && (
+          <div className="mb-8 p-6 bg-red-50 border-2 border-red-200 rounded-lg">
+            <div className="flex items-start space-x-4">
+              <Database className="w-8 h-8 text-red-500 flex-shrink-0 mt-1" />
+              <div className="flex-1">
+                <h3 className="font-bold text-red-700 font-handwritten text-xl mb-2">
+                  🚨 Datenbank-Setup erforderlich
+                </h3>
+                <p className="text-red-600 font-body mb-4">{error}</p>
+                <div className="bg-red-100 p-4 rounded-lg border border-red-200">
+                  <h4 className="font-bold text-red-700 font-handwritten mb-2">Setup-Anleitung:</h4>
+                  <ol className="text-red-600 font-body space-y-1 text-sm">
+                    <li>1. Öffne dein Supabase-Dashboard</li>
+                    <li>2. Gehe zum SQL Editor</li>
+                    <li>3. Führe die Skripte in dieser Reihenfolge aus:</li>
+                    <li className="ml-4">• scripts/01-create-tables.sql</li>
+                    <li className="ml-4">• scripts/02-create-policies.sql</li>
+                    <li className="ml-4">• scripts/03-seed-data.sql (optional)</li>
+                    <li>4. Aktualisiere die Seite</li>
+                  </ol>
                 </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <Badge variant="outline" className="text-xs font-body">
-                      {item.condition}
-                    </Badge>
-                    <span className="text-sm font-bold text-green-600 font-body">{item.price}</span>
-                  </div>
-
-                  <div className="flex items-center text-sm text-gray-600 font-body">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    <span>
-                      {item.location} • {item.distance}
-                    </span>
-                  </div>
-
-                  <Button
-                    className="w-full bg-teal-400 hover:bg-teal-500 text-white font-handwritten mt-3"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (user) {
-                        handleInquiry(item)
-                      } else {
-                        window.location.href = "/login"
-                      }
-                    }}
-                  >
-                    {user ? "Anfragen" : "Anmelden zum Anfragen"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* No results message */}
-        {filteredOffers.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-10 h-10 text-gray-500" />
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-gray-600 mb-2 font-handwritten">Keine Angebote gefunden</h3>
-            <p className="text-gray-500 font-body">
-              {searchTerm || activeFilter !== "all"
-                ? "Versuche andere Suchbegriffe oder Filter."
-                : "Sei der Erste und biete ein Spiel an!"}
+          </div>
+        )}
+
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
+            Spielemarktplatz
+          </h1>
+          <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
+            Entdecke, tausche und teile deine Lieblingsspiele!
+          </p>
+        </div>
+
+        {/* Search and Filter Bar */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-8 border-2 border-orange-200">
+          <div className="grid md:grid-cols-4 gap-4 mb-4">
+            <div className="md:col-span-2">
+              <Input
+                placeholder="Spiele, Verlage oder Anbieter durchsuchen..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="border-2 border-orange-200 focus:border-orange-400"
+                disabled={!databaseConnected}
+              />
+            </div>
+            <Select value={selectedType} onValueChange={setSelectedType} disabled={!databaseConnected}>
+              <SelectTrigger className="border-2 border-orange-200">
+                <SelectValue placeholder="Alle Typen" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alle Typen</SelectItem>
+                <SelectItem value="lend">Verleihen</SelectItem>
+                <SelectItem value="trade">Tauschen</SelectItem>
+                <SelectItem value="sell">Verkaufen</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={selectedCondition} onValueChange={setSelectedCondition} disabled={!databaseConnected}>
+              <SelectTrigger className="border-2 border-orange-200">
+                <SelectValue placeholder="Alle Zustände" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alle Zustände</SelectItem>
+                <SelectItem value="Wie neu">Wie neu</SelectItem>
+                <SelectItem value="Sehr gut">Sehr gut</SelectItem>
+                <SelectItem value="Gut">Gut</SelectItem>
+                <SelectItem value="Akzeptabel">Akzeptabel</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <div className="flex gap-4">
+              <Button
+                variant="outline"
+                className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
+                disabled={!databaseConnected}
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Suchen
+              </Button>
+              <Button
+                variant="outline"
+                className="border-2 border-gray-400 text-gray-600 hover:bg-gray-400 hover:text-white font-handwritten bg-transparent"
+                onClick={() => {
+                  setSearchTerm("")
+                  setSelectedType("all")
+                  setSelectedCondition("all")
+                  setSortBy("newest")
+                }}
+                disabled={!databaseConnected}
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Zurücksetzen
+              </Button>
+            </div>
+
+            <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
+              <SelectTrigger className="w-48 border-2 border-orange-200">
+                <SortAsc className="w-4 h-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Neueste zuerst</SelectItem>
+                <SelectItem value="oldest">Älteste zuerst</SelectItem>
+                <SelectItem value="title">Titel A-Z</SelectItem>
+                <SelectItem value="price-low">Preis aufsteigend</SelectItem>
+                <SelectItem value="price-high">Preis absteigend</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Results Count */}
+        {databaseConnected && (
+          <div className="mb-6">
+            <p className="text-gray-600 font-body">
+              {filteredOffers.length} {filteredOffers.length === 1 ? "Angebot" : "Angebote"} gefunden
             </p>
           </div>
         )}
 
-        {/* Load More */}
-        {filteredOffers.length > 0 && (
-          <div className="text-center mt-12">
+        {/* Marketplace Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+          {databaseConnected ? (
+            filteredOffers.length > 0 ? (
+              filteredOffers.map((offer) => (
+                <Card
+                  key={offer.id}
+                  className="transform hover:scale-105 hover:rotate-1 transition-all duration-300 border-2 border-orange-200 hover:border-orange-400 cursor-pointer"
+                >
+                  <CardContent className="p-0">
+                    <div className="relative">
+                      <img
+                        src={offer.image || "/images/ludoloop-placeholder.png"}
+                        alt={offer.title}
+                        className="w-full h-48 object-cover rounded-t-lg"
+                      />
+                      <Badge className={`absolute top-2 right-2 ${getTypeColor(offer.type)} text-white font-body`}>
+                        {getTypeText(offer.type)}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="absolute top-2 left-2 bg-white/90 hover:bg-white border-gray-300"
+                      >
+                        <Heart className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    <div className="p-4">
+                      <h3 className="font-bold text-lg mb-2 font-handwritten text-gray-800">{offer.title}</h3>
+                      <p className="text-gray-600 text-sm mb-2 font-body">{offer.publisher}</p>
+
+                      <div className="flex items-center justify-between mb-3">
+                        <Badge variant="outline" className="font-body">
+                          {offer.condition}
+                        </Badge>
+                        <div className="flex items-center text-yellow-500">
+                          <Star className="w-4 h-4 fill-current" />
+                          <span className="text-sm ml-1 font-body">{offer.rating}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center text-gray-500 text-sm mb-3 font-body">
+                        <MapPin className="w-4 h-4 mr-1" />
+                        <span>{offer.location}</span>
+                        <span className="mx-2">•</span>
+                        <span>{offer.distance}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="font-bold text-lg text-gray-800 font-handwritten">{offer.price}</span>
+                        <span className="text-sm text-gray-500 font-body">von {offer.owner}</span>
+                      </div>
+
+                      <Button
+                        onClick={() => handleContactSeller(offer)}
+                        className="w-full bg-orange-400 hover:bg-orange-500 text-white font-handwritten"
+                        disabled={!databaseConnected}
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Kontaktieren
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-gray-600 mb-2 font-handwritten">Keine Angebote gefunden</h3>
+                <p className="text-gray-500 font-body">
+                  Versuche andere Suchbegriffe oder Filter, um mehr Ergebnisse zu finden.
+                </p>
+              </div>
+            )
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <Database className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-gray-600 mb-2 font-handwritten">Datenbank nicht verfügbar</h3>
+              <p className="text-gray-500 font-body">Führe die SQL-Skripte aus, um Marktplatz-Angebote zu sehen.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Call to Action Section */}
+        <div className="bg-gradient-to-r from-teal-400 to-orange-400 rounded-lg p-8 text-center text-white mb-8">
+          <h2 className="text-3xl font-bold mb-4 font-handwritten transform -rotate-1">Mitmachen!</h2>          
+          <div className="flex gap-4 justify-center">
+            <Button
+              className="bg-white text-teal-600 hover:bg-gray-100 font-handwritten text-lg px-8 py-3 transform hover:scale-105 transition-all"
+              onClick={() => (window.location.href = "/register")}
+            >
+              <UserPlus className="w-8 h-8 text-teal" />
+              Registrieren
+            </Button>
             <Button
               variant="outline"
-              className="border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white px-8 py-3 transform rotate-1 hover:rotate-0 transition-all font-handwritten bg-transparent"
+              className="border-2 border-white text-white hover:bg-white hover:text-teal-600 font-handwritten text-lg px-8 py-3 transform hover:scale-105 transition-all bg-transparent"
+              onClick={() => (window.location.href = "/login")}
             >
-              Mehr Spiele laden
+              <LogIn className="w-8 h-8 text-white" />
+              Anmelden
             </Button>
           </div>
-        )}
-
-        {/* Call to Action Section - nur für Gäste */}
-        {!user && (
-          <div className="mt-16 mb-8">
-            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-dashed border-teal-400 bg-gradient-to-br from-teal-50 to-orange-50">
-              <CardContent className="p-8 text-center">
-                <div className="max-w-2xl mx-auto">
-                  <div className="w-20 h-20 bg-gradient-to-r from-teal-400 to-orange-400 rounded-full flex items-center justify-center mx-auto mb-6 transform rotate-12 hover:-rotate-12 transition-all duration-300">
-                    <Users className="w-10 h-10 text-white" />
-                  </div>
-
-                  <h3 className="text-3xl font-bold text-gray-800 mb-4 font-handwritten transform -rotate-1">
-                    Mach mit und werde Teil unserer wachsenden Community!
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-3 transform rotate-12">
-                        <Dice6 className="w-8 h-8 text-white" />
-                      </div>
-                      <h4 className="font-bold text-teal-700 mb-2 font-handwritten">Spiele verleihen</h4>
-                      <p className="text-sm text-gray-600 font-body">Verdiene Geld mit deinen ungenutzten Spielen</p>
-                    </div>
-
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-3 transform -rotate-12">
-                        <RefreshCw className="w-8 h-8 text-white" />
-                      </div>
-                      <h4 className="font-bold text-orange-700 mb-2 font-handwritten">Spiele tauschen</h4>
-                      <p className="text-sm text-gray-600 font-body">Entdecke neue Spiele durch Tauschgeschäfte</p>
-                    </div>
-
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-pink-400 rounded-full flex items-center justify-center mx-auto mb-3 transform rotate-12">
-                        <HandCoins className="w-8 h-8 text-white" />
-                      </div>
-                      <h4 className="font-bold text-pink-700 mb-2 font-handwritten">Spiele verkaufen</h4>
-                      <p className="text-sm text-gray-600 font-body">Verkaufe Spiele, die du nicht mehr brauchst</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                      <Button
-                        asChild
-                        className="bg-teal-400 hover:bg-teal-500 text-white px-8 py-3 font-handwritten text-lg transform -rotate-1 hover:rotate-0 transition-all"
-                      >
-                        <Link href="/register">
-                          <UserPlus className="w-5 h-5 mr-2" />
-                          Jetzt registrieren
-                        </Link>
-                      </Button>
-                      <div className="flex items-center space-x-2 text-gray-600 font-body">
-                        <span>Bereits registriert?</span>
-                        <Button
-                          asChild
-                          variant="outline"
-                          className="border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent transform hover:scale-105 transition-all duration-200"
-                        >
-                          <Link href="/login">
-                            <LogIn className="w-4 h-4 mr-2" />
-                            Anmelden
-                          </Link>
-                        </Button>
-                      </div>                      
-                    </div>
-                    <p className="text-sm text-gray-500 font-body">
-                      Kostenlose Registrierung • Keine versteckten Gebühren • Sofort loslegen
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* Detail Dialog */}
-      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-handwritten text-2xl text-center">Spiel-Details</DialogTitle>
-          </DialogHeader>
-          {selectedDetailOffer && (
-            <div className="space-y-4">
-              <div className="flex items-start space-x-4">
-                <img
-                  src={selectedDetailOffer.image || "/placeholder.svg"}
-                  alt={selectedDetailOffer.title}
-                  className="w-24 h-32 rounded-lg shadow-sm flex-shrink-0"
-                />
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold font-handwritten mb-1">{selectedDetailOffer.title}</h3>
-                  <p className="text-gray-600 font-body mb-2">{selectedDetailOffer.publisher}</p>
-                  <Badge className={`${getTypeColor(selectedDetailOffer.type)} text-white font-body mb-2`}>
-                    {getTypeText(selectedDetailOffer.type)}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium font-body">Zustand:</span>
-                  <Badge variant="outline" className="ml-2 text-xs font-body">
-                    {selectedDetailOffer.condition}
-                  </Badge>
-                </div>
-                <div>
-                  <span className="font-medium font-body">Preis:</span>
-                  <span className="ml-2 font-bold text-green-600 font-body">{selectedDetailOffer.price}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="font-medium font-body">Standort:</span>
-                  <div className="flex items-center mt-1">
-                    <MapPin className="w-4 h-4 mr-1 text-gray-500" />
-                    <span className="font-body">
-                      {selectedDetailOffer.location} • {selectedDetailOffer.distance}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <span className="font-medium font-body">Anbieter:</span>
-                  <span className="ml-2 font-body">{selectedDetailOffer.owner}</span>
-                </div>
-                <div>
-                  <span className="font-medium font-body">Bewertung:</span>
-                  <div className="flex items-center ml-2">
-                    <span className="text-yellow-500">★</span>
-                    <span className="ml-1 font-body">{selectedDetailOffer.rating}</span>
-                  </div>
-                </div>
-              </div>
-
-              {selectedDetailOffer.description && (
-                <div>
-                  <span className="font-medium font-body">Beschreibung:</span>
-                  <p className="text-sm text-gray-600 font-body mt-1 bg-gray-50 p-3 rounded">
-                    {selectedDetailOffer.description}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDetailDialogOpen(false)}
-                  className="flex-1 font-handwritten"
-                >
-                  Schließen
-                </Button>
-                <Button
-                  onClick={() => {
-                    setIsDetailDialogOpen(false)
-                    if (user) {
-                      handleInquiry(selectedDetailOffer)
-                    } else {
-                      window.location.href = "/login"
-                    }
-                  }}
-                  className="flex-1 bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
-                >
-                  {user ? "Anfragen" : "Anmelden"}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Anfrage Dialog */}
-      <Dialog open={isInquiryDialogOpen} onOpenChange={setIsInquiryDialogOpen}>
+      {/* Contact Seller Dialog */}
+      <Dialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-handwritten text-xl text-center">Anfrage senden</DialogTitle>
+            <DialogTitle className="font-handwritten text-2xl text-center">
+              Nachricht an {selectedOffer?.owner}
+            </DialogTitle>
           </DialogHeader>
-          {selectedOffer && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                <img
-                  src={selectedOffer.image || "/placeholder.svg"}
-                  alt={selectedOffer.title}
-                  className="w-12 h-16 rounded shadow-sm"
-                />
-                <div>
-                  <h4 className="font-bold font-handwritten">{selectedOffer.title}</h4>
-                  <p className="text-sm text-gray-600 font-body">
-                    {getTypeText(selectedOffer.type)} • {selectedOffer.price}
-                  </p>
-                  <p className="text-sm text-gray-600 font-body">von {selectedOffer.owner}</p>
-                </div>
-              </div>
-
-              <form onSubmit={handleInquirySubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2 font-body">Deine Nachricht:</label>
-                  <Textarea
-                    placeholder="Hallo! Ich interessiere mich für dein Spiel..."
-                    value={inquiryMessage}
-                    onChange={(e) => setInquiryMessage(e.target.value)}
-                    className="font-body"
-                    rows={4}
-                    required
-                  />
-                </div>
-
-                <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsInquiryDialogOpen(false)}
-                    className="flex-1 font-handwritten"
-                  >
-                    Abbrechen
-                  </Button>
-                  <Button type="submit" className="flex-1 bg-teal-400 hover:bg-teal-500 text-white font-handwritten">
-                    Anfrage senden
-                  </Button>
-                </div>
-              </form>
+          <div className="space-y-4">
+            <div className="text-center">
+              <img
+                src={selectedOffer?.image || "/images/ludoloop-placeholder.png"}
+                alt={selectedOffer?.title}
+                className="w-24 h-32 mx-auto rounded-lg shadow-lg mb-4"
+              />
+              <h3 className="text-lg font-bold text-gray-800 mb-2 font-handwritten">{selectedOffer?.title}</h3>
+              <p className="text-gray-600 font-body">
+                {getTypeText(selectedOffer?.type || "")} - {selectedOffer?.price}
+              </p>
             </div>
-          )}
+
+            <div>
+              <Label className="font-body">Deine Nachricht:</Label>
+              <Textarea
+                value={contactMessage}
+                onChange={(e) => setContactMessage(e.target.value)}
+                placeholder="Schreibe eine freundliche Nachricht..."
+                className="font-body"
+                rows={4}
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsContactDialogOpen(false)}
+                className="flex-1 font-handwritten"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                onClick={handleSendMessage}
+                className="flex-1 bg-orange-400 hover:bg-orange-500 text-white font-handwritten"
+                disabled={!contactMessage.trim()}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Senden
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
-  )
-}
-
-export default function MarketplacePage() {
-  return (
-    <Suspense fallback={<MarketplaceLoading />}>
-      <MarketplaceContent />
-    </Suspense>
   )
 }

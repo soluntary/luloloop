@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Camera, Save, Download, Trash2 } from "lucide-react"
+import { Camera, Save, Download, Trash2, Shuffle } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function ProfilePage() {
@@ -26,10 +26,11 @@ export default function ProfilePage() {
   const [profileData, setProfileData] = useState({
     name: user?.name || "",
     email: user?.email || "",
-    bio: "",
-    website: "",
-    twitter: "",
-    instagram: "",
+    bio: user?.bio || "",
+    website: user?.website || "",
+    twitter: user?.twitter || "",
+    instagram: user?.instagram || "",
+    facebook: "",
     avatar: user?.avatar || "",
     // Neue Felder
     location: "",
@@ -85,25 +86,33 @@ export default function ProfilePage() {
     }
   }
 
+  const generateRandomAvatar = () => {
+    const randomSeed = Math.random().toString(36).substring(7)
+    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${randomSeed}`
+    setProfileData((prev) => ({ ...prev, avatar: avatarUrl }))
+  }
+
   const handleSaveProfile = async () => {
     setIsLoading(true)
     setMessage("")
 
     try {
-      const success = await updateProfile({
+      await updateProfile({
         name: profileData.name,
         email: profileData.email,
         avatar: profileData.avatar,
+        bio: profileData.bio,
+        website: profileData.website,
+        twitter: profileData.twitter,
+        instagram: profileData.instagram,
+        facebook: profileData.facebook,
         settings,
       })
 
-      if (success) {
-        setMessage("Profil erfolgreich gespeichert! Änderungen werden in der gesamten App synchronisiert.")
-      } else {
-        setMessage("Fehler beim Speichern des Profils.")
-      }
+      setMessage("Profil erfolgreich gespeichert! Änderungen werden in der gesamten App synchronisiert.")
     } catch (error) {
-      setMessage("Ein Fehler ist aufgetreten.")
+      console.error("Profile save error:", error)
+      setMessage("Fehler beim Speichern des Profils. Bitte versuche es erneut.")
     } finally {
       setIsLoading(false)
     }
@@ -187,11 +196,20 @@ export default function ProfilePage() {
                         className="hidden"
                       />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h3 className="font-handwritten text-lg font-semibold">Profilbild</h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 mb-3">
                         Klicke auf das Kamera-Symbol, um ein neues Bild hochzuladen
                       </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={generateRandomAvatar}
+                        className="font-handwritten bg-transparent"
+                      >
+                        <Shuffle className="w-4 h-4 mr-2" />
+                        Zufälligen Avatar generieren
+                      </Button>
                     </div>
                   </div>
 
@@ -372,6 +390,28 @@ export default function ProfilePage() {
                           placeholder="@deinusername"
                           value={profileData.twitter}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, twitter: e.target.value }))}
+                          className="font-body"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="instagram">Instagram</Label>
+                        <Input
+                          id="instagram"
+                          placeholder="@deinusername"
+                          value={profileData.instagram}
+                          onChange={(e) => setProfileData((prev) => ({ ...prev, instagram: e.target.value }))}
+                          className="font-body"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="facebook">Facebook</Label>
+                        <Input
+                          id="facebook"
+                          placeholder="facebook.com/deinprofil"
+                          value={profileData.facebook}
+                          onChange={(e) => setProfileData((prev) => ({ ...prev, facebook: e.target.value }))}
                           className="font-body"
                         />
                       </div>
