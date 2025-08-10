@@ -409,9 +409,7 @@ function LibraryContent() {
       !newGameDuration ||
       !newGameAge ||
       !newGameLanguage ||
-      newGameLanguage === "custom" ||
-      newGameType.length === 0 ||
-      newGameStyle.length === 0
+      newGameLanguage === "custom"
     ) {
       alert("Bitte fülle alle Pflichtfelder aus!")
       return
@@ -431,10 +429,11 @@ function LibraryContent() {
         duration: newGameDuration,
         age: newGameAge,
         language: newGameLanguage,
-        type: newGameType.join(", "),
-        style: newGameStyle.join(", "),
         available: ["lend", "trade", "sell"],
         image: newGameImage || "/images/ludoloop-game-placeholder.png",
+        // Only include type and style if they have values
+        ...(newGameType.length > 0 && { type: newGameType.join(", ") }),
+        ...(newGameStyle.length > 0 && { style: newGameStyle.join(", ") }),
       }
 
       await addGame(newGameData)
@@ -512,9 +511,7 @@ function LibraryContent() {
       !editGameDuration ||
       !editGameAge ||
       !editGameLanguage ||
-      editGameLanguage === "custom" ||
-      editGameType.length === 0 ||
-      editGameStyle.length === 0
+      editGameLanguage === "custom"
     ) {
       alert("Bitte fülle alle Pflichtfelder aus!")
       return
@@ -534,9 +531,10 @@ function LibraryContent() {
         duration: editGameDuration,
         age: editGameAge,
         language: editGameLanguage,
-        type: editGameType.join(", "),
-        style: editGameStyle.join(", "),
         image: editGameImage || "/images/ludoloop-game-placeholder.png",
+        // Only include type and style if they have values
+        ...(editGameType.length > 0 && { type: editGameType.join(", ") }),
+        ...(editGameStyle.length > 0 && { style: editGameStyle.join(", ") }),
       }
 
       await updateGame(editGame.id, updatedGameData)
@@ -705,18 +703,20 @@ function LibraryContent() {
                   </div>
 
                   <div>
-                    <Label className="font-body">Verlag * (Einfachauswahl)</Label>
+                    <Label className="font-body">Verlag *</Label>
                     <Select value={newGamePublisher} onValueChange={setNewGamePublisher} required>
                       <SelectTrigger className="font-body">
                         <SelectValue placeholder="Verlag wählen..." />
                       </SelectTrigger>
                       <SelectContent>
+                        {/* Standard Verlage */}
                         {PUBLISHER_OPTIONS.map((publisher) => (
                           <SelectItem key={publisher} value={publisher} className="font-body">
                             {publisher}
                           </SelectItem>
                         ))}
-                        {/* Show custom publisher if it exists and is not in the default options */}
+
+                        {/* Benutzerdefinierter Verlag - nur anzeigen wenn gesetzt und nicht in Standard-Optionen */}
                         {newGamePublisher &&
                           !PUBLISHER_OPTIONS.includes(newGamePublisher) &&
                           newGamePublisher !== "custom" && (
@@ -724,11 +724,14 @@ function LibraryContent() {
                               {newGamePublisher} (Benutzerdefiniert)
                             </SelectItem>
                           )}
+
                         <SelectItem value="custom" className="font-body font-bold">
                           Eigenen Verlag eingeben...
                         </SelectItem>
                       </SelectContent>
                     </Select>
+
+                    {/* Custom Input Field */}
                     {newGamePublisher === "custom" && (
                       <div className="mt-2 flex gap-2">
                         <Input
@@ -865,35 +868,6 @@ function LibraryContent() {
                             </div>
                           ))}
 
-                          {/* Custom Style Input */}
-                          <div className="border-t pt-2 mt-2">
-                            <h5 className="font-medium text-xs font-body text-gray-600 mb-2">
-                              Eigene Spielart hinzufügen:
-                            </h5>
-                            <div className="flex gap-2">
-                              <Input
-                                value={newGameCustomStyle}
-                                onChange={(e) => setNewGameCustomStyle(e.target.value)}
-                                placeholder="Spielart eingeben..."
-                                className="text-xs font-body"
-                                onKeyPress={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault()
-                                    handleAddCustomStyle()
-                                  }
-                                }}
-                              />
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={handleAddCustomStyle}
-                                className="bg-teal-400 hover:bg-teal-500 text-white px-2"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-
                           {/* Selected Styles */}
                           {newGameStyle.length > 0 && (
                             <div className="border-t pt-2 mt-2">
@@ -943,7 +917,7 @@ function LibraryContent() {
                   {/* Zusätzliche Details */}
                   <div className="grid grid-cols-1 gap-3">
                     <div>
-                      <Label className="font-body">Spieleranzahl * (Einfachauswahl)</Label>
+                      <Label className="font-body">Spieleranzahl *</Label>
                       <Select value={newGamePlayerCount} onValueChange={setNewGamePlayerCount} required>
                         <SelectTrigger className="font-body">
                           <SelectValue placeholder="Spieleranzahl wählen..." />
@@ -958,7 +932,7 @@ function LibraryContent() {
                       </Select>
                     </div>
                     <div>
-                      <Label className="font-body">Spieldauer * (Einfachauswahl)</Label>
+                      <Label className="font-body">Spieldauer *</Label>
                       <Select value={newGameDuration} onValueChange={setNewGameDuration} required>
                         <SelectTrigger className="font-body">
                           <SelectValue placeholder="Spieldauer wählen..." />
@@ -976,7 +950,7 @@ function LibraryContent() {
 
                   <div className="grid grid-cols-1 gap-3">
                     <div>
-                      <Label className="font-body">Altersempfehlung * (Einfachauswahl)</Label>
+                      <Label className="font-body">Altersempfehlung *</Label>
                       <Select value={newGameAge} onValueChange={setNewGameAge} required>
                         <SelectTrigger className="font-body">
                           <SelectValue placeholder="Altersempfehlung wählen..." />
@@ -992,30 +966,22 @@ function LibraryContent() {
                     </div>
                   </div>
                   <div>
-                    <Label className="font-body">Sprache * (Einfachauswahl)</Label>
+                    <Label className="font-body">Sprache *</Label>
                     <Select value={newGameLanguage} onValueChange={setNewGameLanguage} required>
                       <SelectTrigger className="font-body">
                         <SelectValue placeholder="Sprache wählen..." />
                       </SelectTrigger>
                       <SelectContent>
+                        {/* Standard Sprachen */}
                         {LANGUAGE_OPTIONS.map((language) => (
                           <SelectItem key={language} value={language} className="font-body">
                             {language}
                           </SelectItem>
                         ))}
-                        {/* Show custom language if it exists and is not in the default options */}
-                        {newGameLanguage &&
-                          !LANGUAGE_OPTIONS.includes(newGameLanguage) &&
-                          newGameLanguage !== "custom" && (
-                            <SelectItem key={newGameLanguage} value={newGameLanguage} className="font-body font-bold">
-                              {newGameLanguage} (Benutzerdefiniert)
-                            </SelectItem>
-                          )}
-                        <SelectItem value="custom" className="font-body font-bold">
-                          Eigene Sprache eingeben...
-                        </SelectItem>
                       </SelectContent>
                     </Select>
+
+                    {/* Custom Input Field */}
                     {newGameLanguage === "custom" && (
                       <div className="mt-2 flex gap-2">
                         <Input
@@ -1570,18 +1536,20 @@ function LibraryContent() {
             </div>
 
             <div>
-              <Label className="font-body">Verlag * (Einfachauswahl)</Label>
+              <Label className="font-body">Verlag *</Label>
               <Select value={editGamePublisher} onValueChange={setEditGamePublisher} required>
                 <SelectTrigger className="font-body">
                   <SelectValue placeholder="Verlag wählen..." />
                 </SelectTrigger>
                 <SelectContent>
+                  {/* Standard Verlage */}
                   {PUBLISHER_OPTIONS.map((publisher) => (
                     <SelectItem key={publisher} value={publisher} className="font-body">
                       {publisher}
                     </SelectItem>
                   ))}
-                  {/* Show custom publisher if it exists and is not in the default options */}
+
+                  {/* Benutzerdefinierter Verlag - nur anzeigen wenn gesetzt und nicht in Standard-Optionen */}
                   {editGamePublisher &&
                     !PUBLISHER_OPTIONS.includes(editGamePublisher) &&
                     editGamePublisher !== "custom" && (
@@ -1589,11 +1557,14 @@ function LibraryContent() {
                         {editGamePublisher} (Benutzerdefiniert)
                       </SelectItem>
                     )}
+
                   <SelectItem value="custom" className="font-body font-bold">
                     Eigenen Verlag eingeben...
                   </SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Custom Input Field */}
               {editGamePublisher === "custom" && (
                 <div className="mt-2 flex gap-2">
                   <Input
@@ -1798,7 +1769,7 @@ function LibraryContent() {
             {/* Zusätzliche Details */}
             <div className="grid grid-cols-1 gap-3">
               <div>
-                <Label className="font-body">Spieleranzahl * (Einfachauswahl)</Label>
+                <Label className="font-body">Spieleranzahl *</Label>
                 <Select value={editGamePlayerCount} onValueChange={setEditGamePlayerCount} required>
                   <SelectTrigger className="font-body">
                     <SelectValue placeholder="Spieleranzahl wählen..." />
@@ -1813,7 +1784,7 @@ function LibraryContent() {
                 </Select>
               </div>
               <div>
-                <Label className="font-body">Spieldauer * (Einfachauswahl)</Label>
+                <Label className="font-body">Spieldauer *</Label>
                 <Select value={editGameDuration} onValueChange={setEditGameDuration} required>
                   <SelectTrigger className="font-body">
                     <SelectValue placeholder="Spieldauer wählen..." />
@@ -1831,7 +1802,7 @@ function LibraryContent() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="font-body">Altersempfehlung * (Einfachauswahl)</Label>
+                <Label className="font-body">Altersempfehlung *</Label>
                 <Select value={editGameAge} onValueChange={setEditGameAge} required>
                   <SelectTrigger className="font-body">
                     <SelectValue placeholder="Altersempfehlung wählen..." />
@@ -1846,48 +1817,20 @@ function LibraryContent() {
                 </Select>
               </div>
               <div>
-                <Label className="font-body">Sprache * (Einfachauswahl)</Label>
+                <Label className="font-body">Sprache *</Label>
                 <Select value={editGameLanguage} onValueChange={setEditGameLanguage} required>
                   <SelectTrigger className="font-body">
                     <SelectValue placeholder="Sprache wählen..." />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* Standard Sprachen */}
                     {LANGUAGE_OPTIONS.map((language) => (
                       <SelectItem key={language} value={language} className="font-body">
                         {language}
                       </SelectItem>
                     ))}
-                    {/* Show custom language if it exists and is not in the default options */}
-                    {editGameLanguage &&
-                      !LANGUAGE_OPTIONS.includes(editGameLanguage) &&
-                      editGameLanguage !== "custom" && (
-                        <SelectItem key={editGameLanguage} value={editGameLanguage} className="font-body font-bold">
-                          {editGameLanguage} (Benutzerdefiniert)
-                        </SelectItem>
-                      )}
-                    <SelectItem value="custom" className="font-body font-bold">
-                      Eigene Sprache eingeben...
-                    </SelectItem>
                   </SelectContent>
                 </Select>
-                {editGameLanguage === "custom" && (
-                  <div className="mt-2 flex gap-2">
-                    <Input
-                      value={editGameCustomLanguage}
-                      onChange={(e) => setEditGameCustomLanguage(e.target.value)}
-                      placeholder="Sprache eingeben..."
-                      className="font-body"
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleEditAddCustomLanguage}
-                      className="bg-teal-400 hover:bg-teal-500 text-white"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
               </div>
             </div>
 

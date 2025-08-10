@@ -17,6 +17,8 @@ interface Game {
   image?: string
   user_id?: string
   created_at?: string
+  type?: string
+  style?: string
 }
 
 interface MarketplaceOffer {
@@ -162,6 +164,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         ...gameData,
         image: gameData.image || FALLBACK_IMAGE,
         user_id: user.id,
+        // Only include type and style if they exist in gameData
+        ...(gameData.type && { type: gameData.type }),
+        ...(gameData.style && { style: gameData.style }),
       }
 
       const { data, error } = await supabase.from("games").insert([gameWithFallback]).select()
@@ -206,6 +211,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       const gameWithFallback = {
         ...gameData,
         image: gameData.image || FALLBACK_IMAGE,
+        // Only include type and style if they exist in gameData
+        ...(gameData.type && { type: gameData.type }),
+        ...(gameData.style && { style: gameData.style }),
       }
 
       const { data, error } = await supabase

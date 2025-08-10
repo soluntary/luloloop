@@ -19,8 +19,7 @@ export default function AboutPage() {
             Über Ludoloop
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto transform rotate-1 font-body">
-            Wir bringen Spieleliebhaber zusammen und schaffen eine Community, 
-            in der jeder seine Leidenschaft für Brettspiele teilen kann!
+            Wir lieben Gesellschaftsspiele – ihre Vielfalt, die Geschichten, die sie erzählen, und die Momente, die sie schaffen. Gleichzeitig wissen wir, wie viel Freude es macht, neue Spiele zu entdecken, oder wie schade es ist, wenn tolle Spiele nur im Regal stehen. Deshalb haben wir diese Plattform geschaffen, um eine lebendige, aktive Community aufzubauen, die Spiele teilen, tauschen und gemeinsam spielen möchte.
           </p>
         </div>
 
@@ -51,9 +50,7 @@ export default function AboutPage() {
                 Unsere Vision
               </h2>
               <p className="text-gray-600 font-body">
-                Eine Welt, in der jeder Zugang zu grossartigen Brettspielen hat 
-                und Teil einer lebendigen, lokalen Spielegemeinschaft ist. 
-                Gemeinsam spielen, gemeinsam wachsen!
+                Gesellschaftsspiele bringen Menschen zusammen – unabhängig von Alter, Herkunft oder Erfahrung. Mit unserer Plattform möchten wir diese Verbindung fördern und gleichzeitig helfen, Ressourcen zu schonen. Warum neue Spiele kaufen, wenn du spannende Abenteuer aus der Sammlung eines Freundes erleben kannst?
               </p>
             </CardContent>
           </Card>
@@ -74,7 +71,7 @@ export default function AboutPage() {
                   Gemeinschaft
                 </h3>
                 <p className="text-gray-600 text-sm font-body">
-                  Wir verbinden Menschen durch die Liebe zu Brettspielen
+                  Wir verbinden Menschen durch die Liebe zu Gesellschaftsspiele
                 </p>
               </CardContent>
             </Card>
@@ -99,7 +96,7 @@ export default function AboutPage() {
                   <Heart className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">
-                  Vertrauen
+                  Vertrauen & Fairness
                 </h3>
                 <p className="text-gray-600 text-sm font-body">
                   Sichere und faire Transaktionen für alle Mitglieder

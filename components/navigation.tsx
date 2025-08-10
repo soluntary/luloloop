@@ -14,7 +14,7 @@ interface NavigationProps {
 
 export function Navigation({ currentPage }: NavigationProps) {
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { user, logout } = useAuth() || { user: null, logout: null }
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const navItems = [
@@ -33,8 +33,15 @@ export function Navigation({ currentPage }: NavigationProps) {
   }
 
   const handleLogout = async () => {
-    await logout()
-    window.location.href = "/login"
+    try {
+      if (logout && typeof logout === "function") {
+        await logout()
+      }
+      window.location.href = "/login"
+    } catch (error) {
+      console.error("Logout error:", error)
+      window.location.href = "/login"
+    }
   }
 
   return (
@@ -42,7 +49,10 @@ export function Navigation({ currentPage }: NavigationProps) {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 transform hover:scale-105 transition-all">
+          <Link
+            href="/"
+            className="flex items-center space-x-2 transform hover:scale-105 hover:rotate-1 transition-all hover:text-teal-600"
+          >
             <img src="/images/ludoloop-new-logo.png" alt="LudoLoop Logo" className="h-10 w-auto" />
           </Link>
 
@@ -56,10 +66,10 @@ export function Navigation({ currentPage }: NavigationProps) {
                 <Link key={item.href} href={item.href}>
                   <Button
                     variant="ghost"
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-base transform hover:scale-105 ${
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-base transform hover:scale-105 hover:rotate-1 ${
                       active
-                        ? "bg-teal-400 text-white shadow-lg rotate-1"
-                        : "text-gray-700 hover:bg-teal-50 hover:text-teal-600 hover:-rotate-1"
+                        ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
+                        : "text-gray-700 hover:bg-teal-400 hover:text-white"
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -77,7 +87,7 @@ export function Navigation({ currentPage }: NavigationProps) {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 font-handwritten text-base transform hover:scale-105 hover:rotate-1 transition-all"
+                    className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 font-handwritten text-base transform hover:scale-105 hover:rotate-1 transition-all"
                   >
                     <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-teal-400">
                       <img
@@ -144,8 +154,10 @@ export function Navigation({ currentPage }: NavigationProps) {
                   <Link key={item.href} href={item.href} onClick={() => setIsMobileMenuOpen(false)}>
                     <Button
                       variant="ghost"
-                      className={`w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-base ${
-                        active ? "bg-teal-400 text-white" : "text-gray-700 hover:bg-teal-50 hover:text-teal-600"
+                      className={`w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-base transform hover:scale-105 hover:rotate-1 transition-all ${
+                        active
+                          ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
+                          : "text-gray-700 hover:bg-teal-400 hover:text-white"
                       }`}
                     >
                       <Icon className="w-5 h-5" />
@@ -162,7 +174,7 @@ export function Navigation({ currentPage }: NavigationProps) {
                     <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button
                         variant="ghost"
-                        className="w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-base text-gray-700 hover:bg-teal-50 hover:text-teal-600"
+                        className="w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-base text-gray-700 hover:bg-teal-50 hover:text-teal-600 transform hover:scale-105 hover:rotate-1 transition-all"
                       >
                         <div className="w-5 h-5 rounded-full overflow-hidden border border-teal-400">
                           <img
@@ -183,7 +195,7 @@ export function Navigation({ currentPage }: NavigationProps) {
                         handleLogout()
                         setIsMobileMenuOpen(false)
                       }}
-                      className="w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-base text-gray-700 hover:bg-teal-50 hover:text-teal-600"
+                      className="w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-base text-gray-700 hover:bg-teal-50 hover:text-teal-600 transform hover:scale-105 hover:rotate-1 transition-all"
                     >
                       <LogOut className="w-5 h-5" />
                       <span>Abmelden</span>

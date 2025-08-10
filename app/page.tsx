@@ -21,14 +21,17 @@ export default function HomePage() {
             Deine Spiele. Deine Community. Dein Abenteuer.
           </h2>
           <p className="text-xl text-gray-600 mb-8 transform rotate-1 font-body">
-            Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde neue Mitspieler und entdecke großartige Spiele!
+            Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde Gleichgesinnte und tritt spannende Spielgruppen bei!
           </p>          
         </div>
       </section>
 
       {/* Features */}
       <section className="container mx-auto px-4 py-16">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <h2 className="text-4xl font-handwritten text-center text-gray-800 mb-12 transform rotate-1">
+            Entdecke unsere Features
+          </h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">          
           <Card className="transform rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-teal-200">
             <CardContent className="p-6 text-center">
               <div className="w-16 h-16 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
@@ -114,7 +117,7 @@ export default function HomePage() {
             Bereit für dein Spiele-Abenteuer?
           </h3>
           <p className="text-xl text-white mb-8 transform -rotate-1 font-body">
-            Starte jetzt und entdecke eine neue Welt des Spielens!
+            Schliesse dich tausenden von Brettspiel-Fans an und entdecke neue Abenteuer!
           </p>
           <Button asChild className="bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 text-lg transform rotate-1 hover:rotate-0 transition-all font-handwritten">
             <Link href="/register">
