@@ -9,7 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Search, LogIn, UserPlus, MapPin, Star, MessageCircle, Heart, Filter, SortAsc, ShoppingCart, Database } from "lucide-react"
+import {
+  Search,
+  LogIn,
+  UserPlus,
+  MapPin,
+  Star,
+  MessageCircle,
+  Heart,
+  Filter,
+  SortAsc,
+  ShoppingCart,
+  Database,
+} from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
@@ -342,21 +354,25 @@ export default function MarketplacePage() {
 
         {/* Call to Action Section */}
         <div className="bg-gradient-to-r from-teal-400 to-orange-400 rounded-lg p-8 text-center text-white mb-8">
-          <h2 className="text-3xl font-bold mb-4 font-handwritten transform -rotate-1">Mitmachen!</h2>          
+          <h2 className="text-3xl font-bold mb-4 font-handwritten transform -rotate-1">Mitmachen!</h2>
           <div className="flex gap-4 justify-center">
             <Button
               className="bg-white text-teal-600 hover:bg-gray-100 font-handwritten text-lg px-8 py-3 transform hover:scale-105 transition-all"
-              onClick={() => (window.location.href = "/register")}
+              onClick={() => {
+                window.location.href = "/register"
+              }}
             >
-              <UserPlus className="w-8 h-8 text-teal" />
+              <UserPlus className="w-8 h-8 text-teal-600" />
               Registrieren
             </Button>
             <Button
               variant="outline"
               className="border-2 border-white text-white hover:bg-white hover:text-teal-600 font-handwritten text-lg px-8 py-3 transform hover:scale-105 transition-all bg-transparent"
-              onClick={() => (window.location.href = "/login")}
+              onClick={() => {
+                window.location.href = "/login"
+              }}
             >
-              <LogIn className="w-8 h-8 text-white" />
+              <LogIn className="w-4 h-4 text-white" />
               Anmelden
             </Button>
           </div>

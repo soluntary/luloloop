@@ -1,11 +1,13 @@
 "use client"
 
+import type React from "react"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Mail, MailOpen, Clock, User, MessageCircle, Trash2, Check } from 'lucide-react'
-import { Suspense } from 'react'
+import { Mail, MailOpen, Clock, User, MessageCircle, Trash2, Check } from "lucide-react"
+import { Suspense } from "react"
 import { Navigation } from "@/components/navigation"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
@@ -24,14 +26,12 @@ function MessagesLoading() {
         <h2 className="text-3xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
           Nachrichten werden geladen...
         </h2>
-        <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
-          Dein Posteingang wird vorbereitet!
-        </p>
+        <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">Dein Posteingang wird vorbereitet!</p>
         <div className="mt-8 flex justify-center space-x-2">
-          <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-          <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-          <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-          <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '450ms' }}></div>
+          <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+          <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+          <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+          <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "450ms" }}></div>
         </div>
       </div>
     </div>
@@ -48,49 +48,57 @@ function MessagesContent() {
   if (!user) return null
 
   const userMessages = getUserMessages(user.name)
-  const unreadMessages = userMessages.filter(msg => !msg.read)
-  const readMessages = userMessages.filter(msg => msg.read)
+  const unreadMessages = userMessages.filter((msg) => !msg.read)
+  const readMessages = userMessages.filter((msg) => msg.read)
   const unreadCount = getUnreadCount(user.name)
 
   const formatDate = (timestamp: string) => {
     const date = new Date(timestamp)
     const now = new Date()
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-    
+
     if (diffInHours < 1) {
-      return 'Gerade eben'
+      return "Gerade eben"
     } else if (diffInHours < 24) {
       return `vor ${Math.floor(diffInHours)} Stunden`
     } else {
-      return date.toLocaleDateString('de-DE', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: '2-digit' 
+      return date.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
       })
     }
   }
 
   const getOfferTypeText = (type: string) => {
-    switch(type) {
-      case 'lend': return 'Verleihen'
-      case 'trade': return 'Tauschen'
-      case 'sell': return 'Verkaufen'
-      default: return type
+    switch (type) {
+      case "lend":
+        return "Verleihen"
+      case "trade":
+        return "Tauschen"
+      case "sell":
+        return "Verkaufen"
+      default:
+        return type
     }
   }
 
   const getOfferTypeColor = (type: string) => {
-    switch(type) {
-      case 'lend': return 'bg-teal-400'
-      case 'trade': return 'bg-orange-400'
-      case 'sell': return 'bg-pink-400'
-      default: return 'bg-gray-400'
+    switch (type) {
+      case "lend":
+        return "bg-teal-400"
+      case "trade":
+        return "bg-orange-400"
+      case "sell":
+        return "bg-pink-400"
+      default:
+        return "bg-gray-400"
     }
   }
 
   const handleDeleteMessage = (messageId: number, event: React.MouseEvent) => {
     event.stopPropagation()
-    if (confirm('Möchtest du diese Nachricht wirklich löschen?')) {
+    if (confirm("Möchtest du diese Nachricht wirklich löschen?")) {
       deleteMessage(messageId)
     }
   }
@@ -106,11 +114,11 @@ function MessagesContent() {
     }
   }
 
-  const renderMessageCard = (message: any, index: number, isReadTab: boolean = false) => (
-    <Card 
-      key={message.id} 
-      className={`transform ${index % 2 === 0 ? 'rotate-1' : '-rotate-1'} hover:rotate-0 transition-all relative ${
-        !message.read ? 'border-2 border-purple-300 bg-purple-50' : 'border-2 border-gray-200 bg-gray-50'
+  const renderMessageCard = (message: any, index: number, isReadTab = false) => (
+    <Card
+      key={message.id}
+      className={`transform ${index % 2 === 0 ? "rotate-1" : "-rotate-1"} hover:rotate-0 transition-all relative ${
+        !message.read ? "border-2 border-purple-300 bg-purple-50" : "border-2 border-gray-200 bg-gray-50"
       }`}
     >
       {/* Delete Button with Trash Icon */}
@@ -148,9 +156,7 @@ function MessagesContent() {
                 <Badge className={`${getOfferTypeColor(message.offerType)} text-white text-xs font-body`}>
                   {getOfferTypeText(message.offerType)}
                 </Badge>
-                <span className="text-sm text-gray-600 font-body">
-                  {message.gameTitle}
-                </span>
+                <span className="text-sm text-gray-600 font-body">{message.gameTitle}</span>
               </div>
             </div>
           </div>
@@ -159,11 +165,7 @@ function MessagesContent() {
               <Clock className="w-4 h-4 mr-1" />
               {formatDate(message.timestamp)}
             </div>
-            {!message.read && (
-              <Badge className="bg-red-500 text-white text-xs mt-1">
-                Neu
-              </Badge>
-            )}
+            {!message.read && <Badge className="bg-red-500 text-white text-xs mt-1">Neu</Badge>}
           </div>
         </div>
       </CardHeader>
@@ -175,15 +177,13 @@ function MessagesContent() {
             className="w-16 h-20 rounded-lg shadow-md flex-shrink-0"
           />
           <div className="flex-1">
-            <p className="text-gray-700 font-body bg-white p-3 rounded-lg border">
-              "{message.message}"
-            </p>
+            <p className="text-gray-700 font-body bg-white p-3 rounded-lg border">"{message.message}"</p>
             <div className="mt-3 flex gap-2">
               {!message.read ? (
                 <Dialog open={isDialogOpen && selectedMessage?.id === message.id} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       className="bg-purple-400 hover:bg-purple-500 text-white font-handwritten"
                       onClick={() => {
                         setSelectedMessage(message)
@@ -196,9 +196,7 @@ function MessagesContent() {
                   </DialogTrigger>
                   <DialogContent className="max-w-md">
                     <DialogHeader>
-                      <DialogTitle className="font-handwritten text-xl">
-                        Antwort an {message.fromUser}
-                      </DialogTitle>
+                      <DialogTitle className="font-handwritten text-xl">Antwort an {message.fromUser}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="bg-gray-50 p-3 rounded-lg">
@@ -217,7 +215,7 @@ function MessagesContent() {
                       <div className="flex gap-3">
                         <Button
                           variant="outline"
-                          className="flex-1 font-handwritten"
+                          className="flex-1 font-handwritten bg-transparent"
                           onClick={() => {
                             setReplyMessage("")
                             setIsDialogOpen(false)
@@ -237,21 +235,17 @@ function MessagesContent() {
                   </DialogContent>
                 </Dialog>
               ) : (
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="outline"
-                  className="font-handwritten text-gray-500 cursor-not-allowed"
+                  className="font-handwritten text-gray-500 cursor-not-allowed bg-transparent"
                   disabled
                 >
                   <Check className="w-4 h-4 mr-1" />
                   Bereits beantwortet
                 </Button>
               )}
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="font-handwritten"
-              >
+              <Button size="sm" variant="outline" className="font-handwritten bg-transparent">
                 Kontakt teilen
               </Button>
             </div>
@@ -261,28 +255,20 @@ function MessagesContent() {
     </Card>
   )
 
-  const renderEmptyState = (type: 'unread' | 'read') => (
+  const renderEmptyState = (type: "unread" | "read") => (
     <Card className="transform rotate-1 border-2 border-gray-200">
       <CardContent className="p-12 text-center">
-        {type === 'unread' ? (
+        {type === "unread" ? (
           <>
             <Mail className="w-20 h-20 text-gray-400 mx-auto mb-6" />
-            <h3 className="text-2xl font-bold text-gray-600 mb-4 font-handwritten">
-              Keine neuen Nachrichten
-            </h3>
-            <p className="text-gray-500 font-body">
-              Alle deine Nachrichten sind bereits beantwortet!
-            </p>
+            <h3 className="text-2xl font-bold text-gray-600 mb-4 font-handwritten">Keine neuen Nachrichten</h3>
+            <p className="text-gray-500 font-body">Alle deine Nachrichten sind bereits beantwortet!</p>
           </>
         ) : (
           <>
             <MailOpen className="w-20 h-20 text-gray-400 mx-auto mb-6" />
-            <h3 className="text-2xl font-bold text-gray-600 mb-4 font-handwritten">
-              Keine beantworteten Nachrichten
-            </h3>
-            <p className="text-gray-500 font-body">
-              Beantwortete Nachrichten erscheinen hier.
-            </p>
+            <h3 className="text-2xl font-bold text-gray-600 mb-4 font-handwritten">Keine beantworteten Nachrichten</h3>
+            <p className="text-gray-500 font-body">Beantwortete Nachrichten erscheinen hier.</p>
           </>
         )}
       </CardContent>
@@ -296,12 +282,10 @@ function MessagesContent() {
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="text-center mb-8">
-          <h2 className="text-4xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
+          <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
             Dein Posteingang
-          </h2>
-          <p className="text-xl text-gray-600 transform rotate-1 font-body">
-            Beantworte Anfragen zu deinen Spielen!
-          </p>
+          </h1>
+          <p className="text-xl text-gray-600 transform rotate-1 font-body">Beantworte Anfragen zu deinen Spielen!</p>
         </div>
 
         {/* Messages Tabs */}
@@ -310,9 +294,7 @@ function MessagesContent() {
             <Card className="transform rotate-1 border-2 border-gray-200">
               <CardContent className="p-12 text-center">
                 <Mail className="w-20 h-20 text-gray-400 mx-auto mb-6" />
-                <h3 className="text-2xl font-bold text-gray-600 mb-4 font-handwritten">
-                  Noch keine Nachrichten
-                </h3>
+                <h3 className="text-2xl font-bold text-gray-600 mb-4 font-handwritten">Noch keine Nachrichten</h3>
                 <p className="text-gray-500 font-body">
                   Sobald jemand Interesse an deinen Spielen zeigt, erscheinen die Anfragen hier!
                 </p>
@@ -321,19 +303,17 @@ function MessagesContent() {
           ) : (
             <Tabs defaultValue="unread" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6 bg-white border-2 border-gray-200 transform -rotate-1">
-                <TabsTrigger 
-                  value="unread" 
+                <TabsTrigger
+                  value="unread"
                   className="font-handwritten text-lg data-[state=active]:bg-purple-400 data-[state=active]:text-white relative"
                 >
                   Unbeantwortet
                   {unreadCount > 0 && (
-                    <Badge className="ml-2 bg-red-500 text-white text-xs min-w-[20px] h-5">
-                      {unreadCount}
-                    </Badge>
+                    <Badge className="ml-2 bg-red-500 text-white text-xs min-w-[20px] h-5">{unreadCount}</Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="read" 
+                <TabsTrigger
+                  value="read"
                   className="font-handwritten text-lg data-[state=active]:bg-purple-400 data-[state=active]:text-white"
                 >
                   Beantwortet ({readMessages.length})
@@ -341,19 +321,15 @@ function MessagesContent() {
               </TabsList>
 
               <TabsContent value="unread" className="space-y-4">
-                {unreadMessages.length === 0 ? (
-                  renderEmptyState('unread')
-                ) : (
-                  unreadMessages.map((message, index) => renderMessageCard(message, index, false))
-                )}
+                {unreadMessages.length === 0
+                  ? renderEmptyState("unread")
+                  : unreadMessages.map((message, index) => renderMessageCard(message, index, false))}
               </TabsContent>
 
               <TabsContent value="read" className="space-y-4">
-                {readMessages.length === 0 ? (
-                  renderEmptyState('read')
-                ) : (
-                  readMessages.map((message, index) => renderMessageCard(message, index, true))
-                )}
+                {readMessages.length === 0
+                  ? renderEmptyState("read")
+                  : readMessages.map((message, index) => renderMessageCard(message, index, true))}
               </TabsContent>
             </Tabs>
           )}

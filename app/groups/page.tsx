@@ -739,9 +739,9 @@ function CommunityContent() {
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="text-center mb-8">
-          <h2 className="text-4xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
+          <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
             Communities & Freunde
-          </h2>
+          </h1>
           <p className="text-xl text-gray-600 transform rotate-1 font-body">
             Entdecke Spielgruppen und finde neue Spielpartner!
           </p>
@@ -1036,8 +1036,9 @@ function CommunityContent() {
                   </Link>
                   <Link href="/register">
                     <Button variant="outline">
-                    <UserPlus className="w-5 h-5 mr-2" />
-                    Registrieren</Button>
+                      <UserPlus className="w-5 h-5 mr-2" />
+                      Registrieren
+                    </Button>
                   </Link>
                 </div>
               </div>
