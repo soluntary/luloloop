@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Dice6, Users, ShoppingBag, RefreshCw, Search, Plus } from 'lucide-react'
+import { Dice6, Users, ShoppingBag, RefreshCw, Search, Plus, HandCoins } from 'lucide-react'
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import "@/styles/font-handwritten.css"
@@ -84,7 +84,7 @@ export default function HomePage() {
           <Card className="transform rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-pink-200">
             <CardContent className="p-6 text-center">
               <div className="w-16 h-16 bg-pink-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
-                <ShoppingBag className="w-8 h-8 text-white" />
+                <HandCoins className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">
                 Verkaufen

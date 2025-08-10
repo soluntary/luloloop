@@ -993,7 +993,7 @@ function CommunityContent() {
                       >
                         <Link href="/register">
                           <UserPlus className="w-5 h-5 mr-2" />
-                          Kostenlos registrieren
+                          Registrieren
                         </Link>
                       </Button>
                       <div className="flex items-center space-x-2 text-gray-600 font-body">
@@ -1033,7 +1033,9 @@ function CommunityContent() {
                     </Button>
                   </Link>
                   <Link href="/register">
-                    <Button variant="outline">Registrieren</Button>
+                    <Button variant="outline">
+                    <UserPlus className="w-5 h-5 mr-2" />
+                    Registrieren</Button>
                   </Link>
                 </div>
               </div>
