@@ -1010,12 +1010,14 @@ function CommunityContent() {
                         </Button>
                       </div>
                     </div>
+                    <p className="text-sm text-gray-500 font-body">
+                      Kostenlose Registrierung • Keine versteckten Gebühren • Sofort loslegen
+                    </p>
                   </div>
                 )}
               </div>
             </div>
           </TabsContent>
-
           {/* Friends Tab */}
           <TabsContent value="friends" className="space-y-6">
             {!user ? (

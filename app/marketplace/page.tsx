@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Dice6, BookOpen, Search, Filter, MapPin, Users, Plus, LogIn, UserPlus, HandCoins, RefreshCw } from "lucide-react"
+import { Dice6, Search, Filter, MapPin, Users, Plus, LogIn, UserPlus, HandCoins, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { Suspense, useState } from "react"
 import { Navigation } from "@/components/navigation"
@@ -274,7 +274,7 @@ function MarketplaceContent() {
         {/* Marketplace Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {/* Spiel anbieten Card - nur für eingeloggte Benutzer */}
-          {user ? (
+          {user && (
             <Dialog open={isOfferDialogOpen} onOpenChange={setIsOfferDialogOpen}>
               <DialogTrigger asChild>
                 <Card className="transform rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-dashed border-teal-400 bg-gradient-to-br from-teal-50 to-teal-100 cursor-pointer">
@@ -374,36 +374,6 @@ function MarketplaceContent() {
                 </form>
               </DialogContent>
             </Dialog>
-          ) : (
-            // Login/Register Card für nicht eingeloggte Benutzer
-            <Card className="transform rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-dashed border-purple-400 bg-gradient-to-br from-purple-50 to-purple-100">
-              <CardContent className="p-6 text-center h-full flex flex-col justify-center">
-                <div className="w-16 h-16 bg-purple-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
-                  <UserPlus className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-purple-700 mb-2 font-handwritten">Mitmachen!</h3>
-                <p className="text-purple-600 font-body mb-4">Registriere dich, um eigene Spiele anzubieten!</p>
-                <div className="space-y-2">
-                  <Button asChild className="w-full bg-purple-400 hover:bg-purple-500 text-white font-handwritten">
-                    <Link href="/register">
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Registrieren
-                    </Link>
-                  </Button>
-                  <p className="text-purple-600 font-body mb-4">Bereits registriert?</p>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="w-full border-purple-400 text-purple-600 hover:bg-purple-400 hover:text-white font-handwritten bg-transparent"
-                  >
-                    <Link href="/login">
-                      <LogIn className="w-4 h-4 mr-2" />
-                      Anmelden
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           )}
 
           {/* Dynamic marketplace items */}
@@ -486,46 +456,46 @@ function MarketplaceContent() {
           </div>
         )}
 
-        {/* Call to Action Section */}
-        <div className="mt-16 mb-8">
-          <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-dashed border-teal-400 bg-gradient-to-br from-teal-50 to-orange-50">
-            <CardContent className="p-8 text-center">
-              <div className="max-w-2xl mx-auto">
-                <div className="w-20 h-20 bg-gradient-to-r from-teal-400 to-orange-400 rounded-full flex items-center justify-center mx-auto mb-6 transform rotate-12 hover:-rotate-12 transition-all duration-300">
-                  <Users className="w-10 h-10 text-white" />
-                </div>
-
-                <h3 className="text-3xl font-bold text-gray-800 mb-4 font-handwritten transform -rotate-1">
-                  Mach mit und werde Teil unserer wachsenden Community!
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-3 transform rotate-12">
-                      <Dice6 className="w-8 h-8 text-white" />
-                    </div>
-                    <h4 className="font-bold text-teal-700 mb-2 font-handwritten">Spiele verleihen</h4>
-                    <p className="text-sm text-gray-600 font-body">Verdiene Geld mit deinen ungenutzten Spielen</p>
+        {/* Call to Action Section - nur für Gäste */}
+        {!user && (
+          <div className="mt-16 mb-8">
+            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-dashed border-teal-400 bg-gradient-to-br from-teal-50 to-orange-50">
+              <CardContent className="p-8 text-center">
+                <div className="max-w-2xl mx-auto">
+                  <div className="w-20 h-20 bg-gradient-to-r from-teal-400 to-orange-400 rounded-full flex items-center justify-center mx-auto mb-6 transform rotate-12 hover:-rotate-12 transition-all duration-300">
+                    <Users className="w-10 h-10 text-white" />
                   </div>
 
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-3 transform -rotate-12">
-                      <RefreshCw className="w-8 h-8 text-white" />
+                  <h3 className="text-3xl font-bold text-gray-800 mb-4 font-handwritten transform -rotate-1">
+                    Mach mit und werde Teil unserer wachsenden Community!
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-3 transform rotate-12">
+                        <Dice6 className="w-8 h-8 text-white" />
+                      </div>
+                      <h4 className="font-bold text-teal-700 mb-2 font-handwritten">Spiele verleihen</h4>
+                      <p className="text-sm text-gray-600 font-body">Verdiene Geld mit deinen ungenutzten Spielen</p>
                     </div>
-                    <h4 className="font-bold text-orange-700 mb-2 font-handwritten">Spiele tauschen</h4>
-                    <p className="text-sm text-gray-600 font-body">Entdecke neue Spiele durch Tauschgeschäfte</p>
+
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-3 transform -rotate-12">
+                        <RefreshCw className="w-8 h-8 text-white" />
+                      </div>
+                      <h4 className="font-bold text-orange-700 mb-2 font-handwritten">Spiele tauschen</h4>
+                      <p className="text-sm text-gray-600 font-body">Entdecke neue Spiele durch Tauschgeschäfte</p>
+                    </div>
+
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-pink-400 rounded-full flex items-center justify-center mx-auto mb-3 transform rotate-12">
+                        <HandCoins className="w-8 h-8 text-white" />
+                      </div>
+                      <h4 className="font-bold text-pink-700 mb-2 font-handwritten">Spiele verkaufen</h4>
+                      <p className="text-sm text-gray-600 font-body">Verkaufe Spiele, die du nicht mehr brauchst</p>
+                    </div>
                   </div>
 
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-pink-400 rounded-full flex items-center justify-center mx-auto mb-3 transform rotate-12">
-                      <HandCoins className="w-8 h-8 text-white" />
-                    </div>
-                    <h4 className="font-bold text-pink-700 mb-2 font-handwritten">Spiele verkaufen</h4>
-                    <p className="text-sm text-gray-600 font-body">Verkaufe Spiele, die du nicht mehr brauchst</p>
-                  </div>
-                </div>
-
-                {!user ? (
                   <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                       <Button
@@ -537,39 +507,29 @@ function MarketplaceContent() {
                           Jetzt registrieren
                         </Link>
                       </Button>
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white px-8 py-3 font-handwritten text-lg transform rotate-1 hover:rotate-0 transition-all bg-transparent"
-                      >
-                        <Link href="/login">
-                          <LogIn className="w-5 h-5 mr-2" />
-                          Bereits registriert? Anmelden
-                        </Link>
-                      </Button>
+                      <div className="flex items-center space-x-2 text-gray-600 font-body">
+                        <span>Bereits registriert?</span>
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent transform hover:scale-105 transition-all duration-200"
+                        >
+                          <Link href="/login">
+                            <LogIn className="w-4 h-4 mr-2" />
+                            Anmelden
+                          </Link>
+                        </Button>
+                      </div>                      
                     </div>
                     <p className="text-sm text-gray-500 font-body">
                       Kostenlose Registrierung • Keine versteckten Gebühren • Sofort loslegen
                     </p>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-lg text-gray-700 font-body mb-4">
-                      Du bist bereits dabei! Biete jetzt deine ersten Spiele an.
-                    </p>
-                    <Button
-                      onClick={() => setIsOfferDialogOpen(true)}
-                      className="bg-teal-400 hover:bg-teal-500 text-white px-8 py-3 font-handwritten text-lg transform -rotate-1 hover:rotate-0 transition-all"
-                    >
-                      <Plus className="w-5 h-5 mr-2" />
-                      Erstes Spiel anbieten
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Detail Dialog */}
