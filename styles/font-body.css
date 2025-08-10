@@ -1,0 +1,15 @@
+@font-face {
+ .mclaren-regular {
+  font-family: "McLaren", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+}
+
+/* You might want to define some default styles for the body font here */
+.mclaren-regular {
+  font-family: "McLaren", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
