@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Home, Library, Users, Store, MessageCircle, User, LogOut, Menu, X } from "lucide-react"
+import { Home, Library, UserPlus, LogIn, Users, Store, MessageCircle, User, LogOut, Menu, X, Info } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 
 interface NavigationProps {
@@ -17,13 +17,25 @@ export function Navigation({ currentPage }: NavigationProps) {
   const { user, signOut } = useAuth() || { user: null, signOut: null }
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  const navItems = [
+  // Navigation items for logged-in users
+  const loggedInNavItems = [
     { href: "/", label: "Home", icon: Home, key: "home" },
     { href: "/library", label: "Bibliothek", icon: Library, key: "library" },
     { href: "/groups", label: "Community", icon: Users, key: "community" },
     { href: "/marketplace", label: "Marktplatz", icon: Store, key: "marketplace" },
     { href: "/messages", label: "Nachrichten", icon: MessageCircle, key: "messages" },
+    { href: "/about", label: "Über uns", icon: Info, key: "about" },
   ]
+
+  // Navigation items for non-logged-in users
+  const publicNavItems = [
+    { href: "/", label: "Home", icon: Home, key: "home" },
+    { href: "/marketplace", label: "Marktplatz", icon: Store, key: "marketplace" },
+    { href: "/groups", label: "Community", icon: Users, key: "community" },
+    { href: "/about", label: "Über uns", icon: Info, key: "about" },
+  ]
+
+  const navItems = user ? loggedInNavItems : publicNavItems
 
   const isActive = (href: string, key: string) => {
     if (currentPage) {
@@ -53,7 +65,7 @@ export function Navigation({ currentPage }: NavigationProps) {
             href="/"
             className="flex items-center space-x-2 transform hover:scale-105 hover:rotate-1 transition-all hover:text-teal-600"
           >
-            <img src="/images/ludoloop-new-logo.png" alt="LudoLoop Logo" className="h-10 w-auto" />
+            <img src="/images/ludoloop-new-logo.png" alt="LudoLoop Logo" className="h-16 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}
@@ -120,15 +132,21 @@ export function Navigation({ currentPage }: NavigationProps) {
                 <Button
                   asChild
                   variant="outline"
-                  className="border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent"
+                  className="border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent flex items-center space-x-2"
                 >
-                  <Link href="/login">Anmelden</Link>
+                  <Link href="/login">
+                    <LogIn className="w-4 h-4" />
+                    <span>Anmelden</span>
+                  </Link>
                 </Button>
                 <Button
                   asChild
-                  className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all"
+                  className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all flex items-center space-x-2"
                 >
-                  <Link href="/register">Registrieren</Link>
+                  <Link href="/register">
+                    <UserPlus className="w-4 h-4" />
+                    <span>Registrieren</span>
+                  </Link>
                 </Button>
               </div>
             )}

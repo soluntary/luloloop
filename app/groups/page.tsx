@@ -230,7 +230,7 @@ function CommunityContent() {
       const { data, error } = await supabase
         .from("users")
         .select("*")
-        .neq("id", user?.id || "")
+        .neq("id", user?.id || "00000000-0000-0000-0000-000000000000")
         .order("name")
 
       if (error) {
@@ -734,7 +734,7 @@ function CommunityContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 font-body">
       {/* Header */}
-      <Navigation currentPage="groups" />
+      <Navigation currentPage="community" />
 
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
