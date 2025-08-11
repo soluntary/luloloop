@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from "@supabase/supabase-js"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -7,8 +7,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
-  }
+    detectSessionInUrl: true,
+  },
 })
 
 // Client-side Supabase client (singleton pattern)
@@ -20,8 +20,8 @@ export const getSupabaseClient = () => {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true
-      }
+        detectSessionInUrl: true,
+      },
     })
   }
   return supabaseClient
@@ -29,16 +29,12 @@ export const getSupabaseClient = () => {
 
 // Server-side Supabase client
 export const createServerClient = () => {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    }
-  )
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
 }
 
 // Database types
@@ -99,6 +95,8 @@ export interface Database {
           language: string | null
           available: string[]
           image: string | null
+          type: string | null
+          style: string | null
           created_at: string
           updated_at: string
         }
@@ -114,6 +112,8 @@ export interface Database {
           language?: string | null
           available?: string[]
           image?: string | null
+          type?: string | null
+          style?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -129,6 +129,8 @@ export interface Database {
           language?: string | null
           available?: string[]
           image?: string | null
+          type?: string | null
+          style?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -141,7 +143,7 @@ export interface Database {
           title: string
           publisher: string | null
           condition: string
-          type: 'lend' | 'trade' | 'sell'
+          type: "lend" | "trade" | "sell"
           price: string | null
           location: string | null
           distance: string | null
@@ -158,7 +160,7 @@ export interface Database {
           title: string
           publisher?: string | null
           condition: string
-          type: 'lend' | 'trade' | 'sell'
+          type: "lend" | "trade" | "sell"
           price?: string | null
           location?: string | null
           distance?: string | null
@@ -175,7 +177,7 @@ export interface Database {
           title?: string
           publisher?: string | null
           condition?: string
-          type?: 'lend' | 'trade' | 'sell'
+          type?: "lend" | "trade" | "sell"
           price?: string | null
           location?: string | null
           distance?: string | null
@@ -193,7 +195,7 @@ export interface Database {
           to_user_id: string
           game_title: string | null
           game_id: string | null
-          offer_type: 'lend' | 'trade' | 'sell' | null
+          offer_type: "lend" | "trade" | "sell" | null
           message: string
           game_image: string | null
           read: boolean
@@ -205,7 +207,7 @@ export interface Database {
           to_user_id: string
           game_title?: string | null
           game_id?: string | null
-          offer_type?: 'lend' | 'trade' | 'sell' | null
+          offer_type?: "lend" | "trade" | "sell" | null
           message: string
           game_image?: string | null
           read?: boolean
@@ -217,7 +219,7 @@ export interface Database {
           to_user_id?: string
           game_title?: string | null
           game_id?: string | null
-          offer_type?: 'lend' | 'trade' | 'sell' | null
+          offer_type?: "lend" | "trade" | "sell" | null
           message?: string
           game_image?: string | null
           read?: boolean
@@ -229,21 +231,21 @@ export interface Database {
           id: string
           user_id: string
           friend_id: string
-          status: 'pending' | 'accepted' | 'blocked'
+          status: "pending" | "accepted" | "blocked"
           created_at: string
         }
         Insert: {
           id?: string
           user_id: string
           friend_id: string
-          status?: 'pending' | 'accepted' | 'blocked'
+          status?: "pending" | "accepted" | "blocked"
           created_at?: string
         }
         Update: {
           id?: string
           user_id?: string
           friend_id?: string
-          status?: 'pending' | 'accepted' | 'blocked'
+          status?: "pending" | "accepted" | "blocked"
           created_at?: string
         }
       }
@@ -253,7 +255,7 @@ export interface Database {
           from_user_id: string
           to_user_id: string
           message: string | null
-          status: 'pending' | 'accepted' | 'declined'
+          status: "pending" | "accepted" | "declined"
           created_at: string
           updated_at: string
         }
@@ -262,7 +264,7 @@ export interface Database {
           from_user_id: string
           to_user_id: string
           message?: string | null
-          status?: 'pending' | 'accepted' | 'declined'
+          status?: "pending" | "accepted" | "declined"
           created_at?: string
           updated_at?: string
         }
@@ -271,7 +273,7 @@ export interface Database {
           from_user_id?: string
           to_user_id?: string
           message?: string | null
-          status?: 'pending' | 'accepted' | 'declined'
+          status?: "pending" | "accepted" | "declined"
           created_at?: string
           updated_at?: string
         }
@@ -282,7 +284,7 @@ export interface Database {
           creator_id: string
           name: string
           description: string | null
-          type: 'recurring' | 'family' | 'campaign' | 'casual' | null
+          type: "recurring" | "family" | "campaign" | "casual" | null
           location: string | null
           next_meeting: string | null
           max_members: number | null
@@ -297,7 +299,7 @@ export interface Database {
           creator_id: string
           name: string
           description?: string | null
-          type?: 'recurring' | 'family' | 'campaign' | 'casual' | null
+          type?: "recurring" | "family" | "campaign" | "casual" | null
           location?: string | null
           next_meeting?: string | null
           max_members?: number | null
@@ -312,7 +314,7 @@ export interface Database {
           creator_id?: string
           name?: string
           description?: string | null
-          type?: 'recurring' | 'family' | 'campaign' | 'casual' | null
+          type?: "recurring" | "family" | "campaign" | "casual" | null
           location?: string | null
           next_meeting?: string | null
           max_members?: number | null
@@ -328,21 +330,121 @@ export interface Database {
           id: string
           community_id: string
           user_id: string
-          role: 'creator' | 'admin' | 'member'
+          role: "creator" | "admin" | "member"
           joined_at: string
         }
         Insert: {
           id?: string
           community_id: string
           user_id: string
-          role?: 'creator' | 'admin' | 'member'
+          role?: "creator" | "admin" | "member"
           joined_at?: string
         }
         Update: {
           id?: string
           community_id?: string
           user_id?: string
-          role?: 'creator' | 'admin' | 'member'
+          role?: "creator" | "admin" | "member"
+          joined_at?: string
+        }
+      }
+      community_events: {
+        Row: {
+          id: string
+          creator_id: string
+          title: string
+          description: string | null
+          frequency: "einmalig" | "regelmäßig"
+          fixed_date: string | null
+          fixed_time_from: string | null
+          fixed_time_to: string | null
+          location: string
+          max_participants: number | null
+          visibility: "public" | "friends"
+          approval_mode: "automatic" | "manual"
+          rules: string | null
+          additional_info: string | null
+          image_url: string | null
+          selected_games: any
+          custom_games: string[]
+          selected_friends: string[]
+          time_slots: any
+          use_time_slots: boolean
+          active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          creator_id: string
+          title: string
+          description?: string | null
+          frequency: "einmalig" | "regelmäßig"
+          fixed_date?: string | null
+          fixed_time_from?: string | null
+          fixed_time_to?: string | null
+          location: string
+          max_participants?: number | null
+          visibility: "public" | "friends"
+          approval_mode?: "automatic" | "manual"
+          rules?: string | null
+          additional_info?: string | null
+          image_url?: string | null
+          selected_games?: any
+          custom_games?: string[]
+          selected_friends?: string[]
+          time_slots?: any
+          use_time_slots?: boolean
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          creator_id?: string
+          title?: string
+          description?: string | null
+          frequency?: "einmalig" | "regelmäßig"
+          fixed_date?: string | null
+          fixed_time_from?: string | null
+          fixed_time_to?: string | null
+          location?: string
+          max_participants?: number | null
+          visibility?: "public" | "friends"
+          approval_mode?: "automatic" | "manual"
+          rules?: string | null
+          additional_info?: string | null
+          image_url?: string | null
+          selected_games?: any
+          custom_games?: string[]
+          selected_friends?: string[]
+          time_slots?: any
+          use_time_slots?: boolean
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      community_event_participants: {
+        Row: {
+          id: string
+          event_id: string
+          user_id: string
+          status: "pending" | "approved" | "declined" | "joined"
+          joined_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          user_id: string
+          status?: "pending" | "approved" | "declined" | "joined"
+          joined_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          user_id?: string
+          status?: "pending" | "approved" | "declined" | "joined"
           joined_at?: string
         }
       }

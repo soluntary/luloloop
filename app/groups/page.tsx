@@ -16,7 +16,7 @@ import {
   UserCheck,
   UserX,
   Eye,
-  Gamepad2,
+  Dices,
   Star,
   Clock,
   CheckCircle,
@@ -26,14 +26,21 @@ import {
   MapPin,
   MessageCircle,
   Send,
+  Calendar,
+  Globe,
+  Lock,
+  Database,
+  ImageIcon,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
 import { useFriends } from "@/contexts/friends-context"
+import { useGames } from "@/contexts/games-context"
 import { Navigation } from "@/components/navigation"
 import Link from "next/link"
 import { Suspense } from "react"
 import CreateCommunityEventForm from "@/components/create-community-event-form"
+import { getCommunityEvents, joinCommunityEvent } from "@/app/actions/community-events"
 
 interface Community {
   id: string
@@ -49,6 +56,44 @@ interface Community {
   type?: string
   location?: string
   image?: string
+}
+
+interface CommunityEvent {
+  id: string
+  creator_id: string
+  title: string
+  description: string | null
+  frequency: "einmalig" | "regelmäßig"
+  fixed_date: string | null
+  fixed_time_from: string | null
+  fixed_time_to: string | null
+  location: string
+  max_participants: number | null
+  visibility: "public" | "friends"
+  approval_mode: "automatic" | "manual"
+  rules: string | null
+  additional_info: string | null
+  image_url: string | null
+  selected_games: any
+  custom_games: string[]
+  selected_friends: string[]
+  time_slots: any
+  use_time_slots: boolean
+  active: boolean
+  created_at: string
+  updated_at: string
+  creator?: {
+    name: string
+    email: string
+  }
+  participants?: Array<{
+    id: string
+    user_id: string
+    status: string
+    user: {
+      name: string
+    }
+  }>
 }
 
 interface User {
@@ -117,8 +162,10 @@ function CommunityLoading() {
 function CommunityContent() {
   const { user, loading: authLoading } = useAuth()
   const { friends, friendRequests, sendFriendRequest, acceptFriendRequest, rejectFriendRequest } = useFriends()
+  const { games } = useGames()
 
   const [communities, setCommunities] = useState<Community[]>([])
+  const [communityEvents, setCommunityEvents] = useState<CommunityEvent[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [allFriendRequests, setAllFriendRequests] = useState<FriendRequest[]>([])
   const [allFriends, setAllFriends] = useState<User[]>([])
@@ -132,7 +179,9 @@ function CommunityContent() {
   const [showLibraryDialog, setShowLibraryDialog] = useState(false)
   const [libraryLoading, setLibraryLoading] = useState(false)
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null)
+  const [selectedEvent, setSelectedEvent] = useState<CommunityEvent | null>(null)
   const [showCommunityDialog, setShowCommunityDialog] = useState(false)
+  const [showEventDialog, setShowEventDialog] = useState(false)
 
   // Contact creator dialog
   const [showContactDialog, setShowContactDialog] = useState(false)
@@ -215,6 +264,24 @@ function CommunityContent() {
       return communitiesWithCreator
     } catch (error) {
       console.error("Failed to load communities:", error)
+      return []
+    }
+  }
+
+  const loadCommunityEvents = async () => {
+    try {
+      console.log("Loading community events...")
+      const result = await getCommunityEvents()
+
+      if (result.success) {
+        console.log("Community events loaded:", result.data.length)
+        return result.data
+      } else {
+        console.error("Error loading community events:", result.error)
+        return []
+      }
+    } catch (error) {
+      console.error("Failed to load community events:", error)
       return []
     }
   }
@@ -350,17 +417,24 @@ function CommunityContent() {
         console.warn("Database connection test failed, but continuing...")
       }
 
-      const publicDataPromises = [loadCommunities(), loadUsers()]
+      const publicDataPromises = [loadCommunities(), loadCommunityEvents(), loadUsers()]
       const allPromises = user ? [...publicDataPromises, loadFriendRequests(), loadFriends()] : publicDataPromises
 
       const results = await Promise.allSettled(allPromises)
-      const [communitiesResult, usersResult, friendRequestsResult, friendsResult] = results
+      const [communitiesResult, eventsResult, usersResult, friendRequestsResult, friendsResult] = results
 
       if (communitiesResult.status === "fulfilled") {
         setCommunities(communitiesResult.value)
       } else {
         console.error("Failed to load communities:", communitiesResult.reason)
         setCommunities([])
+      }
+
+      if (eventsResult.status === "fulfilled") {
+        setCommunityEvents(eventsResult.value)
+      } else {
+        console.error("Failed to load community events:", eventsResult.reason)
+        setCommunityEvents([])
       }
 
       if (usersResult.status === "fulfilled") {
@@ -626,6 +700,33 @@ function CommunityContent() {
     setShowCommunityDialog(true)
   }
 
+  const handleEventClick = (event: CommunityEvent) => {
+    setSelectedEvent(event)
+    setShowEventDialog(true)
+  }
+
+  const handleJoinEvent = async (eventId: string) => {
+    if (!user) {
+      alert("Bitte melde dich an, um an Events teilzunehmen.")
+      return
+    }
+
+    try {
+      const result = await joinCommunityEvent(eventId)
+
+      if (result.success) {
+        alert(result.message)
+        loadAllData() // Refresh data to show updated participation status
+        setShowEventDialog(false)
+      } else {
+        alert(result.error)
+      }
+    } catch (error) {
+      console.error("Error joining event:", error)
+      alert("Ein Fehler ist aufgetreten. Bitte versuche es später erneut.")
+    }
+  }
+
   const getTypeColor = (type: string) => {
     switch (type) {
       case "casual":
@@ -683,6 +784,28 @@ function CommunityContent() {
     }
   }
 
+  const formatEventDate = (event: CommunityEvent) => {
+    if (event.use_time_slots && event.time_slots && event.time_slots.length > 0) {
+      return "Mehrere Terminvorschläge"
+    } else if (event.fixed_date) {
+      const date = new Date(event.fixed_date)
+      const dateStr = date.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+
+      if (event.fixed_time_from && event.fixed_time_to) {
+        return `${dateStr}, ${event.fixed_time_from} - ${event.fixed_time_to}`
+      } else if (event.fixed_time_from) {
+        return `${dateStr}, ab ${event.fixed_time_from}`
+      } else {
+        return dateStr
+      }
+    }
+    return "Termin wird noch bekannt gegeben"
+  }
+
   const filteredCommunities = communities.filter((community) => {
     const matchesSearch =
       community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -690,6 +813,15 @@ function CommunityContent() {
     const matchesFilter = activeFilter === "all" || community.type === activeFilter
 
     return matchesSearch && matchesFilter
+  })
+
+  const filteredEvents = communityEvents.filter((event) => {
+    const matchesSearch =
+      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.location.toLowerCase().includes(searchTerm.toLowerCase())
+
+    return matchesSearch
   })
 
   const filteredUsers = users.filter(
@@ -736,9 +868,9 @@ function CommunityContent() {
 
   const handleCreateEvent = (eventData: any) => {
     console.log("Creating community event:", eventData)
-    // Here you would typically save the event to the database
     setShowCreateEventDialog(false)
-    // Show success message or refresh data
+    // Refresh data to show the new event
+    loadAllData()
     alert("Community-Anzeige wurde erfolgreich erstellt!")
   }
 
@@ -752,13 +884,41 @@ function CommunityContent() {
       <Navigation currentPage="community" />
 
       <div className="container mx-auto px-4 py-8">
+        {/* Database Error Banner */}
+        {error && (
+          <div className="mb-8 p-6 bg-red-50 border-2 border-red-200 rounded-lg">
+            <div className="flex items-start space-x-4">
+              <Database className="w-8 h-8 text-red-500 flex-shrink-0 mt-1" />
+              <div className="flex-1">
+                <h3 className="font-bold text-red-700 font-handwritten text-xl mb-2">
+                  🚨 Datenbank-Setup erforderlich
+                </h3>
+                <p className="text-red-600 font-body mb-4">{error}</p>
+                <div className="bg-red-100 p-4 rounded-lg border border-red-200">
+                  <h4 className="font-bold text-red-700 font-handwritten mb-2">Setup-Anleitung:</h4>
+                  <ol className="text-red-600 font-body space-y-1 text-sm">
+                    <li>1. Öffne dein Supabase-Dashboard</li>
+                    <li>2. Gehe zum SQL Editor</li>
+                    <li>3. Führe die Skripte in dieser Reihenfolge aus:</li>
+                    <li className="ml-4">• scripts/01-create-tables.sql</li>
+                    <li className="ml-4">• scripts/02-create-policies.sql</li>
+                    <li className="ml-4">• scripts/03-seed-data.sql (optional)</li>
+                    <li className="ml-4">• scripts/06-create-community-events.sql</li>
+                    <li>4. Aktualisiere die Seite</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Page Header */}
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-            Communities & Freunde
+            Communities & Events
           </h1>
           <p className="text-xl text-gray-600 transform rotate-1 font-body">
-            Entdecke Spielgruppen und finde neue Spielpartner!
+            Entdecke Spielgruppen, Events und finde neue Spielpartner!
           </p>
         </div>
 
@@ -766,7 +926,7 @@ function CommunityContent() {
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="flex-1">
             <Input
-              placeholder="Nach Communities oder Freunden suchen..."
+              placeholder="Nach Communities, Events oder Freunden suchen..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="border-2 border-teal-200 focus:border-teal-400 font-body text-base"
@@ -792,13 +952,20 @@ function CommunityContent() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-6xl mx-auto">
-          <TabsList className="grid w-full grid-cols-2 mb-8 bg-white/80 backdrop-blur-sm border-2 border-orange-200 rounded-xl p-1">
+          <TabsList className="grid w-full grid-cols-3 mb-8 bg-white/80 backdrop-blur-sm border-2 border-orange-200 rounded-xl p-1">
             <TabsTrigger
               value="communities"
               className="font-handwritten text-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-400 data-[state=active]:to-pink-400 data-[state=active]:text-white rounded-lg"
             >
               <Users className="w-5 h-5 mr-2" />
               Communities
+            </TabsTrigger>
+            <TabsTrigger
+              value="events"
+              className="font-handwritten text-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-400 data-[state=active]:to-indigo-400 data-[state=active]:text-white rounded-lg"
+            >
+              <Calendar className="w-5 h-5 mr-2" />
+              Events
             </TabsTrigger>
             <TabsTrigger
               value="friends"
@@ -1033,6 +1200,207 @@ function CommunityContent() {
               </div>
             </div>
           </TabsContent>
+
+          {/* Events Tab */}
+          <TabsContent value="events" className="space-y-6">
+            {/* Results Counter */}
+            <div className="text-center mb-6">
+              <p className="text-gray-600 font-body">
+                {filteredEvents.length} {filteredEvents.length === 1 ? "Event" : "Events"} gefunden
+                {searchTerm && ` für "${searchTerm}"`}
+              </p>
+            </div>
+
+            {/* Dynamic event items */}
+            {filteredEvents.map((event, index) => (
+              <Card
+                key={event.id}
+                className={`transform ${index % 2 === 0 ? "rotate-1" : "-rotate-1"} hover:rotate-0 transition-all hover:shadow-xl border-2 border-gray-200 hover:border-purple-300 font-body cursor-pointer`}
+                onClick={() => handleEventClick(event)}
+              >
+                <CardContent className="p-4">
+                  <div className="relative mb-3">
+                    <img
+                      src={event.image_url || "/placeholder.svg?height=200&width=300&query=community+event"}
+                      alt={event.title}
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <Badge className="absolute top-2 right-2 bg-purple-500 text-white font-body">
+                      {event.frequency === "einmalig" ? "Einmalig" : "Regelmäßig"}
+                    </Badge>
+                    <Badge className="absolute top-2 left-2 bg-gray-600 text-white font-body">
+                      {event.visibility === "public" ? (
+                        <>
+                          <Globe className="w-3 h-3 mr-1" />
+                          Öffentlich
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-3 h-3 mr-1" />
+                          Privat
+                        </>
+                      )}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="font-bold text-lg text-gray-800 font-handwritten line-clamp-1">{event.title}</h3>
+
+                    {event.description && (
+                      <p className="text-sm text-gray-600 font-body line-clamp-2">{event.description}</p>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600 font-body">
+                      <div className="flex items-center">
+                        <Calendar className="w-4 h-4 mr-1" />
+                        <span className="truncate">{formatEventDate(event)}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-1" />
+                        <span className="truncate">{event.location}</span>
+                      </div>
+                      {event.max_participants && (
+                        <div className="flex items-center">
+                          <Users className="w-4 h-4 mr-1" />
+                          <span>Max. {event.max_participants} Teilnehmer</span>
+                        </div>
+                      )}
+                      <div className="flex items-center">
+                        <UserCheck className="w-4 h-4 mr-1" />
+                        <span>von {event.creator?.name || "Unbekannt"}</span>
+                      </div>
+                    </div>
+
+                    {/* Show selected games */}
+                    {(event.selected_games?.length > 0 || event.custom_games?.length > 0) && (
+                      <div className="space-y-1">
+                        <Label className="text-xs text-gray-600 font-body">Spiele:</Label>
+                        <div className="flex flex-wrap gap-1">
+                          {event.selected_games?.map((game: any, idx: number) => (
+                            <Badge key={idx} className="bg-teal-100 text-teal-800 border-teal-200 text-xs">
+                              <Dices className="w-3 h-3 mr-1" />
+                              {game.title}
+                            </Badge>
+                          ))}
+                          {event.custom_games?.map((game: string, idx: number) => (
+                            <Badge key={idx} className="bg-orange-100 text-orange-800 border-orange-200 text-xs">
+                              <Dices className="w-3 h-3 mr-1" />
+                              {game}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {user ? (
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-handwritten"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleJoinEvent(event.id)
+                          }}
+                        >
+                          {event.approval_mode === "automatic" ? "Teilnehmen" : "Anfrage senden"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1 border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            // Contact event creator logic
+                          }}
+                        >
+                          <MessageCircle className="w-4 h-4 mr-1" />
+                          Ersteller kontaktieren
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        className="w-full bg-purple-500 hover:bg-purple-600 text-white font-handwritten mt-3"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          window.location.href = "/login"
+                        }}
+                      >
+                        Anmelden zum Teilnehmen
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            {/* No results message */}
+            {filteredEvents.length === 0 && (
+              <div className="text-center py-12">
+                <div className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-10 h-10 text-gray-500" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-600 mb-2 font-handwritten">Keine Events gefunden</h3>
+                <p className="text-gray-500 font-body">
+                  {searchTerm ? "Versuche andere Suchbegriffe." : "Erstelle dein erstes Community-Event!"}
+                </p>
+              </div>
+            )}
+
+            {/* Call to Action Section for Events */}
+            <div className="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-2xl p-8 text-center border-2 border-purple-200 transform -rotate-1 hover:rotate-0 transition-all duration-300 shadow-lg hover:shadow-xl">
+              <div className="max-w-2xl mx-auto">
+                <div className="w-20 h-20 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6 transform rotate-12 hover:-rotate-12 transition-all duration-300">
+                  <Calendar className="w-10 h-10 text-white" />
+                </div>
+
+                <h3 className="text-3xl font-bold text-gray-800 mb-4 font-handwritten transform rotate-1">
+                  Organisiere dein eigenes Spiele-Event!
+                </h3>
+
+                <p className="text-lg text-gray-600 mb-6 font-body transform -rotate-1">
+                  Lade Freunde ein oder finde neue Mitspieler für deine Lieblingsspiele.
+                </p>
+
+                {user ? (
+                  <div className="space-y-4">
+                    <Button
+                      onClick={() => setShowCreateEventDialog(true)}
+                      className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white px-8 py-4 text-lg font-handwritten transform hover:scale-105 transition-all duration-200 shadow-lg"
+                    >
+                      <Plus className="w-5 h-5 mr-2" />
+                      Event erstellen
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                      <Button
+                        asChild
+                        className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white px-8 py-4 text-lg font-handwritten transform hover:scale-105 transition-all duration-200 shadow-lg"
+                      >
+                        <Link href="/register">
+                          <UserPlus className="w-5 h-5 mr-2" />
+                          Registrieren
+                        </Link>
+                      </Button>
+                      <div className="flex items-center space-x-2 text-gray-600 font-body">
+                        <span>Bereits registriert?</span>
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="border-2 border-purple-400 text-purple-600 hover:bg-purple-400 hover:text-white font-handwritten bg-transparent transform hover:scale-105 transition-all duration-200"
+                        >
+                          <Link href="/login">
+                            <LogIn className="w-4 h-4 mr-2" />
+                            Anmelden
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
           {/* Friends Tab */}
           <TabsContent value="friends" className="space-y-6">
             {!user ? (
@@ -1161,7 +1529,7 @@ function CommunityContent() {
                                   onClick={() => handleViewLibrary(targetUser)}
                                   className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 rounded-xl"
                                 >
-                                  <Gamepad2 className="w-4 h-4 mr-1" />
+                                  <Dices className="w-4 h-4 mr-1" />
                                   Spiele
                                 </Button>
                               </div>
@@ -1473,6 +1841,206 @@ function CommunityContent() {
           </DialogContent>
         </Dialog>
 
+        {/* Event Detail Dialog */}
+        <Dialog open={showEventDialog} onOpenChange={setShowEventDialog}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-handwritten text-2xl text-center">Event-Details</DialogTitle>
+            </DialogHeader>
+            {selectedEvent && (
+              <div className="space-y-4">
+                <div className="flex items-start space-x-4">
+                  <div className="relative">
+                    <img
+                      src={selectedEvent.image_url || "/placeholder.svg?height=200&width=300&query=community+event"}
+                      alt={selectedEvent.title}
+                      className="w-32 h-24 rounded-lg shadow-sm flex-shrink-0 object-cover"
+                    />
+                    {!selectedEvent.image_url && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+                        <ImageIcon className="w-8 h-8 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold font-handwritten mb-2">{selectedEvent.title}</h3>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      <Badge className="bg-purple-500 text-white font-body">
+                        {selectedEvent.frequency === "einmalig" ? "Einmalig" : "Regelmäßig"}
+                      </Badge>
+                      <Badge className="bg-gray-600 text-white font-body">
+                        {selectedEvent.visibility === "public" ? (
+                          <>
+                            <Globe className="w-3 h-3 mr-1" />
+                            Öffentlich
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-3 h-3 mr-1" />
+                            Privat
+                          </>
+                        )}
+                      </Badge>
+                      {selectedEvent.approval_mode === "manual" && (
+                        <Badge className="bg-orange-500 text-white font-body">Manuelle Bestätigung</Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {selectedEvent.additional_info && (
+                  <div>
+                    <span className="font-medium font-body">Beschreibung:</span>
+                    <p className="text-sm text-gray-600 font-body mt-1 bg-gray-50 p-3 rounded">
+                      {selectedEvent.additional_info}
+                    </p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium font-body">Wann:</span>
+                    <div className="flex items-center mt-1">
+                      <Calendar className="w-4 h-4 mr-1 text-gray-500" />
+                      <span className="font-body">{formatEventDate(selectedEvent)}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="font-medium font-body">Wo:</span>
+                    <div className="flex items-center mt-1">
+                      <MapPin className="w-4 h-4 mr-1 text-gray-500" />
+                      <span className="font-body">{selectedEvent.location}</span>
+                    </div>
+                  </div>
+                  {selectedEvent.max_participants && (
+                    <div>
+                      <span className="font-medium font-body">Max. Teilnehmer:</span>
+                      <div className="flex items-center mt-1">
+                        <Users className="w-4 h-4 mr-1 text-gray-500" />
+                        <span className="font-body">{selectedEvent.max_participants}</span>
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <span className="font-medium font-body">Ersteller:</span>
+                    <div className="flex items-center mt-1">
+                      <UserCheck className="w-4 h-4 mr-1 text-gray-500" />
+                      <span className="font-body">{selectedEvent.creator?.name || "Unbekannt"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Time Slots */}
+                {selectedEvent.use_time_slots && selectedEvent.time_slots && selectedEvent.time_slots.length > 0 && (
+                  <div>
+                    <span className="font-medium font-body">Terminvorschläge:</span>
+                    <div className="mt-2 space-y-2">
+                      {selectedEvent.time_slots.map((slot: any, index: number) => (
+                        <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                          <div className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                            <span className="font-body">
+                              {new Date(slot.date).toLocaleDateString("de-DE", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })}
+                              {slot.timeFrom && slot.timeTo && `, ${slot.timeFrom} - ${slot.timeTo}`}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Games */}
+                {(selectedEvent.selected_games?.length > 0 || selectedEvent.custom_games?.length > 0) && (
+                  <div>
+                    <span className="font-medium font-body">Spiele:</span>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedEvent.selected_games?.map((game: any, idx: number) => (
+                        <Badge key={idx} className="bg-teal-100 text-teal-800 border-teal-200">
+                          <Dices className="w-3 h-3 mr-1" />
+                          {game.title}
+                          {game.publisher && <span className="text-xs ml-1">({game.publisher})</span>}
+                        </Badge>
+                      ))}
+                      {selectedEvent.custom_games?.map((game: string, idx: number) => (
+                        <Badge key={idx} className="bg-orange-100 text-orange-800 border-orange-200">
+                          <Dices className="w-3 h-3 mr-1" />
+                          {game}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rules */}
+                {selectedEvent.rules && (
+                  <div>
+                    <span className="font-medium font-body">Regeln / Hinweise:</span>
+                    <p className="text-sm text-gray-600 font-body mt-1 bg-gray-50 p-3 rounded">{selectedEvent.rules}</p>
+                  </div>
+                )}
+
+                {/* Participants */}
+                {selectedEvent.participants && selectedEvent.participants.length > 0 && (
+                  <div>
+                    <span className="font-medium font-body">Teilnehmer:</span>
+                    <div className="mt-2 space-y-1">
+                      {selectedEvent.participants
+                        .filter((p) => p.status === "joined" || p.status === "approved")
+                        .map((participant, idx) => (
+                          <div key={idx} className="flex items-center space-x-2">
+                            <div className="w-6 h-6 bg-gradient-to-r from-green-400 to-teal-400 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                              {participant.user?.name?.[0]?.toUpperCase() || "?"}
+                            </div>
+                            <span className="text-sm font-body">{participant.user?.name || "Unbekannt"}</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {user ? (
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      onClick={() => handleJoinEvent(selectedEvent.id)}
+                      className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-handwritten"
+                    >
+                      {selectedEvent.approval_mode === "automatic" ? "Teilnehmen" : "Anfrage senden"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowEventDialog(false)
+                        // Contact event creator logic
+                      }}
+                      className="flex-1 border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-1" />
+                      Ersteller kontaktieren
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="pt-4">
+                    <Button
+                      onClick={() => {
+                        setShowEventDialog(false)
+                        window.location.href = "/login"
+                      }}
+                      className="w-full bg-purple-500 hover:bg-purple-600 text-white font-handwritten"
+                    >
+                      Anmelden zum Teilnehmen
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Contact Creator Dialog */}
         <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
           <DialogContent className="max-w-md">
@@ -1636,7 +2204,7 @@ function CommunityContent() {
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center space-x-3 mb-3">
-                          <Gamepad2 className="w-8 h-8 text-orange-500" />
+                          <Dices className="w-8 h-8 text-orange-500" />
                           <div className="flex-1">
                             <h4 className="font-handwritten text-lg text-gray-800">{game.title}</h4>
                             <div className="flex items-center space-x-2 mt-1">
@@ -1670,7 +2238,7 @@ function CommunityContent() {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <Gamepad2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <Dices className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <p className="font-body text-gray-500">Keine Spiele in der Bibliothek</p>
                 </div>
               )}
@@ -1682,8 +2250,8 @@ function CommunityContent() {
         <Dialog open={showCreateEventDialog} onOpenChange={setShowCreateEventDialog}>
           <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
             <CreateCommunityEventForm
-              userGames={[]} // You can pass actual user games here if available
-              friends={allFriends} // Pass the user's friends
+              userGames={games.map((game) => ({ id: game.id, title: game.title, publisher: game.publisher }))}
+              friends={allFriends.map((friend) => ({ id: friend.id, name: friend.name, avatar: friend.avatar }))}
               onSubmit={handleCreateEvent}
               onCancel={handleCancelCreateEvent}
             />

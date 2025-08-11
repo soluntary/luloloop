@@ -2,17 +2,31 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { MapPin, Users, LibraryBig, Plus, X, UserCheck, Globe, Lock, CheckCircle } from "lucide-react"
+import {
+  Globe,
+  Lock,
+  Settings,
+  Dices,
+  Plus,
+  X,
+  UserPlus,
+  Save,
+  AlertCircle,
+  UserCheck,
+  Upload,
+  ImageIcon,
+  FileImage,
+} from "lucide-react"
+import { createCommunityEvent, type CommunityEventData } from "@/app/actions/community-events"
 
 interface Game {
   id: string
@@ -26,6 +40,13 @@ interface Friend {
   avatar?: string
 }
 
+interface CreateCommunityEventFormProps {
+  userGames: Game[]
+  friends: Friend[]
+  onSubmit: (eventData: any) => void
+  onCancel: () => void
+}
+
 interface TimeSlot {
   id: string
   date: string
@@ -33,668 +54,1019 @@ interface TimeSlot {
   timeTo: string
 }
 
-interface CommunityEventFormProps {
-  userGames?: Game[]
-  friends?: Friend[]
-  onSubmit?: (eventData: any) => void
-  onCancel?: () => void
-}
-
 export default function CreateCommunityEventForm({
-  userGames = [],
-  friends = [],
+  userGames,
+  friends,
   onSubmit,
   onCancel,
-}: CommunityEventFormProps) {
+}: CreateCommunityEventFormProps) {
+  const [currentStep, setCurrentStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [imageError, setImageError] = useState<string | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Form state
   const [formData, setFormData] = useState({
     title: "",
-    frequency: "",
+    frequency: "einmalig" as "einmalig" | "regelmäßig",
     fixedDate: "",
     fixedTimeFrom: "",
     fixedTimeTo: "",
     location: "",
     maxParticipants: "",
-    visibility: "",
-    approvalMode: "automatic", // Add this new field
+    visibility: "public" as "public" | "friends",
+    approvalMode: "automatic" as "automatic" | "manual",
     rules: "",
     additionalInfo: "",
+    selectedImage: "",
+    selectedImageFile: null as File | null,
+    otherGames: "", // Field for other games
   })
 
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
   const [selectedGames, setSelectedGames] = useState<Game[]>([])
   const [customGames, setCustomGames] = useState<string[]>([])
-  const [selectedFriends, setSelectedFriends] = useState<Friend[]>([])
-  const [showGameSelection, setShowGameSelection] = useState(false)
-  const [showFriendSelection, setShowFriendSelection] = useState(false)
   const [newCustomGame, setNewCustomGame] = useState("")
+  const [selectedFriends, setSelectedFriends] = useState<Friend[]>([])
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
   const [useTimeSlots, setUseTimeSlots] = useState(false)
-  const [selectedImage, setSelectedImage] = useState<string>("")
+  const [showGameDialog, setShowGameDialog] = useState(false)
+  const [showFriendDialog, setShowFriendDialog] = useState(false)
   const [friendSearchTerm, setFriendSearchTerm] = useState("")
 
-  const addTimeSlot = () => {
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleGameToggle = (game: Game) => {
+    setSelectedGames((prev) => {
+      const isSelected = prev.some((g) => g.id === game.id)
+      if (isSelected) {
+        return prev.filter((g) => g.id !== game.id)
+      } else {
+        return [...prev, game]
+      }
+    })
+  }
+
+  const handleAddCustomGame = () => {
+    if (newCustomGame.trim() && !customGames.includes(newCustomGame.trim())) {
+      setCustomGames((prev) => [...prev, newCustomGame.trim()])
+      setNewCustomGame("")
+    }
+  }
+
+  const handleRemoveCustomGame = (game: string) => {
+    setCustomGames((prev) => prev.filter((g) => g !== game))
+  }
+
+  const handleFriendToggle = (friend: Friend) => {
+    setSelectedFriends((prev) => {
+      const isSelected = prev.some((f) => f.id === friend.id)
+      if (isSelected) {
+        return prev.filter((f) => f.id !== friend.id)
+      } else {
+        return [...prev, friend]
+      }
+    })
+  }
+
+  const handleRemoveSelectedFriend = (friendId: string) => {
+    setSelectedFriends((prev) => prev.filter((f) => f.id !== friendId))
+  }
+
+  const handleAddTimeSlot = () => {
     const newSlot: TimeSlot = {
       id: Date.now().toString(),
       date: "",
       timeFrom: "",
       timeTo: "",
     }
-    setTimeSlots([...timeSlots, newSlot])
+    setTimeSlots((prev) => [...prev, newSlot])
   }
 
-  const updateTimeSlot = (id: string, field: keyof Omit<TimeSlot, "id">, value: string) => {
-    setTimeSlots(timeSlots.map((slot) => (slot.id === id ? { ...slot, [field]: value } : slot)))
+  const handleUpdateTimeSlot = (id: string, field: keyof TimeSlot, value: string) => {
+    setTimeSlots((prev) => prev.map((slot) => (slot.id === id ? { ...slot, [field]: value } : slot)))
   }
 
-  const removeTimeSlot = (id: string) => {
-    setTimeSlots(timeSlots.filter((slot) => slot.id !== id))
+  const handleRemoveTimeSlot = (id: string) => {
+    setTimeSlots((prev) => prev.filter((slot) => slot.id !== id))
   }
 
-  const addCustomGame = () => {
-    if (newCustomGame.trim()) {
-      setCustomGames([...customGames, newCustomGame.trim()])
-      setNewCustomGame("")
+  // Image validation and upload functions
+  const validateImageFile = (file: File): string | null => {
+    // Check file type
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+    if (!allowedTypes.includes(file.type)) {
+      return "Nur JPG, PNG und WebP Dateien sind erlaubt."
+    }
+
+    // Check file size (5MB = 5 * 1024 * 1024 bytes)
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      return "Die Datei ist zu groß. Maximal 5MB sind erlaubt."
+    }
+
+    return null
+  }
+
+  const handleImageUpload = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setImageError(null)
+    setIsUploadingImage(true)
+
+    try {
+      // Validate the file
+      const validationError = validateImageFile(file)
+      if (validationError) {
+        setImageError(validationError)
+        return
+      }
+
+      // Create a preview URL
+      const previewUrl = URL.createObjectURL(file)
+
+      // Update form data
+      setFormData((prev) => ({
+        ...prev,
+        selectedImage: previewUrl,
+        selectedImageFile: file,
+      }))
+    } catch (error) {
+      console.error("Error processing image:", error)
+      setImageError("Fehler beim Verarbeiten des Bildes.")
+    } finally {
+      setIsUploadingImage(false)
+      // Reset the input value so the same file can be selected again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
     }
   }
 
-  const removeCustomGame = (index: number) => {
-    setCustomGames(customGames.filter((_, i) => i !== index))
-  }
-
-  const toggleGameSelection = (game: Game) => {
-    setSelectedGames((prev) =>
-      prev.find((g) => g.id === game.id) ? prev.filter((g) => g.id !== game.id) : [...prev, game],
-    )
-  }
-
-  const toggleFriendSelection = (friend: Friend) => {
-    setSelectedFriends((prev) =>
-      prev.find((f) => f.id === friend.id) ? prev.filter((f) => f.id !== friend.id) : [...prev, friend],
-    )
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    const eventData = {
-      ...formData,
-      selectedImage,
-      timeSlots: useTimeSlots ? timeSlots : [],
-      selectedGames,
-      customGames,
-      selectedFriends: formData.visibility === "friends" ? selectedFriends : [],
+  const handleRemoveImage = () => {
+    // Clean up the object URL to prevent memory leaks
+    if (formData.selectedImage && formData.selectedImage.startsWith("blob:")) {
+      URL.revokeObjectURL(formData.selectedImage)
     }
 
-    onSubmit?.(eventData)
+    setFormData((prev) => ({
+      ...prev,
+      selectedImage: "",
+      selectedImageFile: null,
+    }))
+    setImageError(null)
   }
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes"
+    const k = 1024
+    const sizes = ["Bytes", "KB", "MB", "GB"]
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+  }
+
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true)
+      setSubmitError(null)
+
+      // Validate required fields
+      if (!formData.title.trim()) {
+        setSubmitError("Bitte gib einen Titel für das Event ein.")
+        return
+      }
+
+      if (!formData.location.trim()) {
+        setSubmitError("Bitte gib einen Ort für das Event ein.")
+        return
+      }
+
+      if (formData.frequency === "einmalig" && !useTimeSlots && !formData.fixedDate) {
+        setSubmitError("Bitte wähle ein Datum für das einmalige Event.")
+        return
+      }
+
+      if (useTimeSlots && timeSlots.length === 0) {
+        setSubmitError("Bitte füge mindestens einen Terminvorschlag hinzu.")
+        return
+      }
+
+      if (useTimeSlots) {
+        const invalidSlots = timeSlots.filter((slot) => !slot.date || !slot.timeFrom || !slot.timeTo)
+        if (invalidSlots.length > 0) {
+          setSubmitError("Bitte fülle alle Terminvorschläge vollständig aus.")
+          return
+        }
+      }
+
+      // Parse other games from the text field
+      const otherGamesList = formData.otherGames
+        .split(",")
+        .map((game) => game.trim())
+        .filter((game) => game.length > 0)
+
+      // Handle image upload if there's a file
+      let imageUrl = formData.selectedImage
+      if (formData.selectedImageFile) {
+        // In a real application, you would upload the file to a storage service here
+        // For now, we'll use the blob URL as a placeholder
+        imageUrl = formData.selectedImage
+      }
+
+      // Prepare event data
+      const eventData: CommunityEventData = {
+        title: formData.title,
+        frequency: formData.frequency,
+        fixedDate: useTimeSlots ? undefined : formData.fixedDate,
+        fixedTimeFrom: useTimeSlots ? undefined : formData.fixedTimeFrom,
+        fixedTimeTo: useTimeSlots ? undefined : formData.fixedTimeTo,
+        location: formData.location,
+        maxParticipants: formData.maxParticipants,
+        visibility: formData.visibility,
+        approvalMode: formData.approvalMode,
+        rules: formData.rules,
+        additionalInfo: formData.additionalInfo,
+        selectedImage: imageUrl,
+        selectedGames,
+        customGames: [...customGames, ...otherGamesList], // Combine custom games and other games
+        selectedFriends: selectedFriends.map((f) => f.id), // Convert to array of IDs
+        timeSlots,
+        useTimeSlots,
+      }
+
+      // Call server action
+      const result = await createCommunityEvent(eventData)
+
+      if (result.success) {
+        onSubmit(result.data)
+      } else {
+        setSubmitError(result.error || "Ein Fehler ist aufgetreten")
+      }
+    } catch (error) {
+      console.error("Error submitting event:", error)
+      setSubmitError("Ein unerwarteter Fehler ist aufgetreten")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const nextStep = () => {
+    if (currentStep < 4) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const getStepTitle = (step: number) => {
+    switch (step) {
+      case 1:
+        return "Grundinformationen"
+      case 2:
+        return "Termin & Ort"
+      case 3:
+        return "Spiele & Teilnehmer"
+      case 4:
+        return "Einstellungen & Veröffentlichung"
+      default:
+        return ""
+    }
+  }
+
+  // Filter friends based on search term
+  const filteredFriends = friends.filter((friend) => friend.name.toLowerCase().includes(friendSearchTerm.toLowerCase()))
 
   return (
-    <Card className="max-w-4xl mx-auto border-2 border-orange-200">
-      <CardHeader className="bg-gradient-to-r from-orange-400 to-pink-400 text-white">
-        <CardTitle className="text-2xl font-handwritten text-center">Community-Anzeige erstellen</CardTitle>
-      </CardHeader>
+    <div className="bg-gradient-to-br from-orange-50 to-pink-50 p-6 rounded-2xl max-w-4xl mx-auto">
+      <div className="mb-6">
+        <h2 className="text-3xl font-bold text-gray-800 mb-2 font-handwritten transform -rotate-1">
+          Community-Event erstellen
+        </h2>
+        <p className="text-gray-600 font-body">Organisiere dein eigenes Spiele-Event und lade andere ein!</p>
+      </div>
 
-      {/* Image Selection */}
-      <div className="px-6 py-4 border-b border-orange-200">
-        <Label className="text-sm font-medium font-body mb-3 block">Anzeigenbild (Optional)</Label>
-        <div className="space-y-3">
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-300 transition-colors">
-            {selectedImage ? (
+      {/* Progress Steps */}
+      <div className="flex justify-between items-center mb-8">
+        {[1, 2, 3, 4].map((step) => (
+          <div key={step} className="flex items-center">
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                step <= currentStep
+                  ? "bg-gradient-to-r from-orange-400 to-pink-400 text-white"
+                  : "bg-gray-200 text-gray-500"
+              }`}
+            >
+              {step}
+            </div>
+            {step < 4 && (
+              <div
+                className={`w-16 h-1 mx-2 ${
+                  step < currentStep ? "bg-gradient-to-r from-orange-400 to-pink-400" : "bg-gray-200"
+                }`}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="mb-6">
+        <h3 className="text-xl font-handwritten text-gray-800 mb-4">{getStepTitle(currentStep)}</h3>
+      </div>
+
+      {/* Step 1: Basic Information */}
+      {currentStep === 1 && (
+        <div className="space-y-6">
+          <div>
+            <Label htmlFor="title" className="font-body text-gray-700">
+              Event-Titel *
+            </Label>
+            <Input
+              id="title"
+              placeholder="z.B. Wöchentlicher Spieleabend, Catan-Turnier ..."
+              value={formData.title}
+              onChange={(e) => handleInputChange("title", e.target.value)}
+              className="mt-1 border-2 border-orange-200 focus:border-orange-400 font-body"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="frequency" className="font-body text-gray-700">
+              Häufigkeit *
+            </Label>
+            <Select value={formData.frequency} onValueChange={(value) => handleInputChange("frequency", value)}>
+              <SelectTrigger className="mt-1 border-2 border-orange-200 focus:border-orange-400">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="einmalig">Einmaliges Event</SelectItem>
+                <SelectItem value="regelmäßig">Regelmässiges Event</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="additionalInfo" className="font-body text-gray-700">
+              Beschreibung
+            </Label>
+            <Textarea
+              id="additionalInfo"
+              placeholder="Beschreibe dein Event: Was erwartet die Teilnehmer? Welche Atmosphäre soll herrschen?"
+              value={formData.additionalInfo}
+              onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
+              className="mt-1 min-h-[100px] border-2 border-orange-200 focus:border-orange-400 font-body"
+            />
+          </div>
+
+          {/* Image Upload Section with Validation */}
+          <div>
+            <Label className="font-body text-gray-700">Event-Bild (Optional)</Label>
+            <p className="text-sm text-gray-500 font-body mb-3">
+              Füge ein Bild hinzu, um dein Event attraktiver zu machen
+            </p>
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            {formData.selectedImage ? (
               <div className="space-y-3">
-                <img
-                  src={selectedImage || "/placeholder.svg"}
-                  alt="Ausgewähltes Bild"
-                  className="max-h-32 mx-auto rounded-lg object-cover"
-                />
-                <div className="flex gap-2 justify-center">
+                <div className="relative">
+                  <img
+                    src={formData.selectedImage || "/placeholder.svg"}
+                    alt="Event Bild"
+                    className="w-full max-h-48 object-cover rounded-lg border-2 border-orange-200"
+                  />
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setSelectedImage("")}
-                    className="text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 bg-white/90 hover:bg-white border-red-200 text-red-600"
+                    disabled={isUploadingImage}
                   >
-                    <X className="w-4 h-4 mr-1" />
-                    Entfernen
+                    <X className="w-4 h-4" />
                   </Button>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-pink-100 rounded-full flex items-center justify-center mx-auto">
-                  <Plus className="w-8 h-8 text-orange-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700 font-body">Bild hochladen</p>
-                  <p className="text-xs text-gray-500 font-body">PNG, JPG bis zu 5MB</p>
-                </div>
+
+                {/* Show file info if it's a real file */}
+                {formData.selectedImageFile && (
+                  <div className="flex items-center space-x-2 text-sm text-gray-600 font-body">
+                    <FileImage className="w-4 h-4" />
+                    <span>{formData.selectedImageFile.name}</span>
+                    <span>({formatFileSize(formData.selectedImageFile.size)})</span>
+                  </div>
+                )}
+
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  className="border-2 border-orange-200 text-orange-600 hover:bg-orange-50 bg-transparent"
-                  onClick={() => {
-                    // Simulate file selection - in real app this would open file picker
-                    const mockImageUrl = "/placeholder.svg?height=200&width=300&text=Uploaded+Image"
-                    setSelectedImage(mockImageUrl)
-                  }}
+                  onClick={handleImageUpload}
+                  disabled={isUploadingImage}
+                  className="w-full border-2 border-orange-200 text-orange-600 hover:bg-orange-50 font-handwritten bg-transparent"
                 >
-                  Bild auswählen
+                  {isUploadingImage ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 mr-2"></div>
+                      Wird verarbeitet...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Anderes Bild auswählen
+                    </>
+                  )}
                 </Button>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-orange-200 rounded-lg p-8 text-center hover:border-orange-300 transition-colors">
+                <ImageIcon className="w-12 h-12 text-orange-300 mx-auto mb-3" />
+                <p className="text-gray-600 font-body mb-3">Noch kein Bild ausgewählt</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleImageUpload}
+                  disabled={isUploadingImage}
+                  className="border-2 border-orange-200 text-orange-600 hover:bg-orange-50 font-handwritten bg-transparent"
+                >
+                  {isUploadingImage ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 mr-2"></div>
+                      Wird verarbeitet...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Bild hochladen
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-gray-400 font-body mt-2">JPG, PNG, WebP bis zu 5MB</p>
+              </div>
+            )}
+
+            {/* Image Error Display */}
+            {imageError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                <p className="text-red-700 text-sm font-body">{imageError}</p>
               </div>
             )}
           </div>
         </div>
-      </div>
+      )}
 
-      <CardContent className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Titel */}
+      {/* Step 2: Date & Location */}
+      {currentStep === 2 && (
+        <div className="space-y-6">
           <div>
-            <Label htmlFor="title" className="text-sm font-medium font-body">
-              Titel *
+            <Label htmlFor="location" className="font-body text-gray-700">
+              Ort *
             </Label>
             <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="z.B. Strategiespiele-Abend, Familien-Spielrunde..."
-              className="mt-1 border-2 border-orange-200 focus:border-orange-400"
-              required
+              id="location"
+              placeholder="z.B. Meine Wohnung, Café Central, Online via Discord..."
+              value={formData.location}
+              onChange={(e) => handleInputChange("location", e.target.value)}
+              className="mt-1 border-2 border-orange-200 focus:border-orange-400 font-body"
             />
           </div>
 
-          {/* Häufigkeit */}
-          <div>
-            <Label className="text-sm font-medium font-body">Häufigkeit *</Label>
-            <Select
-              value={formData.frequency}
-              onValueChange={(value) => setFormData({ ...formData, frequency: value })}
-            >
-              <SelectTrigger className="mt-1 border-2 border-orange-200">
-                <SelectValue placeholder="Häufigkeit auswählen" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="einmalig">Einmalig</SelectItem>
-                <SelectItem value="regelmäßig">Regelmässig</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="useTimeSlots"
+              checked={useTimeSlots}
+              onCheckedChange={(checked) => setUseTimeSlots(checked as boolean)}
+            />
+            <Label htmlFor="useTimeSlots" className="font-body text-gray-700">
+              Mehrere Terminvorschläge anbieten (Teilnehmer können abstimmen)
+            </Label>
           </div>
 
-          {/* Wann */}
-          <div>
-            <Label className="text-sm font-medium font-body">Wann *</Label>
-            <div className="mt-2 space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="use-time-slots"
-                  checked={useTimeSlots}
-                  onCheckedChange={(checked) => setUseTimeSlots(checked as boolean)}
-                />
-                <Label htmlFor="use-time-slots" className="text-sm font-body">
-                  Terminvorschläge erstellen (Teilnehmer können auswählen)
+          {!useTimeSlots ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="fixedDate" className="font-body text-gray-700">
+                  Datum {formData.frequency === "einmalig" ? "*" : ""}
                 </Label>
+                <Input
+                  id="fixedDate"
+                  type="date"
+                  value={formData.fixedDate}
+                  onChange={(e) => handleInputChange("fixedDate", e.target.value)}
+                  className="mt-1 border-2 border-orange-200 focus:border-orange-400 font-body"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fixedTimeFrom" className="font-body text-gray-700">
+                  Startzeit
+                </Label>
+                <Input
+                  id="fixedTimeFrom"
+                  type="time"
+                  value={formData.fixedTimeFrom}
+                  onChange={(e) => handleInputChange("fixedTimeFrom", e.target.value)}
+                  className="mt-1 border-2 border-orange-200 focus:border-orange-400 font-body"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fixedTimeTo" className="font-body text-gray-700">
+                  Endzeit
+                </Label>
+                <Input
+                  id="fixedTimeTo"
+                  type="time"
+                  value={formData.fixedTimeTo}
+                  onChange={(e) => handleInputChange("fixedTimeTo", e.target.value)}
+                  className="mt-1 border-2 border-orange-200 focus:border-orange-400 font-body"
+                />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <Label className="font-body text-gray-700">Terminvorschläge *</Label>
+                <Button
+                  type="button"
+                  onClick={handleAddTimeSlot}
+                  className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Termin hinzufügen
+                </Button>
               </div>
 
-              {!useTimeSlots ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="fixed-date" className="text-xs text-gray-600 font-body">
-                      Datum
-                    </Label>
-                    <Input
-                      id="fixed-date"
-                      type="date"
-                      value={formData.fixedDate}
-                      onChange={(e) => setFormData({ ...formData, fixedDate: e.target.value })}
-                      className="border-2 border-orange-200 focus:border-orange-400"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="time-from" className="text-xs text-gray-600 font-body">
-                      Von
-                    </Label>
-                    <Input
-                      id="time-from"
-                      type="time"
-                      value={formData.fixedTimeFrom}
-                      onChange={(e) => setFormData({ ...formData, fixedTimeFrom: e.target.value })}
-                      className="border-2 border-orange-200 focus:border-orange-400"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="time-to" className="text-xs text-gray-600 font-body">
-                      Bis
-                    </Label>
-                    <Input
-                      id="time-to"
-                      type="time"
-                      value={formData.fixedTimeTo}
-                      onChange={(e) => setFormData({ ...formData, fixedTimeTo: e.target.value })}
-                      className="border-2 border-orange-200 focus:border-orange-400"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm font-body">Terminvorschläge</Label>
-                    <Button
-                      type="button"
-                      onClick={addTimeSlot}
-                      size="sm"
-                      className="bg-teal-400 hover:bg-teal-500 text-white"
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Termin hinzufügen
-                    </Button>
-                  </div>
-
-                  {timeSlots.map((slot) => (
-                    <div key={slot.id} className="grid grid-cols-1 md:grid-cols-4 gap-2 p-3 bg-gray-50 rounded-lg">
+              <div className="space-y-3">
+                {timeSlots.map((slot) => (
+                  <div key={slot.id} className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-white rounded-lg border">
+                    <div>
+                      <Label className="font-body text-gray-600 text-sm">Datum</Label>
                       <Input
                         type="date"
                         value={slot.date}
-                        onChange={(e) => updateTimeSlot(slot.id, "date", e.target.value)}
-                        className="border-2 border-gray-200"
-                        placeholder="Datum"
+                        onChange={(e) => handleUpdateTimeSlot(slot.id, "date", e.target.value)}
+                        className="mt-1 border-2 border-gray-200 focus:border-teal-400 font-body"
                       />
+                    </div>
+                    <div>
+                      <Label className="font-body text-gray-600 text-sm">Von</Label>
                       <Input
                         type="time"
                         value={slot.timeFrom}
-                        onChange={(e) => updateTimeSlot(slot.id, "timeFrom", e.target.value)}
-                        className="border-2 border-gray-200"
-                        placeholder="Von"
+                        onChange={(e) => handleUpdateTimeSlot(slot.id, "timeFrom", e.target.value)}
+                        className="mt-1 border-2 border-gray-200 focus:border-teal-400 font-body"
                       />
+                    </div>
+                    <div>
+                      <Label className="font-body text-gray-600 text-sm">Bis</Label>
                       <Input
                         type="time"
                         value={slot.timeTo}
-                        onChange={(e) => updateTimeSlot(slot.id, "timeTo", e.target.value)}
-                        className="border-2 border-gray-200"
-                        placeholder="Bis"
+                        onChange={(e) => handleUpdateTimeSlot(slot.id, "timeTo", e.target.value)}
+                        className="mt-1 border-2 border-gray-200 focus:border-teal-400 font-body"
                       />
+                    </div>
+                    <div className="flex items-end">
                       <Button
                         type="button"
-                        onClick={() => removeTimeSlot(slot.id)}
-                        size="sm"
                         variant="outline"
-                        className="border-red-200 text-red-600 hover:bg-red-50"
+                        onClick={() => handleRemoveTimeSlot(slot.id)}
+                        className="w-full border-red-200 text-red-600 hover:bg-red-50"
                       >
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Ort */}
-          <div>
-            <Label htmlFor="location" className="text-sm font-medium font-body">
-              Ort *
-            </Label>
-            <div className="relative mt-1">
-              <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="z.B. München Innenstadt, Mein Zuhause, Café XY..."
-                className="pl-10 border-2 border-orange-200 focus:border-orange-400"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Spieleauswahl */}
-          <div>
-            <Label className="text-sm font-medium font-body">Spieleauswahl</Label>
-            <div className="mt-2 space-y-3">
-              <Button
-                type="button"
-                onClick={() => setShowGameSelection(true)}
-                variant="outline"
-                className="w-full border-2 border-teal-200 text-teal-600 hover:bg-teal-50"
-              >
-                <LibraryBig className="w-4 h-4 mr-2" />
-                Spiele aus eigener Bibliothek auswählen ({selectedGames.length} ausgewählt)
-              </Button>
-
-              <div className="space-y-2">
-                <Label className="text-xs text-gray-600 font-body">Oder Spiele manuell eingeben:</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={newCustomGame}
-                    onChange={(e) => setNewCustomGame(e.target.value)}
-                    placeholder="Spielname eingeben..."
-                    className="border-2 border-orange-200 focus:border-orange-400"
-                    onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addCustomGame())}
-                  />
-                  <Button
-                    type="button"
-                    onClick={addCustomGame}
-                    size="sm"
-                    className="bg-orange-400 hover:bg-orange-500 text-white"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Ausgewählte Spiele anzeigen */}
-              {(selectedGames.length > 0 || customGames.length > 0) && (
-                <div className="space-y-2">
-                  <Label className="text-xs text-gray-600 font-body">Ausgewählte Spiele:</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedGames.map((game) => (
-                      <Badge key={game.id} className="bg-teal-100 text-teal-800 border-teal-200">
-                        {game.title}
-                        <button
-                          type="button"
-                          onClick={() => toggleGameSelection(game)}
-                          className="ml-1 hover:bg-teal-200 rounded-full"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                    {customGames.map((game, index) => (
-                      <Badge key={index} className="bg-orange-100 text-orange-800 border-orange-200">
-                        {game}
-                        <button
-                          type="button"
-                          onClick={() => removeCustomGame(index)}
-                          className="ml-1 hover:bg-orange-200 rounded-full"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    ))}
                   </div>
-                </div>
-              )}
-            </div>
-          </div>
+                ))}
 
-          {/* Max. Anzahl Teilnehmer */}
-          <div>
-            <Label htmlFor="max-participants" className="text-sm font-medium font-body">
-              Max. Anzahl Teilnehmer (Optional)
-            </Label>
-            <div className="relative mt-1">
-              <Users className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-              <Input
-                id="max-participants"
-                type="number"
-                min="1"
-                value={formData.maxParticipants}
-                onChange={(e) => setFormData({ ...formData, maxParticipants: e.target.value })}
-                placeholder="Leer lassen für unbegrenzt"
-                className="pl-10 border-2 border-orange-200 focus:border-orange-400"
-              />
-            </div>
-          </div>
-
-          {/* Sichtbarkeit */}
-          <div>
-            <Label className="text-sm font-medium font-body">Sichtbarkeit *</Label>
-            <Select
-              value={formData.visibility}
-              onValueChange={(value) => setFormData({ ...formData, visibility: value })}
-            >
-              <SelectTrigger className="mt-1 border-2 border-orange-200">
-                <SelectValue placeholder="Sichtbarkeit auswählen" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public">
-                  <div className="flex items-center">
-                    <Globe className="w-4 h-4 mr-2" />
-                    Öffentlich
-                  </div>
-                </SelectItem>
-                <SelectItem value="friends">
-                  <div className="flex items-center">
-                    <Lock className="w-4 h-4 mr-2" />
-                    Nur für Freunde
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            {formData.visibility === "friends" && (
-              <div className="mt-3">
-                <Button
-                  type="button"
-                  onClick={() => setShowFriendSelection(true)}
-                  variant="outline"
-                  className="w-full border-2 border-pink-200 text-pink-600 hover:bg-pink-50"
-                >
-                  <UserCheck className="w-4 h-4 mr-2" />
-                  Freunde auswählen ({selectedFriends.length} ausgewählt)
-                </Button>
-
-                {selectedFriends.length > 0 && (
-                  <div className="mt-2">
-                    <Label className="text-xs text-gray-600 font-body">Ausgewählte Freunde:</Label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {selectedFriends.map((friend) => (
-                        <Badge key={friend.id} className="bg-pink-100 text-pink-800 border-pink-200">
-                          {friend.name}
-                          <button
-                            type="button"
-                            onClick={() => toggleFriendSelection(friend)}
-                            className="ml-1 hover:bg-pink-200 rounded-full"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
+                {timeSlots.length === 0 && (
+                  <div className="text-center py-8 text-gray-500 font-body">
+                    Noch keine Terminvorschläge hinzugefügt
                   </div>
                 )}
               </div>
-            )}
-          </div>
-
-          {/* Teilnahmeanfrage-Modus (nur bei öffentlichen Anzeigen) */}
-          {formData.visibility === "public" && (
-            <div>
-              <Label className="text-sm font-medium font-body">Teilnahmeanfragen *</Label>
-              <Select
-                value={formData.approvalMode}
-                onValueChange={(value) => setFormData({ ...formData, approvalMode: value })}
-              >
-                <SelectTrigger className="mt-1 border-2 border-orange-200">
-                  <SelectValue placeholder="Teilnahmemodus auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="automatic">
-                    <div className="flex items-center">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                      <div>
-                        <div className="font-medium">Automatisch annehmen</div>
-                        <div className="text-xs text-gray-500">Teilnehmer können direkt beitreten</div>
-                      </div>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="manual">
-                    <div className="flex items-center">
-                      <UserCheck className="w-4 h-4 mr-2 text-orange-500" />
-                      <div>
-                        <div className="font-medium">Manuell bestätigen</div>
-                        <div className="text-xs text-gray-500">Du entscheidest über jede Teilnahme</div>
-                      </div>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-                <p className="text-xs text-gray-500 mt-1 font-body">
-                  {formData.approvalMode === "automatic"
-                    ? "Interessierte können sofort teilnehmen, bis die maximale Teilnehmerzahl erreicht ist."
-                    : "Du erhältst Teilnahmeanfragen und kannst diese einzeln annehmen oder ablehnen."}
-                </p>
-              </Select>
             </div>
           )}
+        </div>
+      )}
 
-          {/* Regeln / Hinweise */}
+      {/* Step 3: Games & Participants */}
+      {currentStep === 3 && (
+        <div className="space-y-6">
           <div>
-            <Label htmlFor="rules" className="text-sm font-medium font-body">
-              Regeln / Hinweise
-            </Label>
-            <Textarea
-              id="rules"
-              value={formData.rules}
-              onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
-              placeholder="z.B. Bitte pünktlich sein, Getränke mitbringen, keine Anfänger..."
-              className="mt-1 border-2 border-orange-200 focus:border-orange-400 min-h-[80px]"
-            />
-          </div>
+            <Label className="font-body text-gray-700">Was wird gespielt?</Label>
+            <p className="text-sm text-gray-500 font-body mb-4">
+              Wähle Spiele aus deiner Bibliothek oder gib andere Spiele an
+            </p>
 
-          {/* Zusatzinfo */}
-          <div>
-            <Label htmlFor="additional-info" className="text-sm font-medium font-body">
-              Zusatzinfo
-            </Label>
-            <Textarea
-              id="additional-info"
-              value={formData.additionalInfo}
-              onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
-              placeholder="Weitere Informationen, Kontaktdaten, besondere Hinweise..."
-              className="mt-1 border-2 border-orange-200 focus:border-orange-400 min-h-[80px]"
-            />
-          </div>
-
-          {/* Buttons */}
-          <div className="flex gap-4 pt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              className="flex-1 border-2 border-gray-300 text-gray-600 hover:bg-gray-50 font-handwritten bg-transparent"
-            >
-              Abbrechen
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1 bg-gradient-to-r from-orange-400 to-pink-400 hover:from-orange-500 hover:to-pink-500 text-white font-handwritten"
-            >
-              Anzeige erstellen
-            </Button>
-          </div>
-        </form>
-
-        {/* Game Selection Dialog */}
-        <Dialog open={showGameSelection} onOpenChange={setShowGameSelection}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
-            <DialogHeader>
-              <DialogTitle className="font-handwritten text-xl">Spiele aus deiner Bibliothek auswählen</DialogTitle>
-            </DialogHeader>
-            <div className="overflow-y-auto max-h-96">
+            {/* Games from Library */}
+            <div className="mb-6">
+              <Label className="font-body text-gray-700 text-sm mb-3 block">Spiele aus deiner Bibliothek</Label>
               {userGames.length > 0 ? (
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto border rounded-lg p-3 bg-white">
                   {userGames.map((game) => (
                     <div
                       key={game.id}
+                      className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        selectedGames.some((g) => g.id === game.id)
+                          ? "border-teal-400 bg-teal-50"
+                          : "border-gray-200 hover:border-teal-300"
+                      }`}
+                      onClick={() => handleGameToggle(game)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Dices className="w-5 h-5 text-teal-500" />
+                        <div className="flex-1">
+                          <h4 className="font-handwritten text-gray-800">{game.title}</h4>
+                          {game.publisher && <p className="text-sm text-gray-500 font-body">{game.publisher}</p>}
+                        </div>
+                        {selectedGames.some((g) => g.id === game.id) && (
+                          <div className="w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500 font-body border rounded-lg bg-gray-50">
+                  Du hast noch keine Spiele in deiner Bibliothek
+                </div>
+              )}
+
+              {/* Show selected games from library */}
+              {selectedGames.length > 0 && (
+                <div className="mt-4">
+                  <Label className="font-body text-gray-700 text-sm">Ausgewählte Spiele aus deiner Bibliothek:</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedGames.map((game) => (
+                      <Badge
+                        key={game.id}
+                        className="bg-teal-100 text-teal-800 border-teal-200 px-3 py-1 cursor-pointer hover:bg-teal-200"
+                        onClick={() => handleGameToggle(game)}
+                      >
+                        {game.title}
+                        <X className="w-3 h-3 ml-2" />
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Other Games Field */}
+            <div>
+              <Label htmlFor="otherGames" className="font-body text-gray-700">
+                Sonstige Spiele
+              </Label>
+              <p className="text-sm text-gray-500 font-body mb-2">
+                Gib andere Spiele an, die nicht in deiner Bibliothek sind (mit Komma getrennt)
+              </p>
+              <Textarea
+                id="otherGames"
+                placeholder="z.B. Monopoly, Scrabble, Uno, Poker..."
+                value={formData.otherGames}
+                onChange={(e) => handleInputChange("otherGames", e.target.value)}
+                className="mt-1 min-h-[80px] border-2 border-orange-200 focus:border-orange-400 font-body"
+              />
+              {formData.otherGames && (
+                <div className="mt-2">
+                  <Label className="font-body text-gray-700 text-sm">Vorschau sonstige Spiele:</Label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {formData.otherGames
+                      .split(",")
+                      .map((game) => game.trim())
+                      .filter((game) => game.length > 0)
+                      .map((game, index) => (
+                        <Badge key={index} className="bg-orange-100 text-orange-800 border-orange-200 px-3 py-1">
+                          {game}
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="maxParticipants" className="font-body text-gray-700">
+              Maximale Teilnehmerzahl
+            </Label>
+            <Input
+              id="maxParticipants"
+              type="number"
+              placeholder="z.B. 6 (leer lassen für unbegrenzt)"
+              value={formData.maxParticipants}
+              onChange={(e) => handleInputChange("maxParticipants", e.target.value)}
+              className="mt-1 border-2 border-orange-200 focus:border-orange-400 font-body"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: Settings & Publication */}
+      {currentStep === 4 && (
+        <div className="space-y-6">
+          <div>
+            <Label className="font-body text-gray-700">Sichtbarkeit</Label>
+            <div className="mt-2 space-y-3">
+              <div
+                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  formData.visibility === "public"
+                    ? "border-teal-400 bg-teal-50"
+                    : "border-gray-200 hover:border-teal-300"
+                }`}
+                onClick={() => handleInputChange("visibility", "public")}
+              >
+                <div className="flex items-center space-x-3">
+                  <Globe className="w-5 h-5 text-teal-500" />
+                  <div className="flex-1">
+                    <h4 className="font-handwritten text-gray-800">Öffentlich</h4>
+                    <p className="text-sm text-gray-500 font-body">Jeder kann das Event sehen und beitreten</p>
+                  </div>
+                  {formData.visibility === "public" && (
+                    <div className="w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div
+                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  formData.visibility === "friends"
+                    ? "border-teal-400 bg-teal-50"
+                    : "border-gray-200 hover:border-teal-300"
+                }`}
+                onClick={() => handleInputChange("visibility", "friends")}
+              >
+                <div className="flex items-center space-x-3">
+                  <Lock className="w-5 h-5 text-teal-500" />
+                  <div className="flex-1">
+                    <h4 className="font-handwritten text-gray-800">Nur Freunde</h4>
+                    <p className="text-sm text-gray-500 font-body">Nur deine Freunde können das Event sehen</p>
+                  </div>
+                  {formData.visibility === "friends" && (
+                    <div className="w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {formData.visibility === "friends" && (
+            <div>
+              <Label className="font-body text-gray-700">Freunde einladen</Label>
+              <p className="text-sm text-gray-500 font-body mb-4">Wähle Freunde aus, die das Event sehen können</p>
+
+              <Button
+                type="button"
+                onClick={() => setShowFriendDialog(true)}
+                variant="outline"
+                className="w-full border-2 border-pink-200 text-pink-600 hover:bg-pink-50 font-handwritten bg-transparent mb-4"
+              >
+                <UserCheck className="w-4 h-4 mr-2" />
+                Freunde auswählen ({selectedFriends.length} ausgewählt)
+              </Button>
+
+              {/* Show selected friends */}
+              {selectedFriends.length > 0 && (
+                <div>
+                  <Label className="font-body text-gray-700 text-sm">Ausgewählte Freunde:</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedFriends.map((friend) => (
+                      <Badge
+                        key={friend.id}
+                        className="bg-pink-100 text-pink-800 border-pink-200 px-3 py-1 cursor-pointer hover:bg-pink-200"
+                        onClick={() => handleRemoveSelectedFriend(friend.id)}
+                      >
+                        {friend.name}
+                        <X className="w-3 h-3 ml-2" />
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div>
+            <Label className="font-body text-gray-700">Teilnahme-Bestätigung</Label>
+            <div className="mt-2 space-y-3">
+              <div
+                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  formData.approvalMode === "automatic"
+                    ? "border-teal-400 bg-teal-50"
+                    : "border-gray-200 hover:border-teal-300"
+                }`}
+                onClick={() => handleInputChange("approvalMode", "automatic")}
+              >
+                <div className="flex items-center space-x-3">
+                  <UserPlus className="w-5 h-5 text-teal-500" />
+                  <div className="flex-1">
+                    <h4 className="font-handwritten text-gray-800">Automatisch</h4>
+                    <p className="text-sm text-gray-500 font-body">Teilnehmer können direkt beitreten</p>
+                  </div>
+                  {formData.approvalMode === "automatic" && (
+                    <div className="w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div
+                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  formData.approvalMode === "manual"
+                    ? "border-teal-400 bg-teal-50"
+                    : "border-gray-200 hover:border-teal-300"
+                }`}
+                onClick={() => handleInputChange("approvalMode", "manual")}
+              >
+                <div className="flex items-center space-x-3">
+                  <Settings className="w-5 h-5 text-teal-500" />
+                  <div className="flex-1">
+                    <h4 className="font-handwritten text-gray-800">Manuelle Bestätigung</h4>
+                    <p className="text-sm text-gray-500 font-body">Du bestätigst jede Teilnahme-Anfrage</p>
+                  </div>
+                  {formData.approvalMode === "manual" && (
+                    <div className="w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="rules" className="font-body text-gray-700">
+              Zusatzinfos / Hinweise
+            </Label>
+            <Textarea
+              id="rules"
+              placeholder="z.B. Bitte pünktlich sein, Getränke mitbringen, keine Handys am Spieltisch..."
+              value={formData.rules}
+              onChange={(e) => handleInputChange("rules", e.target.value)}
+              className="mt-1 min-h-[80px] border-2 border-orange-200 focus:border-orange-400 font-body"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Error Display */}
+      {submitError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <p className="text-red-700 font-body">{submitError}</p>
+        </div>
+      )}
+
+      {/* Navigation Buttons */}
+      <div className="flex justify-between pt-6">
+        <div>
+          {currentStep > 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={prevStep}
+              className="border-2 border-gray-300 text-gray-600 hover:bg-gray-50 font-handwritten bg-transparent"
+              disabled={isSubmitting}
+            >
+              Zurück
+            </Button>
+          )}
+        </div>
+
+        <div className="flex space-x-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            className="border-2 border-gray-300 text-gray-600 hover:bg-gray-50 font-handwritten bg-transparent"
+            disabled={isSubmitting}
+          >
+            Abbrechen
+          </Button>
+
+          {currentStep < 4 ? (
+            <Button
+              type="button"
+              onClick={nextStep}
+              className="bg-gradient-to-r from-orange-400 to-pink-400 hover:from-orange-500 hover:to-pink-500 text-white font-handwritten"
+              disabled={isSubmitting}
+            >
+              Weiter
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="bg-gradient-to-r from-green-400 to-teal-400 hover:from-green-500 hover:to-teal-500 text-white font-handwritten"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Erstelle Event...
+                </div>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Event erstellen
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Friend Selection Dialog */}
+      <Dialog open={showFriendDialog} onOpenChange={setShowFriendDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="font-handwritten text-xl">Freunde auswählen</DialogTitle>
+          </DialogHeader>
+
+          {/* Search Field */}
+          <div className="px-1 pb-4">
+            <Input
+              placeholder="Freunde suchen..."
+              value={friendSearchTerm}
+              onChange={(e) => setFriendSearchTerm(e.target.value)}
+              className="border-2 border-pink-200 focus:border-pink-400"
+            />
+          </div>
+
+          <div className="overflow-y-auto max-h-96">
+            {friends.length > 0 ? (
+              filteredFriends.length > 0 ? (
+                <div className="grid grid-cols-1 gap-2">
+                  {filteredFriends.map((friend) => (
+                    <div
+                      key={friend.id}
                       className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                      onClick={() => toggleGameSelection(game)}
+                      onClick={() => handleFriendToggle(friend)}
                     >
                       <Checkbox
-                        checked={selectedGames.some((g) => g.id === game.id)}
-                        onChange={() => toggleGameSelection(game)}
+                        checked={selectedFriends.some((f) => f.id === friend.id)}
+                        onChange={() => handleFriendToggle(friend)}
                       />
+                      <div className="w-10 h-10 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center text-white font-bold">
+                        {friend.name[0].toUpperCase()}
+                      </div>
                       <div className="flex-1">
-                        <h4 className="font-medium font-body">{game.title}</h4>
-                        {game.publisher && <p className="text-sm text-gray-500 font-body">{game.publisher}</p>}
+                        <h4 className="font-medium font-body">{friend.name}</h4>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <LibraryBig className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 font-body">Keine Spiele in deiner Bibliothek gefunden</p>
+                  <UserCheck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 font-body">Keine Freunde gefunden für "{friendSearchTerm}"</p>
                 </div>
-              )}
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                onClick={() => setShowGameSelection(false)}
-                className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
-              >
-                Fertig
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+              )
+            ) : (
+              <div className="text-center py-8">
+                <UserCheck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 font-body">Du hast noch keine Freunde hinzugefügt</p>
+              </div>
+            )}
+          </div>
 
-        {/* Friend Selection Dialog */}
-        <Dialog open={showFriendSelection} onOpenChange={setShowFriendSelection}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
-            <DialogHeader>
-              <DialogTitle className="font-handwritten text-xl">Freunde auswählen</DialogTitle>
-            </DialogHeader>
-
-            {/* Search Field */}
-            <div className="px-1 pb-4">
-              <Input
-                placeholder="Freunde suchen..."
-                value={friendSearchTerm}
-                onChange={(e) => setFriendSearchTerm(e.target.value)}
-                className="border-2 border-pink-200 focus:border-pink-400"
-              />
-            </div>
-
-            <div className="overflow-y-auto max-h-96">
-              {(() => {
-                const filteredFriends = friends.filter((friend) =>
-                  friend.name.toLowerCase().includes(friendSearchTerm.toLowerCase()),
-                )
-
-                return filteredFriends.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-2">
-                    {filteredFriends.map((friend) => (
-                      <div
-                        key={friend.id}
-                        className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                        onClick={() => toggleFriendSelection(friend)}
-                      >
-                        <Checkbox
-                          checked={selectedFriends.some((f) => f.id === friend.id)}
-                          onChange={() => toggleFriendSelection(friend)}
-                        />
-                        <div className="w-10 h-10 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center text-white font-bold">
-                          {friend.name[0].toUpperCase()}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium font-body">{friend.name}</h4>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <UserCheck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500 font-body">
-                      {friendSearchTerm ? `Keine Freunde gefunden für "${friendSearchTerm}"` : "Keine Freunde gefunden"}
-                    </p>
-                  </div>
-                )
-              })()}
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                onClick={() => {
-                  setShowFriendSelection(false)
-                  setFriendSearchTerm("") // Reset search when closing
-                }}
-                className="bg-pink-400 hover:bg-pink-500 text-white font-handwritten"
-              >
-                Fertig
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              onClick={() => {
+                setShowFriendDialog(false)
+                setFriendSearchTerm("") // Reset search when closing
+              }}
+              className="bg-pink-400 hover:bg-pink-500 text-white font-handwritten"
+            >
+              Fertig ({selectedFriends.length} ausgewählt)
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }
