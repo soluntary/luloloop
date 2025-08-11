@@ -14,7 +14,7 @@ interface NavigationProps {
 
 export function Navigation({ currentPage }: NavigationProps) {
   const pathname = usePathname()
-  const { user, logout } = useAuth() || { user: null, logout: null }
+  const { user, signOut } = useAuth() || { user: null, signOut: null }
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const navItems = [
@@ -34,8 +34,8 @@ export function Navigation({ currentPage }: NavigationProps) {
 
   const handleLogout = async () => {
     try {
-      if (logout && typeof logout === "function") {
-        await logout()
+      if (signOut && typeof signOut === "function") {
+        await signOut()
       }
       window.location.href = "/login"
     } catch (error) {

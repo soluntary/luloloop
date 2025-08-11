@@ -19,7 +19,7 @@ export default function AboutPage() {
             Über Ludoloop
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto transform rotate-1 font-body">
-            Wir lieben Gesellschaftsspiele – ihre Vielfalt, die Geschichten, die sie erzählen, und die Momente, die sie schaffen. Gleichzeitig wissen wir, wie viel Freude es macht, neue Spiele zu entdecken, oder wie schade es ist, wenn tolle Spiele nur im Regal stehen. Deshalb haben wir diese Plattform geschaffen, um eine lebendige, aktive Community aufzubauen, die Spiele teilen, tauschen und gemeinsam spielen möchte.
+            Gesellschaftsspiele bringen Menschen zusammen, schaffen unvergessliche Erlebnisse und fördern Gemeinschaft. Doch oft stehen tolle Spiele ungenutzt im Regal, während andere nach genau diesem Spiel suchen. Mit unserer Plattform möchten wir diese Lücke schliessen, den Zugang zu Spielen für alle erleichtern und eine lebendige Gemeinschaft schaffen, die den Geist des gemeinsamen Spielens fördert. Ob Du Deine Lieblingsspiele teilen möchtest, auf der Suche nach neuen (Spiel-)Freunde bist oder einfach Deine Sammlung verkaufen möchtest – bei Ludoloop findest Du die passende Möglichkeit.
           </p>
         </div>
 
@@ -34,9 +34,7 @@ export default function AboutPage() {
                 Unsere Mission
               </h2>
               <p className="text-gray-600 font-body">
-                Ludoloop macht Brettspiele für jeden zugänglich. Durch Tauschen, 
-                Verleihen und Verkaufen schaffen wir eine nachhaltige Spielekultur, 
-                die Gemeinschaft und Freude fördert.
+                Gesellschaftsspiele bringen Menschen zusammen, schaffen unvergessliche Erlebnisse und fördern Gemeinschaft. Doch oft stehen tolle Spiele ungenutzt im Regal, während andere nach genau diesem Spiel suchen. Mit unserer Plattform möchten wir diese Lücke schliessen, den Zugang zu Spielen für alle erleichtern und eine lebendige Gemeinschaft schaffen, die den Geist des gemeinsamen Spielens fördert. Ob Du Deine Sammlung erweitern, neue (Spiel-)Freunde finden oder einfach nur Deine Lieblingsspiele teilen möchtest: Ludoloop macht es möglich und ganz ohne grossen Aufwand.
               </p>
             </CardContent>
           </Card>
@@ -50,7 +48,7 @@ export default function AboutPage() {
                 Unsere Vision
               </h2>
               <p className="text-gray-600 font-body">
-                Gesellschaftsspiele bringen Menschen zusammen – unabhängig von Alter, Herkunft oder Erfahrung. Mit unserer Plattform möchten wir diese Verbindung fördern und gleichzeitig helfen, Ressourcen zu schonen. Warum neue Spiele kaufen, wenn du spannende Abenteuer aus der Sammlung eines Freundes erleben kannst?
+                
               </p>
             </CardContent>
           </Card>
@@ -71,7 +69,7 @@ export default function AboutPage() {
                   Gemeinschaft
                 </h3>
                 <p className="text-gray-600 text-sm font-body">
-                  Wir verbinden Menschen durch die Liebe zu Gesellschaftsspiele
+                  Wir verbinden Menschen durch die Liebe zu  Brett- und Gesellschaftsspiele
                 </p>
               </CardContent>
             </Card>
