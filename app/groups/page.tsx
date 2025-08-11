@@ -33,6 +33,7 @@ import { useFriends } from "@/contexts/friends-context"
 import { Navigation } from "@/components/navigation"
 import Link from "next/link"
 import { Suspense } from "react"
+import CreateCommunityEventForm from "@/components/create-community-event-form"
 
 interface Community {
   id: string
@@ -147,6 +148,8 @@ function CommunityContent() {
     type: "casual",
     location: "",
   })
+
+  const [showCreateEventDialog, setShowCreateEventDialog] = useState(false)
 
   const testDatabaseConnection = async () => {
     try {
@@ -731,6 +734,18 @@ function CommunityContent() {
     </div>
   )
 
+  const handleCreateEvent = (eventData: any) => {
+    console.log("Creating community event:", eventData)
+    // Here you would typically save the event to the database
+    setShowCreateEventDialog(false)
+    // Show success message or refresh data
+    alert("Community-Anzeige wurde erfolgreich erstellt!")
+  }
+
+  const handleCancelCreateEvent = () => {
+    setShowCreateEventDialog(false)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 font-body">
       {/* Header */}
@@ -977,7 +992,7 @@ function CommunityContent() {
                 {user ? (
                   <div className="space-y-4">
                     <Button
-                      onClick={() => setShowCreateDialog(true)}
+                      onClick={() => setShowCreateEventDialog(true)}
                       className="bg-gradient-to-r from-orange-400 to-pink-400 hover:from-orange-500 hover:to-pink-500 text-white px-8 py-4 text-lg font-handwritten transform hover:scale-105 transition-all duration-200 shadow-lg"
                     >
                       <Plus className="w-5 h-5 mr-2" />
@@ -1660,6 +1675,18 @@ function CommunityContent() {
                 </div>
               )}
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Create Community Event Dialog */}
+        <Dialog open={showCreateEventDialog} onOpenChange={setShowCreateEventDialog}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0">
+            <CreateCommunityEventForm
+              userGames={[]} // You can pass actual user games here if available
+              friends={allFriends} // Pass the user's friends
+              onSubmit={handleCreateEvent}
+              onCancel={handleCancelCreateEvent}
+            />
           </DialogContent>
         </Dialog>
       </div>

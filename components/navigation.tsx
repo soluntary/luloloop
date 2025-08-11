@@ -22,7 +22,7 @@ export function Navigation({ currentPage }: NavigationProps) {
     { href: "/", label: "Home", icon: Home, key: "home" },
     { href: "/library", label: "Bibliothek", icon: Library, key: "library" },
     { href: "/groups", label: "Community", icon: Users, key: "community" },
-    { href: "/marketplace", label: "Marktplatz", icon: Store, key: "marketplace" },
+    { href: "/marketplace", label: "Spielemarkt", icon: Store, key: "spielemarkt" },
     { href: "/messages", label: "Nachrichten", icon: MessageCircle, key: "messages" },
     { href: "/about", label: "Über uns", icon: Info, key: "about" },
   ]
@@ -30,7 +30,7 @@ export function Navigation({ currentPage }: NavigationProps) {
   // Navigation items for non-logged-in users
   const publicNavItems = [
     { href: "/", label: "Home", icon: Home, key: "home" },
-    { href: "/marketplace", label: "Marktplatz", icon: Store, key: "marketplace" },
+    { href: "/marketplace", label: "Spielemarkt", icon: Store, key: "spielemarkt" },
     { href: "/groups", label: "Community", icon: Users, key: "community" },
     { href: "/about", label: "Über uns", icon: Info, key: "about" },
   ]
@@ -227,14 +227,18 @@ export function Navigation({ currentPage }: NavigationProps) {
                       className="w-full border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      <Link href="/login">Anmelden</Link>
+                      <Link href="/login">
+                      <LogIn className="w-4 h-4" />
+                      Anmelden</Link>
                     </Button>
                     <Button
                       asChild
                       className="w-full bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      <Link href="/register">Registrieren</Link>
+                      <Link href="/register">
+                      <UserPlus className="w-4 h-4" />
+                      Registrieren</Link>
                     </Button>
                   </div>
                 )}

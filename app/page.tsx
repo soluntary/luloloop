@@ -45,7 +45,7 @@ export default function HomePage() {
               </p>
               <Button asChild variant="outline" className="border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten">
                 <Link href="/marketplace?filter=lend">
-                  Zum Marktplatz
+                  Zum Spielemarkt
                 </Link>
               </Button>
             </CardContent>
@@ -64,7 +64,7 @@ export default function HomePage() {
               </p>
               <Button asChild variant="outline" className="border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten">
                 <Link href="/marketplace?filter=trade">
-                  Zum Marktplatz
+                  Zum Spielemarkt
                 </Link>
               </Button>
             </CardContent>
@@ -83,7 +83,7 @@ export default function HomePage() {
               </p>
               <Button asChild variant="outline" className="border-pink-400 text-pink-600 hover:bg-pink-400 hover:text-white font-handwritten">
                 <Link href="/marketplace?filter=sell">
-                  Zum Marktplatz
+                  Zum Spielemarkt
                 </Link>
               </Button>
             </CardContent>

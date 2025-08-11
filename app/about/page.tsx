@@ -16,7 +16,8 @@ export default function AboutPage() {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-gray-800 mb-6 transform -rotate-1 font-handwritten">Über Ludoloop</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto transform rotate-1 font-body"></p>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto transform rotate-1 font-body">            
+          </p>
         </div>
 
         {/* Mission Section */}
@@ -28,12 +29,12 @@ export default function AboutPage() {
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-4 font-handwritten">Unsere Mission</h2>
               <p className="text-gray-600 font-body">
-                Gesellschaftsspiele bringen Menschen zusammen, schaffen unvergessliche Erlebnisse und fördern
-                Gemeinschaft. Doch oft stehen tolle Spiele ungenutzt im Regal, während andere nach genau diesem Spiel
-                suchen. Mit unserer Plattform möchten wir diese Lücke schliessen, den Zugang zu Spielen für alle
-                erleichtern und eine lebendige Gemeinschaft schaffen, die den Geist des gemeinsamen Spielens fördert. Ob
-                Du Deine Sammlung erweitern, neue (Spiel-)Freunde finden oder einfach nur Deine Lieblingsspiele teilen
-                möchtest: Ludoloop macht es möglich und ganz ohne grossen Aufwand.
+                Gesellschaftsspiele bringen Menschen zusammen, schaffen unvergessliche Erlebnisse und fördern Gemeinschaft.
+                Doch oft stehen tolle Spiele ungenutzt im Regal, während andere nach genau diesem Spiel suchen. Mit unserer
+                Plattform möchten wir diese Lücke schliessen, den Zugang zu Spielen für alle erleichtern und eine lebendige
+                Gemeinschaft schaffen, die den Geist des gemeinsamen Spielens fördert. Ob Du Deine Lieblingsspiele teilen
+                möchtest, auf der Suche nach neuen (Spiel-)Freunde bist oder einfach Deine Sammlung verkaufen möchtest – bei
+                Ludoloop findest Du die passende Möglichkeit.
               </p>
             </CardContent>
           </Card>
