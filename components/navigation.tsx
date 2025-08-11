@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Home, Library, UserPlus, LogIn, Users, Store, MessageCircle, User, LogOut, Menu, X, Info } from "lucide-react"
+import { Home, LibraryBig, UserPlus, LogIn, Users, Store, MessageCircle, User, LogOut, Menu, X, Info } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 
 interface NavigationProps {
@@ -20,7 +20,7 @@ export function Navigation({ currentPage }: NavigationProps) {
   // Navigation items for logged-in users
   const loggedInNavItems = [
     { href: "/", label: "Home", icon: Home, key: "home" },
-    { href: "/library", label: "Bibliothek", icon: Library, key: "library" },
+    { href: "/library", label: "Bibliothek", icon: LibraryBig, key: "library" },
     { href: "/groups", label: "Community", icon: Users, key: "community" },
     { href: "/marketplace", label: "Spielemarkt", icon: Store, key: "spielemarkt" },
     { href: "/messages", label: "Nachrichten", icon: MessageCircle, key: "messages" },

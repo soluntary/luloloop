@@ -1680,7 +1680,7 @@ function CommunityContent() {
 
         {/* Create Community Event Dialog */}
         <Dialog open={showCreateEventDialog} onOpenChange={setShowCreateEventDialog}>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0">
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
             <CreateCommunityEventForm
               userGames={[]} // You can pass actual user games here if available
               friends={allFriends} // Pass the user's friends

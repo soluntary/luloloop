@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Users, Gamepad2, Plus, X, UserCheck, Globe, Lock } from "lucide-react"
+import { MapPin, Users, LibraryBig, Plus, X, UserCheck, Globe, Lock, CheckCircle } from "lucide-react"
 
 interface Game {
   id: string
@@ -55,6 +55,7 @@ export default function CreateCommunityEventForm({
     location: "",
     maxParticipants: "",
     visibility: "",
+    approvalMode: "automatic", // Add this new field
     rules: "",
     additionalInfo: "",
   })
@@ -67,6 +68,8 @@ export default function CreateCommunityEventForm({
   const [showFriendSelection, setShowFriendSelection] = useState(false)
   const [newCustomGame, setNewCustomGame] = useState("")
   const [useTimeSlots, setUseTimeSlots] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string>("")
+  const [friendSearchTerm, setFriendSearchTerm] = useState("")
 
   const addTimeSlot = () => {
     const newSlot: TimeSlot = {
@@ -114,6 +117,7 @@ export default function CreateCommunityEventForm({
 
     const eventData = {
       ...formData,
+      selectedImage,
       timeSlots: useTimeSlots ? timeSlots : [],
       selectedGames,
       customGames,
@@ -128,6 +132,59 @@ export default function CreateCommunityEventForm({
       <CardHeader className="bg-gradient-to-r from-orange-400 to-pink-400 text-white">
         <CardTitle className="text-2xl font-handwritten text-center">Community-Anzeige erstellen</CardTitle>
       </CardHeader>
+
+      {/* Image Selection */}
+      <div className="px-6 py-4 border-b border-orange-200">
+        <Label className="text-sm font-medium font-body mb-3 block">Anzeigenbild (Optional)</Label>
+        <div className="space-y-3">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-300 transition-colors">
+            {selectedImage ? (
+              <div className="space-y-3">
+                <img
+                  src={selectedImage || "/placeholder.svg"}
+                  alt="Ausgewähltes Bild"
+                  className="max-h-32 mx-auto rounded-lg object-cover"
+                />
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedImage("")}
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    Entfernen
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-pink-100 rounded-full flex items-center justify-center mx-auto">
+                  <Plus className="w-8 h-8 text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700 font-body">Bild hochladen</p>
+                  <p className="text-xs text-gray-500 font-body">PNG, JPG bis zu 5MB</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-2 border-orange-200 text-orange-600 hover:bg-orange-50 bg-transparent"
+                  onClick={() => {
+                    // Simulate file selection - in real app this would open file picker
+                    const mockImageUrl = "/placeholder.svg?height=200&width=300&text=Uploaded+Image"
+                    setSelectedImage(mockImageUrl)
+                  }}
+                >
+                  Bild auswählen
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -158,7 +215,7 @@ export default function CreateCommunityEventForm({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="einmalig">Einmalig</SelectItem>
-                <SelectItem value="regelmäßig">Regelmäßig</SelectItem>
+                <SelectItem value="regelmäßig">Regelmässig</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -299,7 +356,7 @@ export default function CreateCommunityEventForm({
                 variant="outline"
                 className="w-full border-2 border-teal-200 text-teal-600 hover:bg-teal-50"
               >
-                <Gamepad2 className="w-4 h-4 mr-2" />
+                <LibraryBig className="w-4 h-4 mr-2" />
                 Spiele aus eigener Bibliothek auswählen ({selectedGames.length} ausgewählt)
               </Button>
 
@@ -439,6 +496,46 @@ export default function CreateCommunityEventForm({
             )}
           </div>
 
+          {/* Teilnahmeanfrage-Modus (nur bei öffentlichen Anzeigen) */}
+          {formData.visibility === "public" && (
+            <div>
+              <Label className="text-sm font-medium font-body">Teilnahmeanfragen *</Label>
+              <Select
+                value={formData.approvalMode}
+                onValueChange={(value) => setFormData({ ...formData, approvalMode: value })}
+              >
+                <SelectTrigger className="mt-1 border-2 border-orange-200">
+                  <SelectValue placeholder="Teilnahmemodus auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="automatic">
+                    <div className="flex items-center">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                      <div>
+                        <div className="font-medium">Automatisch annehmen</div>
+                        <div className="text-xs text-gray-500">Teilnehmer können direkt beitreten</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="manual">
+                    <div className="flex items-center">
+                      <UserCheck className="w-4 h-4 mr-2 text-orange-500" />
+                      <div>
+                        <div className="font-medium">Manuell bestätigen</div>
+                        <div className="text-xs text-gray-500">Du entscheidest über jede Teilnahme</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+                <p className="text-xs text-gray-500 mt-1 font-body">
+                  {formData.approvalMode === "automatic"
+                    ? "Interessierte können sofort teilnehmen, bis die maximale Teilnehmerzahl erreicht ist."
+                    : "Du erhältst Teilnahmeanfragen und kannst diese einzeln annehmen oder ablehnen."}
+                </p>
+              </Select>
+            </div>
+          )}
+
           {/* Regeln / Hinweise */}
           <div>
             <Label htmlFor="rules" className="text-sm font-medium font-body">
@@ -514,7 +611,7 @@ export default function CreateCommunityEventForm({
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <Gamepad2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <LibraryBig className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500 font-body">Keine Spiele in deiner Bibliothek gefunden</p>
                 </div>
               )}
@@ -536,38 +633,60 @@ export default function CreateCommunityEventForm({
             <DialogHeader>
               <DialogTitle className="font-handwritten text-xl">Freunde auswählen</DialogTitle>
             </DialogHeader>
+
+            {/* Search Field */}
+            <div className="px-1 pb-4">
+              <Input
+                placeholder="Freunde suchen..."
+                value={friendSearchTerm}
+                onChange={(e) => setFriendSearchTerm(e.target.value)}
+                className="border-2 border-pink-200 focus:border-pink-400"
+              />
+            </div>
+
             <div className="overflow-y-auto max-h-96">
-              {friends.length > 0 ? (
-                <div className="grid grid-cols-1 gap-2">
-                  {friends.map((friend) => (
-                    <div
-                      key={friend.id}
-                      className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                      onClick={() => toggleFriendSelection(friend)}
-                    >
-                      <Checkbox
-                        checked={selectedFriends.some((f) => f.id === friend.id)}
-                        onChange={() => toggleFriendSelection(friend)}
-                      />
-                      <div className="w-10 h-10 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center text-white font-bold">
-                        {friend.name[0].toUpperCase()}
+              {(() => {
+                const filteredFriends = friends.filter((friend) =>
+                  friend.name.toLowerCase().includes(friendSearchTerm.toLowerCase()),
+                )
+
+                return filteredFriends.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    {filteredFriends.map((friend) => (
+                      <div
+                        key={friend.id}
+                        className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                        onClick={() => toggleFriendSelection(friend)}
+                      >
+                        <Checkbox
+                          checked={selectedFriends.some((f) => f.id === friend.id)}
+                          onChange={() => toggleFriendSelection(friend)}
+                        />
+                        <div className="w-10 h-10 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center text-white font-bold">
+                          {friend.name[0].toUpperCase()}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium font-body">{friend.name}</h4>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium font-body">{friend.name}</h4>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <UserCheck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 font-body">Keine Freunde gefunden</p>
-                </div>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <UserCheck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 font-body">
+                      {friendSearchTerm ? `Keine Freunde gefunden für "${friendSearchTerm}"` : "Keine Freunde gefunden"}
+                    </p>
+                  </div>
+                )
+              })()}
             </div>
             <div className="flex justify-end gap-2 pt-4">
               <Button
-                onClick={() => setShowFriendSelection(false)}
+                onClick={() => {
+                  setShowFriendSelection(false)
+                  setFriendSearchTerm("") // Reset search when closing
+                }}
                 className="bg-pink-400 hover:bg-pink-500 text-white font-handwritten"
               >
                 Fertig
