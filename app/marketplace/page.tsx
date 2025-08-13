@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { CreateMarketplaceOfferForm } from "@/components/create-marketplace-offer-form"
 import {
   Search,
   LogIn,
@@ -21,6 +22,7 @@ import {
   SortAsc,
   ShoppingCart,
   Database,
+  Store,
 } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { useGames } from "@/contexts/games-context"
@@ -36,6 +38,7 @@ export default function MarketplacePage() {
   const [selectedOffer, setSelectedOffer] = useState<(typeof marketplaceOffers)[0] | null>(null)
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false)
   const [contactMessage, setContactMessage] = useState("")
+  const [isCreateOfferOpen, setIsCreateOfferOpen] = useState(false)
 
   const filteredOffers = marketplaceOffers
     .filter((offer) => {
@@ -178,22 +181,34 @@ export default function MarketplacePage() {
           <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
             Entdecke, tausche und teile deine Lieblingsspiele!
           </p>
+          {user && databaseConnected && (
+            <div className="mt-6">
+              <Button
+                onClick={() => setIsCreateOfferOpen(true)}
+                className="bg-orange-400 hover:bg-orange-500 text-white font-handwritten text-lg px-8 py-3 transform hover:scale-105 hover:rotate-1 transition-all"
+              >
+                <Store className="w-5 h-5 mr-2" />
+                Neues Angebot erstellen
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Search and Filter Bar */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8 border-2 border-orange-200">
-          <div className="grid md:grid-cols-4 gap-4 mb-4">
-            <div className="md:col-span-2">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-xl p-6 mb-8 border border-orange-200/50">
+          <div className="grid md:grid-cols-4 gap-4 mb-6">
+            <div className="md:col-span-2 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-400 w-5 h-5" />
               <Input
                 placeholder="Spiele, Verlage oder Anbieter durchsuchen..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="border-2 border-orange-200 focus:border-orange-400"
+                className="pl-10 border-2 border-orange-200 focus:border-orange-400 rounded-lg font-body"
                 disabled={!databaseConnected}
               />
             </div>
             <Select value={selectedType} onValueChange={setSelectedType} disabled={!databaseConnected}>
-              <SelectTrigger className="border-2 border-orange-200">
+              <SelectTrigger className="border-2 border-orange-200 rounded-lg font-body">
                 <SelectValue placeholder="Alle Typen" />
               </SelectTrigger>
               <SelectContent>
@@ -204,7 +219,7 @@ export default function MarketplacePage() {
               </SelectContent>
             </Select>
             <Select value={selectedCondition} onValueChange={setSelectedCondition} disabled={!databaseConnected}>
-              <SelectTrigger className="border-2 border-orange-200">
+              <SelectTrigger className="border-2 border-orange-200 rounded-lg font-body">
                 <SelectValue placeholder="Alle Zustände" />
               </SelectTrigger>
               <SelectContent>
@@ -218,10 +233,10 @@ export default function MarketplacePage() {
           </div>
 
           <div className="flex justify-between items-center">
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               <Button
                 variant="outline"
-                className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
+                className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-white/50 backdrop-blur-sm rounded-lg"
                 disabled={!databaseConnected}
               >
                 <Search className="w-4 h-4 mr-2" />
@@ -229,7 +244,7 @@ export default function MarketplacePage() {
               </Button>
               <Button
                 variant="outline"
-                className="border-2 border-gray-400 text-gray-600 hover:bg-gray-400 hover:text-white font-handwritten bg-transparent"
+                className="border-2 border-gray-400 text-gray-600 hover:bg-gray-400 hover:text-white font-handwritten bg-white/50 backdrop-blur-sm rounded-lg"
                 onClick={() => {
                   setSearchTerm("")
                   setSelectedType("all")
@@ -244,7 +259,7 @@ export default function MarketplacePage() {
             </div>
 
             <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
-              <SelectTrigger className="w-48 border-2 border-orange-200">
+              <SelectTrigger className="w-48 border-2 border-orange-200 rounded-lg font-body">
                 <SortAsc className="w-4 h-4 mr-2" />
                 <SelectValue />
               </SelectTrigger>
@@ -261,10 +276,19 @@ export default function MarketplacePage() {
 
         {/* Results Count */}
         {databaseConnected && (
-          <div className="mb-6">
-            <p className="text-gray-600 font-body">
-              {filteredOffers.length} {filteredOffers.length === 1 ? "Angebot" : "Angebote"} gefunden
+          <div className="mb-6 flex items-center justify-between">
+            <p className="text-gray-600 font-body text-lg">
+              <span className="font-bold text-orange-600">{filteredOffers.length}</span>{" "}
+              {filteredOffers.length === 1 ? "Angebot" : "Angebote"} gefunden
             </p>
+            <div className="flex items-center space-x-2 text-sm text-gray-500 font-body">
+              <div className="w-2 h-2 bg-teal-400 rounded-full"></div>
+              <span>Verleihen</span>
+              <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+              <span>Tauschen</span>
+              <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
+              <span>Verkaufen</span>
+            </div>
           </div>
         )}
 
@@ -275,56 +299,61 @@ export default function MarketplacePage() {
               filteredOffers.map((offer) => (
                 <Card
                   key={offer.id}
-                  className="transform hover:scale-105 hover:rotate-1 transition-all duration-300 border-2 border-orange-200 hover:border-orange-400 cursor-pointer"
+                  className="group transform hover:scale-105 hover:-rotate-1 transition-all duration-300 border-2 border-orange-200/50 hover:border-orange-400 cursor-pointer bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-2xl rounded-xl overflow-hidden"
                 >
                   <CardContent className="p-0">
-                    <div className="relative">
+                    <div className="relative overflow-hidden">
                       <img
                         src={offer.image || "/images/ludoloop-placeholder.png"}
                         alt={offer.title}
-                        className="w-full h-48 object-cover rounded-t-lg"
+                        className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
                       />
-                      <Badge className={`absolute top-2 right-2 ${getTypeColor(offer.type)} text-white font-body`}>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <Badge
+                        className={`absolute top-3 right-3 ${getTypeColor(offer.type)} text-white font-body shadow-lg`}
+                      >
                         {getTypeText(offer.type)}
                       </Badge>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="absolute top-2 left-2 bg-white/90 hover:bg-white border-gray-300"
+                        className="absolute top-3 left-3 bg-white/90 hover:bg-white border-gray-300 shadow-lg backdrop-blur-sm"
                       >
                         <Heart className="w-4 h-4" />
                       </Button>
                     </div>
 
-                    <div className="p-4">
-                      <h3 className="font-bold text-lg mb-2 font-handwritten text-gray-800">{offer.title}</h3>
-                      <p className="text-gray-600 text-sm mb-2 font-body">{offer.publisher}</p>
+                    <div className="p-5">
+                      <h3 className="font-bold text-lg mb-2 font-handwritten text-gray-800 line-clamp-1">
+                        {offer.title}
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-3 font-body">{offer.publisher}</p>
 
-                      <div className="flex items-center justify-between mb-3">
-                        <Badge variant="outline" className="font-body">
+                      <div className="flex items-center justify-between mb-4">
+                        <Badge variant="outline" className="font-body border-orange-200 text-orange-700">
                           {offer.condition}
                         </Badge>
                         <div className="flex items-center text-yellow-500">
                           <Star className="w-4 h-4 fill-current" />
-                          <span className="text-sm ml-1 font-body">{offer.rating}</span>
+                          <span className="text-sm ml-1 font-body font-medium">{offer.rating}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center text-gray-500 text-sm mb-3 font-body">
-                        <MapPin className="w-4 h-4 mr-1" />
+                      <div className="flex items-center text-gray-500 text-sm mb-4 font-body">
+                        <MapPin className="w-4 h-4 mr-1 text-orange-400" />
                         <span>{offer.location}</span>
-                        <span className="mx-2">•</span>
+                        <span className="mx-2 text-orange-300">•</span>
                         <span>{offer.distance}</span>
                       </div>
 
                       <div className="flex items-center justify-between mb-4">
-                        <span className="font-bold text-lg text-gray-800 font-handwritten">{offer.price}</span>
+                        <span className="font-bold text-xl text-orange-600 font-handwritten">{offer.price}</span>
                         <span className="text-sm text-gray-500 font-body">von {offer.owner}</span>
                       </div>
 
                       <Button
                         onClick={() => handleContactSeller(offer)}
-                        className="w-full bg-orange-400 hover:bg-orange-500 text-white font-handwritten"
+                        className="w-full bg-gradient-to-r from-orange-400 to-pink-400 hover:from-orange-500 hover:to-pink-500 text-white font-handwritten shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg"
                         disabled={!databaseConnected}
                       >
                         <MessageCircle className="w-4 h-4 mr-2" />
@@ -335,44 +364,53 @@ export default function MarketplacePage() {
                 </Card>
               ))
             ) : (
-              <div className="col-span-full text-center py-12">
-                <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-gray-600 mb-2 font-handwritten">Keine Angebote gefunden</h3>
-                <p className="text-gray-500 font-body">
-                  Versuche andere Suchbegriffe oder Filter, um mehr Ergebnisse zu finden.
-                </p>
+              <div className="col-span-full text-center py-16">
+                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-lg border border-orange-200/50">
+                  <ShoppingCart className="w-20 h-20 text-orange-300 mx-auto mb-6" />
+                  <h3 className="text-3xl font-bold text-gray-600 mb-4 font-handwritten">Keine Angebote gefunden</h3>
+                  <p className="text-gray-500 font-body text-lg">
+                    Versuche andere Suchbegriffe oder Filter, um mehr Ergebnisse zu finden.
+                  </p>
+                </div>
               </div>
             )
           ) : (
-            <div className="col-span-full text-center py-12">
-              <Database className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-gray-600 mb-2 font-handwritten">Datenbank nicht verfügbar</h3>
-              <p className="text-gray-500 font-body">Führe die SQL-Skripte aus, um Marktplatz-Angebote zu sehen.</p>
+            <div className="col-span-full text-center py-16">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-lg border border-orange-200/50">
+                <Database className="w-20 h-20 text-orange-300 mx-auto mb-6" />
+                <h3 className="text-3xl font-bold text-gray-600 mb-4 font-handwritten">Datenbank nicht verfügbar</h3>
+                <p className="text-gray-500 font-body text-lg">
+                  Führe die SQL-Skripte aus, um Marktplatz-Angebote zu sehen.
+                </p>
+              </div>
             </div>
           )}
         </div>
 
         {/* Call to Action Section */}
-        <div className="bg-gradient-to-r from-teal-400 to-orange-400 rounded-lg p-8 text-center text-white mb-8">
-          <h2 className="text-3xl font-bold mb-4 font-handwritten transform -rotate-1">Mitmachen!</h2>
+        <div className="bg-gradient-to-r from-teal-400 via-orange-400 to-pink-400 rounded-xl p-8 text-center text-white mb-8 shadow-2xl">
+          <h2 className="text-4xl font-bold mb-6 font-handwritten transform -rotate-1">Mitmachen!</h2>
+          <p className="text-lg mb-6 font-body opacity-90">
+            Werde Teil unserer Gaming-Community und entdecke neue Spielerlebnisse!
+          </p>
           <div className="flex gap-4 justify-center">
             <Button
-              className="bg-white text-teal-600 hover:bg-gray-100 font-handwritten text-lg px-8 py-3 transform hover:scale-105 transition-all"
+              className="bg-white text-teal-600 hover:bg-gray-100 font-handwritten text-lg px-8 py-3 transform hover:scale-105 transition-all shadow-lg rounded-lg"
               onClick={() => {
                 window.location.href = "/register"
               }}
             >
-              <UserPlus className="w-8 h-8 text-teal-600" />
+              <UserPlus className="w-5 h-5 mr-2" />
               Registrieren
             </Button>
             <Button
               variant="outline"
-              className="border-2 border-white text-white hover:bg-white hover:text-teal-600 font-handwritten text-lg px-8 py-3 transform hover:scale-105 transition-all bg-transparent"
+              className="border-2 border-white text-white hover:bg-white hover:text-teal-600 font-handwritten text-lg px-8 py-3 transform hover:scale-105 transition-all bg-white/10 backdrop-blur-sm rounded-lg"
               onClick={() => {
                 window.location.href = "/login"
               }}
             >
-              <LogIn className="w-4 h-4 text-white" />
+              <LogIn className="w-5 h-5 mr-2" />
               Anmelden
             </Button>
           </div>
@@ -432,6 +470,16 @@ export default function MarketplacePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Create Marketplace Offer Dialog */}
+      <CreateMarketplaceOfferForm
+        isOpen={isCreateOfferOpen}
+        onClose={() => setIsCreateOfferOpen(false)}
+        onSuccess={() => {
+          // Refresh the page or show success message
+          window.location.reload()
+        }}
+      />
     </div>
   )
 }

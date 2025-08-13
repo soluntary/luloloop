@@ -1,4 +1,4 @@
-import { ShoppingCart } from 'lucide-react'
+import { Store } from 'lucide-react'
 import Image from 'next/image'
 
 export default function Loading() {
@@ -32,10 +32,10 @@ export default function Loading() {
         {/* Loading Content */}
         <div className="text-center py-16">
           <div className="w-20 h-20 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce transform rotate-12">
-            <ShoppingCart className="w-10 h-10 text-white" />
+            <Store className="w-10 h-10 text-white" />
           </div>
           <h2 className="text-3xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-            Marktplatz wird geladen...
+            Spielemarktplatz wird geladen...
           </h2>
           <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
             Wir sammeln die besten Spiele-Angebote für dich!

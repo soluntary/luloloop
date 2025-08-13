@@ -33,7 +33,7 @@ async function tableExists(supabase: any, tableName: string): Promise<boolean> {
   }
 }
 
-export async function createCommunityEvent(eventData: CommunityEventData) {
+export async function createCommunityEvent(eventData: CommunityEventData, userId?: string) {
   try {
     const supabase = createServerClient()
 
@@ -46,22 +46,26 @@ export async function createCommunityEvent(eventData: CommunityEventData) {
       }
     }
 
-    // Get the current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!userId) {
       return {
         success: false,
         error: "Benutzer nicht authentifiziert",
       }
     }
 
+    // Verify the user exists in the database
+    const { data: user, error: userError } = await supabase.from("users").select("id").eq("id", userId).single()
+
+    if (userError || !user) {
+      return {
+        success: false,
+        error: "Benutzer nicht gefunden",
+      }
+    }
+
     // Prepare the event data for database insertion
     const dbEventData = {
-      creator_id: user.id,
+      creator_id: userId, // Use the provided userId instead of user.id
       title: eventData.title,
       description: eventData.additionalInfo || null,
       frequency: eventData.frequency,
@@ -135,7 +139,7 @@ export async function createCommunityEvent(eventData: CommunityEventData) {
   }
 }
 
-export async function getCommunityEvents() {
+export async function getCommunityEvents(userId?: string) {
   try {
     const supabase = createServerClient()
 
@@ -149,11 +153,6 @@ export async function getCommunityEvents() {
         message: "Community Events Tabelle existiert noch nicht",
       }
     }
-
-    // Get the current user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
 
     // Try to query with creator info first, fallback to basic query
     let { data: events, error } = await supabase
@@ -220,9 +219,9 @@ export async function getCommunityEvents() {
 
         // Private events are only visible to the creator and selected friends
         if (event.visibility === "friends") {
-          if (!user) return false
-          if (event.creator_id === user.id) return true
-          if (event.selected_friends && event.selected_friends.includes(user.id)) return true
+          if (!userId) return false
+          if (event.creator_id === userId) return true
+          if (event.selected_friends && event.selected_friends.includes(userId)) return true
           return false
         }
 
@@ -330,6 +329,530 @@ export async function joinCommunityEvent(eventId: string) {
     }
   } catch (error) {
     console.error("Unexpected error joining event:", error)
+    return {
+      success: false,
+      error: "Ein unerwarteter Fehler ist aufgetreten",
+    }
+  }
+}
+
+export async function joinEventTimeSlot(eventId: string, timeSlotIndex: number) {
+  try {
+    const supabase = createServerClient()
+
+    // Check if the community_event_participants table exists
+    const participantsTableExists = await tableExists(supabase, "community_event_participants")
+    if (!participantsTableExists) {
+      return {
+        success: false,
+        error: "Event-Teilnahme ist noch nicht verfügbar. Die Datenbank-Tabellen müssen erst erstellt werden.",
+      }
+    }
+
+    // Get the current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Benutzer nicht authentifiziert",
+      }
+    }
+
+    // Get the event details
+    const { data: event, error: eventError } = await supabase
+      .from("community_events")
+      .select("*")
+      .eq("id", eventId)
+      .single()
+
+    if (eventError || !event) {
+      return {
+        success: false,
+        error: "Event nicht gefunden",
+      }
+    }
+
+    // Check if the time slot index is valid
+    if (!event.time_slots || timeSlotIndex >= event.time_slots.length) {
+      return {
+        success: false,
+        error: "Ungültiger Terminvorschlag",
+      }
+    }
+
+    // Check if user is already a participant
+    const { data: existingParticipant } = await supabase
+      .from("community_event_participants")
+      .select("*")
+      .eq("event_id", eventId)
+      .eq("user_id", user.id)
+      .single()
+
+    if (existingParticipant) {
+      return {
+        success: false,
+        error: "Du bist bereits für dieses Event angemeldet",
+      }
+    }
+
+    // Determine initial status based on approval mode
+    const initialStatus = event.approval_mode === "automatic" ? "joined" : "pending"
+    const selectedTimeSlot = event.time_slots[timeSlotIndex]
+
+    // Add user as participant with selected time slot
+    const { error: joinError } = await supabase.from("community_event_participants").insert([
+      {
+        event_id: eventId,
+        user_id: user.id,
+        status: initialStatus,
+        selected_time_slot: timeSlotIndex,
+      },
+    ])
+
+    if (joinError) {
+      console.error("Error joining event time slot:", joinError)
+      return {
+        success: false,
+        error: "Fehler beim Beitreten zum Terminvorschlag",
+      }
+    }
+
+    // Revalidate the groups page
+    revalidatePath("/groups")
+
+    const timeSlotText = `${new Date(selectedTimeSlot.date).toLocaleDateString("de-DE")}${
+      selectedTimeSlot.timeFrom && selectedTimeSlot.timeTo
+        ? `, ${selectedTimeSlot.timeFrom} - ${selectedTimeSlot.timeTo}`
+        : ""
+    }`
+
+    return {
+      success: true,
+      message:
+        initialStatus === "joined"
+          ? `Du bist dem Terminvorschlag (${timeSlotText}) erfolgreich beigetreten!`
+          : `Deine Teilnahmeanfrage für den Terminvorschlag (${timeSlotText}) wurde gesendet und wartet auf Bestätigung.`,
+    }
+  } catch (error) {
+    console.error("Unexpected error joining event time slot:", error)
+    return {
+      success: false,
+      error: "Ein unerwarteter Fehler ist aufgetreten",
+    }
+  }
+}
+
+export async function updateCommunityEvent(eventId: string, eventData: Partial<CommunityEventData>) {
+  try {
+    const supabase = createServerClient()
+
+    // Get the current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Benutzer nicht authentifiziert",
+      }
+    }
+
+    // Check if user is the creator of the event
+    const { data: event, error: eventError } = await supabase
+      .from("community_events")
+      .select("creator_id")
+      .eq("id", eventId)
+      .single()
+
+    if (eventError || !event) {
+      return {
+        success: false,
+        error: "Event nicht gefunden",
+      }
+    }
+
+    if (event.creator_id !== user.id) {
+      return {
+        success: false,
+        error: "Nur der Ersteller kann das Event bearbeiten",
+      }
+    }
+
+    // Update the event
+    const { data: updatedEvent, error: updateError } = await supabase
+      .from("community_events")
+      .update({
+        title: eventData.title,
+        description: eventData.additionalInfo,
+        frequency: eventData.frequency,
+        fixed_date: eventData.fixedDate,
+        fixed_time_from: eventData.fixedTimeFrom,
+        fixed_time_to: eventData.fixedTimeTo,
+        location: eventData.location,
+        max_participants: eventData.maxParticipants ? Number.parseInt(eventData.maxParticipants) : null,
+        visibility: eventData.visibility,
+        approval_mode: eventData.approvalMode,
+        rules: eventData.rules,
+        image_url: eventData.selectedImage,
+        selected_games: eventData.selectedGames,
+        custom_games: eventData.customGames,
+        selected_friends: eventData.selectedFriends,
+        time_slots: eventData.timeSlots,
+        use_time_slots: eventData.useTimeSlots,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", eventId)
+      .select()
+      .single()
+
+    if (updateError) {
+      console.error("Error updating community event:", updateError)
+      return {
+        success: false,
+        error: `Fehler beim Aktualisieren des Events: ${updateError.message}`,
+      }
+    }
+
+    revalidatePath("/groups")
+
+    return {
+      success: true,
+      data: updatedEvent,
+      message: "Event wurde erfolgreich aktualisiert!",
+    }
+  } catch (error) {
+    console.error("Unexpected error updating community event:", error)
+    return {
+      success: false,
+      error: "Ein unerwarteter Fehler ist aufgetreten",
+    }
+  }
+}
+
+export async function deleteCommunityEvent(eventId: string) {
+  try {
+    const supabase = createServerClient()
+
+    // Get the current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Benutzer nicht authentifiziert",
+      }
+    }
+
+    // Check if user is the creator of the event
+    const { data: event, error: eventError } = await supabase
+      .from("community_events")
+      .select("creator_id")
+      .eq("id", eventId)
+      .single()
+
+    if (eventError || !event) {
+      return {
+        success: false,
+        error: "Event nicht gefunden",
+      }
+    }
+
+    if (event.creator_id !== user.id) {
+      return {
+        success: false,
+        error: "Nur der Ersteller kann das Event löschen",
+      }
+    }
+
+    // Soft delete the event
+    const { error: deleteError } = await supabase.from("community_events").update({ active: false }).eq("id", eventId)
+
+    if (deleteError) {
+      console.error("Error deleting community event:", deleteError)
+      return {
+        success: false,
+        error: `Fehler beim Löschen des Events: ${deleteError.message}`,
+      }
+    }
+
+    revalidatePath("/groups")
+
+    return {
+      success: true,
+      message: "Event wurde erfolgreich gelöscht!",
+    }
+  } catch (error) {
+    console.error("Unexpected error deleting community event:", error)
+    return {
+      success: false,
+      error: "Ein unerwarteter Fehler ist aufgetreten",
+    }
+  }
+}
+
+export async function manageEventParticipant(eventId: string, userId: string, action: "approve" | "reject" | "remove") {
+  try {
+    const supabase = createServerClient()
+
+    // Get the current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Benutzer nicht authentifiziert",
+      }
+    }
+
+    // Check if user is the creator of the event
+    const { data: event, error: eventError } = await supabase
+      .from("community_events")
+      .select("creator_id")
+      .eq("id", eventId)
+      .single()
+
+    if (eventError || !event) {
+      return {
+        success: false,
+        error: "Event nicht gefunden",
+      }
+    }
+
+    if (event.creator_id !== user.id) {
+      return {
+        success: false,
+        error: "Nur der Ersteller kann Teilnehmer verwalten",
+      }
+    }
+
+    let updateData: any = {}
+    let successMessage = ""
+
+    switch (action) {
+      case "approve":
+        updateData = { status: "joined" }
+        successMessage = "Teilnehmer wurde genehmigt"
+        break
+      case "reject":
+        updateData = { status: "declined" }
+        successMessage = "Teilnehmer wurde abgelehnt"
+        break
+      case "remove":
+        // Delete the participant record
+        const { error: removeError } = await supabase
+          .from("community_event_participants")
+          .delete()
+          .eq("event_id", eventId)
+          .eq("user_id", userId)
+
+        if (removeError) {
+          console.error("Error removing participant:", removeError)
+          return {
+            success: false,
+            error: "Fehler beim Entfernen des Teilnehmers",
+          }
+        }
+
+        revalidatePath("/groups")
+        return {
+          success: true,
+          message: "Teilnehmer wurde entfernt",
+        }
+    }
+
+    // Update participant status
+    const { error: updateError } = await supabase
+      .from("community_event_participants")
+      .update(updateData)
+      .eq("event_id", eventId)
+      .eq("user_id", userId)
+
+    if (updateError) {
+      console.error("Error updating participant:", updateError)
+      return {
+        success: false,
+        error: "Fehler beim Aktualisieren des Teilnehmers",
+      }
+    }
+
+    revalidatePath("/groups")
+
+    return {
+      success: true,
+      message: successMessage,
+    }
+  } catch (error) {
+    console.error("Unexpected error managing participant:", error)
+    return {
+      success: false,
+      error: "Ein unerwarteter Fehler ist aufgetreten",
+    }
+  }
+}
+
+export async function addEventComment(eventId: string, comment: string) {
+  try {
+    const supabase = createServerClient()
+
+    // Check if comments table exists
+    const commentsTableExists = await tableExists(supabase, "community_event_comments")
+    if (!commentsTableExists) {
+      return {
+        success: false,
+        error: "Kommentare sind noch nicht verfügbar. Die Datenbank-Tabellen müssen erst erstellt werden.",
+      }
+    }
+
+    // Get the current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Benutzer nicht authentifiziert",
+      }
+    }
+
+    // Add the comment
+    const { data: newComment, error: insertError } = await supabase
+      .from("community_event_comments")
+      .insert([
+        {
+          event_id: eventId,
+          user_id: user.id,
+          comment: comment.trim(),
+        },
+      ])
+      .select(`
+        *,
+        user:users(name)
+      `)
+      .single()
+
+    if (insertError) {
+      console.error("Error adding comment:", insertError)
+      return {
+        success: false,
+        error: "Fehler beim Hinzufügen des Kommentars",
+      }
+    }
+
+    revalidatePath("/groups")
+
+    return {
+      success: true,
+      data: newComment,
+      message: "Kommentar wurde hinzugefügt",
+    }
+  } catch (error) {
+    console.error("Unexpected error adding comment:", error)
+    return {
+      success: false,
+      error: "Ein unerwarteter Fehler ist aufgetreten",
+    }
+  }
+}
+
+export async function getEventComments(eventId: string) {
+  try {
+    const supabase = createServerClient()
+
+    // Check if comments table exists
+    const commentsTableExists = await tableExists(supabase, "community_event_comments")
+    if (!commentsTableExists) {
+      return {
+        success: true,
+        data: [],
+      }
+    }
+
+    const { data: comments, error } = await supabase
+      .from("community_event_comments")
+      .select(`
+        *,
+        user:users(name)
+      `)
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: true })
+
+    if (error) {
+      console.error("Error fetching comments:", error)
+      return {
+        success: false,
+        error: "Fehler beim Laden der Kommentare",
+        data: [],
+      }
+    }
+
+    return {
+      success: true,
+      data: comments || [],
+    }
+  } catch (error) {
+    console.error("Unexpected error fetching comments:", error)
+    return {
+      success: false,
+      error: "Ein unerwarteter Fehler ist aufgetreten",
+      data: [],
+    }
+  }
+}
+
+export async function leaveEvent(eventId: string) {
+  try {
+    const supabase = createServerClient()
+
+    // Get the current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Benutzer nicht authentifiziert",
+      }
+    }
+
+    // Remove user from event participants
+    const { error: leaveError } = await supabase
+      .from("community_event_participants")
+      .delete()
+      .eq("event_id", eventId)
+      .eq("user_id", user.id)
+
+    if (leaveError) {
+      console.error("Error leaving event:", leaveError)
+      return {
+        success: false,
+        error: "Fehler beim Verlassen des Events",
+      }
+    }
+
+    revalidatePath("/groups")
+
+    return {
+      success: true,
+      message: "Du hast das Event erfolgreich verlassen",
+    }
+  } catch (error) {
+    console.error("Unexpected error leaving event:", error)
     return {
       success: false,
       error: "Ein unerwarteter Fehler ist aufgetreten",

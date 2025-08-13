@@ -1,69 +1,31 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Users,
-  Plus,
-  UserPlus,
-  UserCheck,
-  UserX,
-  Eye,
-  Dices,
-  Star,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  LogIn,
-  Filter,
-  MapPin,
-  MessageCircle,
-  Send,
-  Calendar,
-  Globe,
-  Lock,
-  Database,
-  ImageIcon,
-} from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
+import { Users, Dices, LogIn, Database, Search, MapPin, Plus, Calendar } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
 import { useFriends } from "@/contexts/friends-context"
 import { useGames } from "@/contexts/games-context"
 import { Navigation } from "@/components/navigation"
 import Link from "next/link"
-import { Suspense } from "react"
-import CreateCommunityEventForm from "@/components/create-community-event-form"
-import { getCommunityEvents, joinCommunityEvent } from "@/app/actions/community-events"
-
-interface Community {
-  id: string
-  name: string
-  description: string
-  member_count: number
-  max_members: number
-  is_private: boolean
-  created_at: string
-  created_by: string
-  creator_name?: string
-  is_member?: boolean
-  type?: string
-  location?: string
-  image?: string
-}
+import { getCommunityEvents, joinCommunityEvent, leaveEvent } from "@/app/actions/community-events"
+import { getCommunities, joinCommunity, leaveCommunity, type Community } from "@/app/actions/communities"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import CreateCommunityDialog from "@/components/create-community-dialog"
+import CreateCommunityEventDialog from "@/components/create-community-event-dialog"
+import EventDetailsDialog from "@/components/event-details-dialog"
 
 interface CommunityEvent {
   id: string
   creator_id: string
   title: string
   description: string | null
-  frequency: "einmalig" | "regelmäßig"
+  frequency: "einmalig" | "regelmässig"
   fixed_date: string | null
   fixed_time_from: string | null
   fixed_time_to: string | null
@@ -146,7 +108,7 @@ function CommunityLoading() {
         <h2 className="text-3xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
           Communities werden geladen...
         </h2>
-        <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
+        <p className="text-xl text-gray-600 transform rotate-1 font-body">
           Wir sammeln die besten Spielgruppen für dich!
         </p>
         <div className="mt-8 flex justify-center space-x-2">
@@ -159,7 +121,7 @@ function CommunityLoading() {
   )
 }
 
-function CommunityContent() {
+export function CommunityContent() {
   const { user, loading: authLoading } = useAuth()
   const { friends, friendRequests, sendFriendRequest, acceptFriendRequest, rejectFriendRequest } = useFriends()
   const { games } = useGames()
@@ -182,6 +144,11 @@ function CommunityContent() {
   const [selectedEvent, setSelectedEvent] = useState<CommunityEvent | null>(null)
   const [showCommunityDialog, setShowCommunityDialog] = useState(false)
   const [showEventDialog, setShowEventDialog] = useState(false)
+  const [communitySearchTerm, setCommunitySearchTerm] = useState("")
+  const [eventSearchTerm, setEventSearchTerm] = useState("")
+  const [userSearchTerm, setUserSearchTerm] = useState("")
+  const [frequencyFilter, setFrequencyFilter] = useState<"all" | "einmalig" | "regelmässig">("all")
+  const [timeFilter, setTimeFilter] = useState<"all" | "heute" | "morgen" | "diese-woche" | "nächste-woche">("all")
 
   // Contact creator dialog
   const [showContactDialog, setShowContactDialog] = useState(false)
@@ -199,6 +166,11 @@ function CommunityContent() {
   })
 
   const [showCreateEventDialog, setShowCreateEventDialog] = useState(false)
+
+  const [showEventManagementDialog, setShowEventManagementDialog] = useState(false)
+  const [selectedEventForManagement, setSelectedEventForManagement] = useState<CommunityEvent | null>(null)
+
+  const [showCreateCommunityForm, setShowCreateCommunityForm] = useState(false)
 
   const testDatabaseConnection = async () => {
     try {
@@ -218,70 +190,30 @@ function CommunityContent() {
 
   const loadCommunities = async () => {
     try {
-      console.log("Loading communities...")
-
-      const { data: tableCheck, error: tableError } = await supabase.from("communities").select("count").limit(1)
-
-      if (tableError) {
-        console.warn("Communities table does not exist:", tableError)
-        return []
-      }
-
-      let { data, error } = await supabase
-        .from("communities")
-        .select(`
-          *,
-          creator:users!communities_creator_id_fkey(name)
-        `)
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.error("Error loading communities with creator info:", error)
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from("communities")
-          .select("*")
-          .order("created_at", { ascending: false })
-
-        if (fallbackError) {
-          console.error("Fallback query also failed:", fallbackError)
-          return []
-        }
-        data = fallbackData
-      }
-
-      const communitiesWithCreator =
-        data?.map((community) => ({
-          ...community,
-          creator_name: community.creator?.name || "Unbekannt",
-          member_count: community.member_count || Math.floor(Math.random() * 20) + 1,
-          max_members: community.max_members || 10,
-          type: community.type || "casual",
-          location: community.location || "Berlin",
-          image: community.image || "/placeholder.svg?height=200&width=300",
-        })) || []
-
-      console.log("Communities loaded:", communitiesWithCreator.length)
-      return communitiesWithCreator
+      const communitiesData = await getCommunities(user?.id)
+      setCommunities(communitiesData)
     } catch (error) {
-      console.error("Failed to load communities:", error)
-      return []
+      console.error("Error loading communities:", error)
     }
   }
 
   const loadCommunityEvents = async () => {
     try {
       console.log("Loading community events...")
-      const result = await getCommunityEvents()
+      const result = await getCommunityEvents(user?.id)
 
       if (result.success) {
         console.log("Community events loaded:", result.data.length)
+        setCommunityEvents(result.data) // Set the events in state
         return result.data
       } else {
         console.error("Error loading community events:", result.error)
+        setCommunityEvents([]) // Set empty array on error
         return []
       }
     } catch (error) {
       console.error("Failed to load community events:", error)
+      setCommunityEvents([]) // Set empty array on error
       return []
     }
   }
@@ -406,77 +338,33 @@ function CommunityContent() {
     }
   }
 
-  const loadAllData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      console.log("Starting to load all data...")
-
-      const isConnected = await testDatabaseConnection()
-      if (!isConnected) {
-        console.warn("Database connection test failed, but continuing...")
-      }
-
-      const publicDataPromises = [loadCommunities(), loadCommunityEvents(), loadUsers()]
-      const allPromises = user ? [...publicDataPromises, loadFriendRequests(), loadFriends()] : publicDataPromises
-
-      const results = await Promise.allSettled(allPromises)
-      const [communitiesResult, eventsResult, usersResult, friendRequestsResult, friendsResult] = results
-
-      if (communitiesResult.status === "fulfilled") {
-        setCommunities(communitiesResult.value)
-      } else {
-        console.error("Failed to load communities:", communitiesResult.reason)
-        setCommunities([])
-      }
-
-      if (eventsResult.status === "fulfilled") {
-        setCommunityEvents(eventsResult.value)
-      } else {
-        console.error("Failed to load community events:", eventsResult.reason)
-        setCommunityEvents([])
-      }
-
-      if (usersResult.status === "fulfilled") {
-        setUsers(usersResult.value)
-      } else {
-        console.error("Failed to load users:", usersResult.reason)
-        setUsers([])
-      }
-
-      if (user) {
-        if (friendRequestsResult && friendRequestsResult.status === "fulfilled") {
-          setAllFriendRequests(friendRequestsResult.value)
-        } else {
-          console.error("Failed to load friend requests:", friendRequestsResult?.reason)
-          setAllFriendRequests([])
-        }
-
-        if (friendsResult && friendsResult.status === "fulfilled") {
-          setAllFriends(friendsResult.value)
-        } else {
-          console.error("Failed to load friends:", friendsResult?.reason)
-          setAllFriends([])
-        }
-      } else {
-        setAllFriendRequests([])
-        setAllFriends([])
-      }
-
-      console.log("Data loading completed")
-    } catch (error) {
-      console.error("Error in loadAllData:", error)
-      setError("Fehler beim Laden der Daten. Die Datenbank-Tabellen sind möglicherweise noch nicht erstellt.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    if (!authLoading) {
-      loadAllData()
+    const loadData = async () => {
+      setLoading(true)
+      try {
+        const [usersData, eventsData, communitiesData, friendRequestsData, friendsData] = await Promise.all([
+          loadUsers(),
+          loadCommunityEvents(),
+          loadCommunities(),
+          user ? loadFriendRequests() : Promise.resolve([]),
+          user ? loadFriends() : Promise.resolve([]),
+        ])
+
+        setUsers(usersData)
+        setCommunityEvents(eventsData)
+        setCommunities(communitiesData)
+        setAllFriendRequests(friendRequestsData)
+        setAllFriends(friendsData)
+      } catch (error) {
+        console.error("Error loading data:", error)
+        setError("Fehler beim Laden der Daten")
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [user, authLoading])
+
+    loadData()
+  }, [user])
 
   const createCommunity = async () => {
     if (!user) {
@@ -518,7 +406,7 @@ function CommunityContent() {
 
       setNewCommunity({ name: "", description: "", is_private: false, type: "casual", location: "" })
       setShowCreateDialog(false)
-      loadAllData()
+      await loadCommunities()
     } catch (error) {
       console.error("Error creating community:", error)
       setError("Fehler beim Erstellen der Community")
@@ -593,7 +481,13 @@ function CommunityContent() {
 
       if (error) throw error
 
-      loadAllData()
+      await Promise.all([
+        loadUsers(),
+        loadCommunityEvents(),
+        loadCommunities(),
+        user ? loadFriendRequests() : Promise.resolve(),
+        user ? loadFriends() : Promise.resolve(),
+      ])
     } catch (error) {
       console.error("Error sending friend request:", error)
     }
@@ -617,7 +511,13 @@ function CommunityContent() {
 
       if (friendshipError) throw friendshipError
 
-      loadAllData()
+      await Promise.all([
+        loadUsers(),
+        loadCommunityEvents(),
+        loadCommunities(),
+        user ? loadFriendRequests() : Promise.resolve(),
+        user ? loadFriends() : Promise.resolve(),
+      ])
     } catch (error) {
       console.error("Error accepting friend request:", error)
     }
@@ -631,7 +531,13 @@ function CommunityContent() {
 
       if (error) throw error
 
-      loadAllData()
+      await Promise.all([
+        loadUsers(),
+        loadCommunityEvents(),
+        loadCommunities(),
+        user ? loadFriendRequests() : Promise.resolve(),
+        user ? loadFriends() : Promise.resolve(),
+      ])
     } catch (error) {
       console.error("Error rejecting friend request:", error)
     }
@@ -716,7 +622,13 @@ function CommunityContent() {
 
       if (result.success) {
         alert(result.message)
-        loadAllData() // Refresh data to show updated participation status
+        await Promise.all([
+          loadUsers(),
+          loadCommunityEvents(),
+          loadCommunities(),
+          user ? loadFriendRequests() : Promise.resolve(),
+          user ? loadFriends() : Promise.resolve(),
+        ])
         setShowEventDialog(false)
       } else {
         alert(result.error)
@@ -725,6 +637,32 @@ function CommunityContent() {
       console.error("Error joining event:", error)
       alert("Ein Fehler ist aufgetreten. Bitte versuche es später erneut.")
     }
+  }
+
+  const handleManageEvent = (event: CommunityEvent) => {
+    setSelectedEventForManagement(event)
+    setShowEventManagementDialog(true)
+  }
+
+  const handleLeaveEvent = async (eventId: string) => {
+    if (!confirm("Bist du sicher, dass du das Event verlassen möchtest?")) {
+      return
+    }
+
+    const result = await leaveEvent(eventId)
+    if (result.success) {
+      loadCommunityEvents()
+    } else {
+      alert(result.error)
+    }
+  }
+
+  const isEventCreator = (event: CommunityEvent) => {
+    return user && event.creator_id === user.id
+  }
+
+  const isEventParticipant = (event: CommunityEvent) => {
+    return user && event.participants?.some((p) => p.user_id === user.id && p.status === "joined")
   }
 
   const getTypeColor = (type: string) => {
@@ -740,54 +678,10 @@ function CommunityContent() {
     }
   }
 
-  const getTypeText = (type: string) => {
-    switch (type) {
-      case "casual":
-        return "Entspannt"
-      case "competitive":
-        return "Wettkampf"
-      case "family":
-        return "Familie"
-      default:
-        return type
-    }
-  }
-
-  const getStatusBadge = (condition: string) => {
-    switch (condition.toLowerCase()) {
-      case "neu":
-      case "new":
-        return (
-          <Badge className="bg-green-100 text-green-800 border-green-200">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Neu
-          </Badge>
-        )
-      case "sehr gut":
-      case "very good":
-        return (
-          <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-            <Star className="w-3 h-3 mr-1" />
-            Sehr gut
-          </Badge>
-        )
-      case "gut":
-      case "good":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
-            <Clock className="w-3 h-3 mr-1" />
-            Gut
-          </Badge>
-        )
-      default:
-        return <Badge variant="secondary">{condition}</Badge>
-    }
-  }
-
   const formatEventDate = (event: CommunityEvent) => {
-    if (event.use_time_slots && event.time_slots && event.time_slots.length > 0) {
-      return "Mehrere Terminvorschläge"
-    } else if (event.fixed_date) {
+    if (event.frequency === "regelmässig" && event.use_time_slots && event.time_slots && event.time_slots.length > 0) {
+      return `${event.time_slots.length} Termine`
+    } else if (event.frequency === "einmalig" && event.fixed_date) {
       const date = new Date(event.fixed_date)
       const dateStr = date.toLocaleDateString("de-DE", {
         day: "2-digit",
@@ -795,10 +689,23 @@ function CommunityContent() {
         year: "numeric",
       })
 
-      if (event.fixed_time_from && event.fixed_time_to) {
-        return `${dateStr}, ${event.fixed_time_from} - ${event.fixed_time_to}`
-      } else if (event.fixed_time_from) {
-        return `${dateStr}, ab ${event.fixed_time_from}`
+      // Ensure time formatting is correct (HH:mm format)
+      const formatTime = (timeStr: string | null) => {
+        if (!timeStr) return null
+        // If time is already in HH:mm format, return as is
+        if (timeStr.match(/^\d{2}:\d{2}$/)) return timeStr
+        // If time includes seconds, remove them
+        if (timeStr.match(/^\d{2}:\d{2}:\d{2}$/)) return timeStr.substring(0, 5)
+        return timeStr
+      }
+
+      const timeFrom = formatTime(event.fixed_time_from)
+      const timeTo = formatTime(event.fixed_time_to)
+
+      if (timeFrom && timeTo) {
+        return `${dateStr}, ${timeFrom} - ${timeTo}`
+      } else if (timeFrom) {
+        return `${dateStr}, ab ${timeFrom}`
       } else {
         return dateStr
       }
@@ -806,28 +713,68 @@ function CommunityContent() {
     return "Termin wird noch bekannt gegeben"
   }
 
-  const filteredCommunities = communities.filter((community) => {
+  const getParticipantCount = (event: CommunityEvent) => {
+    const participantCount = event.participants?.filter((p) => p.status === "joined").length || 0
+    // Add 1 for the organizer
+    return participantCount + 1
+  }
+
+  const filteredCommunities = (communities || []).filter((community) => {
     const matchesSearch =
-      community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      community.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = activeFilter === "all" || community.type === activeFilter
-
-    return matchesSearch && matchesFilter
-  })
-
-  const filteredEvents = communityEvents.filter((event) => {
-    const matchesSearch =
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchTerm.toLowerCase())
-
+      community.name.toLowerCase().includes(communitySearchTerm.toLowerCase()) ||
+      community.description.toLowerCase().includes(communitySearchTerm.toLowerCase())
     return matchesSearch
   })
 
-  const filteredUsers = users.filter(
+  const filteredCommunityEvents = (communityEvents || []).filter((event) => {
+    const matchesSearch =
+      event.title.toLowerCase().includes(eventSearchTerm.toLowerCase()) ||
+      event.description?.toLowerCase().includes(eventSearchTerm.toLowerCase())
+
+    // Frequency filter
+    const matchesFrequency = frequencyFilter === "all" || event.frequency === frequencyFilter
+
+    // Time filter
+    let matchesTime = true
+    if (timeFilter !== "all" && event.fixed_date) {
+      const eventDate = new Date(event.fixed_date)
+      const today = new Date()
+      const tomorrow = new Date(today)
+      tomorrow.setDate(today.getDate() + 1)
+
+      const startOfWeek = new Date(today)
+      startOfWeek.setDate(today.getDate() - today.getDay())
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(startOfWeek.getDate() + 6)
+
+      const startOfNextWeek = new Date(endOfWeek)
+      startOfNextWeek.setDate(endOfWeek.getDate() + 1)
+      const endOfNextWeek = new Date(startOfNextWeek)
+      endOfNextWeek.setDate(startOfNextWeek.getDate() + 6)
+
+      switch (timeFilter) {
+        case "heute":
+          matchesTime = eventDate.toDateString() === today.toDateString()
+          break
+        case "morgen":
+          matchesTime = eventDate.toDateString() === tomorrow.toDateString()
+          break
+        case "diese-woche":
+          matchesTime = eventDate >= startOfWeek && eventDate <= endOfWeek
+          break
+        case "nächste-woche":
+          matchesTime = eventDate >= startOfNextWeek && eventDate <= endOfNextWeek
+          break
+      }
+    }
+
+    return matchesSearch && matchesFrequency && matchesTime
+  })
+
+  const filteredUsers = (users || []).filter(
     (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
+      user.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(userSearchTerm.toLowerCase()),
   )
 
   const pendingRequests = user
@@ -870,6 +817,15 @@ function CommunityContent() {
     console.log("Creating community event:", eventData)
     setShowCreateEventDialog(false)
     // Refresh data to show the new event
+    const loadAllData = async () => {
+      await Promise.all([
+        loadUsers(),
+        loadCommunityEvents(),
+        loadCommunities(),
+        user ? loadFriendRequests() : Promise.resolve(),
+        user ? loadFriends() : Promise.resolve(),
+      ])
+    }
     loadAllData()
     alert("Community-Anzeige wurde erfolgreich erstellt!")
   }
@@ -878,8 +834,67 @@ function CommunityContent() {
     setShowCreateEventDialog(false)
   }
 
+  const handleJoinCommunity = async (communityId: string) => {
+    if (!user) return
+
+    try {
+      const result = await joinCommunity(communityId, user.id)
+      if (result.success) {
+        toast({
+          title: "Erfolgreich beigetreten!",
+          description: "Sie sind der Community beigetreten.",
+        })
+        await loadCommunities()
+      } else {
+        toast({
+          title: "Fehler beim Beitreten",
+          description: result.error,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Fehler",
+        description: "Ein unerwarteter Fehler ist aufgetreten.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleLeaveCommunity = async (communityId: string) => {
+    if (!user) return
+
+    try {
+      const result = await leaveCommunity(communityId, user.id)
+      if (result.success) {
+        toast({
+          title: "Community verlassen",
+          description: "Sie haben die Community verlassen.",
+        })
+        await loadCommunities()
+      } else {
+        toast({
+          title: "Fehler beim Verlassen",
+          description: result.error,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Fehler",
+        description: "Ein unerwarteter Fehler ist aufgetreten.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleEventCreated = async () => {
+    console.log("Event created, reloading events...")
+    await loadCommunityEvents()
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 font-body">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 font-body">
       {/* Header */}
       <Navigation currentPage="community" />
 
@@ -904,6 +919,8 @@ function CommunityContent() {
                     <li className="ml-4">• scripts/02-create-policies.sql</li>
                     <li className="ml-4">• scripts/03-seed-data.sql (optional)</li>
                     <li className="ml-4">• scripts/06-create-community-events.sql</li>
+                    <li className="ml-4">• scripts/07-create-friend-requests.sql</li>
+                    <li className="ml-4">• scripts/08-create-friends.sql</li>
                     <li>4. Aktualisiere die Seite</li>
                   </ol>
                 </div>
@@ -922,34 +939,6 @@ function CommunityContent() {
           </p>
         </div>
 
-        {/* Search and Filter */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
-          <div className="flex-1">
-            <Input
-              placeholder="Nach Communities, Events oder Freunden suchen..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="border-2 border-teal-200 focus:border-teal-400 font-body text-base"
-            />
-          </div>
-          <div className="flex gap-2 sm:gap-4">
-            <Button
-              variant="outline"
-              className="flex-1 sm:flex-none border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten text-sm bg-transparent"
-            >
-              <Filter className="w-4 h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Filter</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-1 sm:flex-none border-2 border-pink-400 text-pink-600 hover:bg-pink-400 hover:text-white font-handwritten text-sm bg-transparent"
-            >
-              <MapPin className="w-4 h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Standort</span>
-            </Button>
-          </div>
-        </div>
-
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-6xl mx-auto">
           <TabsList className="grid w-full grid-cols-3 mb-8 bg-white/80 backdrop-blur-sm border-2 border-orange-200 rounded-xl p-1">
@@ -964,1308 +953,401 @@ function CommunityContent() {
               value="events"
               className="font-handwritten text-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-400 data-[state=active]:to-indigo-400 data-[state=active]:text-white rounded-lg"
             >
-              <Calendar className="w-5 h-5 mr-2" />
+              <Dices className="w-5 h-5 mr-2" />
               Events
             </TabsTrigger>
             <TabsTrigger
-              value="friends"
-              className="font-handwritten text-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-400 data-[state=active]:to-blue-400 data-[state=active]:text-white rounded-lg"
+              value="users"
+              className="font-handwritten text-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-400 data-[state=active]:to-cyan-400 data-[state=active]:text-white rounded-lg"
             >
-              <UserPlus className="w-5 h-5 mr-2" />
-              Freunde
+              <Users className="w-5 h-5 mr-2" />
+              Benutzer
             </TabsTrigger>
           </TabsList>
-
-          {/* Communities Tab */}
-          <TabsContent value="communities" className="space-y-6">
-            {/* Filter Tabs */}
-            <div className="flex gap-2 sm:gap-4 mb-8 justify-center flex-wrap">
-              <Button
-                onClick={() => setActiveFilter("all")}
-                className={`text-xs sm:text-sm ${
-                  activeFilter === "all"
-                    ? "bg-teal-400 hover:bg-teal-500 text-white"
-                    : "bg-white border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white"
-                } transform -rotate-1 hover:rotate-0 transition-all font-handwritten px-3 py-2`}
-              >
-                Alle ({communities.length})
-              </Button>
-              <Button
-                onClick={() => setActiveFilter("casual")}
-                className={`text-xs sm:text-sm ${
-                  activeFilter === "casual"
-                    ? "bg-teal-400 hover:bg-teal-500 text-white"
-                    : "bg-white border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white"
-                } transform rotate-1 hover:rotate-0 transition-all font-handwritten px-3 py-2`}
-              >
-                Entspannt ({communities.filter((c) => c.type === "casual").length})
-              </Button>
-              <Button
-                onClick={() => setActiveFilter("competitive")}
-                className={`text-xs sm:text-sm ${
-                  activeFilter === "competitive"
-                    ? "bg-orange-400 hover:bg-orange-500 text-white"
-                    : "bg-white border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white"
-                } transform -rotate-1 hover:rotate-0 transition-all font-handwritten px-3 py-2`}
-              >
-                Wettkampf ({communities.filter((c) => c.type === "competitive").length})
-              </Button>
-              <Button
-                onClick={() => setActiveFilter("family")}
-                className={`text-xs sm:text-sm ${
-                  activeFilter === "family"
-                    ? "bg-pink-400 hover:bg-pink-500 text-white"
-                    : "bg-white border-2 border-pink-400 text-pink-600 hover:bg-pink-400 hover:text-white"
-                } transform rotate-1 hover:rotate-0 transition-all font-handwritten px-3 py-2`}
-              >
-                Familie ({communities.filter((c) => c.type === "family").length})
-              </Button>
-            </div>
-
-            {/* Results Counter */}
-            <div className="text-center mb-6">
-              <p className="text-gray-600 font-body">
-                {filteredCommunities.length} {filteredCommunities.length === 1 ? "Community" : "Communities"} gefunden
-                {searchTerm && ` für "${searchTerm}"`}
-                {activeFilter !== "all" && ` in der Kategorie "${getTypeText(activeFilter)}"`}
-              </p>
-            </div>
-
-            {/* Dynamic community items */}
-            {filteredCommunities.map((community, index) => (
-              <Card
-                key={community.id}
-                className={`transform ${index % 2 === 0 ? "rotate-1" : "-rotate-1"} hover:rotate-0 transition-all hover:shadow-xl border-2 border-gray-200 hover:border-teal-300 font-body cursor-pointer`}
-                onClick={() => handleCommunityClick(community)}
-              >
-                <CardContent className="p-4">
-                  <div className="relative mb-3">
-                    <img
-                      src={community.image || "/placeholder.svg?height=200&width=300&query=board+game+community"}
-                      alt={community.name}
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
-                    <Badge
-                      className={`absolute top-2 right-2 ${getTypeColor(community.type || "casual")} text-white font-body`}
-                    >
-                      {getTypeText(community.type || "casual")}
-                    </Badge>
-                    {community.is_private && (
-                      <Badge className="absolute top-2 left-2 bg-gray-600 text-white font-body">Privat</Badge>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="font-bold text-lg text-gray-800 font-handwritten line-clamp-1">{community.name}</h3>
-
-                    <p className="text-sm text-gray-600 font-body line-clamp-2">{community.description}</p>
-
-                    <div className="flex justify-between items-center text-sm text-gray-600 font-body">
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 mr-1" />
-                        <span>
-                          {community.member_count}/{community.max_members} Mitglieder
-                        </span>
-                      </div>
-                      {community.location && (
-                        <div className="flex items-center">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          <span className="truncate">{community.location}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {user ? (
-                      <div className="flex gap-2 mt-3">
-                        <Button
-                          className="flex-1 bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            // Join community logic
-                          }}
-                        >
-                          Beitreten
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="flex-1 border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleContactCreator(community)
-                          }}
-                        >
-                          <MessageCircle className="w-4 h-4 mr-1" />
-                          Ersteller kontaktieren
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        className="w-full bg-teal-400 hover:bg-teal-500 text-white font-handwritten mt-3"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          window.location.href = "/login"
-                        }}
-                      >
-                        Anmelden zum Beitreten
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-
-            {/* No results message */}
-            {filteredCommunities.length === 0 && (
-              <div className="text-center py-12">
-                <div className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-10 h-10 text-gray-500" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-600 mb-2 font-handwritten">Keine Communities gefunden</h3>
-                <p className="text-gray-500 font-body">
-                  {searchTerm || activeFilter !== "all"
-                    ? "Versuche andere Suchbegriffe oder Filter."
-                    : "Sei der Erste und erstelle eine Community!"}
-                </p>
-              </div>
-            )}
-
-            {/* Load More */}
-            {filteredCommunities.length > 0 && (
-              <div className="text-center mt-12">
-                <Button
-                  variant="outline"
-                  className="border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white px-8 py-3 transform rotate-1 hover:rotate-0 transition-all font-handwritten bg-transparent"
-                >
-                  Mehr Communities laden
-                </Button>
-              </div>
-            )}
-
-            {/* Call to Action Section */}
-            <div className="bg-gradient-to-r from-orange-100 to-pink-100 rounded-2xl p-8 text-center border-2 border-orange-200 transform -rotate-1 hover:rotate-0 transition-all duration-300 shadow-lg hover:shadow-xl">
-              <div className="max-w-2xl mx-auto">
-                <div className="w-20 h-20 bg-gradient-to-r from-orange-400 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-6 transform rotate-12 hover:-rotate-12 transition-all duration-300">
-                  <Users className="w-10 h-10 text-white" />
-                </div>
-
-                <h3 className="text-3xl font-bold text-gray-800 mb-4 font-handwritten transform rotate-1">
-                  Keine passende Community gefunden?
-                </h3>
-
-                <p className="text-lg text-gray-600 mb-6 font-body transform -rotate-1">
-                  Kein Problem! Erstelle deine eigene Spielgruppe und bringe Gleichgesinnte zusammen.
-                </p>
-
-                {user ? (
-                  <div className="space-y-4">
-                    <Button
-                      onClick={() => setShowCreateEventDialog(true)}
-                      className="bg-gradient-to-r from-orange-400 to-pink-400 hover:from-orange-500 hover:to-pink-500 text-white px-8 py-4 text-lg font-handwritten transform hover:scale-105 transition-all duration-200 shadow-lg"
-                    >
-                      <Plus className="w-5 h-5 mr-2" />
-                      Jetzt Community erstellen
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                      <Button
-                        asChild
-                        className="bg-gradient-to-r from-orange-400 to-pink-400 hover:from-orange-500 hover:to-pink-500 text-white px-8 py-4 text-lg font-handwritten transform hover:scale-105 transition-all duration-200 shadow-lg"
-                      >
-                        <Link href="/register">
-                          <UserPlus className="w-5 h-5 mr-2" />
-                          Registrieren
-                        </Link>
-                      </Button>
-                      <div className="flex items-center space-x-2 text-gray-600 font-body">
-                        <span>Bereits registriert?</span>
-                        <Button
-                          asChild
-                          variant="outline"
-                          className="border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent transform hover:scale-105 transition-all duration-200"
-                        >
-                          <Link href="/login">
-                            <LogIn className="w-4 h-4 mr-2" />
-                            Anmelden
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-500 font-body">
-                      Kostenlose Registrierung • Keine versteckten Gebühren • Sofort loslegen
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Events Tab */}
-          <TabsContent value="events" className="space-y-6">
-            {/* Results Counter */}
-            <div className="text-center mb-6">
-              <p className="text-gray-600 font-body">
-                {filteredEvents.length} {filteredEvents.length === 1 ? "Event" : "Events"} gefunden
-                {searchTerm && ` für "${searchTerm}"`}
-              </p>
-            </div>
-
-            {/* Dynamic event items */}
-            {filteredEvents.map((event, index) => (
-              <Card
-                key={event.id}
-                className={`transform ${index % 2 === 0 ? "rotate-1" : "-rotate-1"} hover:rotate-0 transition-all hover:shadow-xl border-2 border-gray-200 hover:border-purple-300 font-body cursor-pointer`}
-                onClick={() => handleEventClick(event)}
-              >
-                <CardContent className="p-4">
-                  <div className="relative mb-3">
-                    <img
-                      src={event.image_url || "/placeholder.svg?height=200&width=300&query=community+event"}
-                      alt={event.title}
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
-                    <Badge className="absolute top-2 right-2 bg-purple-500 text-white font-body">
-                      {event.frequency === "einmalig" ? "Einmalig" : "Regelmäßig"}
-                    </Badge>
-                    <Badge className="absolute top-2 left-2 bg-gray-600 text-white font-body">
-                      {event.visibility === "public" ? (
-                        <>
-                          <Globe className="w-3 h-3 mr-1" />
-                          Öffentlich
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="w-3 h-3 mr-1" />
-                          Privat
-                        </>
-                      )}
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="font-bold text-lg text-gray-800 font-handwritten line-clamp-1">{event.title}</h3>
-
-                    {event.description && (
-                      <p className="text-sm text-gray-600 font-body line-clamp-2">{event.description}</p>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600 font-body">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        <span className="truncate">{formatEventDate(event)}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span className="truncate">{event.location}</span>
-                      </div>
-                      {event.max_participants && (
-                        <div className="flex items-center">
-                          <Users className="w-4 h-4 mr-1" />
-                          <span>Max. {event.max_participants} Teilnehmer</span>
-                        </div>
-                      )}
-                      <div className="flex items-center">
-                        <UserCheck className="w-4 h-4 mr-1" />
-                        <span>von {event.creator?.name || "Unbekannt"}</span>
-                      </div>
-                    </div>
-
-                    {/* Show selected games */}
-                    {(event.selected_games?.length > 0 || event.custom_games?.length > 0) && (
-                      <div className="space-y-1">
-                        <Label className="text-xs text-gray-600 font-body">Spiele:</Label>
-                        <div className="flex flex-wrap gap-1">
-                          {event.selected_games?.map((game: any, idx: number) => (
-                            <Badge key={idx} className="bg-teal-100 text-teal-800 border-teal-200 text-xs">
-                              <Dices className="w-3 h-3 mr-1" />
-                              {game.title}
-                            </Badge>
-                          ))}
-                          {event.custom_games?.map((game: string, idx: number) => (
-                            <Badge key={idx} className="bg-orange-100 text-orange-800 border-orange-200 text-xs">
-                              <Dices className="w-3 h-3 mr-1" />
-                              {game}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {user ? (
-                      <div className="flex gap-2 mt-3">
-                        <Button
-                          className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-handwritten"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleJoinEvent(event.id)
-                          }}
-                        >
-                          {event.approval_mode === "automatic" ? "Teilnehmen" : "Anfrage senden"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="flex-1 border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            // Contact event creator logic
-                          }}
-                        >
-                          <MessageCircle className="w-4 h-4 mr-1" />
-                          Ersteller kontaktieren
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        className="w-full bg-purple-500 hover:bg-purple-600 text-white font-handwritten mt-3"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          window.location.href = "/login"
-                        }}
-                      >
-                        Anmelden zum Teilnehmen
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-
-            {/* No results message */}
-            {filteredEvents.length === 0 && (
-              <div className="text-center py-12">
-                <div className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="w-10 h-10 text-gray-500" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-600 mb-2 font-handwritten">Keine Events gefunden</h3>
-                <p className="text-gray-500 font-body">
-                  {searchTerm ? "Versuche andere Suchbegriffe." : "Erstelle dein erstes Community-Event!"}
-                </p>
-              </div>
-            )}
-
-            {/* Call to Action Section for Events */}
-            <div className="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-2xl p-8 text-center border-2 border-purple-200 transform -rotate-1 hover:rotate-0 transition-all duration-300 shadow-lg hover:shadow-xl">
-              <div className="max-w-2xl mx-auto">
-                <div className="w-20 h-20 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6 transform rotate-12 hover:-rotate-12 transition-all duration-300">
-                  <Calendar className="w-10 h-10 text-white" />
-                </div>
-
-                <h3 className="text-3xl font-bold text-gray-800 mb-4 font-handwritten transform rotate-1">
-                  Organisiere dein eigenes Spiele-Event!
-                </h3>
-
-                <p className="text-lg text-gray-600 mb-6 font-body transform -rotate-1">
-                  Lade Freunde ein oder finde neue Mitspieler für deine Lieblingsspiele.
-                </p>
-
-                {user ? (
-                  <div className="space-y-4">
-                    <Button
-                      onClick={() => setShowCreateEventDialog(true)}
-                      className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white px-8 py-4 text-lg font-handwritten transform hover:scale-105 transition-all duration-200 shadow-lg"
-                    >
-                      <Plus className="w-5 h-5 mr-2" />
-                      Event erstellen
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                      <Button
-                        asChild
-                        className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white px-8 py-4 text-lg font-handwritten transform hover:scale-105 transition-all duration-200 shadow-lg"
-                      >
-                        <Link href="/register">
-                          <UserPlus className="w-5 h-5 mr-2" />
-                          Registrieren
-                        </Link>
-                      </Button>
-                      <div className="flex items-center space-x-2 text-gray-600 font-body">
-                        <span>Bereits registriert?</span>
-                        <Button
-                          asChild
-                          variant="outline"
-                          className="border-2 border-purple-400 text-purple-600 hover:bg-purple-400 hover:text-white font-handwritten bg-transparent transform hover:scale-105 transition-all duration-200"
-                        >
-                          <Link href="/login">
-                            <LogIn className="w-4 h-4 mr-2" />
-                            Anmelden
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Friends Tab */}
-          <TabsContent value="friends" className="space-y-6">
-            {!user ? (
-              <div className="text-center py-12">
-                <UserPlus className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-handwritten text-gray-600 mb-4">Freunde-Funktionen</h3>
-                <p className="text-gray-500 font-body mb-6">
-                  Melde dich an, um Freunde zu finden und Freundschaftsanfragen zu senden.
-                </p>
-                <div className="space-x-4">
-                  <Link href="/login">
-                    <Button className="bg-teal-500 hover:bg-teal-600">
-                      <LogIn className="w-4 h-4 mr-2" />
-                      Anmelden
-                    </Button>
-                  </Link>
-                  <Link href="/register">
-                    <Button variant="outline">
-                      <UserPlus className="w-5 h-5 mr-2" />
-                      Registrieren
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Friends Search */}
-                <div className="mb-6">
+          {/* Tabs Content */}
+          <TabsContent value="communities">
+            <div className="space-y-6">
+              {/* Communities Search and Filters */}
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-400 w-4 h-4" />
                   <Input
-                    placeholder="Nach Freunden suchen..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="border-2 border-teal-200 focus:border-teal-400 font-body text-base max-w-md"
+                    placeholder="Communities suchen..."
+                    value={communitySearchTerm}
+                    onChange={(e) => setCommunitySearchTerm(e.target.value)}
+                    className="pl-10 border-2 border-teal-200 focus:border-teal-400 rounded-xl"
                   />
                 </div>
+                <div className="flex gap-2 mb-4">
+                  {user && (
+                    <CreateCommunityDialog onCommunityCreated={loadCommunities}>
+                      <Button className="bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white border-0">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Community erstellen
+                      </Button>
+                    </CreateCommunityDialog>
+                  )}
+                </div>
+              </div>
 
-                {/* Friends Sub-Tabs */}
-                <Tabs defaultValue="find-friends" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 mb-6 bg-white/80 backdrop-blur-sm border-2 border-teal-200 rounded-xl p-1">
-                    <TabsTrigger
-                      value="find-friends"
-                      className="font-handwritten text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-400 data-[state=active]:to-blue-400 data-[state=active]:text-white rounded-lg"
+              {/* Communities Grid */}
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-400 mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Communities werden geladen...</p>
+                </div>
+              ) : filteredCommunities.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-handwritten text-gray-600 mb-2">Keine Communities gefunden</h3>
+                  <p className="text-gray-500">Erstelle die erste Community oder ändere deine Suchkriterien.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredCommunities.map((community) => (
+                    <Card
+                      key={community.id}
+                      className="group hover:shadow-xl transition-all duration-300 border-2 border-teal-100 hover:border-teal-300 bg-white/80 backdrop-blur-sm"
                     >
-                      <UserPlus className="w-4 h-4 mr-1" />
-                      Freunde finden
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="incoming-requests"
-                      className="font-handwritten text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-400 data-[state=active]:to-teal-400 data-[state=active]:text-white rounded-lg relative"
-                    >
-                      <UserCheck className="w-4 h-4 mr-1" />
-                      Eingegangen
-                      {pendingRequests.length > 0 && (
-                        <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full">
-                          {pendingRequests.length}
-                        </Badge>
-                      )}
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="sent-requests"
-                      className="font-handwritten text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-400 data-[state=active]:to-pink-400 data-[state=active]:text-white rounded-lg relative"
-                    >
-                      <Clock className="w-4 h-4 mr-1" />
-                      Gesendet
-                      {user &&
-                        allFriendRequests.filter((req) => req.from_user_id === user.id && req.status === "pending")
-                          .length > 0 && (
-                          <Badge className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full">
-                            {
-                              allFriendRequests.filter(
-                                (req) => req.from_user_id === user.id && req.status === "pending",
-                              ).length
-                            }
-                          </Badge>
-                        )}
-                    </TabsTrigger>
-                  </TabsList>
-
-                  {/* Find Friends Tab */}
-                  <TabsContent value="find-friends" className="space-y-6">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-xl font-handwritten text-gray-800">Neue Freunde finden</h3>
-                      <p className="text-sm text-gray-500 font-body">
-                        {filteredUsers.length} {filteredUsers.length === 1 ? "Person" : "Personen"} gefunden
-                      </p>
-                    </div>
-
-                    {/* Users List */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {filteredUsers.map((targetUser, index) => {
-                        const friendshipStatus = getFriendshipStatus(targetUser.id)
-
-                        return (
-                          <Card
-                            key={targetUser.id}
-                            className={`bg-white/80 backdrop-blur-sm border-2 border-teal-200 hover:border-teal-400 transition-all duration-300 hover:shadow-lg rounded-2xl transform hover:scale-105 ${
-                              index % 3 === 0 ? "rotate-1" : index % 3 === 1 ? "-rotate-1" : "rotate-0"
-                            } hover:rotate-0`}
-                          >
-                            <CardContent className="p-6">
-                              <div className="flex items-center space-x-4 mb-4">
-                                <div className="w-12 h-12 bg-gradient-to-r from-teal-400 to-blue-400 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                                  {targetUser.name[0].toUpperCase()}
-                                </div>
-                                <div className="flex-1">
-                                  <h3 className="font-handwritten text-lg text-gray-800">{targetUser.name}</h3>
-                                  {canViewField(targetUser, "email") && (
-                                    <p className="text-xs text-gray-400 font-body">{targetUser.email}</p>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex space-x-2 mb-3">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleViewProfile(targetUser)}
-                                  className="flex-1 border-teal-200 text-teal-600 hover:bg-teal-50 rounded-xl"
-                                >
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  Profil
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleViewLibrary(targetUser)}
-                                  className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 rounded-xl"
-                                >
-                                  <Dices className="w-4 h-4 mr-1" />
-                                  Spiele
-                                </Button>
-                              </div>
-
-                              {friendshipStatus === "friend" ? (
-                                <Badge className="w-full justify-center bg-green-100 text-green-800 border-green-200 py-2">
-                                  <UserCheck className="w-4 h-4 mr-1" />
-                                  Befreundet
-                                </Badge>
-                              ) : friendshipStatus === "sent" ? (
-                                <Badge className="w-full justify-center bg-yellow-100 text-yellow-800 border-yellow-200 py-2">
-                                  <Clock className="w-4 h-4 mr-1" />
-                                  Anfrage gesendet
-                                </Badge>
-                              ) : friendshipStatus === "received" ? (
-                                <Badge className="w-full justify-center bg-blue-100 text-blue-800 border-blue-200 py-2">
-                                  <AlertCircle className="w-4 h-4 mr-1" />
-                                  Anfrage erhalten
-                                </Badge>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleSendFriendRequest(targetUser.id)}
-                                  className="w-full bg-gradient-to-r from-teal-400 to-blue-400 hover:from-teal-500 hover:to-blue-500 text-white rounded-xl"
-                                >
-                                  <UserPlus className="w-4 h-4 mr-2" />
-                                  Freundschaftsanfrage senden
-                                </Button>
-                              )}
-                            </CardContent>
-                          </Card>
-                        )
-                      })}
-                    </div>
-
-                    {filteredUsers.length === 0 && (
-                      <div className="text-center py-12">
-                        <UserPlus className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500 font-body">
-                          {searchTerm ? "Keine Benutzer gefunden" : "Keine anderen Benutzer vorhanden"}
-                        </p>
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  {/* Incoming Friend Requests Tab */}
-                  <TabsContent value="incoming-requests" className="space-y-6">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-xl font-handwritten text-gray-800">Eingegangene Freundschaftsanfragen</h3>
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
-                        {pendingRequests.length} {pendingRequests.length === 1 ? "Anfrage" : "Anfragen"}
-                      </Badge>
-                    </div>
-
-                    {pendingRequests.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {pendingRequests.map((request, index) => (
-                          <Card
-                            key={request.id}
-                            className={`bg-gradient-to-br from-green-50 to-teal-50 border-2 border-green-200 rounded-2xl transform hover:scale-105 transition-all duration-300 hover:shadow-lg ${
-                              index % 3 === 0 ? "rotate-1" : index % 3 === 1 ? "-rotate-1" : "rotate-0"
-                            } hover:rotate-0`}
-                          >
-                            <CardContent className="p-6">
-                              <div className="flex items-center space-x-4 mb-4">
-                                <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-teal-400 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                                  {request.sender?.name?.[0]?.toUpperCase() || "?"}
-                                </div>
-                                <div className="flex-1">
-                                  <h4 className="font-handwritten text-lg text-gray-800">
-                                    {request.sender?.name || "Unbekannt"}
-                                  </h4>
-                                  <p className="text-sm text-gray-500 font-body">
-                                    {new Date(request.created_at).toLocaleDateString("de-DE", {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      year: "numeric",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
-                                  </p>
-                                </div>
-                              </div>
-
-                              {request.message && (
-                                <div className="mb-4 p-3 bg-white/50 rounded-lg">
-                                  <p className="text-sm font-body text-gray-700 italic">"{request.message}"</p>
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <h3 className="font-handwritten text-xl text-gray-800 mb-2 group-hover:text-teal-600 transition-colors">
+                              {community.name}
+                            </h3>
+                            <div className="flex items-center gap-2 mb-2">
+                              {community.location && (
+                                <div className="flex items-center text-sm text-gray-500">
+                                  <MapPin className="w-3 h-3 mr-1" />
+                                  {community.location}
                                 </div>
                               )}
-
-                              <div className="flex space-x-2">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleAcceptFriendRequest(request.id, request.from_user_id)}
-                                  className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-xl font-handwritten"
-                                >
-                                  <UserCheck className="w-4 h-4 mr-1" />
-                                  Annehmen
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleRejectFriendRequest(request.id)}
-                                  className="flex-1 border-red-200 text-red-600 hover:bg-red-50 rounded-xl font-handwritten"
-                                >
-                                  <UserX className="w-4 h-4 mr-1" />
-                                  Ablehnen
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-12">
-                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                          <UserCheck className="w-10 h-10 text-green-500" />
-                        </div>
-                        <h4 className="text-xl font-handwritten text-gray-600 mb-2">Keine neuen Anfragen</h4>
-                        <p className="text-gray-500 font-body">
-                          Du hast derzeit keine eingegangenen Freundschaftsanfragen.
-                        </p>
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  {/* Sent Friend Requests Tab */}
-                  <TabsContent value="sent-requests" className="space-y-6">
-                    {(() => {
-                      const sentRequests = user
-                        ? allFriendRequests.filter((req) => req.from_user_id === user.id && req.status === "pending")
-                        : []
-
-                      return (
-                        <>
-                          <div className="flex justify-between items-center">
-                            <h3 className="text-xl font-handwritten text-gray-800">Gesendete Freundschaftsanfragen</h3>
-                            <Badge className="bg-orange-100 text-orange-800 border-orange-200">
-                              {sentRequests.length} {sentRequests.length === 1 ? "Anfrage" : "Anfragen"}
-                            </Badge>
-                          </div>
-
-                          {sentRequests.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                              {sentRequests.map((request, index) => (
-                                <Card
-                                  key={request.id}
-                                  className={`bg-gradient-to-br from-orange-50 to-pink-50 border-2 border-orange-200 rounded-2xl transform hover:scale-105 transition-all duration-300 hover:shadow-lg ${
-                                    index % 3 === 0 ? "rotate-1" : index % 3 === 1 ? "-rotate-1" : "rotate-0"
-                                  } hover:rotate-0`}
-                                >
-                                  <CardContent className="p-6">
-                                    <div className="flex items-center space-x-4 mb-4">
-                                      <div className="w-12 h-12 bg-gradient-to-r from-orange-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                                        {request.receiver?.name?.[0]?.toUpperCase() || "?"}
-                                      </div>
-                                      <div className="flex-1">
-                                        <h4 className="font-handwritten text-lg text-gray-800">
-                                          {request.receiver?.name || "Unbekannt"}
-                                        </h4>
-                                        <p className="text-sm text-gray-500 font-body">
-                                          Gesendet am{" "}
-                                          {new Date(request.created_at).toLocaleDateString("de-DE", {
-                                            day: "2-digit",
-                                            month: "2-digit",
-                                            year: "numeric",
-                                          })}
-                                        </p>
-                                      </div>
-                                    </div>
-
-                                    {request.message && (
-                                      <div className="mb-4 p-3 bg-white/50 rounded-lg">
-                                        <p className="text-sm font-body text-gray-700 italic">"{request.message}"</p>
-                                      </div>
-                                    )}
-
-                                    <div className="flex items-center justify-center">
-                                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 py-2 px-4">
-                                        <Clock className="w-4 h-4 mr-2" />
-                                        Warte auf Antwort
-                                      </Badge>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              ))}
                             </div>
-                          ) : (
-                            <div className="text-center py-12">
-                              <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <Clock className="w-10 h-10 text-orange-500" />
-                              </div>
-                              <h4 className="text-xl font-handwritten text-gray-600 mb-2">Keine gesendeten Anfragen</h4>
-                              <p className="text-gray-500 font-body">
-                                Du hast derzeit keine ausstehenden Freundschaftsanfragen gesendet.
-                              </p>
+                          </div>
+                          {community.image && (
+                            <img
+                              src={community.image || "/placeholder.svg"}
+                              alt={community.name}
+                              className="w-12 h-12 rounded-lg object-cover"
+                            />
+                          )}
+                        </div>
+
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{community.description}</p>
+
+                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                          <div className="flex items-center">
+                            <Users className="w-4 h-4 mr-1" />
+                            <span>0/{community.max_members}</span>
+                          </div>
+                          {community.next_meeting && (
+                            <div className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-1" />
+                              <span>{new Date(community.next_meeting).toLocaleDateString()}</span>
                             </div>
                           )}
-                        </>
-                      )
-                    })()}
-                  </TabsContent>
-                </Tabs>
-              </>
-            )}
-          </TabsContent>
-        </Tabs>
-
-        {/* Community Detail Dialog */}
-        <Dialog open={showCommunityDialog} onOpenChange={setShowCommunityDialog}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="font-handwritten text-2xl text-center">Community-Details</DialogTitle>
-            </DialogHeader>
-            {selectedCommunity && (
-              <div className="space-y-4">
-                <div className="flex items-start space-x-4">
-                  <img
-                    src={selectedCommunity.image || "/placeholder.svg?height=200&width=300&query=board+game+community"}
-                    alt={selectedCommunity.name}
-                    className="w-24 h-32 rounded-lg shadow-sm flex-shrink-0"
-                  />
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold font-handwritten mb-1">{selectedCommunity.name}</h3>
-                    <Badge className={`${getTypeColor(selectedCommunity.type || "casual")} text-white font-body mb-2`}>
-                      {getTypeText(selectedCommunity.type || "casual")}
-                    </Badge>
-                    {selectedCommunity.is_private && (
-                      <Badge className="bg-gray-600 text-white font-body ml-2">Privat</Badge>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium font-body">Mitglieder:</span>
-                    <span className="ml-2 font-body">
-                      {selectedCommunity.member_count}/{selectedCommunity.max_members}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-medium font-body">Erstellt:</span>
-                    <span className="ml-2 font-body">
-                      {new Date(selectedCommunity.created_at).toLocaleDateString("de-DE")}
-                    </span>
-                  </div>
-                  {selectedCommunity.location && (
-                    <div className="col-span-2">
-                      <span className="font-medium font-body">Standort:</span>
-                      <div className="flex items-center mt-1">
-                        <MapPin className="w-4 h-4 mr-1 text-gray-500" />
-                        <span className="font-body">{selectedCommunity.location}</span>
-                      </div>
-                    </div>
-                  )}
-                  <div className="col-span-2">
-                    <span className="font-medium font-body">Ersteller:</span>
-                    <span className="ml-2 font-body">{selectedCommunity.creator_name}</span>
-                  </div>
-                </div>
-
-                {selectedCommunity.description && (
-                  <div>
-                    <span className="font-medium font-body">Beschreibung:</span>
-                    <p className="text-sm text-gray-600 font-body mt-1 bg-gray-50 p-3 rounded">
-                      {selectedCommunity.description}
-                    </p>
-                  </div>
-                )}
-
-                {user ? (
-                  <div className="flex gap-3 pt-4">
-                    <Button
-                      onClick={() => {
-                        setShowCommunityDialog(false)
-                        // Join community logic
-                      }}
-                      className="flex-1 bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
-                    >
-                      Beitreten
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setShowCommunityDialog(false)
-                        handleContactCreator(selectedCommunity)
-                      }}
-                      className="flex-1 border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
-                    >
-                      <MessageCircle className="w-4 h-4 mr-1" />
-                      Ersteller kontaktieren
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="pt-4">
-                    <Button
-                      onClick={() => {
-                        setShowCommunityDialog(false)
-                        window.location.href = "/login"
-                      }}
-                      className="w-full bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
-                    >
-                      Anmelden zum Beitreten
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Event Detail Dialog */}
-        <Dialog open={showEventDialog} onOpenChange={setShowEventDialog}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="font-handwritten text-2xl text-center">Event-Details</DialogTitle>
-            </DialogHeader>
-            {selectedEvent && (
-              <div className="space-y-4">
-                <div className="flex items-start space-x-4">
-                  <div className="relative">
-                    <img
-                      src={selectedEvent.image_url || "/placeholder.svg?height=200&width=300&query=community+event"}
-                      alt={selectedEvent.title}
-                      className="w-32 h-24 rounded-lg shadow-sm flex-shrink-0 object-cover"
-                    />
-                    {!selectedEvent.image_url && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
-                        <ImageIcon className="w-8 h-8 text-gray-400" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold font-handwritten mb-2">{selectedEvent.title}</h3>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      <Badge className="bg-purple-500 text-white font-body">
-                        {selectedEvent.frequency === "einmalig" ? "Einmalig" : "Regelmäßig"}
-                      </Badge>
-                      <Badge className="bg-gray-600 text-white font-body">
-                        {selectedEvent.visibility === "public" ? (
-                          <>
-                            <Globe className="w-3 h-3 mr-1" />
-                            Öffentlich
-                          </>
-                        ) : (
-                          <>
-                            <Lock className="w-3 h-3 mr-1" />
-                            Privat
-                          </>
-                        )}
-                      </Badge>
-                      {selectedEvent.approval_mode === "manual" && (
-                        <Badge className="bg-orange-500 text-white font-body">Manuelle Bestätigung</Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {selectedEvent.additional_info && (
-                  <div>
-                    <span className="font-medium font-body">Beschreibung:</span>
-                    <p className="text-sm text-gray-600 font-body mt-1 bg-gray-50 p-3 rounded">
-                      {selectedEvent.additional_info}
-                    </p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium font-body">Wann:</span>
-                    <div className="flex items-center mt-1">
-                      <Calendar className="w-4 h-4 mr-1 text-gray-500" />
-                      <span className="font-body">{formatEventDate(selectedEvent)}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <span className="font-medium font-body">Wo:</span>
-                    <div className="flex items-center mt-1">
-                      <MapPin className="w-4 h-4 mr-1 text-gray-500" />
-                      <span className="font-body">{selectedEvent.location}</span>
-                    </div>
-                  </div>
-                  {selectedEvent.max_participants && (
-                    <div>
-                      <span className="font-medium font-body">Max. Teilnehmer:</span>
-                      <div className="flex items-center mt-1">
-                        <Users className="w-4 h-4 mr-1 text-gray-500" />
-                        <span className="font-body">{selectedEvent.max_participants}</span>
-                      </div>
-                    </div>
-                  )}
-                  <div>
-                    <span className="font-medium font-body">Ersteller:</span>
-                    <div className="flex items-center mt-1">
-                      <UserCheck className="w-4 h-4 mr-1 text-gray-500" />
-                      <span className="font-body">{selectedEvent.creator?.name || "Unbekannt"}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Time Slots */}
-                {selectedEvent.use_time_slots && selectedEvent.time_slots && selectedEvent.time_slots.length > 0 && (
-                  <div>
-                    <span className="font-medium font-body">Terminvorschläge:</span>
-                    <div className="mt-2 space-y-2">
-                      {selectedEvent.time_slots.map((slot: any, index: number) => (
-                        <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                          <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                            <span className="font-body">
-                              {new Date(slot.date).toLocaleDateString("de-DE", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              })}
-                              {slot.timeFrom && slot.timeTo && `, ${slot.timeFrom} - ${slot.timeTo}`}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Games */}
-                {(selectedEvent.selected_games?.length > 0 || selectedEvent.custom_games?.length > 0) && (
-                  <div>
-                    <span className="font-medium font-body">Spiele:</span>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {selectedEvent.selected_games?.map((game: any, idx: number) => (
-                        <Badge key={idx} className="bg-teal-100 text-teal-800 border-teal-200">
-                          <Dices className="w-3 h-3 mr-1" />
-                          {game.title}
-                          {game.publisher && <span className="text-xs ml-1">({game.publisher})</span>}
-                        </Badge>
-                      ))}
-                      {selectedEvent.custom_games?.map((game: string, idx: number) => (
-                        <Badge key={idx} className="bg-orange-100 text-orange-800 border-orange-200">
-                          <Dices className="w-3 h-3 mr-1" />
-                          {game}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Rules */}
-                {selectedEvent.rules && (
-                  <div>
-                    <span className="font-medium font-body">Regeln / Hinweise:</span>
-                    <p className="text-sm text-gray-600 font-body mt-1 bg-gray-50 p-3 rounded">{selectedEvent.rules}</p>
-                  </div>
-                )}
-
-                {/* Participants */}
-                {selectedEvent.participants && selectedEvent.participants.length > 0 && (
-                  <div>
-                    <span className="font-medium font-body">Teilnehmer:</span>
-                    <div className="mt-2 space-y-1">
-                      {selectedEvent.participants
-                        .filter((p) => p.status === "joined" || p.status === "approved")
-                        .map((participant, idx) => (
-                          <div key={idx} className="flex items-center space-x-2">
-                            <div className="w-6 h-6 bg-gradient-to-r from-green-400 to-teal-400 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                              {participant.user?.name?.[0]?.toUpperCase() || "?"}
-                            </div>
-                            <span className="text-sm font-body">{participant.user?.name || "Unbekannt"}</span>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-
-                {user ? (
-                  <div className="flex gap-3 pt-4">
-                    <Button
-                      onClick={() => handleJoinEvent(selectedEvent.id)}
-                      className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-handwritten"
-                    >
-                      {selectedEvent.approval_mode === "automatic" ? "Teilnehmen" : "Anfrage senden"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setShowEventDialog(false)
-                        // Contact event creator logic
-                      }}
-                      className="flex-1 border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
-                    >
-                      <MessageCircle className="w-4 h-4 mr-1" />
-                      Ersteller kontaktieren
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="pt-4">
-                    <Button
-                      onClick={() => {
-                        setShowEventDialog(false)
-                        window.location.href = "/login"
-                      }}
-                      className="w-full bg-purple-500 hover:bg-purple-600 text-white font-handwritten"
-                    >
-                      Anmelden zum Teilnehmen
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Contact Creator Dialog */}
-        <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="font-handwritten text-2xl text-center">Ersteller kontaktieren</DialogTitle>
-            </DialogHeader>
-            {selectedCommunity && (
-              <div className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-handwritten text-lg text-gray-800 mb-1">{selectedCommunity.name}</h4>
-                  <p className="text-sm text-gray-600 font-body">Ersteller: {selectedCommunity.creator_name}</p>
-                </div>
-
-                <div>
-                  <Label htmlFor="contact-message" className="font-body text-gray-700 text-sm">
-                    Deine Nachricht
-                  </Label>
-                  <Textarea
-                    id="contact-message"
-                    placeholder="Schreibe eine Nachricht an den Community-Ersteller..."
-                    value={contactMessage}
-                    onChange={(e) => setContactMessage(e.target.value)}
-                    className="mt-1 min-h-[120px] border-2 border-gray-200 focus:border-orange-400 font-body"
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowContactDialog(false)}
-                    className="flex-1 font-handwritten"
-                    disabled={contactLoading}
-                  >
-                    Abbrechen
-                  </Button>
-                  <Button
-                    onClick={sendContactMessage}
-                    disabled={!contactMessage.trim() || contactLoading}
-                    className="flex-1 bg-orange-400 hover:bg-orange-500 text-white font-handwritten"
-                  >
-                    {contactLoading ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Senden...
-                      </div>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4 mr-2" />
-                        Nachricht senden
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Profile Dialog */}
-        <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
-          <DialogContent className="bg-gradient-to-br from-teal-50 to-blue-50 border-2 border-teal-200 rounded-2xl max-w-md">
-            <DialogHeader className="bg-gradient-to-r from-teal-400 to-blue-400 text-white p-6 -m-6 mb-6 rounded-t-2xl">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-2xl">
-                  {selectedUser?.name[0].toUpperCase()}
-                </div>
-                <div>
-                  <DialogTitle className="font-handwritten text-2xl -rotate-1">{selectedUser?.name}</DialogTitle>
-                  <div className="w-16 h-0.5 bg-white/50 mt-1"></div>
-                </div>
-              </div>
-            </DialogHeader>
-
-            {selectedUser && (
-              <div className="space-y-4">
-                {canViewField(selectedUser, "email") ? (
-                  <div>
-                    <Label className="font-body text-gray-600 text-sm">E-Mail</Label>
-                    <p className="font-body text-gray-800">{selectedUser.email}</p>
-                  </div>
-                ) : (
-                  <div>
-                    <Label className="font-body text-gray-600 text-sm">E-Mail</Label>
-                    <p className="font-body text-gray-400 italic">Nicht öffentlich</p>
-                  </div>
-                )}
-
-                {selectedUser.bio && (
-                  <div>
-                    <Label className="font-body text-gray-600 text-sm">Bio</Label>
-                    <p className="font-body text-gray-800">{selectedUser.bio}</p>
-                  </div>
-                )}
-
-                {selectedUser.website && (
-                  <div>
-                    <Label className="font-body text-gray-600 text-sm">Website</Label>
-                    <p className="font-body text-gray-800">{selectedUser.website}</p>
-                  </div>
-                )}
-
-                <div>
-                  <Label className="font-body text-gray-600 text-sm">Mitglied seit</Label>
-                  <p className="font-body text-gray-800">
-                    {new Date(selectedUser.created_at).toLocaleDateString("de-DE", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
-                </div>
-
-                {!user && <GuestLoginPrompt action="vollständige Profile zu sehen" />}
-
-                {user && !canViewField(selectedUser, "profile") && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
-                    <AlertCircle className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-                    <p className="font-body text-yellow-700 text-sm">
-                      Profil nicht öffentlich. Sende eine Freundschaftsanfrage, um mehr zu sehen.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Library Dialog */}
-        <Dialog open={showLibraryDialog} onOpenChange={setShowLibraryDialog}>
-          <DialogContent className="bg-gradient-to-br from-orange-50 to-pink-50 border-2 border-orange-200 rounded-2xl max-w-4xl max-h-[80vh] overflow-hidden">
-            <DialogHeader className="bg-gradient-to-r from-orange-400 to-pink-400 text-white p-6 -m-6 mb-6 rounded-t-2xl">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-2xl">
-                  {selectedUser?.name[0].toUpperCase() || "?"}
-                </div>
-                <div>
-                  <DialogTitle className="font-handwritten text-2xl -rotate-1">
-                    {selectedUser?.name || "Unbekannt"}s Spielebibliothek
-                  </DialogTitle>
-                  <div className="w-24 h-0.5 bg-white/50 mt-1"></div>
-                </div>
-              </div>
-            </DialogHeader>
-
-            <div className="overflow-y-auto max-h-96">
-              {!user ? (
-                <GuestLoginPrompt action="Spielebibliotheken zu durchstöbern" />
-              ) : libraryLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-                  <span className="ml-3 font-body text-gray-600">Lade Spielebibliothek...</span>
-                </div>
-              ) : userGames.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {userGames.map((game, index) => (
-                    <Card
-                      key={game.id}
-                      className={`bg-white/80 backdrop-blur-sm border-2 border-orange-200 hover:border-orange-400 transition-all duration-300 hover:shadow-lg rounded-2xl transform hover:scale-105 ${
-                        index % 3 === 0 ? "rotate-1" : index % 3 === 1 ? "-rotate-1" : "rotate-0"
-                      } hover:rotate-0`}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center space-x-3 mb-3">
-                          <Dices className="w-8 h-8 text-orange-500" />
-                          <div className="flex-1">
-                            <h4 className="font-handwritten text-lg text-gray-800">{game.title}</h4>
-                            <div className="flex items-center space-x-2 mt-1">
-                              {getStatusBadge(game.condition)}
-                              {game.available.includes("trade") && (
-                                <Badge className="bg-orange-100 text-orange-800 border-orange-200">
-                                  <Star className="w-3 h-3 mr-1" />
-                                  Tauschbar
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
                         </div>
 
-                        {game.publisher && (
-                          <div className="flex items-center space-x-1 mb-2">
-                            <span className="text-sm font-body text-gray-600">Verlag:</span>
-                            <span className="text-sm font-body text-gray-800">{game.publisher}</span>
-                          </div>
-                        )}
-
-                        {game.players && (
-                          <div className="flex items-center space-x-1 mb-2">
-                            <span className="text-sm font-body text-gray-600">Spieler:</span>
-                            <span className="text-sm font-body text-gray-800">{game.players}</span>
-                          </div>
-                        )}
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-teal-300 text-teal-600 hover:bg-teal-50 bg-transparent"
+                            onClick={() => {
+                              toast({
+                                title: "Kontakt",
+                                description: "Organisator-Kontakt wird geöffnet...",
+                              })
+                            }}
+                          >
+                            Organisator kontaktieren
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white border-0"
+                            onClick={() => handleJoinCommunity(community.id)}
+                          >
+                            Beitreten
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
-              ) : (
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="events">
+            <div className="space-y-6">
+              {/* Events Search and Filters */}
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400 w-4 h-4" />
+                    <Input
+                      placeholder="Events suchen..."
+                      value={eventSearchTerm}
+                      onChange={(e) => setEventSearchTerm(e.target.value)}
+                      className="pl-10 border-2 border-purple-200 focus:border-purple-400 rounded-xl"
+                    />
+                  </div>
+                  <div className="flex gap-2 mb-4">
+                    {user && (
+                      <CreateCommunityEventDialog onEventCreated={handleEventCreated}>
+                        <Button className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white border-0">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Event erstellen
+                        </Button>
+                      </CreateCommunityEventDialog>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-between">
+                  <div className="flex gap-2">
+                    <Button
+                      variant={frequencyFilter === "all" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setFrequencyFilter("all")}
+                      className={
+                        frequencyFilter === "all"
+                          ? "bg-purple-500 hover:bg-purple-600 text-white"
+                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                      }
+                    >
+                      Alle
+                    </Button>
+                    <Button
+                      variant={frequencyFilter === "einmalig" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setFrequencyFilter("einmalig")}
+                      className={
+                        frequencyFilter === "einmalig"
+                          ? "bg-purple-500 hover:bg-purple-600 text-white"
+                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                      }
+                    >
+                      Einmalig
+                    </Button>
+                    <Button
+                      variant={frequencyFilter === "regelmässig" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setFrequencyFilter("regelmässig")}
+                      className={
+                        frequencyFilter === "regelmässig"
+                          ? "bg-purple-500 hover:bg-purple-600 text-white"
+                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                      }
+                    >
+                      Regelmässig
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant={timeFilter === "all" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTimeFilter("all")}
+                      className={
+                        timeFilter === "all"
+                          ? "bg-purple-500 hover:bg-purple-600 text-white"
+                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                      }
+                    >
+                      Alle Zeiten
+                    </Button>
+                    <Button
+                      variant={timeFilter === "heute" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTimeFilter("heute")}
+                      className={
+                        timeFilter === "heute"
+                          ? "bg-purple-500 hover:bg-purple-600 text-white"
+                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                      }
+                    >
+                      Heute
+                    </Button>
+                    <Button
+                      variant={timeFilter === "morgen" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTimeFilter("morgen")}
+                      className={
+                        timeFilter === "morgen"
+                          ? "bg-purple-500 hover:bg-purple-600 text-white"
+                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                      }
+                    >
+                      Morgen
+                    </Button>
+                    <Button
+                      variant={timeFilter === "diese-woche" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTimeFilter("diese-woche")}
+                      className={
+                        timeFilter === "diese-woche"
+                          ? "bg-purple-500 hover:bg-purple-600 text-white"
+                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                      }
+                    >
+                      Diese Woche
+                    </Button>
+                    <Button
+                      variant={timeFilter === "nächste-woche" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTimeFilter("nächste-woche")}
+                      className={
+                        timeFilter === "nächste-woche"
+                          ? "bg-purple-500 hover:bg-purple-600 text-white"
+                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                      }
+                    >
+                      Nächste Woche
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Events Grid */}
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Events werden geladen...</p>
+                </div>
+              ) : filteredCommunityEvents.length === 0 ? (
                 <div className="text-center py-12">
                   <Dices className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="font-body text-gray-500">Keine Spiele in der Bibliothek</p>
+                  <h3 className="text-xl font-handwritten text-gray-600 mb-2">Keine Events gefunden</h3>
+                  <p className="text-gray-500">
+                    {eventSearchTerm ? "Ändere deine Suchkriterien oder " : ""}
+                    Erstelle das erste Event!
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredCommunityEvents.map((event) => (
+                    <Card
+                      key={event.id}
+                      className="group hover:shadow-xl transition-all duration-300 border-2 border-purple-100 hover:border-purple-300 bg-white/80 backdrop-blur-sm"
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <h3 className="font-handwritten text-xl text-gray-800 mb-2 group-hover:text-purple-600 transition-colors">
+                              {event.title}
+                            </h3>
+                            <div className="flex items-center gap-2 mb-2">
+                              {event.location && (
+                                <div className="flex items-center text-sm text-gray-500">
+                                  <MapPin className="w-3 h-3 mr-1" />
+                                  {event.location}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {event.image && (
+                            <img
+                              src={event.image || "/placeholder.svg"}
+                              alt={event.title}
+                              className="w-12 h-12 rounded-lg object-cover"
+                            />
+                          )}
+                        </div>
+
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.description}</p>
+
+                        {event.selected_games && event.selected_games.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-4">
+                            {event.selected_games.slice(0, 3).map((game, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs bg-purple-100 text-purple-700">
+                                {game}
+                              </Badge>
+                            ))}
+                            {event.selected_games.length > 3 && (
+                              <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-600">
+                                +{event.selected_games.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="mb-4">
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${
+                              event.frequency === "einmalig"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-green-50 text-green-700 border-green-200"
+                            }`}
+                          >
+                            {event.frequency === "einmalig" ? "Einmalig" : "Regelmässig"}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col gap-2 text-sm text-gray-500">
+                            <div className="flex items-center">
+                              <Users className="w-4 h-4 mr-1" />
+                              <span>
+                                {getParticipantCount(event)}/
+                                {event.max_participants === null || event.max_participants === -1
+                                  ? "unbegrenzt"
+                                  : event.max_participants}
+                              </span>
+                            </div>
+                            <div className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-1" />
+                              <span>{formatEventDate(event)}</span>
+                            </div>
+                          </div>
+                          <EventDetailsDialog event={event}>
+                            <Button
+                              size="sm"
+                              className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white border-0"
+                            >
+                              Details
+                            </Button>
+                          </EventDetailsDialog>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </div>
-          </DialogContent>
-        </Dialog>
+          </TabsContent>
 
-        {/* Create Community Event Dialog */}
-        <Dialog open={showCreateEventDialog} onOpenChange={setShowCreateEventDialog}>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
-            <CreateCommunityEventForm
-              userGames={games.map((game) => ({ id: game.id, title: game.title, publisher: game.publisher }))}
-              friends={allFriends.map((friend) => ({ id: friend.id, name: friend.name, avatar: friend.avatar }))}
-              onSubmit={handleCreateEvent}
-              onCancel={handleCancelCreateEvent}
-            />
-          </DialogContent>
-        </Dialog>
+          <TabsContent value="users">
+            <div className="space-y-6">
+              {/* Users Search */}
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 w-4 h-4" />
+                  <Input
+                    placeholder="Benutzer suchen..."
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    className="pl-10 border-2 border-blue-200 focus:border-blue-400 rounded-xl"
+                  />
+                </div>
+                <div className="flex gap-2 mb-4"></div>
+              </div>
+
+              {/* Users Grid */}
+              <div className="text-center py-12">
+                <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-handwritten text-gray-600 mb-2">Benutzer-Feature kommt bald</h3>
+                <p className="text-gray-500">
+                  Die Benutzer-Verwaltung wird in einem zukünftigen Update verfügbar sein.
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )
 }
 
-export default function GroupsPage() {
-  return (
-    <Suspense fallback={<CommunityLoading />}>
-      <CommunityContent />
-    </Suspense>
-  )
-}
+export default CommunityContent

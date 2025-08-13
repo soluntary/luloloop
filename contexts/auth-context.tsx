@@ -13,7 +13,6 @@ interface AuthUser {
   website?: string
   twitter?: string
   instagram?: string
-  facebook?: string
   settings?: any
 }
 
@@ -62,17 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true)
 
-      // Create a basic user object from auth data
-      const basicUser = {
+      const userProfile = {
         id: authUser.id,
         email: authUser.email || "",
         name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-        avatar: authUser.user_metadata?.avatar_url || null,
+        avatar: authUser.user_metadata?.avatar_url,
         bio: null,
         website: null,
         twitter: null,
         instagram: null,
-        facebook: null,
         settings: {
           notifications: {
             email: true,
@@ -94,10 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       }
 
-      setUser(basicUser)
+      setUser(userProfile)
     } catch (error) {
       console.error("Error loading user profile:", error)
-      // Fallback to basic user object
       setUser({
         id: authUser.id,
         email: authUser.email || "",
@@ -148,7 +144,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) throw new Error("No user logged in")
 
     try {
-      // Update auth metadata if name or avatar changed
       if (data.name || data.avatar) {
         const { error: authError } = await supabase.auth.updateUser({
           data: {
@@ -163,7 +158,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Update local user state
       const updatedUser = { ...user, ...data }
       setUser(updatedUser)
 

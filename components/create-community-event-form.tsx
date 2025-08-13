@@ -1,6 +1,9 @@
 "use client"
 
 import type React from "react"
+import { Upload } from "lucide-react" // Added Upload import
+import { useEffect } from "react" // Added useEffect import
+import { Info } from "lucide-react" // Added Info import
 
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -8,25 +11,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {
-  Globe,
-  Lock,
-  Settings,
-  Dices,
-  Plus,
-  X,
-  UserPlus,
-  Save,
-  AlertCircle,
-  UserCheck,
-  Upload,
-  ImageIcon,
-  FileImage,
-} from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Calendar, MapPin, Users, Settings, ImageIcon, Dice6, X, Plus, Trash2 } from "lucide-react"
 import { createCommunityEvent, type CommunityEventData } from "@/app/actions/community-events"
+import { useAuth } from "@/contexts/auth-context" // Added useAuth import
 
 interface Game {
   id: string
@@ -60,6 +50,7 @@ export default function CreateCommunityEventForm({
   onSubmit,
   onCancel,
 }: CreateCommunityEventFormProps) {
+  const { user } = useAuth() // Added user from auth context
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -94,6 +85,18 @@ export default function CreateCommunityEventForm({
   const [showGameDialog, setShowGameDialog] = useState(false)
   const [showFriendDialog, setShowFriendDialog] = useState(false)
   const [friendSearchTerm, setFriendSearchTerm] = useState("")
+
+  useEffect(() => {
+    if (formData.frequency === "einmalig") {
+      setUseTimeSlots(false)
+      setTimeSlots([])
+    } else if (formData.frequency === "regelmäßig") {
+      setUseTimeSlots(true)
+      if (timeSlots.length === 0) {
+        handleAddTimeSlot()
+      }
+    }
+  }, [formData.frequency])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -238,6 +241,11 @@ export default function CreateCommunityEventForm({
       setIsSubmitting(true)
       setSubmitError(null)
 
+      if (!user) {
+        setSubmitError("Du musst angemeldet sein, um ein Event zu erstellen.")
+        return
+      }
+
       // Validate required fields
       if (!formData.title.trim()) {
         setSubmitError("Bitte gib einen Titel für das Event ein.")
@@ -249,20 +257,20 @@ export default function CreateCommunityEventForm({
         return
       }
 
-      if (formData.frequency === "einmalig" && !useTimeSlots && !formData.fixedDate) {
+      if (formData.frequency === "einmalig" && !formData.fixedDate) {
         setSubmitError("Bitte wähle ein Datum für das einmalige Event.")
         return
       }
 
       if (useTimeSlots && timeSlots.length === 0) {
-        setSubmitError("Bitte füge mindestens einen Terminvorschlag hinzu.")
+        setSubmitError("Bitte füge mindestens einen Termin hinzu.")
         return
       }
 
       if (useTimeSlots) {
         const invalidSlots = timeSlots.filter((slot) => !slot.date || !slot.timeFrom || !slot.timeTo)
         if (invalidSlots.length > 0) {
-          setSubmitError("Bitte fülle alle Terminvorschläge vollständig aus.")
+          setSubmitError("Bitte fülle alle Termine vollständig aus.")
           return
         }
       }
@@ -285,9 +293,9 @@ export default function CreateCommunityEventForm({
       const eventData: CommunityEventData = {
         title: formData.title,
         frequency: formData.frequency,
-        fixedDate: useTimeSlots ? undefined : formData.fixedDate,
-        fixedTimeFrom: useTimeSlots ? undefined : formData.fixedTimeFrom,
-        fixedTimeTo: useTimeSlots ? undefined : formData.fixedTimeTo,
+        fixedDate: formData.fixedDate,
+        fixedTimeFrom: formData.fixedTimeFrom,
+        fixedTimeTo: formData.fixedTimeTo,
         location: formData.location,
         maxParticipants: formData.maxParticipants,
         visibility: formData.visibility,
@@ -302,8 +310,7 @@ export default function CreateCommunityEventForm({
         useTimeSlots,
       }
 
-      // Call server action
-      const result = await createCommunityEvent(eventData)
+      const result = await createCommunityEvent(eventData, user.id)
 
       if (result.success) {
         onSubmit(result.data)
@@ -345,8 +352,12 @@ export default function CreateCommunityEventForm({
     }
   }
 
+  const safeUserGames = userGames || []
+  const safeFriends = friends || []
+
   // Filter friends based on search term
-  const filteredFriends = friends.filter((friend) => friend.name.toLowerCase().includes(friendSearchTerm.toLowerCase()))
+  const filteredFriends =
+    safeFriends?.filter((friend) => friend.name.toLowerCase().includes(friendSearchTerm.toLowerCase())) || []
 
   return (
     <div className="bg-gradient-to-br from-orange-50 to-pink-50 p-6 rounded-2xl max-w-4xl mx-auto">
@@ -468,7 +479,7 @@ export default function CreateCommunityEventForm({
                 {/* Show file info if it's a real file */}
                 {formData.selectedImageFile && (
                   <div className="flex items-center space-x-2 text-sm text-gray-600 font-body">
-                    <FileImage className="w-4 h-4" />
+                    <ImageIcon className="w-4 h-4" />
                     <span>{formData.selectedImageFile.name}</span>
                     <span>({formatFileSize(formData.selectedImageFile.size)})</span>
                   </div>
@@ -503,7 +514,7 @@ export default function CreateCommunityEventForm({
                   variant="outline"
                   onClick={handleImageUpload}
                   disabled={isUploadingImage}
-                  className="border-2 border-orange-200 text-orange-600 hover:bg-orange-50 font-handwritten bg-transparent"
+                  className="w-full border-2 border-orange-200 text-orange-600 hover:bg-orange-50 font-handwritten bg-transparent"
                 >
                   {isUploadingImage ? (
                     <>
@@ -524,7 +535,7 @@ export default function CreateCommunityEventForm({
             {/* Image Error Display */}
             {imageError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                <Trash2 className="w-4 h-4 text-red-500 flex-shrink-0" />
                 <p className="text-red-700 text-sm font-body">{imageError}</p>
               </div>
             )}
@@ -548,22 +559,11 @@ export default function CreateCommunityEventForm({
             />
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="useTimeSlots"
-              checked={useTimeSlots}
-              onCheckedChange={(checked) => setUseTimeSlots(checked as boolean)}
-            />
-            <Label htmlFor="useTimeSlots" className="font-body text-gray-700">
-              Mehrere Terminvorschläge anbieten (Teilnehmer können abstimmen)
-            </Label>
-          </div>
-
-          {!useTimeSlots ? (
+          {formData.frequency === "einmalig" ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="fixedDate" className="font-body text-gray-700">
-                  Datum {formData.frequency === "einmalig" ? "*" : ""}
+                  Datum *
                 </Label>
                 <Input
                   id="fixedDate"
@@ -575,7 +575,7 @@ export default function CreateCommunityEventForm({
               </div>
               <div>
                 <Label htmlFor="fixedTimeFrom" className="font-body text-gray-700">
-                  Startzeit
+                  Von
                 </Label>
                 <Input
                   id="fixedTimeFrom"
@@ -587,7 +587,7 @@ export default function CreateCommunityEventForm({
               </div>
               <div>
                 <Label htmlFor="fixedTimeTo" className="font-body text-gray-700">
-                  Endzeit
+                  Bis
                 </Label>
                 <Input
                   id="fixedTimeTo"
@@ -600,8 +600,20 @@ export default function CreateCommunityEventForm({
             </div>
           ) : (
             <div>
+              {/* Info box for regular events */}
+              {formData.frequency === "regelmäßig" && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-blue-700 font-body">
+                      Da regelmässiges Event können mehrere Termine angegeben werden
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-between items-center mb-4">
-                <Label className="font-body text-gray-700">Terminvorschläge *</Label>
+                <Label className="font-body text-gray-700">Termine *</Label>
                 <Button
                   type="button"
                   onClick={handleAddTimeSlot}
@@ -649,16 +661,14 @@ export default function CreateCommunityEventForm({
                         onClick={() => handleRemoveTimeSlot(slot.id)}
                         className="w-full border-red-200 text-red-600 hover:bg-red-50"
                       >
-                        <X className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
                 ))}
 
                 {timeSlots.length === 0 && (
-                  <div className="text-center py-8 text-gray-500 font-body">
-                    Noch keine Terminvorschläge hinzugefügt
-                  </div>
+                  <div className="text-center py-8 text-gray-500 font-body">Noch keine Termine hinzugefügt</div>
                 )}
               </div>
             </div>
@@ -678,9 +688,9 @@ export default function CreateCommunityEventForm({
             {/* Games from Library */}
             <div className="mb-6">
               <Label className="font-body text-gray-700 text-sm mb-3 block">Spiele aus deiner Bibliothek</Label>
-              {userGames.length > 0 ? (
+              {safeUserGames.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto border rounded-lg p-3 bg-white">
-                  {userGames.map((game) => (
+                  {safeUserGames.map((game) => (
                     <div
                       key={game.id}
                       className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
@@ -691,7 +701,7 @@ export default function CreateCommunityEventForm({
                       onClick={() => handleGameToggle(game)}
                     >
                       <div className="flex items-center space-x-3">
-                        <Dices className="w-5 h-5 text-teal-500" />
+                        <Dice6 className="w-5 h-5 text-teal-500" />
                         <div className="flex-1">
                           <h4 className="font-handwritten text-gray-800">{game.title}</h4>
                           {game.publisher && <p className="text-sm text-gray-500 font-body">{game.publisher}</p>}
@@ -723,7 +733,7 @@ export default function CreateCommunityEventForm({
                         onClick={() => handleGameToggle(game)}
                       >
                         {game.title}
-                        <X className="w-3 h-3 ml-2" />
+                        <Trash2 className="w-3 h-3 ml-2" />
                       </Badge>
                     ))}
                   </div>
@@ -788,7 +798,7 @@ export default function CreateCommunityEventForm({
             <Label className="font-body text-gray-700">Sichtbarkeit</Label>
             <div className="mt-2 space-y-3">
               <div
-                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
                   formData.visibility === "public"
                     ? "border-teal-400 bg-teal-50"
                     : "border-gray-200 hover:border-teal-300"
@@ -796,9 +806,9 @@ export default function CreateCommunityEventForm({
                 onClick={() => handleInputChange("visibility", "public")}
               >
                 <div className="flex items-center space-x-3">
-                  <Globe className="w-5 h-5 text-teal-500" />
+                  <MapPin className="w-5 h-5 text-teal-500" />
                   <div className="flex-1">
-                    <h4 className="font-handwritten text-gray-800">Öffentlich</h4>
+                    <h4 className="font-handwritten text-gray-800">Für alle sichtbar</h4>
                     <p className="text-sm text-gray-500 font-body">Jeder kann das Event sehen und beitreten</p>
                   </div>
                   {formData.visibility === "public" && (
@@ -810,7 +820,7 @@ export default function CreateCommunityEventForm({
               </div>
 
               <div
-                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
                   formData.visibility === "friends"
                     ? "border-teal-400 bg-teal-50"
                     : "border-gray-200 hover:border-teal-300"
@@ -818,7 +828,7 @@ export default function CreateCommunityEventForm({
                 onClick={() => handleInputChange("visibility", "friends")}
               >
                 <div className="flex items-center space-x-3">
-                  <Lock className="w-5 h-5 text-teal-500" />
+                  <Users className="w-5 h-5 text-teal-500" />
                   <div className="flex-1">
                     <h4 className="font-handwritten text-gray-800">Nur Freunde</h4>
                     <p className="text-sm text-gray-500 font-body">Nur deine Freunde können das Event sehen</p>
@@ -844,7 +854,7 @@ export default function CreateCommunityEventForm({
                 variant="outline"
                 className="w-full border-2 border-pink-200 text-pink-600 hover:bg-pink-50 font-handwritten bg-transparent mb-4"
               >
-                <UserCheck className="w-4 h-4 mr-2" />
+                <Users className="w-4 h-4 mr-2" />
                 Freunde auswählen ({selectedFriends.length} ausgewählt)
               </Button>
 
@@ -860,7 +870,7 @@ export default function CreateCommunityEventForm({
                         onClick={() => handleRemoveSelectedFriend(friend.id)}
                       >
                         {friend.name}
-                        <X className="w-3 h-3 ml-2" />
+                        <Trash2 className="w-3 h-3 ml-2" />
                       </Badge>
                     ))}
                   </div>
@@ -873,7 +883,7 @@ export default function CreateCommunityEventForm({
             <Label className="font-body text-gray-700">Teilnahme-Bestätigung</Label>
             <div className="mt-2 space-y-3">
               <div
-                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
                   formData.approvalMode === "automatic"
                     ? "border-teal-400 bg-teal-50"
                     : "border-gray-200 hover:border-teal-300"
@@ -881,7 +891,7 @@ export default function CreateCommunityEventForm({
                 onClick={() => handleInputChange("approvalMode", "automatic")}
               >
                 <div className="flex items-center space-x-3">
-                  <UserPlus className="w-5 h-5 text-teal-500" />
+                  <Users className="w-5 h-5 text-teal-500" />
                   <div className="flex-1">
                     <h4 className="font-handwritten text-gray-800">Automatisch</h4>
                     <p className="text-sm text-gray-500 font-body">Teilnehmer können direkt beitreten</p>
@@ -895,7 +905,7 @@ export default function CreateCommunityEventForm({
               </div>
 
               <div
-                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
                   formData.approvalMode === "manual"
                     ? "border-teal-400 bg-teal-50"
                     : "border-gray-200 hover:border-teal-300"
@@ -936,7 +946,7 @@ export default function CreateCommunityEventForm({
       {/* Error Display */}
       {submitError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
-          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <Trash2 className="w-5 h-5 text-red-500 flex-shrink-0" />
           <p className="text-red-700 font-body">{submitError}</p>
         </div>
       )}
@@ -991,7 +1001,7 @@ export default function CreateCommunityEventForm({
                 </div>
               ) : (
                 <>
-                  <Save className="w-4 h-4 mr-2" />
+                  <Calendar className="w-4 h-4 mr-2" />
                   Event erstellen
                 </>
               )}
@@ -1018,7 +1028,7 @@ export default function CreateCommunityEventForm({
           </div>
 
           <div className="overflow-y-auto max-h-96">
-            {friends.length > 0 ? (
+            {safeFriends.length > 0 ? (
               filteredFriends.length > 0 ? (
                 <div className="grid grid-cols-1 gap-2">
                   {filteredFriends.map((friend) => (
@@ -1042,13 +1052,13 @@ export default function CreateCommunityEventForm({
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <UserCheck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500 font-body">Keine Freunde gefunden für "{friendSearchTerm}"</p>
                 </div>
               )
             ) : (
               <div className="text-center py-8">
-                <UserCheck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500 font-body">Du hast noch keine Freunde hinzugefügt</p>
               </div>
             )}

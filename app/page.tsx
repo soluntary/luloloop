@@ -2,9 +2,10 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Dice6, Users, ShoppingBag, RefreshCw, Search, Plus, HandCoins } from 'lucide-react'
+import { Users, Repeat, ArrowRightFromLine, Plus, HandCoins } from "lucide-react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import "@/styles/font-handwritten.css"
 import "@/styles/font-body.css"
 
@@ -21,32 +22,33 @@ export default function HomePage() {
             Deine Spiele. Deine Community. Dein Abenteuer.
           </h2>
           <p className="text-xl text-gray-600 mb-8 transform rotate-1 font-body">
-            Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde Gleichgesinnte und tritt spannende Spielgruppen bei!
-          </p>          
+            Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde Gleichgesinnte und tritt spannende Spielgruppen
+            bei!
+          </p>
         </div>
       </section>
 
       {/* Features */}
       <section className="container mx-auto px-4 py-16">
-      <h2 className="text-4xl font-handwritten text-center text-gray-800 mb-12 transform rotate-1">
-            Entdecke unsere Features
-          </h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">          
+        <h2 className="text-4xl font-handwritten text-center text-gray-800 mb-12 transform rotate-1">
+          Entdecke unsere Features
+        </h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           <Card className="transform rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-teal-200">
             <CardContent className="p-6 text-center">
               <div className="w-16 h-16 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
-                <Dice6 className="w-8 h-8 text-white" />
+                <ArrowRightFromLine className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">
-                Verleihen
-              </h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Verleihen</h3>
               <p className="text-gray-600 font-body mb-4">
                 Leihe deine Spiele aus und verdiene dabei. Sicher und einfach!
               </p>
-              <Button asChild variant="outline" className="border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten">
-                <Link href="/marketplace?filter=lend">
-                  Zum Spielemarkt
-                </Link>
+              <Button
+                asChild
+                variant="outline"
+                className="border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent"
+              >
+                <Link href="/marketplace?filter=lend">Zum Spielemarkt</Link>
               </Button>
             </CardContent>
           </Card>
@@ -54,18 +56,16 @@ export default function HomePage() {
           <Card className="transform -rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-orange-200">
             <CardContent className="p-6 text-center">
               <div className="w-16 h-16 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-4 transform rotate-12">
-                <RefreshCw className="w-8 h-8 text-white" />
+                <Repeat className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">
-                Tauschen
-              </h3>
-              <p className="text-gray-600 font-body mb-4">
-                Tausche Spiele mit anderen und entdecke neue Spiele!
-              </p>
-              <Button asChild variant="outline" className="border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten">
-                <Link href="/marketplace?filter=trade">
-                  Zum Spielemarkt
-                </Link>
+              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Tauschen</h3>
+              <p className="text-gray-600 font-body mb-4">Tausche Spiele mit anderen und entdecke neue Spiele!</p>
+              <Button
+                asChild
+                variant="outline"
+                className="border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
+              >
+                <Link href="/marketplace?filter=trade">Zum Spielemarkt</Link>
               </Button>
             </CardContent>
           </Card>
@@ -75,16 +75,16 @@ export default function HomePage() {
               <div className="w-16 h-16 bg-pink-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
                 <HandCoins className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">
-                Verkaufen
-              </h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Verkaufen</h3>
               <p className="text-gray-600 font-body mb-4">
                 Verkaufe Spiele, die du nicht mehr brauchst. Schnell und sicher!
               </p>
-              <Button asChild variant="outline" className="border-pink-400 text-pink-600 hover:bg-pink-400 hover:text-white font-handwritten">
-                <Link href="/marketplace?filter=sell">
-                  Zum Spielemarkt
-                </Link>
+              <Button
+                asChild
+                variant="outline"
+                className="border-pink-400 text-pink-600 hover:bg-pink-400 hover:text-white font-handwritten bg-transparent"
+              >
+                <Link href="/marketplace?filter=sell">Zum Spielemarkt</Link>
               </Button>
             </CardContent>
           </Card>
@@ -94,16 +94,14 @@ export default function HomePage() {
               <div className="w-16 h-16 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-4 transform rotate-12">
                 <Users className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">
-                Community
-              </h3>
-              <p className="text-gray-600 font-body mb-4">
-                Finde Gleichgesinnte und tritt spannende Spielgruppen bei!
-              </p>
-              <Button asChild variant="outline" className="border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten">
-                <Link href="/groups">
-                  Zur Community
-                </Link>
+              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Community</h3>
+              <p className="text-gray-600 font-body mb-4">Finde Gleichgesinnte und tritt spannende Spielgruppen bei!</p>
+              <Button
+                asChild
+                variant="outline"
+                className="border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent"
+              >
+                <Link href="/groups">Zur Community</Link>
               </Button>
             </CardContent>
           </Card>
@@ -119,7 +117,10 @@ export default function HomePage() {
           <p className="text-xl text-white mb-8 transform -rotate-1 font-body">
             Schliesse dich tausenden von Brettspiel-Fans an und entdecke neue Abenteuer!
           </p>
-          <Button asChild className="bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 text-lg transform rotate-1 hover:rotate-0 transition-all font-handwritten">
+          <Button
+            asChild
+            className="bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 text-lg transform rotate-1 hover:rotate-0 transition-all font-handwritten"
+          >
             <Link href="/register">
               <Plus className="w-5 h-5 mr-2" />
               Jetzt loslegen
@@ -127,6 +128,8 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
+
+      <PWAInstallPrompt />
     </div>
   )
 }

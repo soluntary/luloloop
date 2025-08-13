@@ -36,7 +36,6 @@ interface MarketplaceOffer {
   description?: string
   active: boolean
   created_at?: string
-  owner?: string
   rating?: number
 }
 
@@ -82,7 +81,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       location: "München, Bayern",
       distance: "2.3 km",
       image: "/images/ludoloop-game-placeholder.png",
-      owner: "Stefan M.",
       rating: 4.8,
       active: true,
       created_at: "2024-01-15T10:00:00Z",
@@ -97,7 +95,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       location: "München, Bayern",
       distance: "1.8 km",
       image: "/images/ludoloop-game-placeholder.png",
-      owner: "Maria K.",
       rating: 4.6,
       active: true,
       created_at: "2024-01-14T15:30:00Z",
@@ -112,7 +109,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       location: "München, Bayern",
       distance: "3.1 km",
       image: "/images/ludoloop-game-placeholder.png",
-      owner: "Alex R.",
       rating: 4.9,
       active: true,
       created_at: "2024-01-13T09:15:00Z",
@@ -127,7 +123,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       location: "München, Bayern",
       distance: "0.9 km",
       image: "/images/ludoloop-game-placeholder.png",
-      owner: "Lisa H.",
       rating: 4.7,
       active: true,
       created_at: "2024-01-12T14:20:00Z",
@@ -142,7 +137,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       location: "München, Bayern",
       distance: "4.2 km",
       image: "/images/ludoloop-game-placeholder.png",
-      owner: "Tom B.",
       rating: 4.5,
       active: true,
       created_at: "2024-01-11T11:45:00Z",
@@ -157,7 +151,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       location: "München, Bayern",
       distance: "2.7 km",
       image: "/images/ludoloop-game-placeholder.png",
-      owner: "Nina S.",
       rating: 4.4,
       active: true,
       created_at: "2024-01-10T16:30:00Z",
@@ -477,19 +470,29 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   // Refresh all data
   const refreshData = async () => {
     setLoading(true)
-    const connected = await testDatabaseConnection()
-    if (connected) {
-      await Promise.all([loadGames(), loadMarketplaceOffers()])
-    } else {
-      // Load mock data when database is not connected
-      await loadMarketplaceOffers()
+    setError(null)
+
+    try {
+      const connected = await testDatabaseConnection()
+      if (connected && user) {
+        await Promise.all([loadGames(), loadMarketplaceOffers()])
+      } else {
+        // Load mock data when database is not connected or user not available
+        await loadMarketplaceOffers()
+      }
+    } catch (err) {
+      console.error("Error refreshing data:", err)
+      setError("Fehler beim Laden der Daten")
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   // Initialize data on mount and user change
   useEffect(() => {
-    refreshData()
+    if (user !== undefined) {
+      refreshData()
+    }
   }, [user])
 
   const value: GamesContextType = {
