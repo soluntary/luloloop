@@ -5,7 +5,20 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Home, LibraryBig, UserPlus, LogIn, Users, Store, MessageCircle, User, LogOut, Menu, X, Info } from "lucide-react"
+import {
+  Home,
+  LibraryBig,
+  UserPlus,
+  LogIn,
+  Users,
+  Store,
+  MessageCircle,
+  User,
+  LogOut,
+  Menu,
+  X,
+  Info,
+} from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 
 interface NavigationProps {
@@ -57,7 +70,7 @@ export function Navigation({ currentPage }: NavigationProps) {
   }
 
   return (
-    <nav className="bg-white shadow-lg border-b-4 border-teal-400 sticky top-0 z-50">
+    <div className="bg-white shadow-lg border-b-4 border-teal-400 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -228,8 +241,9 @@ export function Navigation({ currentPage }: NavigationProps) {
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <Link href="/login">
-                      <LogIn className="w-4 h-4" />
-                      Anmelden</Link>
+                        <LogIn className="w-4 h-4" />
+                        Anmelden
+                      </Link>
                     </Button>
                     <Button
                       asChild
@@ -237,8 +251,9 @@ export function Navigation({ currentPage }: NavigationProps) {
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <Link href="/register">
-                      <UserPlus className="w-4 h-4" />
-                      Registrieren</Link>
+                        <UserPlus className="w-4 h-4" />
+                        Registrieren
+                      </Link>
                     </Button>
                   </div>
                 )}
@@ -247,6 +262,6 @@ export function Navigation({ currentPage }: NavigationProps) {
           </div>
         )}
       </div>
-    </nav>
+    </div>
   )
 }
