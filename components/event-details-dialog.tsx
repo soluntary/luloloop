@@ -6,7 +6,6 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Separator } from "@/components/ui/separator"
 import { Calendar, MapPin, Users, Dices, CheckCircle, UserCheck, Edit, Trash2, Settings } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { joinCommunityEvent, joinEventTimeSlot, deleteCommunityEvent, leaveEvent } from "@/app/actions/community-events"
@@ -436,7 +435,7 @@ export default function EventDetailsDialog({ children, event }: EventDetailsDial
           )}
         </div>
 
-        <Separator />
+        <div className="h-px bg-border w-full" />
 
         <div className="flex justify-between items-center">
           <div className="flex space-x-2">

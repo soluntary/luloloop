@@ -5,7 +5,6 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Separator } from "@/components/ui/separator"
 import { CheckCircle, XCircle, UserMinus, Clock, Users } from "lucide-react"
 import { manageEventParticipant } from "@/app/actions/community-events"
 import { toast } from "@/components/ui/use-toast"
@@ -237,7 +236,7 @@ export default function ParticipantManagementDialog({
           )}
         </div>
 
-        <Separator />
+        <div className="h-px bg-border w-full" />
 
         <div className="flex justify-end">
           <Button variant="outline" onClick={() => setOpen(false)} size="sm">
