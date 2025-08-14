@@ -197,6 +197,7 @@ export async function getCommunityEvents(userId?: string) {
               id,
               user_id,
               status,
+              message,
               user:users(name)
             `)
             .eq("event_id", event.id)
@@ -242,7 +243,7 @@ export async function getCommunityEvents(userId?: string) {
   }
 }
 
-export async function joinCommunityEvent(eventId: string) {
+export async function joinCommunityEvent(eventId: string, message?: string) {
   try {
     const supabase = createServerClient()
 
@@ -300,12 +301,12 @@ export async function joinCommunityEvent(eventId: string) {
     // Determine initial status based on approval mode
     const initialStatus = event.approval_mode === "automatic" ? "joined" : "pending"
 
-    // Add user as participant
     const { error: joinError } = await supabase.from("community_event_participants").insert([
       {
         event_id: eventId,
         user_id: user.id,
         status: initialStatus,
+        message: message || null,
       },
     ])
 

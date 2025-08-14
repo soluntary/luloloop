@@ -18,10 +18,10 @@ export default function HomePage() {
       <section className="container mx-auto px-4 py-16 text-center">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-5xl font-bold text-gray-800 mb-6 transform -rotate-1 font-handwritten">
-            Deine Spiele. Deine Community. Dein Abenteuer.
+            Bring dein Spiel ins Spiel!
           </h2>
           <p className="text-xl text-gray-600 mb-8 transform rotate-1 font-body">
-            Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde Gleichgesinnte und tritt spannende Spielgruppen bei!
+            Tausche, verleihe oder verkaufe deine Spiele. Finde Gleichgesinnte, tritt spannenden Spielgruppen bei oder gründe selbst eine.
           </p>          
         </div>
       </section>

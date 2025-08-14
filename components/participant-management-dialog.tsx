@@ -5,6 +5,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator"
 import { CheckCircle, XCircle, UserMinus, Clock, Users } from "lucide-react"
 import { manageEventParticipant } from "@/app/actions/community-events"
 import { toast } from "@/components/ui/use-toast"
@@ -14,9 +15,11 @@ interface Participant {
   user_id: string
   status: "pending" | "joined" | "declined"
   user: {
+    username?: string
     name: string
   }
   selected_time_slot?: number
+  joined_at?: string
 }
 
 interface ParticipantManagementDialogProps {
@@ -115,12 +118,17 @@ export default function ParticipantManagementDialog({
                     className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200"
                   >
                     <div className="flex-1">
-                      <div className="font-medium text-gray-800 text-sm">{participant.user.name}</div>
+                      <div className="font-medium text-gray-800 text-sm">
+                        {participant.user?.username || participant.user?.name || "Unbekannt"}
+                      </div>
                       {getTimeSlotText(participant.selected_time_slot) && (
                         <div className="text-xs text-gray-600 mt-1">
                           Gewählter Termin: {getTimeSlotText(participant.selected_time_slot)}
                         </div>
                       )}
+                      <p className="text-sm text-gray-500 font-body">
+                        Angefragt am {new Date(participant.joined_at).toLocaleDateString("de-DE")}
+                      </p>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Button
@@ -163,12 +171,17 @@ export default function ParticipantManagementDialog({
                     className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200"
                   >
                     <div className="flex-1">
-                      <div className="font-medium text-gray-800 text-sm">{participant.user.name}</div>
+                      <div className="font-medium text-gray-800 text-sm">
+                        {participant.user?.username || participant.user?.name || "Unbekannt"}
+                      </div>
                       {getTimeSlotText(participant.selected_time_slot) && (
                         <div className="text-xs text-gray-600 mt-1">
                           Gewählter Termin: {getTimeSlotText(participant.selected_time_slot)}
                         </div>
                       )}
+                      <p className="text-sm text-gray-500 font-body">
+                        Beigetreten am {new Date(participant.joined_at).toLocaleDateString("de-DE")}
+                      </p>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">Dabei</Badge>
@@ -202,7 +215,9 @@ export default function ParticipantManagementDialog({
                     className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200"
                   >
                     <div className="flex-1">
-                      <div className="font-medium text-gray-800 text-sm">{participant.user.name}</div>
+                      <div className="font-medium text-gray-800 text-sm">
+                        {participant.user?.username || participant.user?.name || "Unbekannt"}
+                      </div>
                       {getTimeSlotText(participant.selected_time_slot) && (
                         <div className="text-xs text-gray-600 mt-1">
                           Gewählter Termin: {getTimeSlotText(participant.selected_time_slot)}
@@ -236,7 +251,7 @@ export default function ParticipantManagementDialog({
           )}
         </div>
 
-        <div className="h-px bg-border w-full" />
+        <Separator />
 
         <div className="flex justify-end">
           <Button variant="outline" onClick={() => setOpen(false)} size="sm">

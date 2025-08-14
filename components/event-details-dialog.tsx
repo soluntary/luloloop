@@ -6,11 +6,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Calendar, MapPin, Users, Dices, CheckCircle, UserCheck, Edit, Trash2, Settings } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import { Calendar, MapPin, Users, Dices, CheckCircle, UserCheck, Edit, Trash2, Settings, User } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { joinCommunityEvent, joinEventTimeSlot, deleteCommunityEvent, leaveEvent } from "@/app/actions/community-events"
 import { toast } from "@/components/ui/use-toast"
-// Added import for ParticipantManagementDialog
 import ParticipantManagementDialog from "@/components/participant-management-dialog"
 
 interface CommunityEvent {
@@ -38,6 +38,7 @@ interface CommunityEvent {
   created_at: string
   updated_at: string
   creator?: {
+    username: string
     name: string
     email: string
   }
@@ -46,6 +47,7 @@ interface CommunityEvent {
     user_id: string
     status: string
     user: {
+      username: string
       name: string
     }
   }>
@@ -60,10 +62,11 @@ export default function EventDetailsDialog({ children, event }: EventDetailsDial
   const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showRequestDialog, setShowRequestDialog] = useState(false)
+  const [requestMessage, setRequestMessage] = useState("")
 
   const formatTime = (timeString: string | null): string => {
     if (!timeString) return ""
-    // Remove seconds if present (e.g., "14:30:00" -> "14:30")
     return timeString.split(":").slice(0, 2).join(":")
   }
 
@@ -87,7 +90,10 @@ export default function EventDetailsDialog({ children, event }: EventDetailsDial
         return dateStr
       }
     }
-    return "Termin wird noch bekannt gegeben"
+    if (event.use_time_slots && event.time_slots && event.time_slots.length > 0) {
+      return `${event.time_slots.length} Termine`
+    }
+    return "Kein Termin festgelegt"
   }
 
   const isEventCreator = () => {
@@ -248,6 +254,57 @@ export default function EventDetailsDialog({ children, event }: EventDetailsDial
     }
   }
 
+  const handleRequestParticipation = async () => {
+    if (!user) {
+      toast({
+        title: "Anmeldung erforderlich",
+        description: "Sie müssen angemeldet sein, um an Events teilzunehmen.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const result = await joinCommunityEvent(event.id, requestMessage)
+
+      if (result.success) {
+        toast({
+          title: "Teilnahmeanfrage gesendet!",
+          description: "Der Organisator wird Ihre Anfrage prüfen.",
+        })
+        setShowRequestDialog(false)
+        setRequestMessage("")
+        setOpen(false)
+      } else {
+        toast({
+          title: "Fehler beim Senden der Anfrage",
+          description: result.error,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error requesting participation:", error)
+      toast({
+        title: "Fehler",
+        description: "Ein unerwarteter Fehler ist aufgetreten.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getParticipantCount = (event: CommunityEvent) => {
+    const confirmedParticipants = event.participants?.filter((p) => p.status === "joined").length || 0
+    return confirmedParticipants + 1 // +1 for organizer
+  }
+
+  const isEventSoldOut = (event: CommunityEvent) => {
+    if (!event.max_participants || event.max_participants <= 0) return false
+    return getParticipantCount(event) >= event.max_participants
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -284,10 +341,47 @@ export default function EventDetailsDialog({ children, event }: EventDetailsDial
               </div>
             )}
           </div>
-          <div className="flex items-center justify-between pt-2">
+          <div className="space-y-2 pt-2">
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <Calendar className="w-4 h-4" />
               <span>{formatEventDate(event)}</span>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <MapPin className="w-4 h-4" />
+              <span>{event.location}</span>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <User className="w-4 h-4" />
+              <span className="font-medium">
+                Organisiert von {event.creator?.username || event.creator?.name || "Unbekannt"}
+              </span>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <Users className="w-4 h-4" />
+              {isEventSoldOut(event) ? (
+                <span className="text-red-600 font-medium">Ausgebucht</span>
+              ) : (
+                <span>
+                  {getParticipantCount(event)}
+                  {event.max_participants && event.max_participants > 0 ? `/${event.max_participants}` : "/unbegrenzt"}{" "}
+                  Teilnehmer
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Badge variant="outline" className="border-blue-200 text-blue-600 text-xs">
+                {event.frequency === "einmalig"
+                  ? "Einmalig"
+                  : event.frequency === "regelmäßig"
+                    ? "Regelmäßig"
+                    : "Wiederholend"}
+              </Badge>
+              {event.approval_mode === "manual" && (
+                <Badge variant="outline" className="border-purple-200 text-purple-600 text-xs">
+                  <UserCheck className="w-3 h-3 mr-1" />
+                  Teilnahme erst nach Bestätigung
+                </Badge>
+              )}
             </div>
           </div>
         </DialogHeader>
@@ -304,40 +398,6 @@ export default function EventDetailsDialog({ children, event }: EventDetailsDial
               <Dices className="w-12 h-12 text-white" />
             </div>
           )}
-
-          <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center space-x-2 text-gray-600">
-                <MapPin className="w-4 h-4" />
-                <span>{event.location}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Users className="w-4 h-4" />
-                <span>
-                  {event.participants?.length || 0}
-                  {event.max_participants ? `/${event.max_participants}` : ""} Teilnehmer
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Badge variant="outline" className="border-blue-200 text-blue-600 text-xs">
-                {event.frequency === "einmalig" ? "Einmalig" : "Regelmäßig"}
-              </Badge>
-              <Badge variant="outline" className="border-purple-200 text-purple-600 text-xs">
-                {event.approval_mode === "automatic" ? (
-                  <>
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Sofortbeitritt
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="w-3 h-3 mr-1" />
-                    Beitritt erst nach Bestätigung
-                  </>
-                )}
-              </Badge>
-            </div>
-          </div>
 
           {((event.selected_games && event.selected_games.length > 0) ||
             (event.custom_games && event.custom_games.length > 0)) && (
@@ -427,7 +487,7 @@ export default function EventDetailsDialog({ children, event }: EventDetailsDial
               <div className="flex flex-wrap gap-2">
                 {event.participants.map((participant) => (
                   <Badge key={participant.id} variant="outline" className="text-xs">
-                    {participant.user.name}
+                    {participant.user.username || participant.user.name}
                   </Badge>
                 ))}
               </div>
@@ -435,12 +495,11 @@ export default function EventDetailsDialog({ children, event }: EventDetailsDial
           )}
         </div>
 
-        <div className="h-px bg-border w-full" />
+        <Separator />
 
         <div className="flex justify-between items-center">
           <div className="flex space-x-2">
             {isEventCreator() && event.participants && event.participants.length > 0 && (
-              // Replaced placeholder button with actual ParticipantManagementDialog
               <ParticipantManagementDialog
                 eventId={event.id}
                 participants={event.participants}
@@ -474,15 +533,28 @@ export default function EventDetailsDialog({ children, event }: EventDetailsDial
             <Button variant="outline" onClick={() => setOpen(false)} size="sm">
               Schließen
             </Button>
-            {user && !isEventCreator() && !isEventParticipant() && !event.use_time_slots && (
-              <Button
-                onClick={handleJoinEvent}
-                disabled={loading}
-                size="sm"
-                className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white"
-              >
-                {loading ? "Trete bei..." : "Event beitreten"}
-              </Button>
+            {user && !isEventCreator() && !isEventParticipant() && !event.use_time_slots && !isEventSoldOut(event) && (
+              <>
+                {event.approval_mode === "automatic" ? (
+                  <Button
+                    onClick={handleJoinEvent}
+                    disabled={loading}
+                    size="sm"
+                    className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white"
+                  >
+                    {loading ? "Trete bei..." : "Teilnehmen"}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => setShowRequestDialog(true)}
+                    disabled={loading}
+                    size="sm"
+                    className="bg-gradient-to-r from-orange-400 to-red-400 hover:from-orange-500 hover:to-red-500 text-white"
+                  >
+                    Teilnahme anfragen
+                  </Button>
+                )}
+              </>
             )}
             {isEventParticipant() && (
               <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
@@ -493,6 +565,51 @@ export default function EventDetailsDialog({ children, event }: EventDetailsDial
           </div>
         </div>
       </DialogContent>
+
+      <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Teilnahme anfragen</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-800">Verbindliche Teilnahme erst nach Bestätigung des Organisators</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Nachricht an den Organisator (optional)
+              </label>
+              <textarea
+                value={requestMessage}
+                onChange={(e) => setRequestMessage(e.target.value)}
+                placeholder="Warum möchten Sie an diesem Event teilnehmen?"
+                className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                rows={4}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRequestDialog(false)
+                  setRequestMessage("")
+                }}
+                size="sm"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                onClick={handleRequestParticipation}
+                disabled={loading}
+                size="sm"
+                className="bg-gradient-to-r from-orange-400 to-red-400 hover:from-orange-500 hover:to-red-500 text-white"
+              >
+                {loading ? "Sende..." : "Anfrage senden"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

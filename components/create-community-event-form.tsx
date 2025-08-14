@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-import { Upload } from "lucide-react" // Added Upload import
 import { useEffect } from "react" // Added useEffect import
 import { Info } from "lucide-react" // Added Info import
 
@@ -14,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, MapPin, Users, Settings, ImageIcon, Dice6, X, Plus, Trash2 } from "lucide-react"
+import { Calendar, MapPin, Users, Settings, Dice6, Plus, Trash2 } from "lucide-react"
 import { createCommunityEvent, type CommunityEventData } from "@/app/actions/community-events"
 import { useAuth } from "@/contexts/auth-context" // Added useAuth import
 
@@ -61,7 +60,7 @@ export default function CreateCommunityEventForm({
   // Form state
   const [formData, setFormData] = useState({
     title: "",
-    frequency: "einmalig" as "einmalig" | "regelmäßig",
+    frequency: "einmalig" as "einmalig" | "regelmässig" | "wiederholend",
     fixedDate: "",
     fixedTimeFrom: "",
     fixedTimeTo: "",
@@ -74,6 +73,8 @@ export default function CreateCommunityEventForm({
     selectedImage: "",
     selectedImageFile: null as File | null,
     otherGames: "", // Field for other games
+    regularFrequency: "wöchentlich" as "wöchentlich" | "zweiwöchentlich" | "monatlich" | "andere",
+    customFrequency: "",
   })
 
   const [selectedGames, setSelectedGames] = useState<Game[]>([])
@@ -90,7 +91,7 @@ export default function CreateCommunityEventForm({
     if (formData.frequency === "einmalig") {
       setUseTimeSlots(false)
       setTimeSlots([])
-    } else if (formData.frequency === "regelmäßig") {
+    } else if (formData.frequency === "regelmäßig" || formData.frequency === "wiederholend") {
       setUseTimeSlots(true)
       if (timeSlots.length === 0) {
         handleAddTimeSlot()
@@ -262,6 +263,13 @@ export default function CreateCommunityEventForm({
         return
       }
 
+      if (formData.frequency === "regelmäßig") {
+        if (formData.regularFrequency === "andere" && !formData.customFrequency.trim()) {
+          setSubmitError("Bitte gib eine benutzerdefinierte Häufigkeit an.")
+          return
+        }
+      }
+
       if (useTimeSlots && timeSlots.length === 0) {
         setSubmitError("Bitte füge mindestens einen Termin hinzu.")
         return
@@ -308,6 +316,8 @@ export default function CreateCommunityEventForm({
         selectedFriends: selectedFriends.map((f) => f.id), // Convert to array of IDs
         timeSlots,
         useTimeSlots,
+        regularFrequency: formData.regularFrequency,
+        customFrequency: formData.customFrequency,
       }
 
       const result = await createCommunityEvent(eventData, user.id)
@@ -342,7 +352,7 @@ export default function CreateCommunityEventForm({
       case 1:
         return "Grundinformationen"
       case 2:
-        return "Termin & Ort"
+        return "Ort & Termin"
       case 3:
         return "Spiele & Teilnehmer"
       case 4:
@@ -405,9 +415,42 @@ export default function CreateCommunityEventForm({
             </Label>
             <Input
               id="title"
-              placeholder="z.B. Wöchentlicher Spieleabend, Catan-Turnier ..."
+              placeholder="z.B. Gemütlicher Spieleabend, Strategiespiele-Turnier..."
               value={formData.title}
               onChange={(e) => handleInputChange("title", e.target.value)}
+              className="mt-1 border-2 border-orange-200 focus:border-orange-400 font-body"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="additionalInfo" className="font-body text-gray-700">
+              Beschreibung
+            </Label>
+            <Textarea
+              id="additionalInfo"
+              placeholder="Beschreibe dein Event: was möchtest du veranstalten?"
+              value={formData.additionalInfo}
+              onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
+              className="mt-1 min-h-[100px] border-2 border-orange-200 focus:border-orange-400 font-body resize-none"
+              rows={4}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Date & Location */}
+      {currentStep === 2 && (
+        <div className="space-y-6">
+          {/* Ort field moved to first position */}
+          <div>
+            <Label htmlFor="location" className="font-body text-gray-700">
+              Ort *
+            </Label>
+            <Input
+              id="location"
+              placeholder="Location oder Adresse"
+              value={formData.location}
+              onChange={(e) => handleInputChange("location", e.target.value)}
               className="mt-1 border-2 border-orange-200 focus:border-orange-400 font-body"
             />
           </div>
@@ -421,143 +464,49 @@ export default function CreateCommunityEventForm({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="einmalig">Einmaliges Event</SelectItem>
-                <SelectItem value="regelmäßig">Regelmässiges Event</SelectItem>
+                <SelectItem value="einmalig">Einmalig</SelectItem>
+                <SelectItem value="regelmäßig">Regelmässig</SelectItem>
+                <SelectItem value="wiederholend">Wiederholend</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div>
-            <Label htmlFor="additionalInfo" className="font-body text-gray-700">
-              Beschreibung
-            </Label>
-            <Textarea
-              id="additionalInfo"
-              placeholder="Beschreibe dein Event: Was erwartet die Teilnehmer? Welche Atmosphäre soll herrschen?"
-              value={formData.additionalInfo}
-              onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
-              className="mt-1 min-h-[100px] border-2 border-orange-200 focus:border-orange-400 font-body"
-            />
-          </div>
+          {/* Moved repetition options directly after frequency selection */}
+          {formData.frequency === "regelmäßig" && (
+            <div>
+              <Label htmlFor="regularFrequency" className="font-body text-gray-700">
+                Turnus *
+              </Label>
+              <Select
+                value={formData.regularFrequency}
+                onValueChange={(value) => handleInputChange("regularFrequency", value)}
+              >
+                <SelectTrigger className="mt-1 border-2 border-orange-200 focus:border-orange-400">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="wöchentlich">Wöchentlich</SelectItem>
+                  <SelectItem value="zweiwöchentlich">Zweiwöchentlich</SelectItem>
+                  <SelectItem value="monatlich">Monatlich</SelectItem>
+                  <SelectItem value="andere">Andere</SelectItem>
+                </SelectContent>
+              </Select>
 
-          {/* Image Upload Section with Validation */}
-          <div>
-            <Label className="font-body text-gray-700">Event-Bild (Optional)</Label>
-            <p className="text-sm text-gray-500 font-body mb-3">
-              Füge ein Bild hinzu, um dein Event attraktiver zu machen
-            </p>
-
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-
-            {formData.selectedImage ? (
-              <div className="space-y-3">
-                <div className="relative">
-                  <img
-                    src={formData.selectedImage || "/placeholder.svg"}
-                    alt="Event Bild"
-                    className="w-full max-h-48 object-cover rounded-lg border-2 border-orange-200"
+              {formData.regularFrequency === "andere" && (
+                <div className="mt-3">
+                  
+                  <Input
+                    id="customFrequency"
+                    type="text"
+                    placeholder="z.B. alle 3 Wochen, jeden ersten Montag im Monat"
+                    value={formData.customFrequency}
+                    onChange={(e) => handleInputChange("customFrequency", e.target.value)}
+                    className="mt-1 border-2 border-orange-200 focus:border-orange-400 font-body"
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRemoveImage}
-                    className="absolute top-2 right-2 bg-white/90 hover:bg-white border-red-200 text-red-600"
-                    disabled={isUploadingImage}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
                 </div>
-
-                {/* Show file info if it's a real file */}
-                {formData.selectedImageFile && (
-                  <div className="flex items-center space-x-2 text-sm text-gray-600 font-body">
-                    <ImageIcon className="w-4 h-4" />
-                    <span>{formData.selectedImageFile.name}</span>
-                    <span>({formatFileSize(formData.selectedImageFile.size)})</span>
-                  </div>
-                )}
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleImageUpload}
-                  disabled={isUploadingImage}
-                  className="w-full border-2 border-orange-200 text-orange-600 hover:bg-orange-50 font-handwritten bg-transparent"
-                >
-                  {isUploadingImage ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 mr-2"></div>
-                      Wird verarbeitet...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Anderes Bild auswählen
-                    </>
-                  )}
-                </Button>
-              </div>
-            ) : (
-              <div className="border-2 border-dashed border-orange-200 rounded-lg p-8 text-center hover:border-orange-300 transition-colors">
-                <ImageIcon className="w-12 h-12 text-orange-300 mx-auto mb-3" />
-                <p className="text-gray-600 font-body mb-3">Noch kein Bild ausgewählt</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleImageUpload}
-                  disabled={isUploadingImage}
-                  className="w-full border-2 border-orange-200 text-orange-600 hover:bg-orange-50 font-handwritten bg-transparent"
-                >
-                  {isUploadingImage ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 mr-2"></div>
-                      Wird verarbeitet...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Bild hochladen
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-gray-400 font-body mt-2">JPG, PNG, WebP bis zu 5MB</p>
-              </div>
-            )}
-
-            {/* Image Error Display */}
-            {imageError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center space-x-2">
-                <Trash2 className="w-4 h-4 text-red-500 flex-shrink-0" />
-                <p className="text-red-700 text-sm font-body">{imageError}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Step 2: Date & Location */}
-      {currentStep === 2 && (
-        <div className="space-y-6">
-          <div>
-            <Label htmlFor="location" className="font-body text-gray-700">
-              Ort *
-            </Label>
-            <Input
-              id="location"
-              placeholder="z.B. Meine Wohnung, Café Central, Online via Discord..."
-              value={formData.location}
-              onChange={(e) => handleInputChange("location", e.target.value)}
-              className="mt-1 border-2 border-orange-200 focus:border-orange-400 font-body"
-            />
-          </div>
+              )}
+            </div>
+          )}
 
           {formData.frequency === "einmalig" ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -601,13 +550,11 @@ export default function CreateCommunityEventForm({
           ) : (
             <div>
               {/* Info box for regular events */}
-              {formData.frequency === "regelmäßig" && (
+              {(formData.frequency === "regelmäßig" || formData.frequency === "wiederholend") && (
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-start space-x-2">
                     <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-blue-700 font-body">
-                      Da regelmässiges Event können mehrere Termine angegeben werden
-                    </p>
+                    <p className="text-sm text-blue-700 font-body">Mehrere Terminangabe möglich</p>
                   </div>
                 </div>
               )}
@@ -754,7 +701,8 @@ export default function CreateCommunityEventForm({
                 placeholder="z.B. Monopoly, Scrabble, Uno, Poker..."
                 value={formData.otherGames}
                 onChange={(e) => handleInputChange("otherGames", e.target.value)}
-                className="mt-1 min-h-[80px] border-2 border-orange-200 focus:border-orange-400 font-body"
+                className="mt-1 min-h-[80px] border-2 border-orange-200 focus:border-orange-400 font-body resize-none"
+                rows={4}
               />
               {formData.otherGames && (
                 <div className="mt-2">

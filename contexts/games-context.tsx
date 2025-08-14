@@ -253,6 +253,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     try {
       const gameWithFallback = {
         ...gameData,
+        condition: gameData.condition || "Gut",
         image: gameData.image || FALLBACK_IMAGE,
         user_id: user.id,
         // Only include type and style if they exist in gameData

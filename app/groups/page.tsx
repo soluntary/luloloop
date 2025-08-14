@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
-import { Users, Dices, LogIn, Database, Search, MapPin, Plus, Calendar } from "lucide-react"
+import { Users, Dices, LogIn, Database, Search, MapPin, Plus, Calendar, User } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
 import { useFriends } from "@/contexts/friends-context"
@@ -25,7 +25,7 @@ interface CommunityEvent {
   creator_id: string
   title: string
   description: string | null
-  frequency: "einmalig" | "regelmässig"
+  frequency: "einmalig" | "regelmässig" | "wiederholend"
   fixed_date: string | null
   fixed_time_from: string | null
   fixed_time_to: string | null
@@ -45,6 +45,7 @@ interface CommunityEvent {
   created_at: string
   updated_at: string
   creator?: {
+    username?: string
     name: string
     email: string
   }
@@ -53,12 +54,13 @@ interface CommunityEvent {
     user_id: string
     status: string
     user: {
+      username?: string
       name: string
     }
   }>
 }
 
-interface User {
+interface UserType {
   id: string
   name: string
   email: string
@@ -79,8 +81,8 @@ interface FriendRequest {
   status: "pending" | "accepted" | "declined"
   created_at: string
   updated_at: string
-  sender?: User
-  receiver?: User
+  sender?: UserType
+  receiver?: UserType
 }
 
 interface UserGame {
@@ -128,15 +130,15 @@ export function CommunityContent() {
 
   const [communities, setCommunities] = useState<Community[]>([])
   const [communityEvents, setCommunityEvents] = useState<CommunityEvent[]>([])
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<UserType[]>([])
   const [allFriendRequests, setAllFriendRequests] = useState<FriendRequest[]>([])
-  const [allFriends, setAllFriends] = useState<User[]>([])
+  const [allFriends, setAllFriends] = useState<UserType[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("communities")
   const [activeFilter, setActiveFilter] = useState<"all" | "casual" | "competitive" | "family">("all")
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [selectedUser, setSelectedUser] = useState<UserType | null>(null)
   const [userGames, setUserGames] = useState<UserGame[]>([])
   const [showLibraryDialog, setShowLibraryDialog] = useState(false)
   const [libraryLoading, setLibraryLoading] = useState(false)
@@ -147,7 +149,7 @@ export function CommunityContent() {
   const [communitySearchTerm, setCommunitySearchTerm] = useState("")
   const [eventSearchTerm, setEventSearchTerm] = useState("")
   const [userSearchTerm, setUserSearchTerm] = useState("")
-  const [frequencyFilter, setFrequencyFilter] = useState<"all" | "einmalig" | "regelmässig">("all")
+  const [frequencyFilter, setFrequencyFilter] = useState<"all" | "einmalig" | "regelmässig" | "wiederholend">("all")
   const [timeFilter, setTimeFilter] = useState<"all" | "heute" | "morgen" | "diese-woche" | "nächste-woche">("all")
 
   // Contact creator dialog
@@ -543,7 +545,7 @@ export function CommunityContent() {
     }
   }
 
-  const canViewField = (targetUser: User, field: string): boolean => {
+  const canViewField = (targetUser: UserType, field: string): boolean => {
     if (!user || targetUser.id === user.id) return true
 
     const isFriend = allFriends.some((friend) => friend.id === targetUser.id)
@@ -561,18 +563,18 @@ export function CommunityContent() {
     }
   }
 
-  const canViewLibrary = (targetUser: User): boolean => {
+  const canViewLibrary = (targetUser: UserType): boolean => {
     return canViewField(targetUser, "game_library")
   }
 
-  const handleViewProfile = (selectedUser: User) => {
+  const handleViewProfile = (selectedUser: UserType) => {
     setSelectedUser(selectedUser)
   }
 
-  const handleViewLibrary = async (targetUser: User) => {
+  const handleViewLibrary = async (targetUser: UserType) => {
     if (!canViewLibrary(targetUser)) {
       const confirmed = window.confirm(
-        `${targetUser.name} hat seine Spielebibliothek als privat eingestellt. Möchten Sie zur vorherigen Seite zurückkehren?`,
+        `${targetUser.username || targetUser.name} hat seine Spielebibliothek als privat eingestellt. Möchten Sie zur vorherigen Seite zurückkehren?`,
       )
       if (confirmed) {
         window.history.back()
@@ -681,6 +683,13 @@ export function CommunityContent() {
   const formatEventDate = (event: CommunityEvent) => {
     if (event.frequency === "regelmässig" && event.use_time_slots && event.time_slots && event.time_slots.length > 0) {
       return `${event.time_slots.length} Termine`
+    } else if (
+      event.frequency === "wiederholend" &&
+      event.use_time_slots &&
+      event.time_slots &&
+      event.time_slots.length > 0
+    ) {
+      return `${event.time_slots.length} Termine`
     } else if (event.frequency === "einmalig" && event.fixed_date) {
       const date = new Date(event.fixed_date)
       const dateStr = date.toLocaleDateString("de-DE", {
@@ -710,13 +719,23 @@ export function CommunityContent() {
         return dateStr
       }
     }
-    return "Termin wird noch bekannt gegeben"
+    if (event.use_time_slots && event.time_slots && event.time_slots.length > 0) {
+      return `${event.time_slots.length} Termine`
+    }
+    return "Kein Termin festgelegt"
   }
 
   const getParticipantCount = (event: CommunityEvent) => {
     const participantCount = event.participants?.filter((p) => p.status === "joined").length || 0
     // Add 1 for the organizer
     return participantCount + 1
+  }
+
+  const isEventSoldOut = (event: CommunityEvent) => {
+    if (event.max_participants === null || event.max_participants === -1) {
+      return false // Unlimited participants
+    }
+    return getParticipantCount(event) >= event.max_participants
   }
 
   const filteredCommunities = (communities || []).filter((community) => {
@@ -773,6 +792,7 @@ export function CommunityContent() {
 
   const filteredUsers = (users || []).filter(
     (user) =>
+      (user.username && user.username.toLowerCase().includes(userSearchTerm.toLowerCase())) ||
       user.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(userSearchTerm.toLowerCase()),
   )
@@ -1142,6 +1162,18 @@ export function CommunityContent() {
                     >
                       Regelmässig
                     </Button>
+                    <Button
+                      variant={frequencyFilter === "wiederholend" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setFrequencyFilter("wiederholend")}
+                      className={
+                        frequencyFilter === "wiederholend"
+                          ? "bg-purple-500 hover:bg-purple-600 text-white"
+                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                      }
+                    >
+                      Wiederholend
+                    </Button>
                   </div>
 
                   <div className="flex gap-2">
@@ -1234,16 +1266,50 @@ export function CommunityContent() {
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
-                            <h3 className="font-handwritten text-xl text-gray-800 mb-2 group-hover:text-purple-600 transition-colors">
+                            <h3 className="font-handwritten text-xl text-gray-800 mb-3 group-hover:text-purple-600 transition-colors">
                               {event.title}
                             </h3>
-                            <div className="flex items-center gap-2 mb-2">
+
+                            <div className="flex flex-col gap-2 mb-3">
+                              <div className="flex items-center text-sm text-gray-600">
+                                <Calendar className="w-4 h-4 mr-2" />
+                                <span>{formatEventDate(event)}</span>
+                              </div>
+
                               {event.location && (
-                                <div className="flex items-center text-sm text-gray-500">
-                                  <MapPin className="w-3 h-3 mr-1" />
-                                  {event.location}
+                                <div className="flex items-center text-sm text-gray-600">
+                                  <MapPin className="w-4 h-4 mr-2" />
+                                  <span>{event.location}</span>
                                 </div>
                               )}
+
+                              <div className="flex items-center text-sm text-gray-500">
+                                <User className="w-4 h-4 mr-2" />
+                                <span>
+                                  Organisiert von {event.creator?.username || event.creator?.name || "Unbekannt"}
+                                </span>
+                              </div>
+
+                              <div>
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    event.frequency === "einmalig"
+                                      ? "border-blue-200 text-blue-700 bg-blue-50"
+                                      : event.frequency === "regelmässig"
+                                        ? "border-green-200 text-green-700 bg-green-50"
+                                        : "border-orange-200 text-orange-700 bg-orange-50"
+                                  }
+                                >
+                                  {event.frequency === "einmalig" && "Einmalig"}
+                                  {event.frequency === "regelmässig" && "Regelmässig"}
+                                  {event.frequency === "wiederholend" && "Wiederholend"}
+                                  {event.frequency !== "einmalig" &&
+                                    event.frequency !== "regelmässig" &&
+                                    event.frequency !== "wiederholend" &&
+                                    (event.frequency || "Unbekannt")}
+                                </Badge>
+                              </div>
                             </div>
                           </div>
                           {event.image && (
@@ -1272,34 +1338,21 @@ export function CommunityContent() {
                           </div>
                         )}
 
-                        <div className="mb-4">
-                          <Badge
-                            variant="outline"
-                            className={`text-xs ${
-                              event.frequency === "einmalig"
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : "bg-green-50 text-green-700 border-green-200"
-                            }`}
-                          >
-                            {event.frequency === "einmalig" ? "Einmalig" : "Regelmässig"}
-                          </Badge>
-                        </div>
-
                         <div className="flex items-center justify-between">
-                          <div className="flex flex-col gap-2 text-sm text-gray-500">
-                            <div className="flex items-center">
-                              <Users className="w-4 h-4 mr-1" />
-                              <span>
-                                {getParticipantCount(event)}/
-                                {event.max_participants === null || event.max_participants === -1
-                                  ? "unbegrenzt"
-                                  : event.max_participants}
-                              </span>
-                            </div>
-                            <div className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
-                              <span>{formatEventDate(event)}</span>
-                            </div>
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Users className="w-4 h-4 mr-1" />
+                            <span>
+                              {isEventSoldOut(event) ? (
+                                <span className="text-red-600 font-medium">Ausgebucht</span>
+                              ) : (
+                                <>
+                                  {getParticipantCount(event)}/
+                                  {event.max_participants === null || event.max_participants === -1
+                                    ? "unbegrenzt"
+                                    : event.max_participants}
+                                </>
+                              )}
+                            </span>
                           </div>
                           <EventDetailsDialog event={event}>
                             <Button

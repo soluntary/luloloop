@@ -25,23 +25,20 @@ export default function ProfilePage() {
   const [message, setMessage] = useState("")
   const [profileData, setProfileData] = useState({
     name: user?.name || "",
+    username: user?.username || "",
+    anzeigename: user?.anzeigename || "",
     email: user?.email || "",
+    birthDate: user?.birthDate || "",
+    phone: user?.phone || "",
+    address: user?.address || "",
+    location: user?.location || "",
     bio: user?.bio || "",
+    favoriteGames: user?.favoriteGames || "",
+    preferredGameTypes: user?.preferredGameTypes || "",
     website: user?.website || "",
     twitter: user?.twitter || "",
     instagram: user?.instagram || "",
-    facebook: "",
     avatar: user?.avatar || "",
-    // Neue Felder
-    location: "",
-    phone: "",
-    birthDate: "",
-    favoriteGames: "",
-    gameExperience: "beginner",
-    languages: "",
-    availability: "",
-    playingStyle: "casual",
-    preferredGameTypes: "",
   })
 
   const [settings, setSettings] = useState({
@@ -56,7 +53,6 @@ export default function ProfilePage() {
       emailVisible: user?.settings?.privacy?.emailVisible ?? false,
       onlineStatus: user?.settings?.privacy?.onlineStatus ?? true,
       allowMessages: user?.settings?.privacy?.allowMessages ?? true,
-      // Neue Privacy-Einstellungen
       phoneVisible: user?.settings?.privacy?.phoneVisible ?? false,
       locationVisible: user?.settings?.privacy?.locationVisible ?? true,
       birthDateVisible: user?.settings?.privacy?.birthDateVisible ?? false,
@@ -99,13 +95,20 @@ export default function ProfilePage() {
     try {
       await updateProfile({
         name: profileData.name,
+        username: profileData.username,
+        anzeigename: profileData.anzeigename,
         email: profileData.email,
-        avatar: profileData.avatar,
+        birthDate: profileData.birthDate,
+        phone: profileData.phone,
+        address: profileData.address,
+        location: profileData.location,
         bio: profileData.bio,
+        favoriteGames: profileData.favoriteGames,
+        preferredGameTypes: profileData.preferredGameTypes,
+        avatar: profileData.avatar,
         website: profileData.website,
         twitter: profileData.twitter,
         instagram: profileData.instagram,
-        facebook: profileData.facebook,
         settings,
       })
 
@@ -169,7 +172,7 @@ export default function ProfilePage() {
                   <CardTitle className="font-handwritten">Profil-Details</CardTitle>
                   <CardDescription>Aktualisiere deine persönlichen Informationen</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-8">
                   {/* Avatar Section */}
                   <div className="flex items-center space-x-6">
                     <div className="relative">
@@ -213,127 +216,97 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* Grundlegende Informationen */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Name</Label>
-                      <Input
-                        id="name"
-                        value={profileData.name}
-                        onChange={(e) => setProfileData((prev) => ({ ...prev, name: e.target.value }))}
-                        className="font-body"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email">E-Mail</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={profileData.email}
-                        onChange={(e) => setProfileData((prev) => ({ ...prev, email: e.target.value }))}
-                        className="font-body"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="location">Standort</Label>
-                      <Input
-                        id="location"
-                        placeholder="z.B. Berlin, Deutschland"
-                        value={profileData.location}
-                        onChange={(e) => setProfileData((prev) => ({ ...prev, location: e.target.value }))}
-                        className="font-body"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Telefonnummer</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+49 123 456789"
-                        value={profileData.phone}
-                        onChange={(e) => setProfileData((prev) => ({ ...prev, phone: e.target.value }))}
-                        className="font-body"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="birthDate">Geburtsdatum</Label>
-                      <Input
-                        id="birthDate"
-                        type="date"
-                        value={profileData.birthDate}
-                        onChange={(e) => setProfileData((prev) => ({ ...prev, birthDate: e.target.value }))}
-                        className="font-body"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="languages">Sprachen</Label>
-                      <Input
-                        id="languages"
-                        placeholder="z.B. Deutsch, Englisch, Französisch"
-                        value={profileData.languages}
-                        onChange={(e) => setProfileData((prev) => ({ ...prev, languages: e.target.value }))}
-                        className="font-body"
-                      />
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="bio">Bio</Label>
-                      <Textarea
-                        id="bio"
-                        placeholder="Erzähle etwas über dich..."
-                        value={profileData.bio}
-                        onChange={(e) => setProfileData((prev) => ({ ...prev, bio: e.target.value }))}
-                        className="font-body"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Spiel-bezogene Informationen */}
+                  {/* Benutzerangaben */}
                   <div className="border-t pt-6">
-                    <h3 className="font-handwritten text-lg font-semibold mb-4">Spiel-Informationen</h3>
+                    <h3 className="font-handwritten text-lg font-semibold mb-4 text-teal-600">Benutzerangaben</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="gameExperience">Spielerfahrung</Label>
-                        <Select
-                          value={profileData.gameExperience}
-                          onValueChange={(value) => setProfileData((prev) => ({ ...prev, gameExperience: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="beginner">Anfänger</SelectItem>
-                            <SelectItem value="intermediate">Fortgeschritten</SelectItem>
-                            <SelectItem value="advanced">Erfahren</SelectItem>
-                            <SelectItem value="expert">Experte</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="name">Name</Label>
+                        <Input
+                          id="name"
+                          placeholder="Dein vollständiger Name"
+                          value={profileData.name}
+                          onChange={(e) => setProfileData((prev) => ({ ...prev, name: e.target.value }))}
+                          className="font-body"
+                        />
+                        <p className="text-xs text-gray-500">Gib hier deinen vollständigen Namen ein</p>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="playingStyle">Spielstil</Label>
-                        <Select
-                          value={profileData.playingStyle}
-                          onValueChange={(value) => setProfileData((prev) => ({ ...prev, playingStyle: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="casual">Gelegenheitsspieler</SelectItem>
-                            <SelectItem value="competitive">Wettkampforientiert</SelectItem>
-                            <SelectItem value="social">Gesellig</SelectItem>
-                            <SelectItem value="strategic">Strategisch</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="username">Benutzername</Label>
+                        <Input
+                          id="username"
+                          placeholder="Wird in der Plattform angezeigt"
+                          value={profileData.username}
+                          onChange={(e) => setProfileData((prev) => ({ ...prev, username: e.target.value }))}
+                          className="font-body"
+                        />
+                        <p className="text-xs text-gray-500">Dieser Name wird anderen Benutzern angezeigt</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="email">E-Mail-Adresse</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={profileData.email}
+                          onChange={(e) => setProfileData((prev) => ({ ...prev, email: e.target.value }))}
+                          className="font-body"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="birthDate">Geburtsdatum</Label>
+                        <Input
+                          id="birthDate"
+                          type="date"
+                          value={profileData.birthDate}
+                          onChange={(e) => setProfileData((prev) => ({ ...prev, birthDate: e.target.value }))}
+                          className="font-body"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Telefonnummer</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="+49 123 456789"
+                          value={profileData.phone}
+                          onChange={(e) => setProfileData((prev) => ({ ...prev, phone: e.target.value }))}
+                          className="font-body"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="address">Adresse</Label>
+                        <Input
+                          id="address"
+                          placeholder="Straße, Hausnummer, PLZ, Stadt"
+                          value={profileData.address}
+                          onChange={(e) => setProfileData((prev) => ({ ...prev, address: e.target.value }))}
+                          className="font-body"
+                        />
                       </div>
 
                       <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="bio">Bio</Label>
+                        <Textarea
+                          id="bio"
+                          placeholder="Erzähle etwas über dich..."
+                          value={profileData.bio}
+                          onChange={(e) => setProfileData((prev) => ({ ...prev, bio: e.target.value }))}
+                          className="font-body"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Spiel-Informationen */}
+                  <div className="border-t pt-6">
+                    <h3 className="font-handwritten text-lg font-semibold mb-4 text-purple-600">Spiel-Informationen</h3>
+                    <div className="grid grid-cols-1 gap-6">
+                      <div className="space-y-2">
                         <Label htmlFor="favoriteGames">Lieblingsspiele</Label>
                         <Input
                           id="favoriteGames"
@@ -344,7 +317,7 @@ export default function ProfilePage() {
                         />
                       </div>
 
-                      <div className="space-y-2 md:col-span-2">
+                      <div className="space-y-2">
                         <Label htmlFor="preferredGameTypes">Bevorzugte Spielarten</Label>
                         <Input
                           id="preferredGameTypes"
@@ -354,23 +327,14 @@ export default function ProfilePage() {
                           className="font-body"
                         />
                       </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="availability">Verfügbarkeit für Spieleabende</Label>
-                        <Textarea
-                          id="availability"
-                          placeholder="z.B. Wochenends, Dienstag und Donnerstag Abends"
-                          value={profileData.availability}
-                          onChange={(e) => setProfileData((prev) => ({ ...prev, availability: e.target.value }))}
-                          className="font-body"
-                        />
-                      </div>
                     </div>
                   </div>
 
-                  {/* Social Media */}
+                  {/* Social Media & Website */}
                   <div className="border-t pt-6">
-                    <h3 className="font-handwritten text-lg font-semibold mb-4">Social Media & Website</h3>
+                    <h3 className="font-handwritten text-lg font-semibold mb-4 text-indigo-600">
+                      Social Media & Website
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="website">Website</Label>
@@ -401,17 +365,6 @@ export default function ProfilePage() {
                           placeholder="@deinusername"
                           value={profileData.instagram}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, instagram: e.target.value }))}
-                          className="font-body"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="facebook">Facebook</Label>
-                        <Input
-                          id="facebook"
-                          placeholder="facebook.com/deinprofil"
-                          value={profileData.facebook}
-                          onChange={(e) => setProfileData((prev) => ({ ...prev, facebook: e.target.value }))}
                           className="font-body"
                         />
                       </div>

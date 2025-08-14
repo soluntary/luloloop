@@ -28,7 +28,6 @@ import {
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useState, Suspense, useRef } from "react"
-import { ProtectedRoute } from "@/components/protected-route"
 import { Navigation } from "@/components/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -38,6 +37,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
+import { CreateMarketplaceOfferForm } from "@/components/create-marketplace-offer-form"
 
 const GAME_TYPE_OPTIONS = [
   "Aktions- und Reaktionsspiel",
@@ -157,6 +157,10 @@ function LibraryContent() {
   const { user } = useAuth()
   const [selectedGame, setSelectedGame] = useState<(typeof games)[0] | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+
+  const [isCreateOfferOpen, setIsCreateOfferOpen] = useState(false)
+  const [preselectedGame, setPreselectedGame] = useState<(typeof games)[0] | null>(null)
+  const [preselectedOfferType, setPreselectedOfferType] = useState<string>("")
 
   // Spiel anbieten Dialog States
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false)
@@ -332,20 +336,18 @@ function LibraryContent() {
     }
   }
 
-  // Spiel anbieten Funktionen
   const handleOfferGame = (game: (typeof games)[0], type: string) => {
     if (!databaseConnected) {
       alert("Datenbank ist nicht verfügbar. Bitte führe zuerst die SQL-Skripte aus.")
       return
     }
 
-    setOfferGame(game)
-    setOfferType(type)
-    setPrice("")
-    setDescription("")
-    setIsOfferDialogOpen(true)
+    setPreselectedGame(game)
+    setPreselectedOfferType(type)
+    setIsCreateOfferOpen(true)
   }
 
+  // Spiel anbieten Funktionen
   const handleOfferSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -403,21 +405,23 @@ function LibraryContent() {
     }
   }
 
+  const resetAddGameForm = () => {
+    setNewGameTitle("")
+    setNewGamePublisher("")
+    setNewGameLanguage("")
+    setNewGameCustomLanguage("")
+    setNewGameType([])
+    setNewGameCustomType("")
+    setNewGameStyle([])
+    setNewGameCustomStyle("")
+    setNewGameImage(null)
+  }
+
   const handleAddGameSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (
-      !newGameTitle ||
-      !newGamePublisher ||
-      newGamePublisher === "custom" ||
-      !newGameCondition ||
-      !newGamePlayerCount ||
-      !newGameDuration ||
-      !newGameAge ||
-      !newGameLanguage ||
-      newGameLanguage === "custom"
-    ) {
-      alert("Bitte fülle alle Pflichtfelder aus!")
+    if (!newGameTitle.trim() || !newGamePublisher.trim() || !newGameLanguage) {
+      alert("Bitte fülle alle Pflichtfelder aus")
       return
     }
 
@@ -427,13 +431,9 @@ function LibraryContent() {
     }
 
     try {
-      const newGameData = {
-        title: newGameTitle,
-        publisher: newGamePublisher,
-        condition: newGameCondition,
-        players: newGamePlayerCount,
-        duration: newGameDuration,
-        age: newGameAge,
+      const gameData = {
+        title: newGameTitle.trim(),
+        publisher: newGamePublisher.trim(),
         language: newGameLanguage,
         available: ["lend", "trade", "sell"],
         image: newGameImage || "/images/ludoloop-game-placeholder.png",
@@ -442,25 +442,12 @@ function LibraryContent() {
         ...(newGameStyle.length > 0 && { style: newGameStyle.join(", ") }),
       }
 
-      await addGame(newGameData)
+      await addGame(gameData)
 
-      alert(`${newGameData.title} wurde erfolgreich zu deiner Bibliothek hinzugefügt und erscheint jetzt im Regal!`)
+      alert(`${gameData.title} wurde erfolgreich zu deiner Bibliothek hinzugefügt und erscheint jetzt im Regal!`)
 
       // Reset form
-      setNewGameTitle("")
-      setNewGamePublisher("")
-      setNewGameCustomPublisher("")
-      setNewGameCondition("")
-      setNewGamePlayerCount("")
-      setNewGameDuration("")
-      setNewGameAge("")
-      setNewGameLanguage("")
-      setNewGameCustomLanguage("")
-      setNewGameType([])
-      setNewGameCustomType("")
-      setNewGameStyle([])
-      setNewGameCustomStyle("")
-      setNewGameImage(null)
+      resetAddGameForm()
       setIsAddGameDialogOpen(false)
     } catch (error) {
       console.error("Error adding game:", error)
@@ -774,29 +761,6 @@ function LibraryContent() {
                         </Button>
                       </div>
                     )}
-                  </div>
-
-                  <div>
-                    <Label className="font-body text-gray-700 font-medium">Zustand *</Label>
-                    <Select value={newGameCondition} onValueChange={setNewGameCondition} required>
-                      <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80">
-                        <SelectValue placeholder="Zustand wählen..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Wie neu" className="font-body">
-                          Wie neu
-                        </SelectItem>
-                        <SelectItem value="Sehr gut" className="font-body">
-                          Sehr gut
-                        </SelectItem>
-                        <SelectItem value="Gut" className="font-body">
-                          Gut
-                        </SelectItem>
-                        <SelectItem value="Akzeptabel" className="font-body">
-                          Akzeptabel
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
 
                   <div>
@@ -1181,7 +1145,7 @@ function LibraryContent() {
                         {/* Shelf Board */}
                         <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-b from-amber-600 to-amber-700 rounded-lg shadow-md"></div>
 
-                        {/* First row with Add Game Cover and up to 5 games */}
+                        {/* First row with Add Game Cover and up to 7 games */}
                         <div className="flex gap-2 pb-4 overflow-x-auto">
                           {/* Add Game Cover - always first */}
                           <div
@@ -1197,8 +1161,8 @@ function LibraryContent() {
                             <div className="w-24 h-2 bg-gradient-to-b from-gray-300 to-gray-400 rounded-b-sm"></div>
                           </div>
 
-                          {/* First 5 games in the same row */}
-                          {filteredGames.slice(0, 5).map((game) => (
+                          {/* First 7 games in the same row */}
+                          {filteredGames.slice(0, 7).map((game) => (
                             <div
                               key={game.id}
                               className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300"
@@ -1224,15 +1188,15 @@ function LibraryContent() {
                     )}
 
                     {/* Remaining games in subsequent rows */}
-                    {filteredGames.length > 5 &&
-                      Array.from({ length: Math.ceil((filteredGames.length - 5) / 6) }, (_, shelfIndex) => (
+                    {filteredGames.length > 7 &&
+                      Array.from({ length: Math.ceil((filteredGames.length - 7) / 8) }, (_, shelfIndex) => (
                         <div key={shelfIndex + 1} className="relative">
                           {/* Shelf Board */}
                           <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-b from-amber-600 to-amber-700 rounded-lg shadow-md"></div>
 
-                          {/* Games on Shelf - 6 per row */}
+                          {/* Games on Shelf - 8 per row */}
                           <div className="flex gap-2 pb-4 overflow-x-auto">
-                            {filteredGames.slice(5 + shelfIndex * 6, 5 + shelfIndex * 6 + 6).map((game) => (
+                            {filteredGames.slice(7 + shelfIndex * 8, 7 + shelfIndex * 8 + 8).map((game) => (
                               <div
                                 key={game.id}
                                 className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300"
@@ -1315,12 +1279,6 @@ function LibraryContent() {
                   </div>
 
                   <div className="space-y-3 mb-6">
-                    <div className="flex justify-between">
-                      <span className="font-medium font-body">Zustand:</span>
-                      <Badge variant="outline" className="font-body">
-                        {selectedGame.condition}
-                      </Badge>
-                    </div>
                     <div className="flex justify-between">
                       <span className="font-medium font-body">Spieleranzahl:</span>
                       <span className="font-body">{selectedGame.players}</span>
@@ -1600,70 +1558,32 @@ function LibraryContent() {
                   </div>
 
                   <div>
-                    <Label className="font-body text-gray-700 font-medium">Zustand *</Label>
-                    <Select value={editGameCondition} onValueChange={setEditGameCondition} required>
-                      <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80">
-                        <SelectValue placeholder="Zustand wählen..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Wie neu" className="font-body">
-                          Wie neu
-                        </SelectItem>
-                        <SelectItem value="Sehr gut" className="font-body">
-                          Sehr gut
-                        </SelectItem>
-                        <SelectItem value="Gut" className="font-body">
-                          Gut
-                        </SelectItem>
-                        <SelectItem value="Akzeptabel" className="font-body">
-                          Akzeptabel
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
                     <Label className="font-body text-gray-700 font-medium">Sprache *</Label>
                     <Select value={editGameLanguage} onValueChange={setEditGameLanguage} required>
                       <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80">
                         <SelectValue placeholder="Sprache wählen..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {LANGUAGE_OPTIONS.map((language) => (
-                          <SelectItem
-                            key={language}
-                            value={language === "Andere" ? "custom" : language}
-                            className="font-body"
-                          >
-                            {language}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="Deutsch" className="font-body">
+                          Deutsch
+                        </SelectItem>
+                        <SelectItem value="Englisch" className="font-body">
+                          Englisch
+                        </SelectItem>
+                        <SelectItem value="Französisch" className="font-body">
+                          Französisch
+                        </SelectItem>
+                        <SelectItem value="Italienisch" className="font-body">
+                          Italienisch
+                        </SelectItem>
+                        <SelectItem value="Spanisch" className="font-body">
+                          Spanisch
+                        </SelectItem>
+                        <SelectItem value="Mehrsprachig" className="font-body">
+                          Mehrsprachig
+                        </SelectItem>
                       </SelectContent>
                     </Select>
-                    {editGameLanguage === "custom" && (
-                      <div className="mt-2 flex gap-2">
-                        <Input
-                          value={editGameCustomLanguage}
-                          onChange={(e) => setEditGameCustomLanguage(e.target.value)}
-                          placeholder="Sprache eingeben..."
-                          className="font-body border-2 border-blue-200 bg-white/80"
-                          onKeyPress={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault()
-                              handleEditAddCustomLanguage()
-                            }
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={handleEditAddCustomLanguage}
-                          className="bg-blue-400 hover:bg-blue-500 text-white"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1700,12 +1620,12 @@ function LibraryContent() {
                           {GAME_TYPE_OPTIONS.map((type) => (
                             <div key={type} className="flex items-center space-x-2">
                               <Checkbox
-                                id={`edit-type-${type}`}
+                                id={`type-${type}`}
                                 checked={editGameType.includes(type)}
                                 onCheckedChange={() => handleEditGameTypeToggle(type)}
                                 className="border-purple-300 data-[state=checked]:bg-purple-400"
                               />
-                              <Label htmlFor={`edit-type-${type}`} className="text-sm font-body cursor-pointer">
+                              <Label htmlFor={`type-${type}`} className="text-sm font-body cursor-pointer">
                                 {type}
                               </Label>
                             </div>
@@ -1783,16 +1703,43 @@ function LibraryContent() {
                           {GAME_STYLE_OPTIONS.map((style) => (
                             <div key={style} className="flex items-center space-x-2">
                               <Checkbox
-                                id={`edit-style-${style}`}
+                                id={`style-${style}`}
                                 checked={editGameStyle.includes(style)}
                                 onCheckedChange={() => handleEditGameStyleToggle(style)}
                                 className="border-purple-300 data-[state=checked]:bg-purple-400"
                               />
-                              <Label htmlFor={`edit-style-${style}`} className="text-sm font-body cursor-pointer">
+                              <Label htmlFor={`style-${style}`} className="text-sm font-body cursor-pointer">
                                 {style}
                               </Label>
                             </div>
                           ))}
+                          <div className="border-t pt-2 mt-2">
+                            <h5 className="font-medium text-xs font-body text-gray-600 mb-2">
+                              Eigenen Typus hinzufügen:
+                            </h5>
+                            <div className="flex gap-2">
+                              <Input
+                                value={editGameCustomStyle}
+                                onChange={(e) => setEditGameCustomStyle(e.target.value)}
+                                placeholder="Typus eingeben..."
+                                className="text-xs font-body border-purple-200"
+                                onKeyPress={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault()
+                                    handleEditAddCustomStyle()
+                                  }
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={handleEditAddCustomStyle}
+                                className="bg-purple-400 hover:bg-purple-500 text-white px-2"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
                           {editGameStyle.length > 0 && (
                             <div className="border-t pt-2 mt-2">
                               <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Ausgewählt:</h5>
@@ -1894,13 +1841,14 @@ function LibraryContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Game Dialog */}
+      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-handwritten text-2xl text-center">Spiel löschen?</DialogTitle>
             <DialogDescription className="text-center font-body">
-              Bist du sicher, dass du dieses Spiel löschen möchtest?
+              Bist du sicher, dass du <span className="font-bold">{gameToDelete?.title}</span> aus deiner Bibliothek
+              entfernen möchtest?
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end space-x-2">
@@ -1914,24 +1862,29 @@ function LibraryContent() {
             </Button>
             <Button
               type="button"
-              className="bg-red-400 hover:bg-red-500 text-white font-handwritten"
               onClick={handleConfirmDelete}
+              className="bg-red-400 hover:bg-red-500 text-white font-handwritten"
             >
               Löschen
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      <CreateMarketplaceOfferForm
+        isOpen={isCreateOfferOpen}
+        onClose={() => setIsCreateOfferOpen(false)}
+        preselectedGame={preselectedGame}
+        preselectedOfferType={preselectedOfferType}
+      />
     </div>
   )
 }
 
 export default function LibraryPage() {
   return (
-    <ProtectedRoute>
-      <Suspense fallback={<LibraryLoading />}>
-        <LibraryContent />
-      </Suspense>
-    </ProtectedRoute>
+    <Suspense fallback={<LibraryLoading />}>
+      <LibraryContent />
+    </Suspense>
   )
 }

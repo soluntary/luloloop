@@ -45,6 +45,7 @@ interface Comment {
   created_at: string
   user: {
     name: string
+    username: string
   }
 }
 
@@ -211,7 +212,9 @@ export default function EventManagementDialog({
                                 {participant.user?.name?.[0]?.toUpperCase() || "?"}
                               </div>
                               <div>
-                                <p className="font-body text-gray-800">{participant.user?.name || "Unbekannt"}</p>
+                                <p className="font-body text-gray-800">
+                                  {participant.user?.username || participant.user?.name || "Unbekannt"}
+                                </p>
                                 <p className="text-sm text-gray-500 font-body">
                                   Angefragt am {new Date(participant.joined_at).toLocaleDateString("de-DE")}
                                 </p>
@@ -264,7 +267,9 @@ export default function EventManagementDialog({
                                 {participant.user?.name?.[0]?.toUpperCase() || "?"}
                               </div>
                               <div>
-                                <p className="font-body text-gray-800">{participant.user?.name || "Unbekannt"}</p>
+                                <p className="font-body text-gray-800">
+                                  {participant.user?.username || participant.user?.name || "Unbekannt"}
+                                </p>
                                 <p className="text-sm text-gray-500 font-body">
                                   Beigetreten am {new Date(participant.joined_at).toLocaleDateString("de-DE")}
                                 </p>
@@ -339,7 +344,9 @@ export default function EventManagementDialog({
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-1">
-                              <p className="font-body text-gray-800 font-medium">{comment.user?.name || "Unbekannt"}</p>
+                              <p className="font-body text-gray-800 font-medium">
+                                {comment.user?.username || comment.user?.name || "Unbekannt"}
+                              </p>
                               <p className="text-xs text-gray-500 font-body">
                                 {new Date(comment.created_at).toLocaleDateString("de-DE", {
                                   day: "2-digit",

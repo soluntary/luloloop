@@ -70,7 +70,7 @@ export function Navigation({ currentPage }: NavigationProps) {
   }
 
   return (
-    <div className="bg-white shadow-lg border-b-4 border-teal-400 sticky top-0 z-50">
+    <nav className="bg-white shadow-lg border-b-4 border-teal-400 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -120,11 +120,11 @@ export function Navigation({ currentPage }: NavigationProps) {
                           user.avatar ||
                           `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.email) || "/placeholder.svg"}`
                         }
-                        alt={user.name}
+                        alt={user.username || user.name}
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <span className="text-gray-700">{user.name}</span>
+                    <span className="text-gray-700">{user.username || user.name}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 font-body">
@@ -213,11 +213,11 @@ export function Navigation({ currentPage }: NavigationProps) {
                               user.avatar ||
                               `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.email) || "/placeholder.svg"}`
                             }
-                            alt={user.name}
+                            alt={user.username || user.name}
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        <span>Profil ({user.name})</span>
+                        <span>Profil ({user.username || user.name})</span>
                       </Button>
                     </Link>
                     <Button
@@ -262,6 +262,6 @@ export function Navigation({ currentPage }: NavigationProps) {
           </div>
         )}
       </div>
-    </div>
+    </nav>
   )
 }

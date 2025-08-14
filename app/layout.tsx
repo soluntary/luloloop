@@ -1,14 +1,11 @@
-import type React from "react"
 import type { Metadata } from "next"
-import { Galindo, McLaren } from "next/font/google"
+import { Galindo, McLaren } from 'next/font/google'
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
 import { GamesProvider } from "@/contexts/games-context"
 import { MessagesProvider } from "@/contexts/messages-context"
 import { FriendsProvider } from "@/contexts/friends-context"
 import { Footer } from "@/components/footer"
-import { BottomNavigation } from "@/components/bottom-navigation"
-import { MobileHeader } from "@/components/mobile-header"
 
 const galindo = Galindo({
   subsets: ["latin"],
@@ -26,9 +23,8 @@ const mclaren = McLaren({
 
 export const metadata: Metadata = {
   title: "Ludoloop - Deine Spiele-Community",
-  description:
-    "Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde neue Mitspieler und entdecke grossartige Spiele!",
-  generator: "v0.dev",
+  description: "Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde neue Mitspieler und entdecke grossartige Spiele!",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -48,9 +44,9 @@ export default function RootLayout({
             <MessagesProvider>
               <FriendsProvider>
                 <div className="min-h-screen flex flex-col">
-                  <MobileHeader />
-                  <main className="flex-1 pb-20 md:pb-0">{children}</main>
-                  <BottomNavigation />
+                  <main className="flex-1">
+                    {children}
+                  </main>
                   <Footer />
                 </div>
               </FriendsProvider>
