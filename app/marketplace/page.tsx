@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CreateMarketplaceOfferForm } from "@/components/create-marketplace-offer-form"
+import { CreateSearchAdForm } from "@/components/create-search-ad-form"
 import {
   Search,
   LogIn,
@@ -27,6 +28,7 @@ import {
 import { Navigation } from "@/components/navigation"
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
+import { supabase } from "@/lib/supabase"
 
 export default function MarketplacePage() {
   const { marketplaceOffers, loading, error, databaseConnected } = useGames()
@@ -39,6 +41,49 @@ export default function MarketplacePage() {
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false)
   const [contactMessage, setContactMessage] = useState("")
   const [isCreateOfferOpen, setIsCreateOfferOpen] = useState(false)
+  const [searchAds, setSearchAds] = useState<any[]>([])
+  const [isCreateSearchAdOpen, setIsCreateSearchAdOpen] = useState(false)
+  const [activeView, setActiveView] = useState<"offers" | "search">("offers")
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const tab = urlParams.get("tab")
+    if (tab === "search") {
+      setActiveView("search")
+    } else {
+      setActiveView("offers")
+    }
+  }, [])
+
+  useEffect(() => {
+    if (databaseConnected) {
+      loadSearchAds()
+    }
+  }, [databaseConnected])
+
+  const loadSearchAds = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("search_ads")
+        .select(`
+          *,
+          users!search_ads_user_id_fkey (
+            name
+          )
+        `)
+        .eq("active", true)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Error loading search ads:", error)
+        return
+      }
+
+      setSearchAds(data || [])
+    } catch (error) {
+      console.error("Error loading search ads:", error)
+    }
+  }
 
   const filteredOffers = marketplaceOffers
     .filter((offer) => {
@@ -115,6 +160,24 @@ export default function MarketplacePage() {
     setSelectedOffer(null)
   }
 
+  const getPageTitle = () => {
+    switch (activeView) {
+      case "search":
+        return "Suchanzeigen"
+      default:
+        return "Angebote"
+    }
+  }
+
+  const getPageDescription = () => {
+    switch (activeView) {
+      case "search":
+        return "Teile deine Community mit, welches Spiel du suchst!"
+      default:
+        return "Entdecke, tausche und teile (Deine) Spiele!"
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
@@ -143,7 +206,7 @@ export default function MarketplacePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
-      <Navigation currentPage="marketplace" />
+      <Navigation currentPage="spielemarkt" />
 
       <div className="container mx-auto px-4 py-8">
         {/* Database Error Banner */}
@@ -176,20 +239,29 @@ export default function MarketplacePage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-            Spielemarktplatz
+            {getPageTitle()}
           </h1>
-          <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
-            Entdecke, tausche und teile deine Lieblingsspiele!
-          </p>
+          <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">{getPageDescription()}</p>
           {user && databaseConnected && (
-            <div className="mt-6">
-              <Button
-                onClick={() => setIsCreateOfferOpen(true)}
-                className="bg-orange-400 hover:bg-orange-500 text-white font-handwritten text-lg px-8 py-3 transform hover:scale-105 hover:rotate-1 transition-all"
-              >
-                <Store className="w-5 h-5 mr-2" />
-                Neues Angebot erstellen
-              </Button>
+            <div className="mt-6 flex gap-4 justify-center">
+              {activeView === "offers" && (
+                <Button
+                  onClick={() => setIsCreateOfferOpen(true)}
+                  className="bg-orange-400 hover:bg-orange-500 text-white font-handwritten text-lg px-8 py-3 transform hover:scale-105 hover:rotate-1 transition-all"
+                >
+                  <Store className="w-5 h-5 mr-2" />
+                  Neues Angebot erstellen
+                </Button>
+              )}
+              {activeView === "search" && (
+                <Button
+                  onClick={() => setIsCreateSearchAdOpen(true)}
+                  className="bg-orange-400 hover:bg-orange-500 text-white font-handwritten text-lg px-8 py-3 transform hover:scale-105 hover:-rotate-1 transition-all"
+                >
+                  <Search className="w-5 h-5 mr-2" />
+                  Suchanzeige erstellen
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -278,98 +350,161 @@ export default function MarketplacePage() {
         {databaseConnected && (
           <div className="mb-6 flex items-center justify-between">
             <p className="text-gray-600 font-body text-lg">
-              <span className="font-bold text-orange-600">{filteredOffers.length}</span>{" "}
-              {filteredOffers.length === 1 ? "Angebot" : "Angebote"} gefunden
+              <span className="font-bold text-orange-600">
+                {activeView === "offers" ? filteredOffers.length : searchAds.length}
+              </span>{" "}
+              {activeView === "offers"
+                ? filteredOffers.length === 1
+                  ? "Angebot"
+                  : "Angebote"
+                : searchAds.length === 1
+                  ? "Suchanzeige"
+                  : "Suchanzeigen"}{" "}
+              gefunden
             </p>
-            <div className="flex items-center space-x-2 text-sm text-gray-500 font-body">
-              <div className="w-2 h-2 bg-teal-400 rounded-full"></div>
-              <span>Verleihen</span>
-              <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
-              <span>Tauschen</span>
-              <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
-              <span>Verkaufen</span>
-            </div>
+            {activeView === "offers" && (
+              <div className="flex items-center space-x-2 text-sm text-gray-500 font-body">
+                <div className="w-2 h-2 bg-teal-400 rounded-full"></div>
+                <span>Verleihen</span>
+                <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                <span>Tauschen</span>
+                <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
+                <span>Verkaufen</span>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Marketplace Grid */}
+        {/* Content Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
           {databaseConnected ? (
-            filteredOffers.length > 0 ? (
-              filteredOffers.map((offer) => (
-                <Card
-                  key={offer.id}
-                  className="group transform hover:scale-105 hover:-rotate-1 transition-all duration-300 border-2 border-orange-200/50 hover:border-orange-400 cursor-pointer bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-2xl rounded-xl overflow-hidden"
-                >
-                  <CardContent className="p-0">
-                    <div className="relative overflow-hidden">
-                      <img
-                        src={offer.image || "/images/ludoloop-placeholder.png"}
-                        alt={offer.title}
-                        className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <Badge
-                        className={`absolute top-3 right-3 ${getTypeColor(offer.type)} text-white font-body shadow-lg`}
-                      >
-                        {getTypeText(offer.type)}
-                      </Badge>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="absolute top-3 left-3 bg-white/90 hover:bg-white border-gray-300 shadow-lg backdrop-blur-sm"
-                      >
-                        <Heart className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    <div className="p-5">
-                      <h3 className="font-bold text-lg mb-2 font-handwritten text-gray-800 line-clamp-1">
-                        {offer.title}
-                      </h3>
-                      <p className="text-gray-600 text-sm mb-3 font-body">{offer.publisher}</p>
-
-                      <div className="flex items-center justify-between mb-4">
-                        <Badge variant="outline" className="font-body border-orange-200 text-orange-700">
-                          {offer.condition}
+            activeView === "offers" ? (
+              filteredOffers.length > 0 ? (
+                filteredOffers.map((offer) => (
+                  <Card
+                    key={offer.id}
+                    className="group transform hover:scale-105 hover:-rotate-1 transition-all duration-300 border-2 border-orange-200/50 hover:border-orange-400 cursor-pointer bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-2xl rounded-xl overflow-hidden"
+                  >
+                    <CardContent className="p-0">
+                      <div className="relative overflow-hidden">
+                        <img
+                          src={offer.image || "/images/ludoloop-placeholder.png"}
+                          alt={offer.title}
+                          className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <Badge
+                          className={`absolute top-3 right-3 ${getTypeColor(offer.type)} text-white font-body shadow-lg`}
+                        >
+                          {getTypeText(offer.type)}
                         </Badge>
-                        <div className="flex items-center text-yellow-500">
-                          <Star className="w-4 h-4 fill-current" />
-                          <span className="text-sm ml-1 font-body font-medium">{offer.rating}</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="absolute top-3 left-3 bg-white/90 hover:bg-white border-gray-300 shadow-lg backdrop-blur-sm"
+                        >
+                          <Heart className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <div className="p-5">
+                        <h3 className="font-bold text-lg mb-2 font-handwritten text-gray-800 line-clamp-1">
+                          {offer.title}
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-3 font-body">{offer.publisher}</p>
+
+                        <div className="flex items-center justify-between mb-4">
+                          <Badge variant="outline" className="font-body border-orange-200 text-orange-700">
+                            {offer.condition}
+                          </Badge>
+                          <div className="flex items-center text-yellow-500">
+                            <Star className="w-4 h-4 fill-current" />
+                            <span className="text-sm ml-1 font-body font-medium">{offer.rating}</span>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center text-gray-500 text-sm mb-4 font-body">
-                        <MapPin className="w-4 h-4 mr-1 text-orange-400" />
-                        <span>{offer.location}</span>
-                        <span className="mx-2 text-orange-300">•</span>
-                        <span>{offer.distance}</span>
-                      </div>
+                        <div className="flex items-center text-gray-500 text-sm mb-4 font-body">
+                          <MapPin className="w-4 h-4 mr-1 text-orange-400" />
+                          <span>{offer.location}</span>
+                          <span className="mx-2 text-orange-300">•</span>
+                          <span>{offer.distance}</span>
+                        </div>
 
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="font-bold text-xl text-orange-600 font-handwritten">{offer.price}</span>
-                        <span className="text-sm text-gray-500 font-body">von {offer.owner}</span>
-                      </div>
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="font-bold text-xl text-orange-600 font-handwritten">{offer.price}</span>
+                          <span className="text-sm text-gray-500 font-body">von {offer.owner}</span>
+                        </div>
 
-                      <Button
-                        onClick={() => handleContactSeller(offer)}
-                        className="w-full bg-gradient-to-r from-orange-400 to-pink-400 hover:from-orange-500 hover:to-pink-500 text-white font-handwritten shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg"
-                        disabled={!databaseConnected}
+                        <Button
+                          onClick={() => handleContactSeller(offer)}
+                          className="w-full bg-gradient-to-r from-orange-400 to-pink-400 hover:from-orange-500 hover:to-pink-500 text-white font-handwritten shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg"
+                          disabled={!databaseConnected}
+                        >
+                          <MessageCircle className="w-4 h-4 mr-2" />
+                          Kontaktieren
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-16">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-lg border border-orange-200/50">
+                    <ShoppingCart className="w-20 h-20 text-orange-300 mx-auto mb-6" />
+                    <h3 className="text-3xl font-bold text-gray-600 mb-4 font-handwritten">Keine Angebote gefunden</h3>
+                    <p className="text-gray-500 font-body text-lg">
+                      Versuche andere Suchbegriffe oder Filter, um mehr Ergebnisse zu finden.
+                    </p>
+                  </div>
+                </div>
+              )
+            ) : searchAds.length > 0 ? (
+              searchAds.map((ad) => (
+                <Card
+                  key={ad.id}
+                  className="group transform hover:scale-105 hover:-rotate-1 transition-all duration-300 border-2 border-amber-200/50 hover:border-amber-400 cursor-pointer bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-2xl rounded-xl overflow-hidden"
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <Badge
+                        className={`${
+                          ad.type === "buy" ? "bg-green-400" : "bg-blue-400"
+                        } text-white font-body shadow-lg`}
                       >
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        Kontaktieren
-                      </Button>
+                        {ad.type === "buy" ? "Kaufen" : "Ausleihen"}
+                      </Badge>
+                      <Search className="w-5 h-5 text-amber-400" />
                     </div>
+
+                    <h3 className="font-bold text-lg mb-3 font-handwritten text-gray-800 line-clamp-2">{ad.title}</h3>
+
+                    {ad.description && (
+                      <p className="text-gray-600 text-sm mb-4 font-body line-clamp-3">{ad.description}</p>
+                    )}
+
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm text-gray-500 font-body">von {ad.users?.name || "Unbekannt"}</span>
+                      <span className="text-xs text-gray-400 font-body">
+                        {new Date(ad.created_at).toLocaleDateString("de-DE")}
+                      </span>
+                    </div>
+
+                    <Button className="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white font-handwritten shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Antworten
+                    </Button>
                   </CardContent>
                 </Card>
               ))
             ) : (
               <div className="col-span-full text-center py-16">
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-lg border border-orange-200/50">
-                  <ShoppingCart className="w-20 h-20 text-orange-300 mx-auto mb-6" />
-                  <h3 className="text-3xl font-bold text-gray-600 mb-4 font-handwritten">Keine Angebote gefunden</h3>
+                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-lg border border-amber-200/50">
+                  <Search className="w-20 h-20 text-amber-300 mx-auto mb-6" />
+                  <h3 className="text-3xl font-bold text-gray-600 mb-4 font-handwritten">
+                    Keine Suchanzeigen gefunden
+                  </h3>
                   <p className="text-gray-500 font-body text-lg">
-                    Versuche andere Suchbegriffe oder Filter, um mehr Ergebnisse zu finden.
+                    Erstelle die erste Suchanzeige und finde das Spiel, das du suchst!
                   </p>
                 </div>
               </div>
@@ -478,6 +613,16 @@ export default function MarketplacePage() {
         onSuccess={() => {
           // Refresh the page or show success message
           window.location.reload()
+        }}
+      />
+
+      {/* Create Search Ad Dialog */}
+      <CreateSearchAdForm
+        isOpen={isCreateSearchAdOpen}
+        onClose={() => setIsCreateSearchAdOpen(false)}
+        onSuccess={() => {
+          loadSearchAds()
+          setActiveView("search")
         }}
       />
     </div>

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
 import { Users, Dices, LogIn, Database, Search, MapPin, Plus, Calendar, User } from "lucide-react"
 import { supabase } from "@/lib/supabase"
@@ -18,7 +17,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import CreateCommunityDialog from "@/components/create-community-dialog"
 import CreateCommunityEventDialog from "@/components/create-community-event-dialog"
-import EventDetailsDialog from "@/components/event-details-dialog"
 
 interface CommunityEvent {
   id: string
@@ -123,7 +121,7 @@ function CommunityLoading() {
   )
 }
 
-export function CommunityContent() {
+export default function GroupsPage() {
   const { user, loading: authLoading } = useAuth()
   const { friends, friendRequests, sendFriendRequest, acceptFriendRequest, rejectFriendRequest } = useFriends()
   const { games } = useGames()
@@ -136,7 +134,6 @@ export function CommunityContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
-  const [activeTab, setActiveTab] = useState("communities")
   const [activeFilter, setActiveFilter] = useState<"all" | "casual" | "competitive" | "family">("all")
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null)
   const [userGames, setUserGames] = useState<UserGame[]>([])
@@ -173,6 +170,38 @@ export function CommunityContent() {
   const [selectedEventForManagement, setSelectedEventForManagement] = useState<CommunityEvent | null>(null)
 
   const [showCreateCommunityForm, setShowCreateCommunityForm] = useState(false)
+
+  const [activeView, setActiveView] = useState("communities")
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const tab = urlParams.get("tab")
+    if (tab && ["communities", "events", "users"].includes(tab)) {
+      setActiveView(tab)
+    }
+  }, [])
+
+  const getPageTitle = () => {
+    switch (activeView) {
+      case "events":
+        return "Events"
+      case "users":
+        return "Mitglieder"
+      default:
+        return "Gruppen"
+    }
+  }
+
+  const getPageDescription = () => {
+    switch (activeView) {
+      case "events":
+        return "Entdecke spannende Spiel-Events!"
+      case "users":
+        return "Finde andere Spieler und erweitere dein Netzwerk!"
+      default:
+        return "Finde deine Spiel-Community und schliesse neue Freundschaften!"
+    }
+  }
 
   const testDatabaseConnection = async () => {
     try {
@@ -339,6 +368,14 @@ export function CommunityContent() {
       return []
     }
   }
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const tab = urlParams.get("tab")
+    if (tab && ["communities", "events", "users"].includes(tab)) {
+      setActiveView(tab)
+    }
+  }, [])
 
   useEffect(() => {
     const loadData = async () => {
@@ -952,40 +989,13 @@ export function CommunityContent() {
         {/* Page Header */}
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-            Communities & Events
+            {getPageTitle()}
           </h1>
-          <p className="text-xl text-gray-600 transform rotate-1 font-body">
-            Entdecke Spielgruppen, Events und finde neue Spielpartner!
-          </p>
+          <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">{getPageDescription()}</p>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-6xl mx-auto">
-          <TabsList className="grid w-full grid-cols-3 mb-8 bg-white/80 backdrop-blur-sm border-2 border-orange-200 rounded-xl p-1">
-            <TabsTrigger
-              value="communities"
-              className="font-handwritten text-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-400 data-[state=active]:to-pink-400 data-[state=active]:text-white rounded-lg"
-            >
-              <Users className="w-5 h-5 mr-2" />
-              Communities
-            </TabsTrigger>
-            <TabsTrigger
-              value="events"
-              className="font-handwritten text-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-400 data-[state=active]:to-indigo-400 data-[state=active]:text-white rounded-lg"
-            >
-              <Dices className="w-5 h-5 mr-2" />
-              Events
-            </TabsTrigger>
-            <TabsTrigger
-              value="users"
-              className="font-handwritten text-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-400 data-[state=active]:to-cyan-400 data-[state=active]:text-white rounded-lg"
-            >
-              <Users className="w-5 h-5 mr-2" />
-              Benutzer
-            </TabsTrigger>
-          </TabsList>
-          {/* Tabs Content */}
-          <TabsContent value="communities">
+        <div className="max-w-6xl mx-auto">
+          {activeView === "communities" && (
             <div className="space-y-6">
               {/* Communities Search and Filters */}
               <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
@@ -1096,9 +1106,9 @@ export function CommunityContent() {
                 </div>
               )}
             </div>
-          </TabsContent>
+          )}
 
-          <TabsContent value="events">
+          {activeView === "events" && (
             <div className="space-y-6">
               {/* Events Search and Filters */}
               <div className="space-y-4">
@@ -1323,45 +1333,50 @@ export function CommunityContent() {
 
                         <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.description}</p>
 
-                        {event.selected_games && event.selected_games.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-4">
-                            {event.selected_games.slice(0, 3).map((game, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs bg-purple-100 text-purple-700">
-                                {game}
-                              </Badge>
-                            ))}
-                            {event.selected_games.length > 3 && (
-                              <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-600">
-                                +{event.selected_games.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center text-sm text-gray-500">
+                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                          <div className="flex items-center">
                             <Users className="w-4 h-4 mr-1" />
                             <span>
-                              {isEventSoldOut(event) ? (
-                                <span className="text-red-600 font-medium">Ausgebucht</span>
-                              ) : (
-                                <>
-                                  {getParticipantCount(event)}/
-                                  {event.max_participants === null || event.max_participants === -1
-                                    ? "unbegrenzt"
-                                    : event.max_participants}
-                                </>
-                              )}
+                              {getParticipantCount(event)}/{event.max_participants || "∞"}
                             </span>
                           </div>
-                          <EventDetailsDialog event={event}>
+                          {event.visibility === "friends" && (
+                            <div className="flex items-center">
+                              <Badge variant="outline" className="border-gray-200 text-gray-700 bg-gray-50">
+                                Nur Freunde
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2 justify-end">
+                          {isEventCreator(event) && (
                             <Button
                               size="sm"
                               className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white border-0"
+                              onClick={() => handleManageEvent(event)}
                             >
-                              Details
+                              Verwalten
                             </Button>
-                          </EventDetailsDialog>
+                          )}
+                          {!isEventCreator(event) && !isEventParticipant(event) && (
+                            <Button
+                              size="sm"
+                              className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white border-0"
+                              onClick={() => handleJoinEvent(event.id)}
+                            >
+                              Teilnehmen
+                            </Button>
+                          )}
+                          {!isEventCreator(event) && isEventParticipant(event) && (
+                            <Button
+                              size="sm"
+                              className="bg-gradient-to-r from-red-400 to-red-500 hover:from-red-500 hover:to-red-600 text-white border-0"
+                              onClick={() => handleLeaveEvent(event.id)}
+                            >
+                              Verlassen
+                            </Button>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -1369,38 +1384,118 @@ export function CommunityContent() {
                 </div>
               )}
             </div>
-          </TabsContent>
+          )}
 
-          <TabsContent value="users">
+          {activeView === "users" && (
             <div className="space-y-6">
               {/* Users Search */}
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 w-4 h-4" />
-                  <Input
-                    placeholder="Benutzer suchen..."
-                    value={userSearchTerm}
-                    onChange={(e) => setUserSearchTerm(e.target.value)}
-                    className="pl-10 border-2 border-blue-200 focus:border-blue-400 rounded-xl"
-                  />
-                </div>
-                <div className="flex gap-2 mb-4"></div>
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 w-4 h-4" />
+                <Input
+                  placeholder="Benutzer suchen..."
+                  value={userSearchTerm}
+                  onChange={(e) => setUserSearchTerm(e.target.value)}
+                  className="pl-10 border-2 border-blue-200 focus:border-blue-400 rounded-xl"
+                />
               </div>
 
               {/* Users Grid */}
-              <div className="text-center py-12">
-                <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-handwritten text-gray-600 mb-2">Benutzer-Feature kommt bald</h3>
-                <p className="text-gray-500">
-                  Die Benutzer-Verwaltung wird in einem zukünftigen Update verfügbar sein.
-                </p>
-              </div>
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Benutzer werden geladen...</p>
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-handwritten text-gray-600 mb-2">Keine Benutzer gefunden</h3>
+                  <p className="text-gray-500">Erstelle die erste Community oder ändere deine Suchkriterien.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredUsers.map((targetUser) => (
+                    <Card
+                      key={targetUser.id}
+                      className="group hover:shadow-xl transition-all duration-300 border-2 border-blue-100 hover:border-blue-300 bg-white/80 backdrop-blur-sm"
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <h3 className="font-handwritten text-xl text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">
+                              {targetUser.username || targetUser.name}
+                            </h3>
+                            <div className="flex items-center gap-2 mb-2">
+                              {canViewField(targetUser, "email") && (
+                                <div className="flex items-center text-sm text-gray-500">
+                                  <LogIn className="w-3 h-3 mr-1" />
+                                  {targetUser.email}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {targetUser.avatar && (
+                            <img
+                              src={targetUser.avatar || "/placeholder.svg"}
+                              alt={targetUser.name}
+                              className="w-12 h-12 rounded-lg object-cover"
+                            />
+                          )}
+                        </div>
+
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{targetUser.bio}</p>
+
+                        <div className="flex gap-2 justify-end">
+                          {getFriendshipStatus(targetUser.id) === "none" && (
+                            <Button
+                              size="sm"
+                              className="bg-gradient-to-r from-blue-400 to-cyan-400 hover:from-blue-500 hover:to-cyan-500 text-white border-0"
+                              onClick={() => handleSendFriendRequest(targetUser.id)}
+                            >
+                              Freundschaft anfragen
+                            </Button>
+                          )}
+                          {getFriendshipStatus(targetUser.id) === "sent" && (
+                            <Button size="sm" className="bg-gray-300 text-gray-700" disabled>
+                              Anfrage gesendet
+                            </Button>
+                          )}
+                          {getFriendshipStatus(targetUser.id) === "received" && (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="bg-green-400 hover:bg-green-500 text-white border-0"
+                                onClick={() => handleAcceptFriendRequest("", targetUser.id)}
+                              >
+                                Anfrage akzeptieren
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-red-400 hover:bg-red-500 text-white border-0"
+                                onClick={() => handleRejectFriendRequest("")}
+                              >
+                                Anfrage ablehnen
+                              </Button>
+                            </div>
+                          )}
+                          {getFriendshipStatus(targetUser.id) === "friend" && (
+                            <Button
+                              size="sm"
+                              className="bg-gradient-to-r from-blue-400 to-cyan-400 hover:from-blue-500 hover:to-cyan-500 text-white border-0"
+                              onClick={() => handleViewLibrary(targetUser)}
+                            >
+                              Spielebibliothek anzeigen
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </div>
     </div>
   )
 }
-
-export default CommunityContent

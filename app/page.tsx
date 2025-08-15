@@ -18,10 +18,9 @@ export default function HomePage() {
       <section className="container mx-auto px-4 py-16 text-center">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-5xl font-bold text-gray-800 mb-6 transform -rotate-1 font-handwritten">
-            Bring dein Spiel ins Spiel!
+            Bring deine Spiel ins Spiel
           </h2>
           <p className="text-xl text-gray-600 mb-8 transform rotate-1 font-body">
-            Tausche, verleihe oder verkaufe deine Spiele. Finde Gleichgesinnte, tritt spannenden Spielgruppen bei oder gründe selbst eine.
           </p>          
         </div>
       </section>
@@ -98,7 +97,7 @@ export default function HomePage() {
                 Community
               </h3>
               <p className="text-gray-600 font-body mb-4">
-                Finde Gleichgesinnte und tritt spannende Spielgruppen bei!
+                Finde Gleichgesinnte, tritt spannenden Spielgruppen bei oder gründe selbst eine.
               </p>
               <Button asChild variant="outline" className="border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten">
                 <Link href="/groups">

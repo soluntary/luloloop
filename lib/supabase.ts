@@ -1,41 +1,53 @@
 import { createClient } from "@supabase/supabase-js"
+import { cache } from "react"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co"
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-key"
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-})
+// Check if Supabase environment variables are available
+export const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// Client-side Supabase client (singleton pattern)
-let supabaseClient: ReturnType<typeof createClient> | null = null
-
-export const getSupabaseClient = () => {
-  if (!supabaseClient) {
-    supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : {
       auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
+        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+        onAuthStateChange: () => ({ data: { subscription: null } }),
+        signUp: () => Promise.resolve({ data: { user: null }, error: { message: "Supabase not configured" } }),
+        signInWithPassword: () =>
+          Promise.resolve({ data: { user: null }, error: { message: "Supabase not configured" } }),
+        signOut: () => Promise.resolve({ error: null }),
+        resetPasswordForEmail: () => Promise.resolve({ data: null, error: { message: "Supabase not configured" } }),
+        updateUser: () => Promise.resolve({ data: { user: null }, error: { message: "Supabase not configured" } }),
       },
-    })
-  }
-  return supabaseClient
-}
+      from: () => ({
+        select: () => ({
+          eq: () => ({ data: [], error: null }),
+          neq: () => ({ data: [], error: null }),
+          or: () => ({ data: [], error: null }),
+          order: () => ({ data: [], error: null }),
+          limit: () => ({ data: [], error: null, count: 0 }),
+        }),
+        insert: () => Promise.resolve({ data: null, error: { message: "Supabase not configured" } }),
+        update: () => ({ eq: () => Promise.resolve({ data: null, error: { message: "Supabase not configured" } }) }),
+        delete: () => ({ eq: () => Promise.resolve({ data: null, error: { message: "Supabase not configured" } }) }),
+      }),
+    }
 
-// Server-side Supabase client
-export const createServerClient = () => {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
-}
+// Create a cached version of the Supabase client for Server Components
+export const createServerClient = cache(() => {
+  if (!isSupabaseConfigured) {
+    console.warn("Supabase environment variables are not set. Using dummy client.")
+    return {
+      auth: {
+        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+      },
+    }
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey)
+})
 
 // Database types
 export interface Database {

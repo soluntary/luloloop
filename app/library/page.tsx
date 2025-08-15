@@ -18,6 +18,7 @@ import {
   Upload,
   Repeat,
   Camera,
+  Info,
   ArrowRightFromLine,
   Database,
   Edit,
@@ -112,6 +113,7 @@ const DURATION_OPTIONS = [
   "20-30 Min.",
   "30-45 Min.",
   "45-60 Min.",
+  "45-90 Min.",
   "60-90 Min.",
   "> 90 Min.",
 ]
@@ -211,6 +213,18 @@ function LibraryContent() {
   const [gameToDelete, setGameToDelete] = useState<(typeof games)[0] | null>(null)
 
   const [sortBy, setSortBy] = useState("title-asc")
+
+  const [fieldErrors, setFieldErrors] = useState({
+    image: "",
+    title: "",
+    publisher: "",
+    language: "",
+    type: "",
+    style: "",
+    playerCount: "",
+    duration: "",
+    age: "",
+  })
 
   const filteredGames = games
     .filter((game) => {
@@ -393,40 +407,62 @@ function LibraryContent() {
     }
   }
 
-  // Neues Spiel hinzufügen Funktionen
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setNewGameImage(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const resetAddGameForm = () => {
-    setNewGameTitle("")
-    setNewGamePublisher("")
-    setNewGameLanguage("")
-    setNewGameCustomLanguage("")
-    setNewGameType([])
-    setNewGameCustomType("")
-    setNewGameStyle([])
-    setNewGameCustomStyle("")
-    setNewGameImage(null)
-  }
-
   const handleAddGameSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!newGameTitle.trim() || !newGamePublisher.trim() || !newGameLanguage) {
-      alert("Bitte fülle alle Pflichtfelder aus")
+    const errors = {
+      image: "",
+      title: "",
+      publisher: "",
+      language: "",
+      type: "",
+      style: "",
+      playerCount: "",
+      duration: "",
+      age: "",
+    }
+
+    if (!newGameTitle.trim()) {
+      errors.title = "Bitte gib einen Spielnamen ein."
+    }
+    if (!newGamePublisher.trim() || newGamePublisher === "custom") {
+      errors.publisher = "Verlag ist erforderlich"
+    }
+    if (!newGameLanguage || newGameLanguage === "custom") {
+      errors.language = "Sprache ist erforderlich"
+    }
+    if (newGameType.length === 0) {
+      errors.type = "Bitte wähle mindestens eine Kategorie."
+    }
+    if (newGameStyle.length === 0) {
+      errors.style = "Bitte wähle mindestens einen Typus."
+    }
+    if (!newGamePlayerCount) {
+      errors.playerCount = "Spieleranzahl ist erforderlich"
+    }
+    if (!newGameDuration) {
+      errors.duration = "Spieledauer ist erforderlich"
+    }
+    if (!newGameAge) {
+      errors.age = "Altersempfehlung ist erforderlich"
+    }
+
+    setFieldErrors(errors)
+
+    // Check if any errors exist
+    if (Object.values(errors).some((error) => error !== "")) {
+      return
+    }
+
+    if (!user) {
+      alert("Du musst angemeldet sein, um Spiele hinzuzufügen. Bitte melde dich zuerst an.")
       return
     }
 
     if (!databaseConnected) {
-      alert("Datenbank ist nicht verfügbar. Bitte führe zuerst die SQL-Skripte aus.")
+      alert(
+        "Datenbank ist nicht verfügbar. Bitte überprüfe deine Supabase-Konfiguration oder führe die SQL-Skripte aus.",
+      )
       return
     }
 
@@ -451,7 +487,8 @@ function LibraryContent() {
       setIsAddGameDialogOpen(false)
     } catch (error) {
       console.error("Error adding game:", error)
-      alert("Fehler beim Hinzufügen des Spiels!")
+      const errorMessage = error instanceof Error ? error.message : "Unbekannter Fehler"
+      alert(`Fehler beim Hinzufügen des Spiels: ${errorMessage}`)
     }
   }
 
@@ -594,6 +631,37 @@ function LibraryContent() {
   // The loading state was causing the page to be stuck on the loading screen
   // Now the page will show even if loading is true, with disabled states for buttons
 
+  const resetAddGameForm = () => {
+    setNewGameTitle("")
+    setNewGamePublisher("")
+    setNewGameCustomPublisher("")
+    setNewGameCondition("")
+    setNewGamePlayerCount("")
+    setNewGameDuration("")
+    setNewGameAge("")
+    setNewGameLanguage("")
+    setNewGameCustomLanguage("")
+    setNewGameStyle([])
+    setNewGameCustomStyle("")
+    setNewGameType([])
+    setNewGameCustomType("")
+    setNewGameImage(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "" // Reset file input
+    }
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setNewGameImage(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
       {/* Header */}
@@ -655,7 +723,6 @@ function LibraryContent() {
               </p>
             </DialogHeader>
             <form onSubmit={handleAddGameSubmit} className="space-y-6">
-              {/* Bild Upload Sektion */}
               <div className="bg-gradient-to-br from-teal-50 to-teal-100 p-4 rounded-xl border border-teal-200">
                 <h3 className="font-handwritten text-lg text-teal-700 mb-3 flex items-center gap-2">
                   <Camera className="w-5 h-5" />
@@ -692,13 +759,14 @@ function LibraryContent() {
                     <Upload className="w-4 h-4 mr-2" />
                     Bild hochladen
                   </Button>
+                  {fieldErrors.image && <p className="text-red-500 text-sm mt-2 font-body">{fieldErrors.image}</p>}
                 </div>
               </div>
 
               {/* Grundinformationen Sektion */}
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
                 <h3 className="font-handwritten text-lg text-blue-700 mb-4 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5" />
+                  <Info className="w-5 h-5" />
                   Grundinformationen
                 </h3>
                 <div className="space-y-4">
@@ -711,6 +779,7 @@ function LibraryContent() {
                       className="font-body border-2 border-blue-200 focus:border-blue-400 bg-white/80"
                       required
                     />
+                    {fieldErrors.title && <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.title}</p>}
                   </div>
 
                   <div>
@@ -761,6 +830,9 @@ function LibraryContent() {
                         </Button>
                       </div>
                     )}
+                    {fieldErrors.publisher && (
+                      <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.publisher}</p>
+                    )}
                   </div>
 
                   <div>
@@ -804,6 +876,9 @@ function LibraryContent() {
                           <Plus className="w-3 h-3" />
                         </Button>
                       </div>
+                    )}
+                    {fieldErrors.language && (
+                      <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.language}</p>
                     )}
                   </div>
                 </div>
@@ -897,6 +972,7 @@ function LibraryContent() {
                         </div>
                       </PopoverContent>
                     </Popover>
+                    {fieldErrors.type && <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.type}</p>}
                   </div>
 
                   <div>
@@ -980,6 +1056,7 @@ function LibraryContent() {
                         </div>
                       </PopoverContent>
                     </Popover>
+                    {fieldErrors.style && <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.style}</p>}
                   </div>
                 </div>
               </div>
@@ -1005,6 +1082,9 @@ function LibraryContent() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {fieldErrors.playerCount && (
+                      <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.playerCount}</p>
+                    )}
                   </div>
                   <div>
                     <Label className="font-body text-gray-700 font-medium">Spieldauer *</Label>
@@ -1020,6 +1100,9 @@ function LibraryContent() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {fieldErrors.duration && (
+                      <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.duration}</p>
+                    )}
                   </div>
                   <div>
                     <Label className="font-body text-gray-700 font-medium">Altersempfehlung *</Label>
@@ -1035,6 +1118,7 @@ function LibraryContent() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {fieldErrors.age && <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.age}</p>}
                   </div>
                 </div>
               </div>

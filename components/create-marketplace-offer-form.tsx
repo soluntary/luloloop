@@ -20,18 +20,12 @@ import {
   AlertCircle,
   Check,
   Camera,
-  BookOpen,
   Tag,
   Users,
   Plus,
   Dices,
   ChevronDown,
-  Gamepad2,
   Info,
-  Settings,
-  Clock,
-  DollarSign,
-  ArrowLeftRight,
   Truck,
   MapPin,
   Package,
@@ -161,7 +155,6 @@ export function CreateMarketplaceOfferForm({
   const [customGamePublisher, setCustomGamePublisher] = useState("")
 
   const [customGameCustomPublisher, setCustomGameCustomPublisher] = useState("")
-  const [customGameCondition, setCustomGameCondition] = useState("")
   const [customGamePlayerCount, setCustomGamePlayerCount] = useState("")
   const [customGameDuration, setCustomGameDuration] = useState("")
   const [customGameAge, setCustomGameAge] = useState("")
@@ -194,7 +187,6 @@ export function CreateMarketplaceOfferForm({
     if (isOpen) {
       if (preselectedGame) {
         setSelectedGame(preselectedGame.id || "")
-        setCondition(preselectedGame.condition || "")
         setImagePreview(preselectedGame.image || "")
         setCurrentStep(2)
       } else {
@@ -348,64 +340,67 @@ export function CreateMarketplaceOfferForm({
   }
 
   const validateStep = (step: number): boolean => {
-    const newErrors: Record<string, string> = {}
+    let newErrors: Record<string, string> = {}
 
     if (step === 1) {
-      const validateStep1 = () => {
-        const newErrors: Record<string, string> = {}
+      newErrors = {}
 
-        if (!selectedGame && !customGameTitle.trim()) {
-          newErrors.game = "Bitte wähle ein Spiel aus oder gib einen Spieltitel ein"
-        }
-
-        if (!selectedGame && customGameTitle.trim()) {
-          if (!customGamePublisher.trim()) {
-            newErrors.customGamePublisher = "Verlag ist erforderlich"
-          }
-          if (!customGameCondition) {
-            newErrors.customGameCondition = "Zustand ist erforderlich"
-          }
-          if (!customGamePlayerCount) {
-            newErrors.customGamePlayerCount = "Spieleranzahl ist erforderlich"
-          }
-          if (!customGameDuration) {
-            newErrors.customGameDuration = "Spieldauer ist erforderlich"
-          }
-          if (!customGameAge) {
-            newErrors.customGameAge = "Altersempfehlung ist erforderlich"
-          }
-          if (!customGameLanguage || customGameLanguage === "custom") {
-            newErrors.customGameLanguage = "Sprache ist erforderlich"
-          }
-          if (customGameType.length === 0) {
-            newErrors.customGameType = "Bitte wähle mindestens eine Kategorie."
-          }
-          if (customGameStyle.length === 0) {
-            newErrors.customGameStyle = "Bitte wähle mindestens einen Typus."
-          }
-        }
-
-        return newErrors
+      if (!selectedGame && !customGameTitle.trim()) {
+        newErrors.game = "Bitte wähle ein Spiel aus oder gib einen Spieltitel ein"
       }
 
-      const step1Errors = validateStep1()
-      setErrors(step1Errors)
-      if (Object.keys(step1Errors).length > 0) {
-        return false
+      if (!selectedGame && customGameTitle.trim()) {
+        if (!customGamePublisher.trim()) {
+          newErrors.customGamePublisher = "Verlag ist erforderlich"
+        }
+        if (!condition) {
+          newErrors.condition = "Zustand ist erforderlich"
+        }
+        if (!customGamePlayerCount) {
+          newErrors.customGamePlayerCount = "Spieleranzahl ist erforderlich"
+        }
+        if (!customGameDuration) {
+          newErrors.customGameDuration = "Spieldauer ist erforderlich"
+        }
+        if (!customGameAge) {
+          newErrors.customGameAge = "Altersempfehlung ist erforderlich"
+        }
+        if (!customGameLanguage || customGameLanguage === "custom") {
+          newErrors.customGameLanguage = "Sprache ist erforderlich"
+        }
+        if (customGameType.length === 0) {
+          newErrors.customGameType = "Bitte wähle mindestens eine Kategorie."
+        }
+        if (customGameStyle.length === 0) {
+          newErrors.customGameStyle = "Bitte wähle mindestens einen Typus."
+        }
       }
+
+      setErrors(newErrors)
+      return Object.keys(newErrors).length === 0
     }
 
     if (step === 2) {
+      newErrors = {}
+
       if (!offerType) {
-        newErrors.type = "Bitte wähle einen Angebotsart."
+        newErrors.type = "Bitte wähle eine Angebotsart aus"
+      }
+
+      if (!condition) {
+        newErrors.condition = "Bitte wähle einen Zustand aus"
       }
 
       if (offerType === "lend" && !price) {
         newErrors.price = "Bitte gib Preis/Bedingungen an."
       }
 
+      if (offerType === "trade" && !price) {
+        newErrors.price = "Bitte gib die Tauschbedingungen an."
+      }
+
       if ((offerType === "lend" || offerType === "sell") && !depositAmount) {
-        newErrors.depositAmount = "Bitte gib den Pfandbetrag an."
+        newErrors.depositAmount = "Bitte gib einen Wert für den Pfandbetrag ein."
       }
 
       if ((offerType === "lend" || offerType === "sell") && !deliveryPickup && !deliveryShipping) {
@@ -465,7 +460,7 @@ export function CreateMarketplaceOfferForm({
         const newGameData = {
           title: customGameTitle,
           publisher: customGamePublisher,
-          condition: customGameCondition,
+          condition: condition,
           players: customGamePlayerCount,
           duration: customGameDuration,
           age: customGameAge,
@@ -553,7 +548,7 @@ export function CreateMarketplaceOfferForm({
   const getPriceLabel = () => {
     switch (offerType) {
       case "lend":
-        return "Preis/Bedingungen"
+        return "Bedingungen"
       case "trade":
         return "Tauschbedingungen"
       case "sell":
@@ -589,8 +584,8 @@ export function CreateMarketplaceOfferForm({
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
                       step <= currentStep
-                        ? "bg-white text-orange-600 shadow-lg"
-                        : "bg-orange-500 text-orange-600 border-2 border-orange-300"
+                        ? "bg-white text-orange-800 shadow-lg"
+                        : "bg-orange-500 text-orange-800 border-2 border-orange-800"
                     }`}
                   >
                     {step < currentStep ? <Check className="w-5 h-5" /> : step}
@@ -598,7 +593,7 @@ export function CreateMarketplaceOfferForm({
                   {step < 3 && (
                     <div
                       className={`w-16 h-1 mx-2 transition-all duration-300 ${
-                        step < currentStep ? "bg-white" : "bg-orange-300"
+                        step < currentStep ? "bg-white" : "bg-orange-800"
                       }`}
                     />
                   )}
@@ -606,7 +601,7 @@ export function CreateMarketplaceOfferForm({
               ))}
             </div>
 
-            <p className="text-center text-orange-100 text-sm">Schritt {currentStep} von 3</p>
+            <p className="text-center text-white text-sm">Schritt {currentStep} von 3</p>
           </DialogHeader>
         </div>
 
@@ -615,9 +610,9 @@ export function CreateMarketplaceOfferForm({
             {/* Step 1: Game Selection */}
             {currentStep === 1 && (
               <div className="space-y-6">
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-amber-100 hover:shadow-xl transition-all duration-300">
-                  <h3 className="text-xl font-bold text-amber-800 mb-4 flex items-center gap-3">
-                    <Gamepad2 className="w-6 h-6 text-amber-600" />
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100 hover:shadow-xl transition-all duration-300">
+                  <h3 className="text-xl font-bold text-orange-800 mb-4 flex items-center gap-3">
+                    <Dices className="w-6 h-6 text-orange-800" />
                     Spiel auswählen
                   </h3>
 
@@ -627,12 +622,12 @@ export function CreateMarketplaceOfferForm({
                         Aus deiner Bibliothek wählen
                       </Label>
                       <Select value={selectedGame} onValueChange={setSelectedGame}>
-                        <SelectTrigger className="h-12 border-2 border-amber-200 focus:border-amber-500 rounded-xl bg-white hover:border-amber-300 transition-colors">
+                        <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
                           <SelectValue placeholder="Spiel aus Bibliothek wählen..." />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl border-amber-200">
+                        <SelectContent className="rounded-xl border-orange-200">
                           {games.map((game) => (
-                            <SelectItem key={game.id} value={game.id} className="rounded-lg hover:bg-amber-50">
+                            <SelectItem key={game.id} value={game.id} className="rounded-lg hover:bg-orange-50">
                               <div className="flex items-center gap-3">
                                 {game.image && (
                                   <img
@@ -654,14 +649,14 @@ export function CreateMarketplaceOfferForm({
 
                     <div className="relative">
                       <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-amber-200" />
+                        <div className="w-full border-t border-orange-200" />
                       </div>
                       <div className="relative flex justify-center text-sm">
-                        <span className="bg-white px-4 text-amber-600 font-medium">oder</span>
+                        <span className="bg-white px-4 text-orange-600 font-medium">oder</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-3 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                    <div className="flex items-center space-x-3 p-4 bg-orange-50 rounded-xl border border-orange-200">
                       <Checkbox
                         id="custom-game"
                         checked={!selectedGame}
@@ -670,9 +665,9 @@ export function CreateMarketplaceOfferForm({
                             setSelectedGame("")
                           }
                         }}
-                        className="border-amber-400 data-[state=checked]:bg-amber-600"
+                        className="border-orange-400 data-[state=checked]:bg-orange-600"
                       />
-                      <Label htmlFor="custom-game" className="font-medium text-amber-800 cursor-pointer">
+                      <Label htmlFor="custom-game" className="font-medium text-black-800 cursor-pointer">
                         Neues Spiel hinzufügen
                       </Label>
                     </div>
@@ -683,13 +678,13 @@ export function CreateMarketplaceOfferForm({
                 {!selectedGame && (
                   <div className="space-y-6">
                     {/* Game Cover Section */}
-                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-200 shadow-sm">
-                      <h3 className="text-lg font-bold text-amber-800 mb-4 flex items-center gap-2">
+                    <div className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-2xl p-6 border border-amber-200 shadow-sm">
+                      <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
                         <Camera className="w-5 h-5" />
                         Spiel Cover
                       </h3>
                       <div className="text-center">
-                        <div className="w-40 h-52 mx-auto mb-4 border-2 border-dashed border-amber-300 rounded-2xl flex items-center justify-center bg-white/70 overflow-hidden hover:border-amber-400 transition-all duration-300 shadow-sm hover:shadow-md">
+                        <div className="w-40 h-52 mx-auto mb-4 border-2 border-dashed border-orange-300 rounded-2xl flex items-center justify-center bg-white/70 overflow-hidden hover:border-orange-400 transition-all duration-300 shadow-sm hover:shadow-md">
                           {customGameImage ? (
                             <img
                               src={customGameImage || "/placeholder.svg"}
@@ -698,8 +693,8 @@ export function CreateMarketplaceOfferForm({
                             />
                           ) : (
                             <div className="text-center">
-                              <Camera className="w-12 h-12 text-amber-400 mx-auto mb-3" />
-                              <p className="text-sm text-amber-600 font-medium">Cover hochladen</p>
+                              <Camera className="w-12 h-12 text-orange-400 mx-auto mb-3" />
+                              <p className="text-sm text-orange-600 font-medium">Cover hochladen</p>
                             </div>
                           )}
                         </div>
@@ -714,7 +709,7 @@ export function CreateMarketplaceOfferForm({
                           type="button"
                           variant="outline"
                           onClick={() => fileInputRef.current?.click()}
-                          className="border-2 border-amber-400 text-amber-600 hover:bg-amber-400 hover:text-white transition-all duration-200 rounded-xl px-6 py-2 font-medium"
+                          className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white transition-all duration-200 rounded-xl px-6 py-2 font-medium"
                           disabled={!!selectedGame}
                         >
                           <Upload className="w-4 h-4 mr-2" />
@@ -730,9 +725,9 @@ export function CreateMarketplaceOfferForm({
                     </div>
 
                     {/* Basic Information */}
-                    <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl p-6 border border-amber-200 shadow-sm">
-                      <h3 className="text-lg font-bold text-amber-800 mb-4 flex items-center gap-2">
-                        <BookOpen className="w-5 h-5" />
+                    <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
+                      <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
+                        <Info className="w-5 h-5" />
                         Grundinformationen
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -742,7 +737,7 @@ export function CreateMarketplaceOfferForm({
                             value={customGameTitle}
                             onChange={(e) => setCustomGameTitle(e.target.value)}
                             placeholder="z.B. Die Siedler von Catan"
-                            className="h-12 border-2 border-amber-200 focus:border-amber-500 rounded-xl bg-white hover:border-amber-300 transition-colors"
+                            className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors"
                             disabled={!!selectedGame}
                           />
                         </div>
@@ -754,7 +749,7 @@ export function CreateMarketplaceOfferForm({
                             onValueChange={setCustomGamePublisher}
                             disabled={!!selectedGame}
                           >
-                            <SelectTrigger className="h-12 border-2 border-amber-200 focus:border-amber-500 rounded-xl bg-white hover:border-amber-300 transition-colors">
+                            <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
                               <SelectValue placeholder="Verlag wählen..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl">
@@ -763,7 +758,7 @@ export function CreateMarketplaceOfferForm({
                                   {publisher}
                                 </SelectItem>
                               ))}
-                              <SelectItem value="custom" className="font-bold text-amber-600 rounded-lg">
+                              <SelectItem value="custom" className="font-bold text-orange-600 rounded-lg">
                                 Eigenen Verlag eingeben...
                               </SelectItem>
                             </SelectContent>
@@ -774,7 +769,7 @@ export function CreateMarketplaceOfferForm({
                                 value={customGameCustomPublisher}
                                 onChange={(e) => setCustomGameCustomPublisher(e.target.value)}
                                 placeholder="Verlag eingeben..."
-                                className="h-10 border-2 border-amber-200 rounded-lg bg-white"
+                                className="h-10 border-2 border-orange-200 rounded-lg bg-white"
                                 onKeyPress={(e) => {
                                   if (e.key === "Enter") {
                                     e.preventDefault()
@@ -786,7 +781,7 @@ export function CreateMarketplaceOfferForm({
                                 type="button"
                                 size="sm"
                                 onClick={handleAddCustomPublisher}
-                                className="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-3"
+                                className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-3"
                               >
                                 <Plus className="w-4 h-4" />
                               </Button>
@@ -801,7 +796,7 @@ export function CreateMarketplaceOfferForm({
                             onValueChange={setCustomGameLanguage}
                             disabled={!!selectedGame}
                           >
-                            <SelectTrigger className="h-12 border-2 border-amber-200 focus:border-amber-500 rounded-xl bg-white hover:border-amber-300 transition-colors">
+                            <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
                               <SelectValue placeholder="Sprache wählen..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl">
@@ -822,7 +817,7 @@ export function CreateMarketplaceOfferForm({
                                 value={customGameCustomLanguage}
                                 onChange={(e) => setCustomGameCustomLanguage(e.target.value)}
                                 placeholder="Sprache eingeben..."
-                                className="h-10 border-2 border-amber-200 rounded-lg bg-white"
+                                className="h-10 border-2 border-orange-200 rounded-lg bg-white"
                                 onKeyPress={(e) => {
                                   if (e.key === "Enter") {
                                     e.preventDefault()
@@ -834,7 +829,7 @@ export function CreateMarketplaceOfferForm({
                                 type="button"
                                 size="sm"
                                 onClick={handleAddCustomLanguage}
-                                className="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-3"
+                                className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-3"
                               >
                                 <Plus className="w-4 h-4" />
                               </Button>
@@ -861,8 +856,8 @@ export function CreateMarketplaceOfferForm({
                     </div>
 
                     {/* Categories Section */}
-                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-200 shadow-sm">
-                      <h3 className="text-lg font-bold text-amber-800 mb-4 flex items-center gap-2">
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
+                      <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
                         <Tag className="w-5 h-5" />
                         Kategorien & Typus
                       </h3>
@@ -876,12 +871,12 @@ export function CreateMarketplaceOfferForm({
                             <PopoverTrigger asChild>
                               <Button
                                 variant="outline"
-                                className="w-full justify-between h-12 border-2 border-amber-200 hover:border-amber-300 rounded-xl bg-white transition-colors"
+                                className="w-full justify-between h-12 border-2 border-orange-200 hover:border-orange-300 rounded-xl bg-white transition-colors"
                                 type="button"
                                 disabled={!!selectedGame}
                               >
                                 {customGameType.length > 0 ? (
-                                  <span className="text-amber-600 font-medium">
+                                  <span className="text-orange-600 font-medium">
                                     {customGameType.length} Kategorie{customGameType.length > 1 ? "n" : ""} ausgewählt
                                   </span>
                                 ) : (
@@ -890,26 +885,26 @@ export function CreateMarketplaceOfferForm({
                                 <ChevronDown className="h-4 w-4 opacity-50" />
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-72 p-0 rounded-xl border-amber-200">
+                            <PopoverContent className="w-72 p-0 rounded-xl border-orange-200">
                               <div className="p-4 space-y-3 max-h-64 overflow-y-auto">
-                                <h4 className="font-semibold text-sm text-amber-800">Kategorie auswählen:</h4>
+                                <h4 className="font-semibold text-sm text-orange-800">Kategorie auswählen:</h4>
                                 {GAME_TYPE_OPTIONS.map((type) => (
                                   <div
                                     key={type}
-                                    className="flex items-center space-x-3 p-2 hover:bg-amber-50 rounded-lg transition-colors"
+                                    className="flex items-center space-x-3 p-2 hover:bg-orange-50 rounded-lg transition-colors"
                                   >
                                     <Checkbox
                                       id={`type-${type}`}
                                       checked={customGameType.includes(type)}
                                       onCheckedChange={() => handleCustomGameTypeToggle(type)}
-                                      className="border-amber-300 data-[state=checked]:bg-amber-600"
+                                      className="border-orange-300 data-[state=checked]:bg-orange-600"
                                     />
                                     <Label htmlFor={`type-${type}`} className="text-sm cursor-pointer flex-1">
                                       {type}
                                     </Label>
                                   </div>
                                 ))}
-                                <div className="border-t border-amber-200 pt-3 mt-3">
+                                <div className="border-t border-orange-200 pt-3 mt-3">
                                   <h5 className="font-medium text-xs text-gray-600 mb-2">
                                     Eigene Kategorie hinzufügen:
                                   </h5>
@@ -918,7 +913,7 @@ export function CreateMarketplaceOfferForm({
                                       value={customGameCustomType}
                                       onChange={(e) => setCustomGameCustomType(e.target.value)}
                                       placeholder="Kategorie eingeben..."
-                                      className="text-sm border-amber-200 rounded-lg"
+                                      className="text-sm border-orange-200 rounded-lg"
                                       onKeyPress={(e) => {
                                         if (e.key === "Enter") {
                                           e.preventDefault()
@@ -930,20 +925,20 @@ export function CreateMarketplaceOfferForm({
                                       type="button"
                                       size="sm"
                                       onClick={handleAddCustomType}
-                                      className="bg-amber-500 hover:bg-amber-600 text-white px-2 rounded-lg"
+                                      className="bg-orange-500 hover:bg-orange-600 text-white px-2 rounded-lg"
                                     >
                                       <Plus className="w-3 h-3" />
                                     </Button>
                                   </div>
                                 </div>
                                 {customGameType.length > 0 && (
-                                  <div className="border-t border-amber-200 pt-3 mt-3">
+                                  <div className="border-t border-orange-200 pt-3 mt-3">
                                     <h5 className="font-medium text-xs text-gray-600 mb-2">Ausgewählt:</h5>
                                     <div className="flex flex-wrap gap-1">
                                       {customGameType.map((type) => (
                                         <Badge
                                           key={type}
-                                          className="text-xs cursor-pointer bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-full px-2 py-1"
+                                          className="text-xs cursor-pointer bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-full px-2 py-1"
                                           onClick={() => handleCustomGameTypeToggle(type)}
                                         >
                                           {type} ×
@@ -966,12 +961,12 @@ export function CreateMarketplaceOfferForm({
                             <PopoverTrigger asChild>
                               <Button
                                 variant="outline"
-                                className="w-full justify-between h-12 border-2 border-amber-200 hover:border-amber-300 rounded-xl bg-white transition-colors"
+                                className="w-full justify-between h-12 border-2 border-orange-200 hover:border-orange-300 rounded-xl bg-white transition-colors"
                                 type="button"
                                 disabled={!!selectedGame}
                               >
                                 {customGameStyle.length > 0 ? (
-                                  <span className="text-amber-600 font-medium">
+                                  <span className="text-orange-600 font-medium">
                                     {customGameStyle.length} Typus {customGameStyle.length > 1 ? "en" : ""} ausgewählt
                                   </span>
                                 ) : (
@@ -980,33 +975,33 @@ export function CreateMarketplaceOfferForm({
                                 <ChevronDown className="h-4 w-4 opacity-50" />
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-72 p-0 rounded-xl border-amber-200">
+                            <PopoverContent className="w-72 p-0 rounded-xl border-orange-200">
                               <div className="p-4 space-y-3 max-h-64 overflow-y-auto">
-                                <h4 className="font-semibold text-sm text-amber-800">Typus auswählen:</h4>
+                                <h4 className="font-semibold text-sm text-orange-800">Typus auswählen:</h4>
                                 {GAME_STYLE_OPTIONS.map((style) => (
                                   <div
                                     key={style}
-                                    className="flex items-center space-x-3 p-2 hover:bg-amber-50 rounded-lg transition-colors"
+                                    className="flex items-center space-x-3 p-2 hover:bg-orange-50 rounded-lg transition-colors"
                                   >
                                     <Checkbox
                                       id={`style-${style}`}
                                       checked={customGameStyle.includes(style)}
                                       onCheckedChange={() => handleCustomGameStyleToggle(style)}
-                                      className="border-amber-300 data-[state=checked]:bg-amber-600"
+                                      className="border-orange-300 data-[state=checked]:bg-orange-600"
                                     />
                                     <Label htmlFor={`style-${style}`} className="text-sm cursor-pointer flex-1">
                                       {style}
                                     </Label>
                                   </div>
                                 ))}
-                                <div className="border-t border-amber-200 pt-3 mt-3">
+                                <div className="border-t border-orange-200 pt-3 mt-3">
                                   <h5 className="font-medium text-xs text-gray-600 mb-2">Eigenen Typus hinzufügen:</h5>
                                   <div className="flex gap-2">
                                     <Input
                                       value={customGameCustomStyle}
                                       onChange={(e) => setCustomGameCustomStyle(e.target.value)}
                                       placeholder="Typus eingeben..."
-                                      className="text-sm border-amber-200 rounded-lg"
+                                      className="text-sm border-orange-200 rounded-lg"
                                       onKeyPress={(e) => {
                                         if (e.key === "Enter") {
                                           e.preventDefault()
@@ -1018,20 +1013,20 @@ export function CreateMarketplaceOfferForm({
                                       type="button"
                                       size="sm"
                                       onClick={handleAddCustomStyle}
-                                      className="bg-amber-500 hover:bg-amber-600 text-white px-2 rounded-lg"
+                                      className="bg-orange-500 hover:bg-orange-600 text-white px-2 rounded-lg"
                                     >
                                       <Plus className="w-3 h-3" />
                                     </Button>
                                   </div>
                                 </div>
                                 {customGameStyle.length > 0 && (
-                                  <div className="border-t border-amber-200 pt-3 mt-3">
+                                  <div className="border-t border-orange-200 pt-3 mt-3">
                                     <h5 className="font-medium text-xs text-gray-600 mb-2">Ausgewählt:</h5>
                                     <div className="flex flex-wrap gap-1">
                                       {customGameStyle.map((style) => (
                                         <Badge
                                           key={style}
-                                          className="text-xs cursor-pointer bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-full px-2 py-1"
+                                          className="text-xs cursor-pointer bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-full px-2 py-1"
                                           onClick={() => handleCustomGameStyleToggle(style)}
                                         >
                                           {style} ×
@@ -1155,10 +1150,8 @@ export function CreateMarketplaceOfferForm({
             {/* Step 2: Offer Details */}
             {currentStep === 2 && (
               <div className="space-y-6">
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100">
-                  <h3 className="text-xl font-bold text-blue-800 mb-6 flex items-center gap-3">
-                    Angebots-Details
-                  </h3>
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100">
+                  <h3 className="text-xl font-bold text-orange-800 mb-6 flex items-center gap-3">Angebots-Details</h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Offer Type */}
@@ -1168,7 +1161,7 @@ export function CreateMarketplaceOfferForm({
                         value={offerType}
                         onValueChange={(value: "lend" | "trade" | "sell") => setOfferType(value)}
                       >
-                        <SelectTrigger className="h-12 border-2 border-blue-200 focus:border-blue-500 rounded-xl bg-white hover:border-blue-300 transition-colors">
+                        <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl">
@@ -1204,29 +1197,21 @@ export function CreateMarketplaceOfferForm({
                     <div>
                       <Label className="text-sm font-semibold text-gray-700 mb-2 block">Zustand *</Label>
                       <Select value={condition} onValueChange={setCondition}>
-                        <SelectTrigger className="h-12 border-2 border-blue-200 focus:border-blue-500 rounded-xl bg-white hover:border-blue-300 transition-colors">
+                        <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
                           <SelectValue placeholder="Zustand auswählen..." />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl">
                           <SelectItem value="neu" className="rounded-lg">
-                            <div className="flex items-center gap-2">
-                              Neu
-                            </div>
+                            <div className="flex items-center gap-2">Neu</div>
                           </SelectItem>
                           <SelectItem value="wie neu" className="rounded-lg">
-                            <div className="flex items-center gap-2">
-                              Wie neu
-                            </div>
+                            <div className="flex items-center gap-2">Wie neu</div>
                           </SelectItem>
                           <SelectItem value="sehr gut" className="rounded-lg">
-                            <div className="flex items-center gap-2">
-                              Sehr gut
-                            </div>
+                            <div className="flex items-center gap-2">Sehr gut</div>
                           </SelectItem>
                           <SelectItem value="gut" className="rounded-lg">
-                            <div className="flex items-center gap-2">
-                              Gut
-                            </div>
+                            <div className="flex items-center gap-2">Gut</div>
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -1243,10 +1228,7 @@ export function CreateMarketplaceOfferForm({
                 {/* Lending specific fields */}
                 {offerType === "lend" && (
                   <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl p-6 border border-teal-200 shadow-sm">
-                    <h4 className="text-lg font-bold text-teal-800 mb-4 flex items-center gap-2">
-                      Verleihen Details
-                    </h4>
-
+                    <h4 className="text-lg font-bold text-teal-800 mb-4 flex items-center gap-2">Verleihen Details</h4>
                     {/* Daily Rates */}
                     <div className="mb-6">
                       <Label className="text-sm font-semibold text-gray-700 mb-3 block">Ausleihgebühr (CHF)</Label>
@@ -1301,8 +1283,7 @@ export function CreateMarketplaceOfferForm({
                         </div>
                       </div>
                       <p className="text-sm text-teal-600 mt-3 bg-teal-50 p-3 rounded-lg">
-                        ℹ️ Gib gestaffelte Tagespreise an. Lasse Felder leer für kostenlose Ausleihe in diesen
-                        Zeiträumen.
+                        Gib gestaffelte Tagespreise an. Lasse Felder leer für kostenlose Ausleihe in diesen Zeiträumen.
                       </p>
                     </div>
 
@@ -1331,9 +1312,7 @@ export function CreateMarketplaceOfferForm({
                 {/* Selling specific fields */}
                 {offerType === "sell" && (
                   <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl p-6 border border-pink-200 shadow-sm">
-                    <h4 className="text-lg font-bold text-pink-800 mb-4 flex items-center gap-2">
-                      Verkaufs Details
-                    </h4>
+                    <h4 className="text-lg font-bold text-pink-800 mb-4 flex items-center gap-2">Verkaufs Details</h4>
 
                     <div>
                       <Label className="text-sm font-semibold text-gray-700 mb-2 block">Verkaufspreis (CHF) *</Label>
@@ -1358,10 +1337,8 @@ export function CreateMarketplaceOfferForm({
 
                 {/* Trading specific fields */}
                 {offerType === "trade" && (
-                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
-                    <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
-                      Tausch Details
-                    </h4>
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
+                    <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">Tausch Details</h4>
 
                     <div>
                       <Label className="text-sm font-semibold text-gray-700 mb-2 block">{getPriceLabel()}</Label>
@@ -1484,21 +1461,19 @@ export function CreateMarketplaceOfferForm({
                 )}
 
                 {/* Description */}
-                {offerType !== "sell" && (
-                  <div className="bg-white rounded-2xl p-6 border border-purple-100 shadow-sm">
-                    <Label className="text-sm font-semibold text-gray-700 mb-2 block flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      Beschreibung
-                    </Label>
-                    <Textarea
-                      placeholder="Zusätzliche Informationen zum Spiel oder Angebot..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="border-2 border-purple-200 focus:border-purple-500 rounded-xl bg-white resize-none"
-                      rows={4}
-                    />
-                  </div>
-                )}
+                <div className="bg-white rounded-2xl p-6 border border-amber-100 shadow-sm">
+                  <Label className="text-sm font-semibold text-gray-700 mb-2 block flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Beschreibung
+                  </Label>
+                  <Textarea
+                    placeholder="Zusätzliche Informationen zum Spiel oder Angebot..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="border-2 border-amber-200 focus:border-amber-500 rounded-xl bg-white resize-none"
+                    rows={4}
+                  />
+                </div>
 
                 {/* Image Upload */}
                 <div className="bg-white rounded-2xl p-6 border border-purple-100 shadow-sm">
@@ -1561,16 +1536,16 @@ export function CreateMarketplaceOfferForm({
             {/* Step 3: Summary */}
             {currentStep === 3 && (
               <div className="space-y-6">
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200 shadow-lg">
-                  <h3 className="text-2xl font-bold text-blue-800 mb-6 flex items-center gap-3">
+                <div className="bg-gradient-to-br from-orange-50 to-indigo-50 rounded-2xl p-6 border border-orange-200 shadow-lg">
+                  <h3 className="text-2xl font-bold text-orange-800 mb-6 flex items-center gap-3">
                     <Eye className="w-6 h-6" />
                     Angebots-Zusammenfassung
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Game Information */}
-                    <div className="bg-white rounded-xl p-4 border border-blue-100">
-                      <h4 className="font-bold text-blue-700 mb-3 flex items-center gap-2">
+                    <div className="bg-white rounded-xl p-4 border border-orange-100">
+                      <h4 className="font-bold text-orange-700 mb-3 flex items-center gap-2">
                         <Dices className="w-4 h-4" />
                         Spiel-Informationen
                       </h4>
@@ -1597,8 +1572,8 @@ export function CreateMarketplaceOfferForm({
                     </div>
 
                     {/* Offer Information */}
-                    <div className="bg-white rounded-xl p-4 border border-blue-100">
-                      <h4 className="font-bold text-blue-700 mb-3 flex items-center gap-2">
+                    <div className="bg-white rounded-xl p-4 border border-orange-100">
+                      <h4 className="font-bold text-orange-700 mb-3 flex items-center gap-2">
                         <Tag className="w-4 h-4" />
                         Angebots-Informationen
                       </h4>
@@ -1633,14 +1608,10 @@ export function CreateMarketplaceOfferForm({
                         )}
                       </div>
                     </div>
-
                     {/* Lending Details */}
                     {offerType === "lend" && (
                       <div className="md:col-span-2 bg-white rounded-xl p-4 border border-teal-100">
-                        <h4 className="font-bold text-teal-700 mb-3 flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          Verleihen Details
-                        </h4>
+                        <h4 className="font-bold text-teal-700 mb-3 flex items-center gap-2">Verleihen Details</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <span className="text-sm text-gray-600 block mb-2">Ausleihgebühr:</span>
@@ -1792,7 +1763,7 @@ export function CreateMarketplaceOfferForm({
                 type="button"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-xl px-8 py-2 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-800 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-xl px-8 py-2 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
               >
                 {isSubmitting ? (
                   <>

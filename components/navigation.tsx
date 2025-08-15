@@ -18,6 +18,11 @@ import {
   Menu,
   X,
   Info,
+  ChevronDown,
+  Search,
+  ShoppingBag,
+  Calendar,
+  UserCheck,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -25,26 +30,81 @@ interface NavigationProps {
   currentPage?: string
 }
 
+interface NavItem {
+  href?: string
+  label: string
+  icon: any
+  key: string
+  dropdown?: {
+    items: {
+      href: string
+      label: string
+      icon: any
+      key: string
+    }[]
+  }
+}
+
 export function Navigation({ currentPage }: NavigationProps) {
   const pathname = usePathname()
   const { user, signOut } = useAuth() || { user: null, signOut: null }
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  // Navigation items for logged-in users
-  const loggedInNavItems = [
+  const loggedInNavItems: NavItem[] = [
     { href: "/", label: "Home", icon: Home, key: "home" },
     { href: "/library", label: "Bibliothek", icon: LibraryBig, key: "library" },
-    { href: "/groups", label: "Community", icon: Users, key: "community" },
-    { href: "/marketplace", label: "Spielemarkt", icon: Store, key: "spielemarkt" },
+    {
+      label: "Community",
+      icon: Users,
+      key: "community",
+      dropdown: {
+        items: [
+          { href: "/groups", label: "Gruppen", icon: Users, key: "groups" },
+          { href: "/groups?tab=events", label: "Events", icon: Calendar, key: "events" },
+          { href: "/groups?tab=users", label: "Mitglieder", icon: UserCheck, key: "members" },
+        ],
+      },
+    },
+    {
+      label: "Spielemarkt",
+      icon: Store,
+      key: "spielemarkt",
+      dropdown: {
+        items: [
+          { href: "/marketplace", label: "Angebote", icon: ShoppingBag, key: "marketplace-offers" },
+          { href: "/marketplace?tab=search", label: "Suchanzeigen", icon: Search, key: "marketplace-search" },
+        ],
+      },
+    },
     { href: "/messages", label: "Nachrichten", icon: MessageCircle, key: "messages" },
     { href: "/about", label: "Über uns", icon: Info, key: "about" },
   ]
 
-  // Navigation items for non-logged-in users
-  const publicNavItems = [
+  const publicNavItems: NavItem[] = [
     { href: "/", label: "Home", icon: Home, key: "home" },
-    { href: "/marketplace", label: "Spielemarkt", icon: Store, key: "spielemarkt" },
-    { href: "/groups", label: "Community", icon: Users, key: "community" },
+    {
+      label: "Spielemarkt",
+      icon: Store,
+      key: "spielemarkt",
+      dropdown: {
+        items: [
+          { href: "/marketplace", label: "Angebote", icon: ShoppingBag, key: "marketplace-offers" },
+          { href: "/marketplace?tab=search", label: "Suchanzeigen", icon: Search, key: "marketplace-search" },
+        ],
+      },
+    },
+    {
+      label: "Community",
+      icon: Users,
+      key: "community",
+      dropdown: {
+        items: [
+          { href: "/groups", label: "Gruppen", icon: Users, key: "groups" },
+          { href: "/groups?tab=events", label: "Events", icon: Calendar, key: "events" },
+          { href: "/groups?tab=users", label: "Mitglieder", icon: UserCheck, key: "members" },
+        ],
+      },
+    },
     { href: "/about", label: "Über uns", icon: Info, key: "about" },
   ]
 
@@ -55,6 +115,16 @@ export function Navigation({ currentPage }: NavigationProps) {
       return currentPage === key
     }
     return pathname === href
+  }
+
+  const isDropdownActive = (item: NavItem) => {
+    if (!item.dropdown) return false
+    return item.dropdown.items.some(
+      (dropdownItem) =>
+        isActive(dropdownItem.href, dropdownItem.key) ||
+        (item.key === "spielemarkt" && pathname.startsWith("/marketplace")) ||
+        (item.key === "community" && pathname.startsWith("/groups")),
+    )
   }
 
   const handleLogout = async () => {
@@ -85,10 +155,47 @@ export function Navigation({ currentPage }: NavigationProps) {
           <div className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon
-              const active = isActive(item.href, item.key)
 
+              if (item.dropdown) {
+                const active = isDropdownActive(item)
+
+                return (
+                  <DropdownMenu key={item.key}>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-base transform hover:scale-105 hover:rotate-1 ${
+                          active
+                            ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
+                            : "text-gray-700 hover:bg-teal-400 hover:text-white"
+                        }`}
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span>{item.label}</span>
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48 font-body">
+                      {item.dropdown.items.map((dropdownItem) => {
+                        const DropdownIcon = dropdownItem.icon
+                        return (
+                          <DropdownMenuItem key={dropdownItem.key} asChild>
+                            <Link href={dropdownItem.href} className="flex items-center space-x-2 cursor-pointer">
+                              <DropdownIcon className="w-4 h-4" />
+                              <span>{dropdownItem.label}</span>
+                            </Link>
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )
+              }
+
+              // Regular navigation item
+              const active = isActive(item.href!, item.key)
               return (
-                <Link key={item.href} href={item.href}>
+                <Link key={item.href} href={item.href!}>
                   <Button
                     variant="ghost"
                     className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-base transform hover:scale-105 hover:rotate-1 ${
@@ -112,7 +219,7 @@ export function Navigation({ currentPage }: NavigationProps) {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 font-handwritten text-base transform hover:scale-105 hover:rotate-1 transition-all"
+                    className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 font-handwritten text-base transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent flex items-center space-x-2"
                   >
                     <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-teal-400">
                       <img
@@ -179,10 +286,48 @@ export function Navigation({ currentPage }: NavigationProps) {
             <div className="flex flex-col space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon
-                const active = isActive(item.href, item.key)
 
+                if (item.dropdown) {
+                  return (
+                    <div key={item.key} className="space-y-1">
+                      <div className="px-4 py-2 text-sm font-medium text-gray-500 font-handwritten">
+                        <div className="flex items-center space-x-2">
+                          <Icon className="w-4 h-4" />
+                          <span>{item.label}</span>
+                        </div>
+                      </div>
+                      {item.dropdown.items.map((dropdownItem) => {
+                        const DropdownIcon = dropdownItem.icon
+                        const active = isActive(dropdownItem.href, dropdownItem.key)
+
+                        return (
+                          <Link
+                            key={dropdownItem.key}
+                            href={dropdownItem.href}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <Button
+                              variant="ghost"
+                              className={`w-full justify-start flex items-center space-x-3 px-8 py-3 rounded-lg font-handwritten text-base transform hover:scale-105 hover:rotate-1 transition-all ${
+                                active
+                                  ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
+                                  : "text-gray-700 hover:bg-teal-400 hover:text-white"
+                              }`}
+                            >
+                              <DropdownIcon className="w-5 h-5" />
+                              <span>{dropdownItem.label}</span>
+                            </Button>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )
+                }
+
+                // Regular mobile navigation item
+                const active = isActive(item.href!, item.key)
                 return (
-                  <Link key={item.href} href={item.href} onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link key={item.href} href={item.href!} onClick={() => setIsMobileMenuOpen(false)}>
                     <Button
                       variant="ghost"
                       className={`w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-base transform hover:scale-105 hover:rotate-1 transition-all ${

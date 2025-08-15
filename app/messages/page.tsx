@@ -1,32 +1,26 @@
 "use client"
-
-import type React from "react"
-
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Mail, MailOpen, Clock, User, MessageCircle, Trash2, Check } from "lucide-react"
-import { Suspense } from "react"
+import { Input } from "@/components/ui/input"
+import { User, MessageCircle, Send, Search } from "lucide-react"
+import { Suspense, useState } from "react"
 import { Navigation } from "@/components/navigation"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { useMessages } from "@/contexts/messages-context"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { useState } from "react"
 
 function MessagesLoading() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
       <div className="text-center">
-        <div className="w-20 h-20 bg-purple-400 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce transform rotate-12">
-          <Mail className="w-10 h-10 text-white" />
+        <div className="w-20 h-20 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce transform rotate-12">
+          <MessageCircle className="w-10 h-10 text-white" />
         </div>
         <h2 className="text-3xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-          Nachrichten werden geladen...
+          Chat wird geladen...
         </h2>
-        <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">Dein Posteingang wird vorbereitet!</p>
+        <p className="text-xl text-gray-600 transform rotate-1 font-body">Deine Unterhaltungen werden vorbereitet!</p>
         <div className="mt-8 flex justify-center space-x-2">
           <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
           <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
@@ -40,33 +34,46 @@ function MessagesLoading() {
 
 function MessagesContent() {
   const { user } = useAuth()
-  const { getUserMessages, markAsRead, deleteMessage, getUnreadCount } = useMessages()
-  const [replyMessage, setReplyMessage] = useState("")
-  const [selectedMessage, setSelectedMessage] = useState<any>(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const { getUserMessages, markAsRead, getUnreadCount } = useMessages()
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
+  const [newMessage, setNewMessage] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
 
   if (!user) return null
 
   const userMessages = getUserMessages(user.name)
-  const unreadMessages = userMessages.filter((msg) => !msg.read)
-  const readMessages = userMessages.filter((msg) => msg.read)
-  const unreadCount = getUnreadCount(user.name)
 
-  const formatDate = (timestamp: string) => {
+  const conversations = userMessages.reduce((acc: any, message: any) => {
+    const conversationKey = message.fromUser
+    if (!acc[conversationKey]) {
+      acc[conversationKey] = []
+    }
+    acc[conversationKey].push(message)
+    return acc
+  }, {})
+
+  // Sort conversations by latest message
+  const sortedConversations = Object.entries(conversations).sort(([, messagesA]: any, [, messagesB]: any) => {
+    const latestA = Math.max(...messagesA.map((m: any) => new Date(m.timestamp).getTime()))
+    const latestB = Math.max(...messagesB.map((m: any) => new Date(m.timestamp).getTime()))
+    return latestB - latestA
+  })
+
+  const filteredConversations = sortedConversations.filter(([userName]) =>
+    userName.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  const formatTime = (timestamp: string) => {
     const date = new Date(timestamp)
     const now = new Date()
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
 
     if (diffInHours < 1) {
-      return "Gerade eben"
+      return date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })
     } else if (diffInHours < 24) {
-      return `vor ${Math.floor(diffInHours)} Stunden`
+      return date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })
     } else {
-      return date.toLocaleDateString("de-DE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "2-digit",
-      })
+      return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })
     }
   }
 
@@ -96,243 +103,186 @@ function MessagesContent() {
     }
   }
 
-  const handleDeleteMessage = (messageId: number, event: React.MouseEvent) => {
-    event.stopPropagation()
-    if (confirm("Möchtest du diese Nachricht wirklich löschen?")) {
-      deleteMessage(messageId)
+  const handleSendMessage = () => {
+    if (newMessage.trim() && selectedConversation) {
+      // In a real app, this would send the message to the backend
+      alert(`Nachricht gesendet an ${selectedConversation}: "${newMessage}"`)
+      setNewMessage("")
     }
   }
 
-  const handleSendReply = (message: any) => {
-    if (replyMessage.trim()) {
-      // Mark message as read when replying
-      markAsRead(message.id)
-      // Here you would send the actual reply
-      alert("Antwort gesendet! (Demo)")
-      setReplyMessage("")
-      setIsDialogOpen(false)
-    }
-  }
-
-  const renderMessageCard = (message: any, index: number, isReadTab = false) => (
-    <Card
-      key={message.id}
-      className={`transform ${index % 2 === 0 ? "rotate-1" : "-rotate-1"} hover:rotate-0 transition-all relative ${
-        !message.read ? "border-2 border-purple-300 bg-purple-50" : "border-2 border-gray-200 bg-gray-50"
-      }`}
-    >
-      {/* Delete Button with Trash Icon */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="absolute top-2 right-2 w-8 h-8 p-0 hover:bg-red-100 z-10"
-        onClick={(e) => handleDeleteMessage(message.id, e)}
-      >
-        <Trash2 className="w-4 h-4 text-gray-500 hover:text-red-600" />
-      </Button>
-
-      <CardHeader className="pb-3 pr-12">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-purple-400 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <CardTitle className="text-lg font-handwritten flex items-center">
-                {message.read ? (
-                  <MailOpen className="w-4 h-4 mr-2 text-gray-500" />
-                ) : (
-                  <Mail className="w-4 h-4 mr-2 text-purple-600" />
-                )}
-                Anfrage von {message.fromUser}
-                {message.read && (
-                  <Badge className="ml-2 bg-green-500 text-white text-xs">
-                    <Check className="w-3 h-3 mr-1" />
-                    Beantwortet
-                  </Badge>
-                )}
-              </CardTitle>
-              <div className="flex items-center space-x-2 mt-1">
-                <Badge className={`${getOfferTypeColor(message.offerType)} text-white text-xs font-body`}>
-                  {getOfferTypeText(message.offerType)}
-                </Badge>
-                <span className="text-sm text-gray-600 font-body">{message.gameTitle}</span>
-              </div>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="flex items-center text-sm text-gray-500 font-body">
-              <Clock className="w-4 h-4 mr-1" />
-              {formatDate(message.timestamp)}
-            </div>
-            {!message.read && <Badge className="bg-red-500 text-white text-xs mt-1">Neu</Badge>}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-start space-x-4">
-          <img
-            src={message.gameImage || "/placeholder.svg"}
-            alt={message.gameTitle}
-            className="w-16 h-20 rounded-lg shadow-md flex-shrink-0"
-          />
-          <div className="flex-1">
-            <p className="text-gray-700 font-body bg-white p-3 rounded-lg border">"{message.message}"</p>
-            <div className="mt-3 flex gap-2">
-              {!message.read ? (
-                <Dialog open={isDialogOpen && selectedMessage?.id === message.id} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      className="bg-purple-400 hover:bg-purple-500 text-white font-handwritten"
-                      onClick={() => {
-                        setSelectedMessage(message)
-                        setIsDialogOpen(true)
-                      }}
-                    >
-                      <MessageCircle className="w-4 h-4 mr-1" />
-                      Antworten
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle className="font-handwritten text-xl">Antwort an {message.fromUser}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-sm text-gray-600 font-body">
-                          <strong>Ursprüngliche Anfrage:</strong>
-                        </p>
-                        <p className="text-sm font-body mt-1">"{message.message}"</p>
-                      </div>
-                      <Textarea
-                        placeholder="Deine Antwort..."
-                        value={replyMessage}
-                        onChange={(e) => setReplyMessage(e.target.value)}
-                        className="font-body"
-                        rows={4}
-                      />
-                      <div className="flex gap-3">
-                        <Button
-                          variant="outline"
-                          className="flex-1 font-handwritten bg-transparent"
-                          onClick={() => {
-                            setReplyMessage("")
-                            setIsDialogOpen(false)
-                          }}
-                        >
-                          Abbrechen
-                        </Button>
-                        <Button
-                          className="flex-1 bg-purple-400 hover:bg-purple-500 text-white font-handwritten"
-                          onClick={() => handleSendReply(message)}
-                          disabled={!replyMessage.trim()}
-                        >
-                          Senden
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="font-handwritten text-gray-500 cursor-not-allowed bg-transparent"
-                  disabled
-                >
-                  <Check className="w-4 h-4 mr-1" />
-                  Bereits beantwortet
-                </Button>
-              )}
-              <Button size="sm" variant="outline" className="font-handwritten bg-transparent">
-                Kontakt teilen
-              </Button>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-
-  const renderEmptyState = (type: "unread" | "read") => (
-    <Card className="transform rotate-1 border-2 border-gray-200">
-      <CardContent className="p-12 text-center">
-        {type === "unread" ? (
-          <>
-            <Mail className="w-20 h-20 text-gray-400 mx-auto mb-6" />
-            <h3 className="text-2xl font-bold text-gray-600 mb-4 font-handwritten">Keine neuen Nachrichten</h3>
-            <p className="text-gray-500 font-body">Alle deine Nachrichten sind bereits beantwortet!</p>
-          </>
-        ) : (
-          <>
-            <MailOpen className="w-20 h-20 text-gray-400 mx-auto mb-6" />
-            <h3 className="text-2xl font-bold text-gray-600 mb-4 font-handwritten">Keine beantworteten Nachrichten</h3>
-            <p className="text-gray-500 font-body">Beantwortete Nachrichten erscheinen hier.</p>
-          </>
-        )}
-      </CardContent>
-    </Card>
-  )
+  const selectedMessages = selectedConversation ? conversations[selectedConversation] || [] : []
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
       <Navigation currentPage="messages" />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Page Header */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-            Dein Posteingang
-          </h1>
-          <p className="text-xl text-gray-600 transform rotate-1 font-body">Beantworte Anfragen zu deinen Spielen!</p>
+          <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">Nachrichten</h1>
+          <p className="text-xl text-gray-600 transform rotate-1 font-body">Deine Unterhaltungen im Überblick!</p>
         </div>
 
-        {/* Messages Tabs */}
-        <div className="max-w-4xl mx-auto">
-          {userMessages.length === 0 ? (
-            <Card className="transform rotate-1 border-2 border-gray-200">
-              <CardContent className="p-12 text-center">
-                <Mail className="w-20 h-20 text-gray-400 mx-auto mb-6" />
-                <h3 className="text-2xl font-bold text-gray-600 mb-4 font-handwritten">Noch keine Nachrichten</h3>
-                <p className="text-gray-500 font-body">
-                  Sobald jemand Interesse an deinen Spielen zeigt, erscheinen die Anfragen hier!
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Tabs defaultValue="unread" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6 bg-white border-2 border-gray-200 transform -rotate-1">
-                <TabsTrigger
-                  value="unread"
-                  className="font-handwritten text-lg data-[state=active]:bg-purple-400 data-[state=active]:text-white relative"
-                >
-                  Unbeantwortet
-                  {unreadCount > 0 && (
-                    <Badge className="ml-2 bg-red-500 text-white text-xs min-w-[20px] h-5">{unreadCount}</Badge>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger
-                  value="read"
-                  className="font-handwritten text-lg data-[state=active]:bg-purple-400 data-[state=active]:text-white"
-                >
-                  Beantwortet ({readMessages.length})
-                </TabsTrigger>
-              </TabsList>
+        <div className="max-w-6xl mx-auto">
+          <Card className="h-[600px] flex overflow-hidden border-2 border-teal-200 shadow-lg">
+            {/* Conversations Sidebar */}
+            <div className="w-1/3 border-r border-gray-200 bg-white">
+              <div className="p-4 border-b border-gray-200">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Unterhaltungen durchsuchen..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 font-body"
+                  />
+                </div>
+              </div>
 
-              <TabsContent value="unread" className="space-y-4">
-                {unreadMessages.length === 0
-                  ? renderEmptyState("unread")
-                  : unreadMessages.map((message, index) => renderMessageCard(message, index, false))}
-              </TabsContent>
+              <div className="overflow-y-auto h-full">
+                {filteredConversations.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500 font-body">Keine Unterhaltungen gefunden</p>
+                  </div>
+                ) : (
+                  filteredConversations.map(([userName, messages]: any) => {
+                    const latestMessage = messages[messages.length - 1]
+                    const unreadCount = messages.filter((m: any) => !m.read).length
+                    const isSelected = selectedConversation === userName
 
-              <TabsContent value="read" className="space-y-4">
-                {readMessages.length === 0
-                  ? renderEmptyState("read")
-                  : readMessages.map((message, index) => renderMessageCard(message, index, true))}
-              </TabsContent>
-            </Tabs>
-          )}
+                    return (
+                      <div
+                        key={userName}
+                        className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                          isSelected ? "bg-teal-50 border-l-4 border-l-teal-400" : ""
+                        }`}
+                        onClick={() => {
+                          setSelectedConversation(userName)
+                          // Mark messages as read when conversation is opened
+                          messages.forEach((msg: any) => {
+                            if (!msg.read) markAsRead(msg.id)
+                          })
+                        }}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-teal-400 rounded-full flex items-center justify-center flex-shrink-0">
+                            <User className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-handwritten text-lg text-gray-800 truncate">{userName}</h3>
+                              <div className="flex items-center space-x-2">
+                                {unreadCount > 0 && (
+                                  <Badge className="bg-red-500 text-white text-xs">{unreadCount}</Badge>
+                                )}
+                                <span className="text-xs text-gray-500 font-body">
+                                  {formatTime(latestMessage.timestamp)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <Badge
+                                className={`${getOfferTypeColor(latestMessage.offerType)} text-white text-xs font-body`}
+                              >
+                                {getOfferTypeText(latestMessage.offerType)}
+                              </Badge>
+                              <span className="text-sm text-gray-600 font-body truncate">
+                                {latestMessage.gameTitle}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 font-body truncate mt-1">{latestMessage.message}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Chat Area */}
+            <div className="flex-1 flex flex-col bg-gray-50">
+              {selectedConversation ? (
+                <>
+                  {/* Chat Header */}
+                  <div className="p-4 bg-white border-b border-gray-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-teal-400 rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h2 className="font-handwritten text-xl text-gray-800">{selectedConversation}</h2>
+                        <p className="text-sm text-gray-600 font-body">
+                          {selectedMessages.length} Nachricht{selectedMessages.length !== 1 ? "en" : ""}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Messages */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {selectedMessages.map((message: any, index: number) => (
+                      <div key={message.id} className="flex items-start space-x-3">
+                        <div className="w-8 h-8 bg-teal-400 rounded-full flex items-center justify-center flex-shrink-0">
+                          <User className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="bg-white rounded-lg p-3 shadow-sm border">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Badge className={`${getOfferTypeColor(message.offerType)} text-white text-xs font-body`}>
+                                {getOfferTypeText(message.offerType)}
+                              </Badge>
+                              <span className="text-sm font-body text-gray-600">{message.gameTitle}</span>
+                              <span className="text-xs text-gray-500 font-body ml-auto">
+                                {formatTime(message.timestamp)}
+                              </span>
+                            </div>
+                            <p className="text-gray-800 font-body">{message.message}</p>
+                            {message.gameImage && (
+                              <img
+                                src={message.gameImage || "/placeholder.svg"}
+                                alt={message.gameTitle}
+                                className="w-16 h-20 rounded-lg shadow-sm mt-2"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Message Input */}
+                  <div className="p-4 bg-white border-t border-gray-200">
+                    <div className="flex items-center space-x-3">
+                      <Input
+                        placeholder="Nachricht schreiben..."
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                        className="flex-1 font-body"
+                      />
+                      <Button
+                        onClick={handleSendMessage}
+                        disabled={!newMessage.trim()}
+                        className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
+                      >
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center">
+                    <MessageCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-handwritten text-gray-600 mb-2">Wähle eine Unterhaltung</h3>
+                    <p className="text-gray-500 font-body">Klicke auf eine Unterhaltung links, um zu chatten</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
         </div>
       </div>
     </div>
