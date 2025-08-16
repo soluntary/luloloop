@@ -59,7 +59,7 @@ export function Navigation({ currentPage }: NavigationProps) {
       key: "community",
       dropdown: {
         items: [
-          { href: "/groups", label: "Gruppen", icon: Users, key: "groups" },
+          { href: "/groups?tab=communities", label: "Gruppen", icon: Users, key: "groups" },
           { href: "/groups?tab=events", label: "Events", icon: Calendar, key: "events" },
           { href: "/groups?tab=users", label: "Mitglieder", icon: UserCheck, key: "members" },
         ],
@@ -71,7 +71,7 @@ export function Navigation({ currentPage }: NavigationProps) {
       key: "spielemarkt",
       dropdown: {
         items: [
-          { href: "/marketplace", label: "Angebote", icon: ShoppingBag, key: "marketplace-offers" },
+          { href: "/marketplace?tab=offers", label: "Angebote", icon: ShoppingBag, key: "marketplace-offers" },
           { href: "/marketplace?tab=search", label: "Suchanzeigen", icon: Search, key: "marketplace-search" },
         ],
       },
@@ -88,7 +88,7 @@ export function Navigation({ currentPage }: NavigationProps) {
       key: "spielemarkt",
       dropdown: {
         items: [
-          { href: "/marketplace", label: "Angebote", icon: ShoppingBag, key: "marketplace-offers" },
+          { href: "/marketplace?tab=offers", label: "Angebote", icon: ShoppingBag, key: "marketplace-offers" },
           { href: "/marketplace?tab=search", label: "Suchanzeigen", icon: Search, key: "marketplace-search" },
         ],
       },
@@ -99,7 +99,7 @@ export function Navigation({ currentPage }: NavigationProps) {
       key: "community",
       dropdown: {
         items: [
-          { href: "/groups", label: "Gruppen", icon: Users, key: "groups" },
+          { href: "/groups?tab=communities", label: "Gruppen", icon: Users, key: "groups" },
           { href: "/groups?tab=events", label: "Events", icon: Calendar, key: "events" },
           { href: "/groups?tab=users", label: "Mitglieder", icon: UserCheck, key: "members" },
         ],

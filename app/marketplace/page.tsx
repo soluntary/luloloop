@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CreateMarketplaceOfferForm } from "@/components/create-marketplace-offer-form"
 import { CreateSearchAdForm } from "@/components/create-search-ad-form"
+import { useSearchParams } from "next/navigation"
 import {
   Search,
   LogIn,
@@ -33,6 +34,8 @@ import { supabase } from "@/lib/supabase"
 export default function MarketplacePage() {
   const { marketplaceOffers, loading, error, databaseConnected } = useGames()
   const { user } = useAuth()
+  const searchParams = useSearchParams()
+  const tab = searchParams.get("tab")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState("all")
   const [selectedCondition, setSelectedCondition] = useState("all")
@@ -43,17 +46,16 @@ export default function MarketplacePage() {
   const [isCreateOfferOpen, setIsCreateOfferOpen] = useState(false)
   const [searchAds, setSearchAds] = useState<any[]>([])
   const [isCreateSearchAdOpen, setIsCreateSearchAdOpen] = useState(false)
-  const [activeView, setActiveView] = useState<"offers" | "search">("offers")
+  const [activeView, setActiveView] = useState<"offers" | "search">(tab === "search" ? "search" : "offers")
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const tab = urlParams.get("tab")
-    if (tab === "search") {
+    const currentTab = searchParams.get("tab")
+    if (currentTab === "search") {
       setActiveView("search")
     } else {
       setActiveView("offers")
     }
-  }, [])
+  }, [searchParams])
 
   useEffect(() => {
     if (databaseConnected) {

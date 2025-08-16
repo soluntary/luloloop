@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input"
 import CreateCommunityDialog from "@/components/create-community-dialog"
 import CreateCommunityEventDialog from "@/components/create-community-event-dialog"
 
+import { useSearchParams } from "next/navigation"
+
 interface CommunityEvent {
   id: string
   creator_id: string
@@ -171,15 +173,23 @@ export default function GroupsPage() {
 
   const [showCreateCommunityForm, setShowCreateCommunityForm] = useState(false)
 
-  const [activeView, setActiveView] = useState("communities")
+  const searchParams = useSearchParams()
+  const tab = searchParams.get("tab")
+
+  const [activeView, setActiveView] = useState<"communities" | "events" | "users">(
+    tab && ["communities", "events", "users"].includes(tab)
+      ? (tab as "communities" | "events" | "users")
+      : "communities",
+  )
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const tab = urlParams.get("tab")
-    if (tab && ["communities", "events", "users"].includes(tab)) {
-      setActiveView(tab)
+    const currentTab = searchParams.get("tab")
+    if (currentTab && ["communities", "events", "users"].includes(currentTab)) {
+      setActiveView(currentTab as "communities" | "events" | "users")
+    } else {
+      setActiveView("communities")
     }
-  }, [])
+  }, [searchParams])
 
   const getPageTitle = () => {
     switch (activeView) {
@@ -368,14 +378,6 @@ export default function GroupsPage() {
       return []
     }
   }
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const tab = urlParams.get("tab")
-    if (tab && ["communities", "events", "users"].includes(tab)) {
-      setActiveView(tab)
-    }
-  }, [])
 
   useEffect(() => {
     const loadData = async () => {
