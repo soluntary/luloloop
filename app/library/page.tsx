@@ -1,5 +1,7 @@
 "use client"
 
+import { DialogDescription } from "@/components/ui/dialog"
+
 import type React from "react"
 
 import { Button } from "@/components/ui/button"
@@ -11,7 +13,6 @@ import {
   Plus,
   Search,
   Eye,
-  RefreshCw,
   ShoppingCart,
   Upload,
   Repeat,
@@ -26,9 +27,9 @@ import {
   Users,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { useState, useRef, Suspense } from "react"
+import { useState, Suspense, useRef } from "react"
 import { Navigation } from "@/components/navigation"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -38,29 +39,6 @@ import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
 import { CreateMarketplaceOfferForm } from "@/components/create-marketplace-offer-form"
 import { GameSearchDialog } from "@/components/game-search-dialog"
-
-function LibraryLoading() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-20 h-20 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce transform rotate-12">
-          <BookOpen className="w-10 h-10 text-white" />
-        </div>
-        <h2 className="text-3xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-          Bibliothek wird geladen...
-        </h2>
-        <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
-          Deine Spiele werden aus dem Regal geholt!
-        </p>
-        <div className="mt-8 flex justify-center space-x-2">
-          <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-          <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-          <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 const GAME_TYPE_OPTIONS = [
   "Aktions- und Reaktionsspiel",
@@ -81,7 +59,7 @@ const GAME_TYPE_OPTIONS = [
   "Würfelspiel",
 ]
 
-const PUBLISHER_OPTIONS = [
+const publisherOptionsInit = [
   "Abacusspiele",
   "Amigo",
   "Asmodée",
@@ -106,42 +84,7 @@ const PUBLISHER_OPTIONS = [
   "Stonemaier Games",
 ]
 
-const AGE_OPTIONS = [
-  "bis 4 Jahren",
-  "ab 4 bis 5 Jahren",
-  "ab 6 bis 7 Jahren",
-  "ab 8 bis 9 Jahren",
-  "ab 10 bis 11 Jahren",
-  "ab 12 bis 13 Jahren",
-  "ab 14 bis 17 Jahren",
-  "ab 18 Jahren",
-]
-
-const DURATION_OPTIONS = [
-  "< 10 Min.",
-  "10-20 Min.",
-  "20-30 Min.",
-  "30-45 Min.",
-  "45-60 Min.",
-  "60-90 Min.",
-  "60-120 Min.",
-  "> 120 Min.",
-]
-
-const PLAYER_COUNT_OPTIONS = [
-  "1 Person",
-  "2 Personen",
-  "3 Personen",
-  "4 Personen",
-  "1 bis 2 Personen",
-  "1 bis 3 Personen",
-  "1 bis 4 Personen",
-  "2 bis 4 Personen",
-  "2 bis 6 Personen",
-  "2 bis 8 Personen",
-  "3 bis 6 Personen",
-  "4 bis 8 Personen",
-]
+const LANGUAGE_OPTIONS = ["Deutsch", "Englisch", "Französisch", "Italienisch", "Andere"]
 
 const GAME_STYLE_OPTIONS = [
   "Kooperativ",
@@ -153,11 +96,79 @@ const GAME_STYLE_OPTIONS = [
   "Team vs. Team",
 ]
 
+const AGE_OPTIONS = [
+  "bis 4 Jahren",
+  "ab 4 bis 5 Jahren",
+  "ab 6 bis 7 Jahren",
+  "ab 8 bis 9 Jahren",
+  "ab 10 bis 11 Jahren",
+  "ab 12 bis 13 Jahren",
+  "ab 14 bis 17 Jahren",
+  "ab 18 Jahren",
+]
+
+const durationOptionsInit = [
+  "< 10 Min.",
+  "10-20 Min.",
+  "20-30 Min.",
+  "30-45 Min.",
+  "45-60 Min.",
+  "45-90 Min.",
+  "60-90 Min.",
+  "60-120 Min.",
+  "90-120 Min.",
+]
+
+const playerCountOptionsInit = [
+  "1 bis 2 Personen",
+  "1 bis 4 Personen",
+  "2 bis 4 Personen",
+  "1 bis 5 Personen",
+  "2 bis 5 Personen",
+  "3 bis 5 Personen",
+  "1 bis 6 Personen",
+  "2 bis 6 Personen",
+  "3 bis 6 Personen",
+  "4 bis 6 Personen",
+]
+
+function LibraryLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-20 h-20 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce transform rotate-12">
+          <BookOpen className="w-10 h-10 text-white" />
+        </div>
+        <h2 className="text-3xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
+          Bibliothek wird geladen...
+        </h2>
+        <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
+          Deine Spiele werden aus dem Regal geholt!
+        </p>
+        <div className="mt-8 flex justify-center space-x-2">
+          <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+          <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+          <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function LibraryContent() {
   const { games, addGame, updateGame, deleteGame, addMarketplaceOffer, loading, error, databaseConnected } = useGames()
   const { user } = useAuth()
   const [selectedGame, setSelectedGame] = useState<(typeof games)[0] | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+
+  const [filters, setFilters] = useState({
+    playerCount: "",
+    duration: "",
+    age: "",
+    language: "",
+    category: "",
+    type: "",
+  })
 
   const [isCreateOfferOpen, setIsCreateOfferOpen] = useState(false)
   const [preselectedGame, setPreselectedGame] = useState<(typeof games)[0] | null>(null)
@@ -187,6 +198,9 @@ function LibraryContent() {
   const [newGameCustomType, setNewGameCustomType] = useState("")
   const [newGameImage, setNewGameImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [publisherOptions, setPublisherOptions] = useState(publisherOptionsInit)
+  const [playerCountOptions, setPlayerCountOptions] = useState(playerCountOptionsInit)
+  const [durationOptions, setDurationOptions] = useState<string[]>(durationOptionsInit)
 
   // Spiel bearbeiten Dialog States
   const [isEditGameDialogOpen, setIsEditGameDialogOpen] = useState(false)
@@ -226,70 +240,9 @@ function LibraryContent() {
   })
 
   const [isGameSearchDialogOpen, setIsGameSearchDialogOpen] = useState(false)
+  const [showGameSearch, setShowGameSearch] = useState(false)
 
-  const [showGameSearchDialog, setShowGameSearchDialog] = useState(false)
-
-  const [gameTypeOptions, setGameTypeOptions] = useState([
-    "Aktions- und Reaktionsspiel",
-    "Brettspiel",
-    "Erweiterung",
-    "Escape-Spiel",
-    "Geschicklichkeitsspiel",
-    "Glücksspiel",
-    "Kartenspiel",
-    "Krimi- und Detektivspiel",
-    "Legespiel",
-    "Merkspiel",
-    "Outdoor-Spiel",
-    "Partyspiel",
-    "Quiz-Spiel",
-    "Rollenspiel",
-    "Trinkspiel",
-    "Würfelspiel",
-  ])
-
-  const [publisherOptions, setPublisherOptions] = useState([
-    "Abacusspiele",
-    "Amigo",
-    "Asmodée",
-    "Cocktail Games",
-    "Feuerland",
-    "Game Factory",
-    "Gamewright",
-    "Gigamic",
-    "Haba",
-    "Hans im Glück",
-    "Hasbro",
-    "HCM Kinzel",
-    "Huch!",
-    "Kosmos",
-    "Lookout Games",
-    "Mattel",
-    "Noris Spiele",
-    "Pegasus Spiele",
-    "Piatnik",
-    "Ravensburger",
-    "Schmidt Spiele",
-    "Stonemaier Games",
-  ])
-
-  const [languageOptions, setLanguageOptions] = useState([
-    "Deutsch",
-    "Englisch",
-    "Französisch",
-    "Italienisch",
-    "Andere",
-  ])
-
-  const [gameStyleOptions, setGameStyleOptions] = useState([
-    "Kooperativ",
-    "Kompetitiv",
-    "Semi-Kooperativ",
-    "Strategisch",
-    "Solospiel",
-    "One vs. All",
-    "Team vs. Team",
-  ])
+  const [inputMode, setInputMode] = useState<"auto" | "manual">("auto")
 
   const filteredGames = games
     .filter((game) => {
@@ -298,7 +251,39 @@ function LibraryContent() {
         game.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         game.publisher?.toLowerCase().includes(searchTerm.toLowerCase())
 
-      return matchesSearch
+      // Spieleranzahl Filter
+      const matchesPlayerCount =
+        !filters.playerCount ||
+        game.players?.includes(filters.playerCount) ||
+        (game.min_players &&
+          game.max_players &&
+          Number.parseInt(filters.playerCount) >= game.min_players &&
+          Number.parseInt(filters.playerCount) <= game.max_players)
+
+      // Spieldauer Filter
+      const matchesDuration = !filters.duration || game.duration === filters.duration
+
+      // Altersempfehlung Filter
+      const matchesAge = !filters.age || game.age === filters.age
+
+      // Sprache Filter
+      const matchesLanguage = !filters.language || game.language === filters.language
+
+      // Kategorie Filter (falls vorhanden)
+      const matchesCategory = !filters.category || game.category === filters.category
+
+      // Typus Filter
+      const matchesType = !filters.type || game.type === filters.type
+
+      return (
+        matchesSearch &&
+        matchesPlayerCount &&
+        matchesDuration &&
+        matchesAge &&
+        matchesLanguage &&
+        matchesCategory &&
+        matchesType
+      )
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -500,7 +485,7 @@ function LibraryContent() {
       errors.type = "Bitte wähle mindestens eine Kategorie."
     }
     if (newGameStyle.length === 0) {
-      errors.style = "Bitte wähle mindestens mindestens einen Typus."
+      errors.style = "Bitte wähle mindestens einen Typus."
     }
     if (!newGamePlayerCount) {
       errors.playerCount = "Spieleranzahl ist erforderlich"
@@ -792,26 +777,34 @@ function LibraryContent() {
     return errors
   }
 
-  const addToDropdownOptions = (options: string[], newOption: string, setOptions: (options: string[]) => void) => {
-    if (!options.includes(newOption)) {
-      setOptions([...options, newOption])
-    }
-  }
-
   const handleGameSelect = (game: any) => {
+    console.log("[v0] handleGameSelect called with game:", game.name)
+    console.log("[v0] Current publisherOptions:", publisherOptions)
+    console.log("[v0] Current playerCountOptions:", playerCountOptions)
+    console.log("[v0] Current durationOptions:", durationOptions)
+
     // Map BoardGameGeek data to form fields
     setNewGameTitle(game.name)
 
-    // Set publisher and add to options if not present
     if (game.publishers.length > 0) {
       const publisher = game.publishers[0]
+      console.log("[v0] Processing publisher:", publisher)
+      console.log("[v0] Publisher in options?", publisherOptions.includes(publisher))
+
       if (publisherOptions.includes(publisher)) {
         setNewGamePublisher(publisher)
+        console.log("[v0] Set existing publisher:", publisher)
       } else {
-        // Add new publisher to options and set it
-        addToDropdownOptions(publisherOptions, publisher, setPublisherOptions)
+        // Add the new publisher to the options
+        console.log("[v0] Adding new publisher to options:", publisher)
+        setPublisherOptions((prev) => {
+          const newOptions = [...prev, publisher]
+          console.log("[v0] Updated publisherOptions:", newOptions)
+          return newOptions
+        })
         setNewGamePublisher(publisher)
         setNewGameCustomPublisher("")
+        console.log("[v0] Set new publisher:", publisher)
       }
     }
 
@@ -820,14 +813,28 @@ function LibraryContent() {
       setNewGameImage(game.image)
     }
 
-    // Map player count
     if (game.minPlayers && game.maxPlayers) {
       const playerCount = `${game.minPlayers} bis ${game.maxPlayers} Personen`
-      const matchingOption = PLAYER_COUNT_OPTIONS.find(
+      console.log("[v0] Processing player count:", playerCount)
+
+      const matchingOption = playerCountOptions.find(
         (option) => option.includes(game.minPlayers.toString()) && option.includes(game.maxPlayers.toString()),
       )
+      console.log("[v0] Matching player count option:", matchingOption)
+
       if (matchingOption) {
         setNewGamePlayerCount(matchingOption)
+        console.log("[v0] Set existing player count:", matchingOption)
+      } else {
+        // Add the new player count to the options
+        console.log("[v0] Adding new player count to options:", playerCount)
+        setPlayerCountOptions((prev) => {
+          const newOptions = [...prev, playerCount]
+          console.log("[v0] Updated playerCountOptions:", newOptions)
+          return newOptions
+        })
+        setNewGamePlayerCount(playerCount)
+        console.log("[v0] Set new player count:", playerCount)
       }
     }
 
@@ -840,9 +847,29 @@ function LibraryContent() {
       else if (game.playingTime <= 45) durationOption = "30-45 Min."
       else if (game.playingTime <= 60) durationOption = "45-60 Min."
       else if (game.playingTime <= 90) durationOption = "60-90 Min."
-      else durationOption = "> 90 Min."
+      else if (game.playingTime <= 120) durationOption = "90-120 Min."
+      else {
+        // For durations > 120 minutes, create a custom option
+        durationOption = `${game.playingTime} Min.`
+      }
 
-      setNewGameDuration(durationOption)
+      console.log("[v0] Processing duration:", durationOption)
+      console.log("[v0] Duration in options?", durationOptions.includes(durationOption))
+
+      if (durationOptions.includes(durationOption)) {
+        setNewGameDuration(durationOption)
+        console.log("[v0] Set existing duration:", durationOption)
+      } else {
+        // Add the new duration to the options
+        console.log("[v0] Adding new duration to options:", durationOption)
+        setDurationOptions((prev) => {
+          const newOptions = [...prev, durationOption]
+          console.log("[v0] Updated durationOptions:", newOptions)
+          return newOptions
+        })
+        setNewGameDuration(durationOption)
+        console.log("[v0] Set new duration:", durationOption)
+      }
     }
 
     // Map age
@@ -860,7 +887,7 @@ function LibraryContent() {
       setNewGameAge(ageOption)
     }
 
-    // Map categories to game types and add new ones
+    // Map categories to game types
     if (game.categories.length > 0) {
       const mappedTypes: string[] = []
       game.categories.forEach((category: string) => {
@@ -870,11 +897,7 @@ function LibraryContent() {
         else if (category.includes("Party")) mappedTypes.push("Partyspiel")
         else if (category.includes("Strategy")) mappedTypes.push("Brettspiel")
         else if (category.includes("Family")) mappedTypes.push("Brettspiel")
-        else {
-          // Add the original category as a new game type option
-          addToDropdownOptions(gameTypeOptions, category, setGameTypeOptions)
-          mappedTypes.push(category)
-        }
+        // Add more mappings as needed
       })
 
       if (mappedTypes.length === 0) {
@@ -891,11 +914,7 @@ function LibraryContent() {
         if (mechanic.includes("Cooperative")) mappedStyles.push("Kooperativ")
         else if (mechanic.includes("Solo")) mappedStyles.push("Solospiel")
         else if (mechanic.includes("Team")) mappedStyles.push("Team vs. Team")
-        else {
-          // Add the original mechanic as a new game style option
-          addToDropdownOptions(gameStyleOptions, mechanic, setGameStyleOptions)
-          mappedStyles.push(mechanic)
-        }
+        // Add more mappings as needed
       })
 
       if (mappedStyles.length === 0) {
@@ -908,9 +927,12 @@ function LibraryContent() {
     // Set default language to German
     setNewGameLanguage("Deutsch")
 
-    // Clear all validation errors since fields are being auto-filled
+    console.log("[v0] Clearing all field errors")
     setFieldErrors({})
-    setIsGameSearchDialogOpen(false)
+
+    // Close the dialog
+    setShowGameSearch(false)
+    console.log("[v0] Game selection completed, dialog closed")
   }
 
   return (
@@ -974,430 +996,460 @@ function LibraryContent() {
               </p>
             </DialogHeader>
             <form onSubmit={handleAddGameSubmit} className="space-y-6">
-              <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
-                <h3 className="font-handwritten text-lg text-green-700 mb-3 flex items-center gap-2">
-                  <Search className="w-5 h-5" />
-                  Spiel automatisch suchen
-                </h3>
-                <p className="text-sm text-green-600 font-body mb-3">
-                  Suche dein Spiel in der BoardGameGeek-Datenbank und lass die Details automatisch ausfüllen.
-                </p>
-                <Button
+              <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+                <button
                   type="button"
-                  onClick={() => {
-                    console.log("[v0] Spiel suchen button clicked")
-                    console.log("[v0] Current isGameSearchDialogOpen state:", isGameSearchDialogOpen)
-                    setIsGameSearchDialogOpen(true)
-                    console.log("[v0] Setting isGameSearchDialogOpen to true")
-                  }}
-                  className="bg-green-400 hover:bg-green-500 text-white font-handwritten"
+                  onClick={() => setInputMode("auto")}
+                  className={`flex-1 py-2 px-4 rounded-md font-handwritten transition-all duration-200 ${
+                    inputMode === "auto" ? "bg-green-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
+                  }`}
                 >
-                  <Search className="w-4 h-4 mr-2" />
-                  Spiel suchen
-                </Button>
+                  <Search className="w-4 h-4 inline mr-2" />
+                  Automatisch suchen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInputMode("manual")}
+                  className={`flex-1 py-2 px-4 rounded-md font-handwritten transition-all duration-200 ${
+                    inputMode === "manual" ? "bg-blue-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  <Edit className="w-4 h-4 inline mr-2" />
+                  Manuell eingeben
+                </button>
               </div>
 
-              <div className="bg-gradient-to-br from-teal-50 to-teal-100 p-4 rounded-xl border border-teal-200">
-                <h3 className="font-handwritten text-lg text-teal-700 mb-3 flex items-center gap-2">
-                  <Camera className="w-5 h-5" />
-                  Spiel Cover
-                </h3>
-                <div className="text-center">
-                  <div className="w-36 h-48 mx-auto mb-4 border-2 border-dashed border-teal-300 rounded-xl flex items-center justify-center bg-white/70 overflow-hidden hover:border-teal-400 transition-all duration-300 shadow-sm">
-                    {newGameImage ? (
-                      <img
-                        src={newGameImage || "/placeholder.svg"}
-                        alt="Spiel Cover"
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    ) : (
-                      <div className="text-center">
-                        <Camera className="w-10 h-10 text-teal-400 mx-auto mb-2" />
-                        <p className="text-sm text-teal-600 font-body">Cover hochladen</p>
-                      </div>
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                    className="hidden"
-                  />
+              {inputMode === "auto" && (
+                <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
+                  <h3 className="font-handwritten text-lg text-green-700 mb-3 flex items-center gap-2">
+                    <Search className="w-5 h-5" />
+                    Spiel automatisch suchen
+                  </h3>
+                  <p className="text-sm text-green-600 font-body mb-3">
+                    Suche dein Spiel in der Datenbank und lass die Details automatisch ausfüllen.
+                  </p>
                   <Button
                     type="button"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="font-handwritten border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white transition-all duration-200"
+                    onClick={() => setIsGameSearchDialogOpen(true)}
+                    className="bg-green-400 hover:bg-green-500 text-white font-handwritten"
                   >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Bild hochladen
+                    <Search className="w-4 h-4 mr-2" />
+                    Spiel suchen
                   </Button>
-                  {fieldErrors.image && <p className="text-red-500 text-sm mt-2 font-body">{fieldErrors.image}</p>}
                 </div>
-              </div>
+              )}
 
-              {/* Grundinformationen Sektion */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
-                <h3 className="font-handwritten text-lg text-blue-700 mb-4 flex items-center gap-2">
-                  <Info className="w-5 h-5" />
-                  Grundinformationen
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <Label className="font-body text-gray-700 font-medium">Spielname *</Label>
-                    <Input
-                      value={newGameTitle}
-                      onChange={(e) => setNewGameTitle(e.target.value)}
-                      placeholder="z.B. Die Siedler von Catan"
-                      className="font-body border-2 border-blue-200 focus:border-blue-400 bg-white/80"
-                      required
-                    />
-                    {fieldErrors.title && <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.title}</p>}
+              {(inputMode === "manual" || newGameTitle) && (
+                <>
+                  <div className="bg-gradient-to-br from-teal-50 to-teal-100 p-4 rounded-xl border border-teal-200">
+                    <h3 className="font-handwritten text-lg text-teal-700 mb-3 flex items-center gap-2">
+                      <Camera className="w-5 h-5" />
+                      Spiel Cover
+                    </h3>
+                    <div className="text-center">
+                      <div className="w-36 h-48 mx-auto mb-4 border-2 border-dashed border-teal-300 rounded-xl flex items-center justify-center bg-white/70 overflow-hidden hover:border-teal-400 transition-all duration-300 shadow-sm">
+                        {newGameImage ? (
+                          <img
+                            src={newGameImage || "/placeholder.svg"}
+                            alt="Spiel Cover"
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                        ) : (
+                          <div className="text-center">
+                            <Camera className="w-10 h-10 text-teal-400 mx-auto mb-2" />
+                            <p className="text-sm text-teal-600 font-body">Cover hochladen</p>
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageUpload}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="font-handwritten border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white transition-all duration-200"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Bild hochladen
+                      </Button>
+                      {fieldErrors.image && <p className="text-red-500 text-sm mt-2 font-body">{fieldErrors.image}</p>}
+                    </div>
                   </div>
 
-                  <div>
-                    <Label className="font-body text-gray-700 font-medium">Verlag *</Label>
-                    {/* Publisher dropdown */}
-                    <Select value={newGamePublisher} onValueChange={setNewGamePublisher}>
-                      <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80">
-                        <SelectValue placeholder="Verlag wählen..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {publisherOptions.map((publisher) => (
-                          <SelectItem key={publisher} value={publisher} className="font-body">
-                            {publisher}
-                          </SelectItem>
-                        ))}
-                        {newGamePublisher &&
-                          !publisherOptions.includes(newGamePublisher) &&
-                          newGamePublisher !== "custom" && (
-                            <SelectItem key={newGamePublisher} value={newGamePublisher} className="font-body font-bold">
-                              {newGamePublisher} (Benutzerdefiniert)
+                  {/* Grundinformationen Sektion */}
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
+                    <h3 className="font-handwritten text-lg text-blue-700 mb-4 flex items-center gap-2">
+                      <Info className="w-5 h-5" />
+                      Grundinformationen
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="font-body text-gray-700 font-medium">Spielname *</Label>
+                        <Input
+                          value={newGameTitle}
+                          onChange={(e) => setNewGameTitle(e.target.value)}
+                          placeholder="z.B. Die Siedler von Catan"
+                          className="font-body border-2 border-blue-200 focus:border-blue-400 bg-white/80"
+                          required
+                        />
+                        {fieldErrors.title && (
+                          <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.title}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label className="font-body text-gray-700 font-medium">Verlag *</Label>
+                        <Select value={newGamePublisher} onValueChange={setNewGamePublisher} required>
+                          <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80">
+                            <SelectValue placeholder="Verlag wählen..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {publisherOptions.map((publisher) => (
+                              <SelectItem key={publisher} value={publisher} className="font-body">
+                                {publisher}
+                              </SelectItem>
+                            ))}
+                            {newGamePublisher &&
+                              !publisherOptions.includes(newGamePublisher) &&
+                              newGamePublisher !== "custom" && (
+                                <SelectItem
+                                  key={newGamePublisher}
+                                  value={newGamePublisher}
+                                  className="font-body font-bold"
+                                >
+                                  {newGamePublisher} (Benutzerdefiniert)
+                                </SelectItem>
+                              )}
+                            <SelectItem value="custom" className="font-body font-bold text-blue-600">
+                              Eigenen Verlag eingeben...
                             </SelectItem>
-                          )}
-                        <SelectItem value="custom" className="font-body font-bold text-blue-600">
-                          Eigenen Verlag eingeben...
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {newGamePublisher === "custom" && (
-                      <div className="mt-2 flex gap-2">
-                        <Input
-                          value={newGameCustomPublisher}
-                          onChange={(e) => setNewGameCustomPublisher(e.target.value)}
-                          placeholder="Verlag eingeben..."
-                          className="font-body border-2 border-blue-200 bg-white/80"
-                          onKeyPress={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault()
-                              handleAddCustomPublisher()
-                            }
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={handleAddCustomPublisher}
-                          className="bg-blue-400 hover:bg-blue-500 text-white"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
-                    {fieldErrors.publisher && (
-                      <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.publisher}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label className="font-body text-gray-700 font-medium">Sprache *</Label>
-                    {/* Language dropdown */}
-                    <Select value={newGameLanguage} onValueChange={setNewGameLanguage}>
-                      <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80">
-                        <SelectValue placeholder="Sprache wählen..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {languageOptions.map((language) => (
-                          <SelectItem
-                            key={language}
-                            value={language === "Andere" ? "custom" : language}
-                            className="font-body"
-                          >
-                            {language}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {newGameLanguage === "custom" && (
-                      <div className="mt-2 flex gap-2">
-                        <Input
-                          value={newGameCustomLanguage}
-                          onChange={(e) => setNewGameCustomLanguage(e.target.value)}
-                          placeholder="Sprache eingeben..."
-                          className="font-body border-2 border-blue-200 bg-white/80"
-                          onKeyPress={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault()
-                              handleAddCustomLanguage()
-                            }
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={handleAddCustomLanguage}
-                          className="bg-blue-400 hover:bg-blue-500 text-white"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
-                    {fieldErrors.language && (
-                      <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.language}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Kategorien Sektion */}
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border border-purple-200">
-                <h3 className="font-handwritten text-lg text-purple-700 mb-4 flex items-center gap-2">
-                  <Tag className="w-5 h-5" />
-                  Kategorien & Typus
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <Label className="font-body text-gray-700 font-medium">Kategorie * (Mehrfachauswahl)</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-between font-body bg-white/80 border-2 border-purple-200 hover:border-purple-300"
-                          type="button"
-                        >
-                          {newGameType.length > 0 ? (
-                            <span className="text-purple-600 font-medium">
-                              {newGameType.length} Kategorie{newGameType.length > 1 ? "n" : ""} ausgewählt
-                            </span>
-                          ) : (
-                            "Kategorie wählen..."
-                          )}
-                          <ChevronDown className="h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 p-0">
-                        <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
-                          <h4 className="font-medium text-sm font-body text-purple-700">Kategorie auswählen:</h4>
-                          {gameTypeOptions.map((type) => (
-                            <div key={type} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`type-${type}`}
-                                checked={newGameType.includes(type)}
-                                onCheckedChange={() => handleNewGameTypeToggle(type)}
-                                className="border-purple-300 data-[state=checked]:bg-purple-400"
-                              />
-                              <Label htmlFor={`type-${type}`} className="text-sm font-body cursor-pointer">
-                                {type}
-                              </Label>
-                            </div>
-                          ))}
-                          <div className="border-t pt-2 mt-2">
-                            <h5 className="font-medium text-xs font-body text-gray-600 mb-2">
-                              Eigene Kategorie hinzufügen:
-                            </h5>
-                            <div className="flex gap-2">
-                              <Input
-                                value={newGameCustomType}
-                                onChange={(e) => setNewGameCustomType(e.target.value)}
-                                placeholder="Kategorie eingeben..."
-                                className="text-xs font-body border-purple-200"
-                                onKeyPress={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault()
-                                    handleAddCustomType()
-                                  }
-                                }}
-                              />
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={handleAddCustomType}
-                                className="bg-purple-400 hover:bg-purple-500 text-white px-2"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </Button>
-                            </div>
+                          </SelectContent>
+                        </Select>
+                        {newGamePublisher === "custom" && (
+                          <div className="mt-2 flex gap-2">
+                            <Input
+                              value={newGameCustomPublisher}
+                              onChange={(e) => setNewGameCustomPublisher(e.target.value)}
+                              placeholder="Verlag eingeben..."
+                              className="font-body border-2 border-blue-200 bg-white/80"
+                              onKeyPress={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  handleAddCustomPublisher()
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleAddCustomPublisher}
+                              className="bg-blue-400 hover:bg-blue-500 text-white"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </Button>
                           </div>
-                          {newGameType.length > 0 && (
-                            <div className="border-t pt-2 mt-2">
-                              <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Ausgewählt:</h5>
-                              <div className="flex flex-wrap gap-1">
-                                {newGameType.map((type) => (
-                                  <Badge
-                                    key={type}
-                                    className="text-xs cursor-pointer bg-purple-100 text-purple-700 hover:bg-purple-200"
-                                    onClick={() => handleNewGameTypeToggle(type)}
-                                  >
-                                    {type} ×
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                    {fieldErrors.type && <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.type}</p>}
-                  </div>
+                        )}
+                        {fieldErrors.publisher && (
+                          <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.publisher}</p>
+                        )}
+                      </div>
 
-                  <div>
-                    <Label className="font-body text-gray-700 font-medium">Typus * (Mehrfachauswahl)</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-between font-body bg-white/80 border-2 border-purple-200 hover:border-purple-300"
-                          type="button"
-                        >
-                          {newGameStyle.length > 0 ? (
-                            <span className="text-purple-600 font-medium">
-                              {newGameStyle.length} Typus {newGameStyle.length > 1 ? "en" : ""} ausgewählt
-                            </span>
-                          ) : (
-                            "Typus wählen..."
-                          )}
-                          <ChevronDown className="h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 p-0">
-                        <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
-                          <h4 className="font-medium text-sm font-body text-purple-700">Typus auswählen:</h4>
-                          {gameStyleOptions.map((style) => (
-                            <div key={style} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`style-${style}`}
-                                checked={newGameStyle.includes(style)}
-                                onCheckedChange={() => handleNewGameStyleToggle(style)}
-                                className="border-purple-300 data-[state=checked]:bg-purple-400"
-                              />
-                              <Label htmlFor={`style-${style}`} className="text-sm font-body cursor-pointer">
-                                {style}
-                              </Label>
-                            </div>
-                          ))}
-                          <div className="border-t pt-2 mt-2">
-                            <h5 className="font-medium text-xs font-body text-gray-600 mb-2">
-                              Eigenen Typus hinzufügen:
-                            </h5>
-                            <div className="flex gap-2">
-                              <Input
-                                value={newGameCustomStyle}
-                                onChange={(e) => setNewGameCustomStyle(e.target.value)}
-                                placeholder="Typus eingeben..."
-                                className="text-xs font-body border-purple-200"
-                                onKeyPress={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault()
-                                    handleAddCustomStyle()
-                                  }
-                                }}
-                              />
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={handleAddCustomStyle}
-                                className="bg-purple-400 hover:bg-purple-500 text-white px-2"
+                      <div>
+                        <Label className="font-body text-gray-700 font-medium">Sprache *</Label>
+                        <Select value={newGameLanguage} onValueChange={setNewGameLanguage} required>
+                          <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80">
+                            <SelectValue placeholder="Sprache wählen..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LANGUAGE_OPTIONS.map((language) => (
+                              <SelectItem
+                                key={language}
+                                value={language === "Andere" ? "custom" : language}
+                                className="font-body"
                               >
-                                <Plus className="w-3 h-3" />
-                              </Button>
-                            </div>
+                                {language}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {newGameLanguage === "custom" && (
+                          <div className="mt-2 flex gap-2">
+                            <Input
+                              value={newGameCustomLanguage}
+                              onChange={(e) => setNewGameCustomLanguage(e.target.value)}
+                              placeholder="Sprache eingeben..."
+                              className="font-body border-2 border-blue-200 bg-white/80"
+                              onKeyPress={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  handleAddCustomLanguage()
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleAddCustomLanguage}
+                              className="bg-blue-400 hover:bg-blue-500 text-white"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </Button>
                           </div>
-                          {newGameStyle.length > 0 && (
-                            <div className="border-t pt-2 mt-2">
-                              <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Ausgewählt:</h5>
-                              <div className="flex flex-wrap gap-1">
-                                {newGameStyle.map((style) => (
-                                  <Badge
-                                    key={style}
-                                    className="text-xs cursor-pointer bg-purple-100 text-purple-700 hover:bg-purple-200"
-                                    onClick={() => handleNewGameStyleToggle(style)}
-                                  >
-                                    {style} ×
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                    {fieldErrors.style && <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.style}</p>}
+                        )}
+                        {fieldErrors.language && (
+                          <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.language}</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Spieldetails Sektion */}
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-xl border border-orange-200">
-                <h3 className="font-handwritten text-lg text-orange-700 mb-4 flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Spieldetails
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <Label className="font-body text-gray-700 font-medium">Spieleranzahl *</Label>
-                    <Select value={newGamePlayerCount} onValueChange={setNewGamePlayerCount} required>
-                      <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80">
-                        <SelectValue placeholder="Spieleranzahl wählen..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PLAYER_COUNT_OPTIONS.map((count) => (
-                          <SelectItem key={count} value={count} className="font-body">
-                            {count}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {fieldErrors.playerCount && (
-                      <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.playerCount}</p>
-                    )}
+                  {/* Kategorien Sektion */}
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border border-purple-200">
+                    <h3 className="font-handwritten text-lg text-purple-700 mb-4 flex items-center gap-2">
+                      <Tag className="w-5 h-5" />
+                      Kategorien & Typus
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="font-body text-gray-700 font-medium">Kategorie * (Mehrfachauswahl)</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-between font-body bg-white/80 border-2 border-purple-200 hover:border-purple-300"
+                              type="button"
+                            >
+                              {newGameType.length > 0 ? (
+                                <span className="text-purple-600 font-medium">
+                                  {newGameType.length} Kategorie{newGameType.length > 1 ? "n" : ""} ausgewählt
+                                </span>
+                              ) : (
+                                "Kategorie wählen..."
+                              )}
+                              <ChevronDown className="h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 p-0">
+                            <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                              <h4 className="font-medium text-sm font-body text-purple-700">Kategorie auswählen:</h4>
+                              {GAME_TYPE_OPTIONS.map((type) => (
+                                <div key={type} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`type-${type}`}
+                                    checked={newGameType.includes(type)}
+                                    onCheckedChange={() => handleNewGameTypeToggle(type)}
+                                    className="border-purple-300 data-[state=checked]:bg-purple-400"
+                                  />
+                                  <Label htmlFor={`type-${type}`} className="text-sm font-body cursor-pointer">
+                                    {type}
+                                  </Label>
+                                </div>
+                              ))}
+                              <div className="border-t pt-2 mt-2">
+                                <h5 className="font-medium text-xs font-body text-gray-600 mb-2">
+                                  Eigene Kategorie hinzufügen:
+                                </h5>
+                                <div className="flex gap-2">
+                                  <Input
+                                    value={newGameCustomType}
+                                    onChange={(e) => setNewGameCustomType(e.target.value)}
+                                    placeholder="Kategorie eingeben..."
+                                    className="text-xs font-body border-purple-200"
+                                    onKeyPress={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault()
+                                        handleAddCustomType()
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={handleAddCustomType}
+                                    className="bg-purple-400 hover:bg-purple-500 text-white px-2"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                              {newGameType.length > 0 && (
+                                <div className="border-t pt-2 mt-2">
+                                  <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Ausgewählt:</h5>
+                                  <div className="flex flex-wrap gap-1">
+                                    {newGameType.map((type) => (
+                                      <Badge
+                                        key={type}
+                                        className="text-xs cursor-pointer bg-purple-100 text-purple-700 hover:bg-purple-200"
+                                        onClick={() => handleNewGameTypeToggle(type)}
+                                      >
+                                        {type} ×
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        {fieldErrors.type && <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.type}</p>}
+                      </div>
+
+                      <div>
+                        <Label className="font-body text-gray-700 font-medium">Typus * (Mehrfachauswahl)</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-between font-body bg-white/80 border-2 border-purple-200 hover:border-purple-300"
+                              type="button"
+                            >
+                              {newGameStyle.length > 0 ? (
+                                <span className="text-purple-600 font-medium">
+                                  {newGameStyle.length} Typus {newGameStyle.length > 1 ? "en" : ""} ausgewählt
+                                </span>
+                              ) : (
+                                "Typus wählen..."
+                              )}
+                              <ChevronDown className="h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 p-0">
+                            <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                              <h4 className="font-medium text-sm font-body text-purple-700">Typus auswählen:</h4>
+                              {GAME_STYLE_OPTIONS.map((style) => (
+                                <div key={style} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`style-${style}`}
+                                    checked={newGameStyle.includes(style)}
+                                    onCheckedChange={() => handleNewGameStyleToggle(style)}
+                                    className="border-purple-300 data-[state=checked]:bg-purple-400"
+                                  />
+                                  <Label htmlFor={`style-${style}`} className="text-sm font-body cursor-pointer">
+                                    {style}
+                                  </Label>
+                                </div>
+                              ))}
+                              <div className="border-t pt-2 mt-2">
+                                <h5 className="font-medium text-xs font-body text-gray-600 mb-2">
+                                  Eigene Typus hinzufügen:
+                                </h5>
+                                <div className="flex gap-2">
+                                  <Input
+                                    value={newGameCustomStyle}
+                                    onChange={(e) => setNewGameCustomStyle(e.target.value)}
+                                    placeholder="Typus eingeben..."
+                                    className="text-xs font-body border-purple-200"
+                                    onKeyPress={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault()
+                                        handleAddCustomStyle()
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={handleAddCustomStyle}
+                                    className="bg-purple-400 hover:bg-purple-500 text-white px-2"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                              {newGameStyle.length > 0 && (
+                                <div className="border-t pt-2 mt-2">
+                                  <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Ausgewählt:</h5>
+                                  <div className="flex flex-wrap gap-1">
+                                    {newGameStyle.map((style) => (
+                                      <Badge
+                                        key={style}
+                                        className="text-xs cursor-pointer bg-purple-100 text-purple-700 hover:bg-purple-200"
+                                        onClick={() => handleNewGameStyleToggle(style)}
+                                      >
+                                        {style} ×
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        {fieldErrors.style && (
+                          <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.style}</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <Label className="font-body text-gray-700 font-medium">Spieldauer *</Label>
-                    <Select value={newGameDuration} onValueChange={setNewGameDuration} required>
-                      <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80">
-                        <SelectValue placeholder="Spieldauer wählen..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DURATION_OPTIONS.map((duration) => (
-                          <SelectItem key={duration} value={duration} className="font-body">
-                            {duration}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {fieldErrors.duration && (
-                      <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.duration}</p>
-                    )}
+
+                  {/* Spieldetails Sektion */}
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-xl border border-orange-200">
+                    <h3 className="font-handwritten text-lg text-orange-700 mb-4 flex items-center gap-2">
+                      <Users className="w-5 h-5" />
+                      Spieldetails
+                    </h3>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <Label className="font-body text-gray-700 font-medium">Spieleranzahl *</Label>
+                        <Select value={newGamePlayerCount} onValueChange={setNewGamePlayerCount} required>
+                          <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80">
+                            <SelectValue placeholder="Spieleranzahl wählen..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {playerCountOptions.map((count) => (
+                              <SelectItem key={count} value={count} className="font-body">
+                                {count}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {fieldErrors.playerCount && (
+                          <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.playerCount}</p>
+                        )}
+                      </div>
+                      <div>
+                        <Label className="font-body text-gray-700 font-medium">Spieldauer *</Label>
+                        <select
+                          value={newGameDuration}
+                          onChange={(e) => setNewGameDuration(e.target.value)}
+                          className="w-full p-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent font-body"
+                        >
+                          <option value="">Spieldauer wählen</option>
+                          {durationOptions.map((duration) => (
+                            <option key={duration} value={duration} className="font-body">
+                              {duration}
+                            </option>
+                          ))}
+                        </select>
+                        {fieldErrors.duration && (
+                          <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.duration}</p>
+                        )}
+                      </div>
+                      <div>
+                        <Label className="font-body text-gray-700 font-medium">Altersempfehlung *</Label>
+                        <Select value={newGameAge} onValueChange={setNewGameAge} required>
+                          <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80">
+                            <SelectValue placeholder="Altersempfehlung wählen..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {AGE_OPTIONS.map((age) => (
+                              <SelectItem key={age} value={age} className="font-body">
+                                {age}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {fieldErrors.age && <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.age}</p>}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <Label className="font-body text-gray-700 font-medium">Altersempfehlung *</Label>
-                    <Select value={newGameAge} onValueChange={setNewGameAge} required>
-                      <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80">
-                        <SelectValue placeholder="Altersempfehlung wählen..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {AGE_OPTIONS.map((age) => (
-                          <SelectItem key={age} value={age} className="font-body">
-                            {age}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {fieldErrors.age && <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.age}</p>}
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-2">
@@ -1423,64 +1475,188 @@ function LibraryContent() {
 
         {/* Search, Sort and Filter */}
         <div className="space-y-4 mb-8">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Spiele durchsuchen..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="border-2 border-teal-200 focus:border-teal-400"
-                disabled={!databaseConnected}
-              />
-            </div>
-            <Button
-              variant="outline"
-              className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
-              disabled={!databaseConnected}
-            >
-              <Search className="w-5 h-5 mr-2" />
-              Suchen
-            </Button>
-          </div>
+          <div className="bg-white/50 rounded-lg p-4 border border-teal-200">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+              <div className="col-span-full mb-2">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Spiele durchsuchen..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="border-2 border-teal-200 focus:border-teal-400"
+                      disabled={!databaseConnected}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
+                    disabled={!databaseConnected}
+                  >
+                    <Search className="w-5 h-5 mr-2" />
+                    Suchen
+                  </Button>
+                </div>
+              </div>
 
-          <div className="flex gap-4 flex-wrap">
-            {/* Sortierung */}
-            <div className="flex items-center gap-2">
-              <Label className="font-body text-sm">Sortieren:</Label>
-              <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
-                <SelectTrigger className="w-40 font-body">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="title-asc" className="font-body">
-                    Spielname A-Z
-                  </SelectItem>
-                  <SelectItem value="title-desc" className="font-body">
-                    Spielname Z-A
-                  </SelectItem>
-                  <SelectItem value="publisher-asc" className="font-body">
-                    Verlag A-Z
-                  </SelectItem>
-                  <SelectItem value="publisher-desc" className="font-body">
-                    Verlag Z-A
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Sortierung */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Sortieren nach </Label>
+                <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="title-asc" className="text-xs">
+                      Spielname A-Z
+                    </SelectItem>
+                    <SelectItem value="title-desc" className="text-xs">
+                      Spielname Z-A
+                    </SelectItem>
+                    <SelectItem value="publisher-asc" className="text-xs">
+                      Verlag A-Z
+                    </SelectItem>
+                    <SelectItem value="publisher-desc" className="text-xs">
+                      Verlag Z-A
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* Reset Filter Button */}
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchTerm("")
-                setSortBy("title-asc")
-              }}
-              className="border-2 border-gray-400 text-gray-600 hover:bg-gray-400 hover:text-white font-handwritten"
-              disabled={!databaseConnected}
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Zurücksetzen
-            </Button>
+              {/* Spieleranzahl Filter */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Spieleranzahl</Label>
+                <Select
+                  value={filters.playerCount}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({ ...prev, playerCount: value === "all" ? "" : value }))
+                  }
+                  disabled={!databaseConnected}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    {playerCountOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Spieldauer Filter */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Spieldauer</Label>
+                <Select
+                  value={filters.duration}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, duration: value === "all" ? "" : value }))}
+                  disabled={!databaseConnected}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    {durationOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Altersempfehlung Filter */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Alter</Label>
+                <Select
+                  value={filters.age}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, age: value === "all" ? "" : value }))}
+                  disabled={!databaseConnected}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    {AGE_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sprache Filter */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Sprache</Label>
+                <Select
+                  value={filters.language}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, language: value === "all" ? "" : value }))}
+                  disabled={!databaseConnected}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    {LANGUAGE_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Kategorie Filter */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Kategorie</Label>
+                <Select
+                  value={filters.category}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, category: value === "all" ? "" : value }))}
+                  disabled={!databaseConnected}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    {GAME_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm("")
+                    setSortBy("title-asc")
+                    setFilters({
+                      playerCount: "",
+                      duration: "",
+                      age: "",
+                      language: "",
+                      category: "",
+                      type: "",
+                    })
+                  }}
+                  className="h-8 text-xs border-2 border-gray-400 text-gray-600 hover:bg-gray-400 hover:text-white font-handwritten"
+                  disabled={!databaseConnected}
+                >
+                  Filter zurücksetzen
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1870,13 +2046,13 @@ function LibraryContent() {
                         <SelectValue placeholder="Verlag wählen..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {PUBLISHER_OPTIONS.map((publisher) => (
+                        {publisherOptions.map((publisher) => (
                           <SelectItem key={publisher} value={publisher} className="font-body">
                             {publisher}
                           </SelectItem>
                         ))}
                         {editGamePublisher &&
-                          !PUBLISHER_OPTIONS.includes(editGamePublisher) &&
+                          !publisherOptions.includes(editGamePublisher) &&
                           editGamePublisher !== "custom" && (
                             <SelectItem
                               key={editGamePublisher}
@@ -2075,7 +2251,7 @@ function LibraryContent() {
                           ))}
                           <div className="border-t pt-2 mt-2">
                             <h5 className="font-medium text-xs font-body text-gray-600 mb-2">
-                              Eigenen Typus hinzufügen:
+                              Eigene Typus hinzufügen:
                             </h5>
                             <div className="flex gap-2">
                               <Input
@@ -2131,38 +2307,13 @@ function LibraryContent() {
                 </h3>
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <Label className="font-body text-gray-700 font-medium">Zustand *</Label>
-                    <Select value={editGameCondition} onValueChange={setEditGameCondition} required>
-                      <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80">
-                        <SelectValue placeholder="Zustand wählen..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Neu" className="font-body">
-                          Neu
-                        </SelectItem>
-                        <SelectItem value="Sehr gut" className="font-body">
-                          Sehr gut
-                        </SelectItem>
-                        <SelectItem value="Gut" className="font-body">
-                          Gut
-                        </SelectItem>
-                        <SelectItem value="Akzeptabel" className="font-body">
-                          Akzeptabel
-                        </SelectItem>
-                        <SelectItem value="Schlecht" className="font-body">
-                          Schlecht
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
                     <Label className="font-body text-gray-700 font-medium">Spieleranzahl *</Label>
                     <Select value={editGamePlayerCount} onValueChange={setEditGamePlayerCount} required>
                       <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80">
                         <SelectValue placeholder="Spieleranzahl wählen..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {PLAYER_COUNT_OPTIONS.map((count) => (
+                        {playerCountOptions.map((count) => (
                           <SelectItem key={count} value={count} className="font-body">
                             {count}
                           </SelectItem>
@@ -2177,7 +2328,7 @@ function LibraryContent() {
                         <SelectValue placeholder="Spieldauer wählen..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {DURATION_OPTIONS.map((duration) => (
+                        {durationOptionsInit.map((duration) => (
                           <SelectItem key={duration} value={duration} className="font-body">
                             {duration}
                           </SelectItem>
@@ -2226,46 +2377,45 @@ function LibraryContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Game Dialog */}
+      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-handwritten text-2xl text-center text-red-700">Spiel löschen</DialogTitle>
+            <DialogTitle className="font-handwritten text-2xl text-center">Spiel löschen?</DialogTitle>
             <DialogDescription className="text-center font-body">
-              {gameToDelete ? `Möchtest du "${gameToDelete.title}" wirklich aus deiner Bibliothek entfernen?` : ""}
+              Bist du sicher, dass du <span className="font-bold">{gameToDelete?.title}</span> aus deiner Bibliothek
+              entfernen möchtest?
             </DialogDescription>
           </DialogHeader>
-          <div className="flex gap-3 pt-4">
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="flex-1 font-handwritten">
+          <div className="flex justify-end space-x-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              className="font-handwritten"
+            >
               Abbrechen
             </Button>
             <Button
+              type="button"
               onClick={handleConfirmDelete}
-              className="flex-1 bg-red-400 hover:bg-red-500 text-white font-handwritten"
+              className="bg-red-400 hover:bg-red-500 text-white font-handwritten"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
               Löschen
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Create Marketplace Offer Dialog */}
       <CreateMarketplaceOfferForm
         isOpen={isCreateOfferOpen}
         onClose={() => setIsCreateOfferOpen(false)}
         preselectedGame={preselectedGame}
         preselectedOfferType={preselectedOfferType}
       />
-
-      {/* Game Search Dialog */}
-      {console.log("[v0] Rendering GameSearchDialog with isOpen:", isGameSearchDialogOpen)}
       <GameSearchDialog
-        isOpen={isGameSearchDialogOpen}
-        onClose={() => {
-          console.log("[v0] GameSearchDialog onClose called")
-          setIsGameSearchDialogOpen(false)
-        }}
+        open={isGameSearchDialogOpen}
+        onOpenChange={setIsGameSearchDialogOpen}
         onGameSelect={handleGameSelect}
       />
     </div>

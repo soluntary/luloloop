@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Dice6, Users, Repeat, ArrowRightFromLine, ShoppingBag, RefreshCw, Search, Plus, HandCoins } from 'lucide-react'
+import { Dice6, Users, Repeat, ArrowRightFromLine, ShoppingBag, RefreshCw, Search, Plus, HandCoins, Library } from 'lucide-react'
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import "@/styles/font-handwritten.css"
@@ -18,10 +18,10 @@ export default function HomePage() {
       <section className="container mx-auto px-4 py-16 text-center">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-5xl font-bold text-gray-800 mb-6 transform -rotate-1 font-handwritten">
-            Bring deine Spiel ins Spiel
+            Bring deine Spiele ins Spiel
           </h2>
           <p className="text-xl text-gray-600 mb-8 transform rotate-1 font-body">
-          Entdecke, teile und geniesse Brettspiele wie nie zuvor.
+          Entdecke, teile und geniesse Brettspiele wie nie zuvor
           </p>          
         </div>
       </section>
@@ -31,7 +31,26 @@ export default function HomePage() {
       <h2 className="text-4xl font-handwritten text-center text-gray-800 mb-12 transform rotate-1">
             Entdecke unsere Features
           </h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">          
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+         <Card className="transform rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-orange-200">
+            <CardContent className="p-6 text-center">
+              <div className="w-16 h-16 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
+                <Library className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">
+                Digitale Spielsammlung
+              </h3>
+              <p className="text-gray-600 font-body mb-4">
+                Lege deine Spiele digital an und behalte den Überblick über deine Sammlung. 
+              </p>
+              <Button asChild variant="outline" className="border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten">
+                <Link href="/library">
+                  Zur Spielebibliothek
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card className="transform rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-teal-200">
             <CardContent className="p-6 text-center">
               <div className="w-16 h-16 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
@@ -41,7 +60,7 @@ export default function HomePage() {
                 Verleihen
               </h3>
               <p className="text-gray-600 font-body mb-4">
-                Leihe deine Spiele aus und verdiene dabei. Sicher und einfach!
+                Leihe deine Spiele aus und verdiene dabei etwas. Sicher und einfach!
               </p>
               <Button asChild variant="outline" className="border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten">
                 <Link href="/marketplace?filter=lend">
@@ -95,13 +114,13 @@ export default function HomePage() {
                 <Users className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">
-                Community
+                Spielgruppen
               </h3>
               <p className="text-gray-600 font-body mb-4">
-                Finde Gleichgesinnte, tritt spannenden Spielgruppen bei oder gründe selbst eine.
+                Tritt Spielgruppen bei oder erstelle deine eigene und finde andere Spieler für gemeinsame Spielrunden.
               </p>
               <Button asChild variant="outline" className="border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten">
-                <Link href="/groups">
+                <Link href="/groups?tab=communities">
                   Zur Community
                 </Link>
               </Button>

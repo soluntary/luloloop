@@ -33,12 +33,14 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<GameSearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
 
     console.log("[v0] Starting search for:", searchQuery)
     setIsSearching(true)
+    setHasSearched(true)
     try {
       const url = `/api/boardgamegeek/search?q=${encodeURIComponent(searchQuery)}`
       console.log("[v0] Fetching from:", url)
@@ -91,7 +93,7 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
         <DialogHeader>
           <DialogTitle className="font-handwritten text-xl text-teal-700 flex items-center gap-2">
             <Search className="w-5 h-5" />
-            Spiel aus BoardGameGeek suchen
+            Spiel in der Datenbank suchen
           </DialogTitle>
         </DialogHeader>
 
@@ -193,11 +195,18 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
               </div>
             ))}
 
-            {searchResults.length === 0 && searchQuery && !isSearching && (
+            {!hasSearched && searchQuery && (
+              <div className="text-center py-8 text-gray-500">
+                <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p className="font-body">Enter klicken zum Suchen</p>
+              </div>
+            )}
+
+            {hasSearched && searchResults.length === 0 && searchQuery && !isSearching && (
               <div className="text-center py-8 text-gray-500">
                 <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p className="font-body">Keine Spiele gefunden für "{searchQuery}"</p>
-                <p className="text-sm">Versuche einen anderen Suchbegriff</p>
+                <p className="text-sm">Versuche einen anderen Suchbegriff oder gib gerne das Spiel selber ein.</p>
               </div>
             )}
           </div>

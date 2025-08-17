@@ -12,12 +12,7 @@ export function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link href="/marketplace" className="text-gray-300 hover:text-white transition-colors">
-                  Marktplatz
-                </Link>
-              </li>
-              <li>
-                <Link href="/groups" className="text-gray-300 hover:text-white transition-colors">
-                  Communities
+                  Spielemarkt
                 </Link>
               </li>
               <li>
@@ -34,14 +29,9 @@ export function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link href="/help" className="text-gray-300 hover:text-white transition-colors">
-                  Hilfe
+                  Hilfe & FAQ
                 </Link>
-              </li>
-              <li>
-                <Link href="/faq" className="text-gray-300 hover:text-white transition-colors">
-                  FAQ
-                </Link>
-              </li>
+              </li>              
             </ul>
           </div>
 
