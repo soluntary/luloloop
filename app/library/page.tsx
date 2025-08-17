@@ -1,7 +1,5 @@
 "use client"
 
-import { DialogDescription } from "@/components/ui/dialog"
-
 import type React from "react"
 
 import { Button } from "@/components/ui/button"
@@ -28,9 +26,9 @@ import {
   Users,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { useState, Suspense, useRef } from "react"
+import { useState, useRef, Suspense } from "react"
 import { Navigation } from "@/components/navigation"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -39,6 +37,30 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
 import { CreateMarketplaceOfferForm } from "@/components/create-marketplace-offer-form"
+import { GameSearchDialog } from "@/components/game-search-dialog"
+
+function LibraryLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-20 h-20 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce transform rotate-12">
+          <BookOpen className="w-10 h-10 text-white" />
+        </div>
+        <h2 className="text-3xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
+          Bibliothek wird geladen...
+        </h2>
+        <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
+          Deine Spiele werden aus dem Regal geholt!
+        </p>
+        <div className="mt-8 flex justify-center space-x-2">
+          <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+          <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+          <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const GAME_TYPE_OPTIONS = [
   "Aktions- und Reaktionsspiel",
@@ -80,20 +102,8 @@ const PUBLISHER_OPTIONS = [
   "Pegasus Spiele",
   "Piatnik",
   "Ravensburger",
-  "Schmidt",
+  "Schmidt Spiele",
   "Stonemaier Games",
-]
-
-const LANGUAGE_OPTIONS = ["Deutsch", "Englisch", "Französisch", "Italienisch", "Andere"]
-
-const GAME_STYLE_OPTIONS = [
-  "Kooperativ",
-  "Kompetitiv",
-  "Semi-Kooperativ",
-  "Strategisch",
-  "Solospiel",
-  "One vs. All",
-  "Team vs. Team",
 ]
 
 const AGE_OPTIONS = [
@@ -113,46 +123,35 @@ const DURATION_OPTIONS = [
   "20-30 Min.",
   "30-45 Min.",
   "45-60 Min.",
-  "45-90 Min.",
   "60-90 Min.",
-  "> 90 Min.",
+  "60-120 Min.",
+  "> 120 Min.",
 ]
 
 const PLAYER_COUNT_OPTIONS = [
+  "1 Person",
+  "2 Personen",
+  "3 Personen",
+  "4 Personen",
   "1 bis 2 Personen",
+  "1 bis 3 Personen",
   "1 bis 4 Personen",
   "2 bis 4 Personen",
-  "1 bis 5 Personen",
-  "2 bis 5 Personen",
-  "3 bis 5 Personen",
-  "1 bis 6 Personen",
   "2 bis 6 Personen",
+  "2 bis 8 Personen",
   "3 bis 6 Personen",
-  "4 bis 6 Personen",
+  "4 bis 8 Personen",
 ]
 
-function LibraryLoading() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-20 h-20 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce transform rotate-12">
-          <BookOpen className="w-10 h-10 text-white" />
-        </div>
-        <h2 className="text-3xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-          Bibliothek wird geladen...
-        </h2>
-        <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
-          Deine Spiele werden aus dem Regal geholt!
-        </p>
-        <div className="mt-8 flex justify-center space-x-2">
-          <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-          <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-          <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
-        </div>
-      </div>
-    </div>
-  )
-}
+const GAME_STYLE_OPTIONS = [
+  "Kooperativ",
+  "Kompetitiv",
+  "Semi-Kooperativ",
+  "Strategisch",
+  "Solospiel",
+  "One vs. All",
+  "Team vs. Team",
+]
 
 function LibraryContent() {
   const { games, addGame, updateGame, deleteGame, addMarketplaceOffer, loading, error, databaseConnected } = useGames()
@@ -225,6 +224,72 @@ function LibraryContent() {
     duration: "",
     age: "",
   })
+
+  const [isGameSearchDialogOpen, setIsGameSearchDialogOpen] = useState(false)
+
+  const [showGameSearchDialog, setShowGameSearchDialog] = useState(false)
+
+  const [gameTypeOptions, setGameTypeOptions] = useState([
+    "Aktions- und Reaktionsspiel",
+    "Brettspiel",
+    "Erweiterung",
+    "Escape-Spiel",
+    "Geschicklichkeitsspiel",
+    "Glücksspiel",
+    "Kartenspiel",
+    "Krimi- und Detektivspiel",
+    "Legespiel",
+    "Merkspiel",
+    "Outdoor-Spiel",
+    "Partyspiel",
+    "Quiz-Spiel",
+    "Rollenspiel",
+    "Trinkspiel",
+    "Würfelspiel",
+  ])
+
+  const [publisherOptions, setPublisherOptions] = useState([
+    "Abacusspiele",
+    "Amigo",
+    "Asmodée",
+    "Cocktail Games",
+    "Feuerland",
+    "Game Factory",
+    "Gamewright",
+    "Gigamic",
+    "Haba",
+    "Hans im Glück",
+    "Hasbro",
+    "HCM Kinzel",
+    "Huch!",
+    "Kosmos",
+    "Lookout Games",
+    "Mattel",
+    "Noris Spiele",
+    "Pegasus Spiele",
+    "Piatnik",
+    "Ravensburger",
+    "Schmidt Spiele",
+    "Stonemaier Games",
+  ])
+
+  const [languageOptions, setLanguageOptions] = useState([
+    "Deutsch",
+    "Englisch",
+    "Französisch",
+    "Italienisch",
+    "Andere",
+  ])
+
+  const [gameStyleOptions, setGameStyleOptions] = useState([
+    "Kooperativ",
+    "Kompetitiv",
+    "Semi-Kooperativ",
+    "Strategisch",
+    "Solospiel",
+    "One vs. All",
+    "Team vs. Team",
+  ])
 
   const filteredGames = games
     .filter((game) => {
@@ -435,13 +500,13 @@ function LibraryContent() {
       errors.type = "Bitte wähle mindestens eine Kategorie."
     }
     if (newGameStyle.length === 0) {
-      errors.style = "Bitte wähle mindestens einen Typus."
+      errors.style = "Bitte wähle mindestens mindestens einen Typus."
     }
     if (!newGamePlayerCount) {
       errors.playerCount = "Spieleranzahl ist erforderlich"
     }
     if (!newGameDuration) {
-      errors.duration = "Spieledauer ist erforderlich"
+      errors.duration = "Spieldauer ist erforderlich"
     }
     if (!newGameAge) {
       errors.age = "Altersempfehlung ist erforderlich"
@@ -467,15 +532,46 @@ function LibraryContent() {
     }
 
     try {
+      let minPlayers = 1
+      let maxPlayers = 1
+      if (newGamePlayerCount) {
+        const playerMatch = newGamePlayerCount.match(/(\d+)\s*bis\s*(\d+)/)
+        if (playerMatch) {
+          minPlayers = Number.parseInt(playerMatch[1])
+          maxPlayers = Number.parseInt(playerMatch[2])
+        }
+      }
+
+      let playTime = 30 // Default 30 minutes
+      if (newGameDuration) {
+        if (newGameDuration.includes("< 10")) playTime = 5
+        else if (newGameDuration.includes("10-20")) playTime = 15
+        else if (newGameDuration.includes("20-30")) playTime = 25
+        else if (newGameDuration.includes("30-45")) playTime = 37
+        else if (newGameDuration.includes("45-60")) playTime = 52
+        else if (newGameDuration.includes("45-90")) playTime = 67
+        else if (newGameDuration.includes("60-90")) playTime = 75
+        else if (newGameDuration.includes("> 90")) playTime = 120
+      }
+
       const gameData = {
         title: newGameTitle.trim(),
-        publisher: newGamePublisher.trim(),
-        language: newGameLanguage,
+        publisher: newGamePublisher === "custom" ? newGameCustomPublisher.trim() : newGamePublisher.trim(),
+        language: newGameLanguage === "custom" ? newGameCustomLanguage.trim() : newGameLanguage,
         available: ["lend", "trade", "sell"],
         image: newGameImage || "/images/ludoloop-game-placeholder.png",
-        // Only include type and style if they have values
-        ...(newGameType.length > 0 && { type: newGameType.join(", ") }),
-        ...(newGameStyle.length > 0 && { style: newGameStyle.join(", ") }),
+        type: newGameType.length > 0 ? newGameType.join(", ") : "",
+        style: newGameStyle.length > 0 ? newGameStyle.join(", ") : "",
+        players: newGamePlayerCount,
+        duration: newGameDuration,
+        age: newGameAge,
+        min_players: minPlayers,
+        max_players: maxPlayers,
+        play_time: playTime,
+        condition: newGameCondition || "Gut", // Default condition
+        description: "", // Can be filled later
+        category: newGameType.length > 0 ? newGameType[0] : "Brettspiel", // Use first type as category
+        age_rating: newGameAge,
       }
 
       await addGame(gameData)
@@ -662,6 +758,161 @@ function LibraryContent() {
     }
   }
 
+  const validateForm = () => {
+    const errors: any = {}
+
+    if (!newGameTitle.trim()) {
+      errors.title = "Spielname ist erforderlich"
+    }
+
+    if (!newGamePublisher.trim() || (newGamePublisher === "custom" && !newGameCustomPublisher.trim())) {
+      errors.publisher = "Verlag ist erforderlich"
+    }
+
+    if (newGameType.length === 0) {
+      errors.type = "Kategorie ist erforderlich"
+    }
+
+    if (newGameStyle.length === 0) {
+      errors.style = "Typus ist erforderlich"
+    }
+
+    if (!newGamePlayerCount) {
+      errors.playerCount = "Spieleranzahl ist erforderlich"
+    }
+
+    if (!newGameDuration) {
+      errors.duration = "Spieldauer ist erforderlich"
+    }
+
+    if (!newGameAge) {
+      errors.age = "Altersempfehlung ist erforderlich"
+    }
+
+    return errors
+  }
+
+  const addToDropdownOptions = (options: string[], newOption: string, setOptions: (options: string[]) => void) => {
+    if (!options.includes(newOption)) {
+      setOptions([...options, newOption])
+    }
+  }
+
+  const handleGameSelect = (game: any) => {
+    // Map BoardGameGeek data to form fields
+    setNewGameTitle(game.name)
+
+    // Set publisher and add to options if not present
+    if (game.publishers.length > 0) {
+      const publisher = game.publishers[0]
+      if (publisherOptions.includes(publisher)) {
+        setNewGamePublisher(publisher)
+      } else {
+        // Add new publisher to options and set it
+        addToDropdownOptions(publisherOptions, publisher, setPublisherOptions)
+        setNewGamePublisher(publisher)
+        setNewGameCustomPublisher("")
+      }
+    }
+
+    // Set image
+    if (game.image) {
+      setNewGameImage(game.image)
+    }
+
+    // Map player count
+    if (game.minPlayers && game.maxPlayers) {
+      const playerCount = `${game.minPlayers} bis ${game.maxPlayers} Personen`
+      const matchingOption = PLAYER_COUNT_OPTIONS.find(
+        (option) => option.includes(game.minPlayers.toString()) && option.includes(game.maxPlayers.toString()),
+      )
+      if (matchingOption) {
+        setNewGamePlayerCount(matchingOption)
+      }
+    }
+
+    // Map playing time
+    if (game.playingTime) {
+      let durationOption = ""
+      if (game.playingTime < 10) durationOption = "< 10 Min."
+      else if (game.playingTime <= 20) durationOption = "10-20 Min."
+      else if (game.playingTime <= 30) durationOption = "20-30 Min."
+      else if (game.playingTime <= 45) durationOption = "30-45 Min."
+      else if (game.playingTime <= 60) durationOption = "45-60 Min."
+      else if (game.playingTime <= 90) durationOption = "60-90 Min."
+      else durationOption = "> 90 Min."
+
+      setNewGameDuration(durationOption)
+    }
+
+    // Map age
+    if (game.minAge) {
+      let ageOption = ""
+      if (game.minAge <= 4) ageOption = "bis 4 Jahren"
+      else if (game.minAge <= 5) ageOption = "ab 4 bis 5 Jahren"
+      else if (game.minAge <= 7) ageOption = "ab 6 bis 7 Jahren"
+      else if (game.minAge <= 9) ageOption = "ab 8 bis 9 Jahren"
+      else if (game.minAge <= 11) ageOption = "ab 10 bis 11 Jahren"
+      else if (game.minAge <= 13) ageOption = "ab 12 bis 13 Jahren"
+      else if (game.minAge <= 17) ageOption = "ab 14 bis 17 Jahren"
+      else ageOption = "ab 18 Jahren"
+
+      setNewGameAge(ageOption)
+    }
+
+    // Map categories to game types and add new ones
+    if (game.categories.length > 0) {
+      const mappedTypes: string[] = []
+      game.categories.forEach((category: string) => {
+        // Simple mapping of BGG categories to our types
+        if (category.includes("Card")) mappedTypes.push("Kartenspiel")
+        else if (category.includes("Dice")) mappedTypes.push("Würfelspiel")
+        else if (category.includes("Party")) mappedTypes.push("Partyspiel")
+        else if (category.includes("Strategy")) mappedTypes.push("Brettspiel")
+        else if (category.includes("Family")) mappedTypes.push("Brettspiel")
+        else {
+          // Add the original category as a new game type option
+          addToDropdownOptions(gameTypeOptions, category, setGameTypeOptions)
+          mappedTypes.push(category)
+        }
+      })
+
+      if (mappedTypes.length === 0) {
+        mappedTypes.push("Brettspiel") // Default
+      }
+
+      setNewGameType([...new Set(mappedTypes)]) // Remove duplicates
+    }
+
+    // Map mechanics to game styles
+    if (game.mechanics.length > 0) {
+      const mappedStyles: string[] = []
+      game.mechanics.forEach((mechanic: string) => {
+        if (mechanic.includes("Cooperative")) mappedStyles.push("Kooperativ")
+        else if (mechanic.includes("Solo")) mappedStyles.push("Solospiel")
+        else if (mechanic.includes("Team")) mappedStyles.push("Team vs. Team")
+        else {
+          // Add the original mechanic as a new game style option
+          addToDropdownOptions(gameStyleOptions, mechanic, setGameStyleOptions)
+          mappedStyles.push(mechanic)
+        }
+      })
+
+      if (mappedStyles.length === 0) {
+        mappedStyles.push("Kompetitiv") // Default
+      }
+
+      setNewGameStyle([...new Set(mappedStyles)]) // Remove duplicates
+    }
+
+    // Set default language to German
+    setNewGameLanguage("Deutsch")
+
+    // Clear all validation errors since fields are being auto-filled
+    setFieldErrors({})
+    setIsGameSearchDialogOpen(false)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
       {/* Header */}
@@ -723,6 +974,29 @@ function LibraryContent() {
               </p>
             </DialogHeader>
             <form onSubmit={handleAddGameSubmit} className="space-y-6">
+              <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
+                <h3 className="font-handwritten text-lg text-green-700 mb-3 flex items-center gap-2">
+                  <Search className="w-5 h-5" />
+                  Spiel automatisch suchen
+                </h3>
+                <p className="text-sm text-green-600 font-body mb-3">
+                  Suche dein Spiel in der BoardGameGeek-Datenbank und lass die Details automatisch ausfüllen.
+                </p>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    console.log("[v0] Spiel suchen button clicked")
+                    console.log("[v0] Current isGameSearchDialogOpen state:", isGameSearchDialogOpen)
+                    setIsGameSearchDialogOpen(true)
+                    console.log("[v0] Setting isGameSearchDialogOpen to true")
+                  }}
+                  className="bg-green-400 hover:bg-green-500 text-white font-handwritten"
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  Spiel suchen
+                </Button>
+              </div>
+
               <div className="bg-gradient-to-br from-teal-50 to-teal-100 p-4 rounded-xl border border-teal-200">
                 <h3 className="font-handwritten text-lg text-teal-700 mb-3 flex items-center gap-2">
                   <Camera className="w-5 h-5" />
@@ -784,18 +1058,19 @@ function LibraryContent() {
 
                   <div>
                     <Label className="font-body text-gray-700 font-medium">Verlag *</Label>
-                    <Select value={newGamePublisher} onValueChange={setNewGamePublisher} required>
+                    {/* Publisher dropdown */}
+                    <Select value={newGamePublisher} onValueChange={setNewGamePublisher}>
                       <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80">
                         <SelectValue placeholder="Verlag wählen..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {PUBLISHER_OPTIONS.map((publisher) => (
+                        {publisherOptions.map((publisher) => (
                           <SelectItem key={publisher} value={publisher} className="font-body">
                             {publisher}
                           </SelectItem>
                         ))}
                         {newGamePublisher &&
-                          !PUBLISHER_OPTIONS.includes(newGamePublisher) &&
+                          !publisherOptions.includes(newGamePublisher) &&
                           newGamePublisher !== "custom" && (
                             <SelectItem key={newGamePublisher} value={newGamePublisher} className="font-body font-bold">
                               {newGamePublisher} (Benutzerdefiniert)
@@ -837,12 +1112,13 @@ function LibraryContent() {
 
                   <div>
                     <Label className="font-body text-gray-700 font-medium">Sprache *</Label>
-                    <Select value={newGameLanguage} onValueChange={setNewGameLanguage} required>
+                    {/* Language dropdown */}
+                    <Select value={newGameLanguage} onValueChange={setNewGameLanguage}>
                       <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80">
                         <SelectValue placeholder="Sprache wählen..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {LANGUAGE_OPTIONS.map((language) => (
+                        {languageOptions.map((language) => (
                           <SelectItem
                             key={language}
                             value={language === "Andere" ? "custom" : language}
@@ -913,7 +1189,7 @@ function LibraryContent() {
                       <PopoverContent className="w-64 p-0">
                         <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
                           <h4 className="font-medium text-sm font-body text-purple-700">Kategorie auswählen:</h4>
-                          {GAME_TYPE_OPTIONS.map((type) => (
+                          {gameTypeOptions.map((type) => (
                             <div key={type} className="flex items-center space-x-2">
                               <Checkbox
                                 id={`type-${type}`}
@@ -997,7 +1273,7 @@ function LibraryContent() {
                       <PopoverContent className="w-64 p-0">
                         <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
                           <h4 className="font-medium text-sm font-body text-purple-700">Typus auswählen:</h4>
-                          {GAME_STYLE_OPTIONS.map((style) => (
+                          {gameStyleOptions.map((style) => (
                             <div key={style} className="flex items-center space-x-2">
                               <Checkbox
                                 id={`style-${style}`}
@@ -1855,6 +2131,31 @@ function LibraryContent() {
                 </h3>
                 <div className="grid grid-cols-1 gap-4">
                   <div>
+                    <Label className="font-body text-gray-700 font-medium">Zustand *</Label>
+                    <Select value={editGameCondition} onValueChange={setEditGameCondition} required>
+                      <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80">
+                        <SelectValue placeholder="Zustand wählen..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Neu" className="font-body">
+                          Neu
+                        </SelectItem>
+                        <SelectItem value="Sehr gut" className="font-body">
+                          Sehr gut
+                        </SelectItem>
+                        <SelectItem value="Gut" className="font-body">
+                          Gut
+                        </SelectItem>
+                        <SelectItem value="Akzeptabel" className="font-body">
+                          Akzeptabel
+                        </SelectItem>
+                        <SelectItem value="Schlecht" className="font-body">
+                          Schlecht
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
                     <Label className="font-body text-gray-700 font-medium">Spieleranzahl *</Label>
                     <Select value={editGamePlayerCount} onValueChange={setEditGamePlayerCount} required>
                       <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80">
@@ -1925,41 +2226,47 @@ function LibraryContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Game Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-handwritten text-2xl text-center">Spiel löschen?</DialogTitle>
+            <DialogTitle className="font-handwritten text-2xl text-center text-red-700">Spiel löschen</DialogTitle>
             <DialogDescription className="text-center font-body">
-              Bist du sicher, dass du <span className="font-bold">{gameToDelete?.title}</span> aus deiner Bibliothek
-              entfernen möchtest?
+              {gameToDelete ? `Möchtest du "${gameToDelete.title}" wirklich aus deiner Bibliothek entfernen?` : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsDeleteDialogOpen(false)}
-              className="font-handwritten"
-            >
+          <div className="flex gap-3 pt-4">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="flex-1 font-handwritten">
               Abbrechen
             </Button>
             <Button
-              type="button"
               onClick={handleConfirmDelete}
-              className="bg-red-400 hover:bg-red-500 text-white font-handwritten"
+              className="flex-1 bg-red-400 hover:bg-red-500 text-white font-handwritten"
             >
+              <Trash2 className="w-4 h-4 mr-2" />
               Löschen
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Create Marketplace Offer Dialog */}
       <CreateMarketplaceOfferForm
         isOpen={isCreateOfferOpen}
         onClose={() => setIsCreateOfferOpen(false)}
         preselectedGame={preselectedGame}
         preselectedOfferType={preselectedOfferType}
+      />
+
+      {/* Game Search Dialog */}
+      {console.log("[v0] Rendering GameSearchDialog with isOpen:", isGameSearchDialogOpen)}
+      <GameSearchDialog
+        isOpen={isGameSearchDialogOpen}
+        onClose={() => {
+          console.log("[v0] GameSearchDialog onClose called")
+          setIsGameSearchDialogOpen(false)
+        }}
+        onGameSelect={handleGameSelect}
       />
     </div>
   )

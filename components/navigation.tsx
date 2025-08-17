@@ -19,8 +19,6 @@ import {
   X,
   Info,
   ChevronDown,
-  Search,
-  ShoppingBag,
   Calendar,
   UserCheck,
 } from "lucide-react"
@@ -65,34 +63,14 @@ export function Navigation({ currentPage }: NavigationProps) {
         ],
       },
     },
-    {
-      label: "Spielemarkt",
-      icon: Store,
-      key: "spielemarkt",
-      dropdown: {
-        items: [
-          { href: "/marketplace?tab=offers", label: "Angebote", icon: ShoppingBag, key: "marketplace-offers" },
-          { href: "/marketplace?tab=search", label: "Suchanzeigen", icon: Search, key: "marketplace-search" },
-        ],
-      },
-    },
+    { href: "/marketplace", label: "Spielemarkt", icon: Store, key: "spielemarkt" },
     { href: "/messages", label: "Nachrichten", icon: MessageCircle, key: "messages" },
     { href: "/about", label: "Über uns", icon: Info, key: "about" },
   ]
 
   const publicNavItems: NavItem[] = [
     { href: "/", label: "Home", icon: Home, key: "home" },
-    {
-      label: "Spielemarkt",
-      icon: Store,
-      key: "spielemarkt",
-      dropdown: {
-        items: [
-          { href: "/marketplace?tab=offers", label: "Angebote", icon: ShoppingBag, key: "marketplace-offers" },
-          { href: "/marketplace?tab=search", label: "Suchanzeigen", icon: Search, key: "marketplace-search" },
-        ],
-      },
-    },
+    { href: "/marketplace", label: "Spielemarkt", icon: Store, key: "spielemarkt" },
     {
       label: "Community",
       icon: Users,
@@ -121,9 +99,7 @@ export function Navigation({ currentPage }: NavigationProps) {
     if (!item.dropdown) return false
     return item.dropdown.items.some(
       (dropdownItem) =>
-        isActive(dropdownItem.href, dropdownItem.key) ||
-        (item.key === "spielemarkt" && pathname.startsWith("/marketplace")) ||
-        (item.key === "community" && pathname.startsWith("/groups")),
+        isActive(dropdownItem.href, dropdownItem.key) || (item.key === "community" && pathname.startsWith("/groups")),
     )
   }
 

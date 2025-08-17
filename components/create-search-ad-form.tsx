@@ -101,7 +101,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
             <Search className="w-8 h-8 text-white" />
           </div>
-          <DialogTitle className="font-handwritten text-3xl text-orange-700 font-bold">
+          <DialogTitle className="font-handwritten text-3xl text-orange-800 font-bold">
             Suchanzeige erstellen
           </DialogTitle>
           <p className="font-body text-orange-600/80 text-sm mt-2">Teile der Community mit, welches Spiel du suchst</p>

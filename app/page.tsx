@@ -21,6 +21,7 @@ export default function HomePage() {
             Bring deine Spiel ins Spiel
           </h2>
           <p className="text-xl text-gray-600 mb-8 transform rotate-1 font-body">
+          Entdecke, teile und geniesse Brettspiele wie nie zuvor.
           </p>          
         </div>
       </section>
@@ -116,7 +117,7 @@ export default function HomePage() {
             Bereit für dein Spiele-Abenteuer?
           </h3>
           <p className="text-xl text-white mb-8 transform -rotate-1 font-body">
-            Schliesse dich tausenden von Brettspiel-Fans an und entdecke neue Abenteuer!
+            Schliesse dich tausenden von Brettspiel-Fans an und bringe deine Spielleidenschaft auf ein neues Level!
           </p>
           <Button asChild className="bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 text-lg transform rotate-1 hover:rotate-0 transition-all font-handwritten">
             <Link href="/register">
