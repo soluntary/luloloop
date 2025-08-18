@@ -25,6 +25,7 @@ import {
   ChevronDown,
   Tag,
   Users,
+  Check,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useState, Suspense, useRef } from "react"
@@ -243,6 +244,56 @@ function LibraryContent() {
   const [showGameSearch, setShowGameSearch] = useState(false)
 
   const [inputMode, setInputMode] = useState<"auto" | "manual">("auto")
+
+  const [selectedGames, setSelectedGames] = useState<Set<string>>(new Set())
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
+
+  const toggleGameSelection = (gameId: string) => {
+    const newSelected = new Set(selectedGames)
+    if (newSelected.has(gameId)) {
+      newSelected.delete(gameId)
+    } else {
+      newSelected.add(gameId)
+    }
+    setSelectedGames(newSelected)
+  }
+
+  const selectAllGames = () => {
+    if (selectedGames.size === filteredGames.length) {
+      setSelectedGames(new Set())
+    } else {
+      setSelectedGames(new Set(filteredGames.map((game) => game.id)))
+    }
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedGames.size === 0) return
+    setIsBulkDeleteDialogOpen(true)
+  }
+
+  const handleConfirmBulkDelete = async () => {
+    if (!databaseConnected || selectedGames.size === 0) {
+      alert("Fehler beim Löschen der Spiele!")
+      return
+    }
+
+    try {
+      const deletePromises = Array.from(selectedGames).map((gameId) => deleteGame(gameId))
+      await Promise.all(deletePromises)
+
+      alert(`${selectedGames.size} Spiele wurden erfolgreich aus deiner Bibliothek entfernt!`)
+
+      // Clear selections and exit selection mode
+      setSelectedGames(new Set())
+      setIsSelectionMode(false)
+      setSelectedGame(null)
+      setIsBulkDeleteDialogOpen(false)
+    } catch (error) {
+      console.error("Error deleting games:", error)
+      alert("Fehler beim Löschen der Spiele!")
+    }
+  }
 
   const filteredGames = games
     .filter((game) => {
@@ -1475,6 +1526,46 @@ function LibraryContent() {
 
         {/* Search, Sort and Filter */}
         <div className="space-y-4 mb-8">
+          {filteredGames.length > 0 && (
+            <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={() => {
+                    setIsSelectionMode(!isSelectionMode)
+                    setSelectedGames(new Set())
+                  }}
+                  variant={isSelectionMode ? "default" : "outline"}
+                  className="font-handwritten"
+                >
+                  {isSelectionMode ? "Auswahl beenden" : "Spiele auswählen"}
+                </Button>
+
+                {isSelectionMode && (
+                  <>
+                    <Button onClick={selectAllGames} variant="outline" className="font-handwritten bg-transparent">
+                      {selectedGames.size === filteredGames.length ? "Alle abwählen" : "Alle auswählen"}
+                    </Button>
+
+                    {selectedGames.size > 0 && (
+                      <Button
+                        onClick={handleBulkDelete}
+                        className="bg-red-400 hover:bg-red-500 text-white font-handwritten"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        {selectedGames.size} Spiele löschen
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {isSelectionMode && (
+                <span className="text-sm text-gray-600 font-body">
+                  {selectedGames.size} von {filteredGames.length} ausgewählt
+                </span>
+              )}
+            </div>
+          )}
           <div className="bg-white/50 rounded-lg p-4 border border-teal-200">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
               <div className="col-span-full mb-2">
@@ -1701,10 +1792,28 @@ function LibraryContent() {
                           {filteredGames.slice(0, 7).map((game) => (
                             <div
                               key={game.id}
-                              className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300"
-                              onClick={() => setSelectedGame(game)}
+                              className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300 relative"
+                              onClick={() => (isSelectionMode ? toggleGameSelection(game.id) : setSelectedGame(game))}
                             >
-                              <div className="w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 border-gray-300 overflow-hidden relative">
+                              {isSelectionMode && (
+                                <div className="absolute top-1 right-1 z-10">
+                                  <div
+                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                                      selectedGames.has(game.id)
+                                        ? "bg-teal-500 border-teal-500"
+                                        : "bg-white border-gray-300"
+                                    }`}
+                                  >
+                                    {selectedGames.has(game.id) && <Check className="w-4 h-4 text-white" />}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div
+                                className={`w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 overflow-hidden relative ${
+                                  selectedGames.has(game.id) ? "border-teal-500" : "border-gray-300"
+                                }`}
+                              >
                                 <img
                                   src={game.image || "/images/ludoloop-game-placeholder.png"}
                                   alt={game.title}
@@ -1735,10 +1844,27 @@ function LibraryContent() {
                             {filteredGames.slice(7 + shelfIndex * 8, 7 + shelfIndex * 8 + 8).map((game) => (
                               <div
                                 key={game.id}
-                                className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300"
-                                onClick={() => setSelectedGame(game)}
+                                className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300 relative"
+                                onClick={() => (isSelectionMode ? toggleGameSelection(game.id) : setSelectedGame(game))}
                               >
-                                <div className="w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 border-gray-300 overflow-hidden relative">
+                                {isSelectionMode && (
+                                  <div className="absolute top-1 right-1 z-10">
+                                    <div
+                                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                                        selectedGames.has(game.id)
+                                          ? "bg-teal-500 border-teal-500"
+                                          : "bg-white border-gray-300"
+                                      }`}
+                                    >
+                                      {selectedGames.has(game.id) && <Check className="w-4 h-4 text-white" />}
+                                    </div>
+                                  </div>
+                                )}
+                                <div
+                                  className={`w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 border-gray-300 overflow-hidden relative ${
+                                    selectedGames.has(game.id) ? "border-teal-500" : "border-gray-300"
+                                  }`}
+                                >
                                   <img
                                     src={game.image || "/images/ludoloop-game-placeholder.png"}
                                     alt={game.title}
@@ -2418,6 +2544,35 @@ function LibraryContent() {
         onOpenChange={setIsGameSearchDialogOpen}
         onGameSelect={handleGameSelect}
       />
+
+      <Dialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-handwritten text-2xl text-center">Spiele löschen?</DialogTitle>
+            <DialogDescription className="text-center font-body">
+              Bist du sicher, dass du <span className="font-bold">{selectedGames.size} Spiele</span> aus deiner
+              Bibliothek entfernen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end space-x-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsBulkDeleteDialogOpen(false)}
+              className="font-handwritten"
+            >
+              Abbrechen
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmBulkDelete}
+              className="bg-red-400 hover:bg-red-500 text-white font-handwritten"
+            >
+              {selectedGames.size} Spiele löschen
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

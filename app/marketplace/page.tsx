@@ -15,10 +15,8 @@ import {
   Search,
   LogIn,
   UserPlus,
-  MapPin,
   Star,
   MessageCircle,
-  Heart,
   Filter,
   SortAsc,
   ShoppingCart,
@@ -44,6 +42,10 @@ export default function MarketplacePage() {
   const [isCreateOfferOpen, setIsCreateOfferOpen] = useState(false)
   const [searchAds, setSearchAds] = useState<any[]>([])
   const [isCreateSearchAdOpen, setIsCreateSearchAdOpen] = useState(false)
+  const [selectedOfferDetails, setSelectedOfferDetails] = useState<any>(null)
+  const [isOfferDetailsOpen, setIsOfferDetailsOpen] = useState(false)
+  const [selectedSearchAdDetails, setSelectedSearchAdDetails] = useState<any>(null)
+  const [isSearchAdDetailsOpen, setIsSearchAdDetailsOpen] = useState(false)
 
   useEffect(() => {
     if (databaseConnected) {
@@ -56,10 +58,13 @@ export default function MarketplacePage() {
       const { data, error } = await supabase
         .from("search_ads")
         .select(`
-          *,
-          users (
-            name
-          )
+          id,
+          title,
+          description,
+          type,
+          created_at,
+          active,
+          user_id
         `)
         .eq("active", true)
         .order("created_at", { ascending: false })
@@ -69,7 +74,19 @@ export default function MarketplacePage() {
         return
       }
 
-      setSearchAds(data || [])
+      // Get user names separately to avoid relationship issues
+      const searchAdsWithUsers = await Promise.all(
+        (data || []).map(async (ad) => {
+          const { data: userData } = await supabase.from("users").select("name").eq("id", ad.user_id).single()
+
+          return {
+            ...ad,
+            users: userData || { name: "Unbekannt" },
+          }
+        }),
+      )
+
+      setSearchAds(searchAdsWithUsers)
     } catch (error) {
       console.error("Error loading search ads:", error)
     }
@@ -146,11 +163,11 @@ export default function MarketplacePage() {
   const getTypeText = (type: string) => {
     switch (type) {
       case "lend":
-        return "Verleihen"
+        return "Ausleihen"
       case "trade":
         return "Tauschen"
       case "sell":
-        return "Verkaufen"
+        return "Kaufen"
       case "buy":
         return "Kaufen"
       case "borrow":
@@ -174,6 +191,43 @@ export default function MarketplacePage() {
     setIsContactDialogOpen(false)
     setContactMessage("")
     setSelectedOffer(null)
+  }
+
+  const handleOfferClick = async (item: any) => {
+    if (item.itemType === "search") {
+      setSelectedSearchAdDetails(item)
+      setIsSearchAdDetailsOpen(true)
+    } else if (item.itemType === "offer" && item.game_id) {
+      try {
+        const { data: gameData, error } = await supabase
+          .from("games")
+          .select("duration, players, category, style, age, language")
+          .eq("id", item.game_id)
+          .single()
+
+        if (!error && gameData) {
+          // Merge game details with offer data
+          setSelectedOfferDetails({
+            ...item,
+            duration: gameData.duration,
+            players: gameData.players,
+            category: gameData.category,
+            style: gameData.style,
+            age: gameData.age,
+            language: gameData.language,
+          })
+        } else {
+          setSelectedOfferDetails(item)
+        }
+      } catch (error) {
+        console.error("Error fetching game details:", error)
+        setSelectedOfferDetails(item)
+      }
+      setIsOfferDetailsOpen(true)
+    } else {
+      setSelectedOfferDetails(item)
+      setIsOfferDetailsOpen(true)
+    }
   }
 
   if (loading) {
@@ -279,9 +333,9 @@ export default function MarketplacePage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Alle Angebote</SelectItem>
-                <SelectItem value="lend">Verleihen</SelectItem>
-                <SelectItem value="trade">Tauschen</SelectItem>
-                <SelectItem value="sell">Verkaufen</SelectItem>
+                <SelectItem value="lend">Leihangebote</SelectItem>
+                <SelectItem value="trade">Tauschangebote</SelectItem>
+                <SelectItem value="sell">Verkaufsangebote</SelectItem>
                 <SelectItem value="search">Suchanzeigen</SelectItem>
               </SelectContent>
             </Select>
@@ -350,143 +404,93 @@ export default function MarketplacePage() {
             </p>
             <div className="flex items-center space-x-2 text-sm text-gray-500 font-body">
               <div className="w-2 h-2 bg-teal-400 rounded-full"></div>
-              <span>Verleihen</span>
+              <span>Leihangebote</span>
               <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
-              <span>Tauschen</span>
+              <span>Tauschangebote</span>
               <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
-              <span>Verkaufen</span>
-              <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+              <span>Verkaufsangebot</span>
+              <Search className="w-4 h-4 text-purple-500" />
               <span>Suchanzeigen</span>
             </div>
           </div>
         )}
 
         {/* Content Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-12">
           {databaseConnected ? (
             filteredItems.length > 0 ? (
               filteredItems.map((item) => (
                 <Card
                   key={`${item.itemType}-${item.id}`}
-                  className={`group transform hover:scale-105 hover:-rotate-1 transition-all duration-300 border-2 ${
-                    item.itemType === "search"
-                      ? "border-amber-200/50 hover:border-amber-400"
-                      : "border-orange-200/50 hover:border-orange-400"
-                  } cursor-pointer bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-2xl rounded-xl overflow-hidden`}
+                  className="group bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer overflow-hidden"
+                  onClick={() => handleOfferClick(item)}
                 >
                   <CardContent className="p-0">
                     {item.itemType === "offer" ? (
                       <>
-                        <div className="relative overflow-hidden">
+                        {/* Minimalist image section */}
+                        <div className="relative">
                           <img
                             src={item.image || "/images/ludoloop-placeholder.png"}
                             alt={item.title}
-                            className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+                            className="w-full h-32 object-cover"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                          <Badge
-                            className={`absolute top-3 right-3 ${getTypeColor(item.type)} text-white font-body shadow-lg`}
-                          >
-                            {getTypeText(item.type)}
-                          </Badge>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="absolute top-3 left-3 bg-white/90 hover:bg-white border-gray-300 shadow-lg backdrop-blur-sm"
-                          >
-                            <Heart className="w-4 h-4" />
-                          </Button>
+                          <div className="absolute top-2 right-2">
+                            <div className={`w-3 h-3 ${getTypeColor(item.type)} rounded-full`}></div>
+                          </div>
                         </div>
 
-                        <div className="p-5">
-                          <h3 className="font-bold text-lg mb-2 font-handwritten text-gray-800 line-clamp-1">
-                            {item.title}
-                          </h3>
-                          <p className="text-gray-600 text-sm mb-3 font-body">{item.publisher}</p>
+                        {/* Minimalist content section */}
+                        <div className="p-4">
+                          <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{item.title}</h3>
+                          <p className="text-gray-500 text-xs mb-3">{item.publisher}</p>
 
-                          <div className="flex items-center justify-between mb-4">
-                            <Badge variant="outline" className="font-body border-orange-200 text-orange-700">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-orange-600 text-sm">{item.price}</span>
+                            <Badge variant="outline" className="text-xs border-gray-200 text-gray-600">
                               {item.condition}
                             </Badge>
-                            <div className="flex items-center text-yellow-500">
-                              <Star className="w-4 h-4 fill-current" />
-                              <span className="text-sm ml-1 font-body font-medium">{item.rating}</span>
-                            </div>
                           </div>
-
-                          <div className="flex items-center text-gray-500 text-sm mb-4 font-body">
-                            <MapPin className="w-4 h-4 mr-1 text-orange-400" />
-                            <span>{item.location}</span>
-                            <span className="mx-2 text-orange-300">•</span>
-                            <span>{item.distance}</span>
-                          </div>
-
-                          <div className="flex items-center justify-between mb-4">
-                            <span className="font-bold text-xl text-orange-600 font-handwritten">{item.price}</span>
-                            <span className="text-sm text-gray-500 font-body">von {item.owner}</span>
-                          </div>
-
-                          <Button
-                            onClick={() => handleContactSeller(item)}
-                            className="w-full bg-gradient-to-r from-orange-400 to-pink-400 hover:from-orange-500 hover:to-pink-500 text-white font-handwritten shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg"
-                            disabled={!databaseConnected}
-                          >
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            Kontaktieren
-                          </Button>
                         </div>
                       </>
                     ) : (
-                      <div className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <Badge
-                            className={`${
-                              item.type === "buy" ? "bg-green-400" : "bg-blue-400"
-                            } text-white font-body shadow-lg`}
-                          >
-                            {item.type === "buy" ? "Kaufen" : "Ausleihen"}
-                          </Badge>
-                          <Search className="w-5 h-5 text-amber-400" />
+                      /* Minimalist search ad card */
+                      <>
+                        {/* Image section for search ads */}
+                        <div className="relative">
+                          <img
+                            src="/images/ludoloop-placeholder.png"
+                            alt={item.title}
+                            className="w-full h-32 object-cover"
+                          />
+                          <div className="absolute top-2 right-2">
+                            <Search className="w-4 h-4 text-purple-500" />
+                          </div>
                         </div>
 
-                        <h3 className="font-bold text-lg mb-3 font-handwritten text-gray-800 line-clamp-2">
-                          {item.title}
-                        </h3>
-
-                        {item.description && (
-                          <p className="text-gray-600 text-sm mb-4 font-body line-clamp-3">{item.description}</p>
-                        )}
-
-                        <div className="flex items-center justify-between mb-4">
-                          <span className="text-sm text-gray-500 font-body">von {item.users?.name || "Unbekannt"}</span>
-                          <span className="text-xs text-gray-400 font-body">
-                            {new Date(item.created_at).toLocaleDateString("de-DE")}
-                          </span>
+                        {/* Content section */}
+                        <div className="p-4">
+                          <h3 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">{item.title}</h3>
                         </div>
-
-                        <Button className="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white font-handwritten shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
-                          <MessageCircle className="w-4 h-4 mr-2" />
-                          Antworten
-                        </Button>
-                      </div>
+                      </>
                     )}
                   </CardContent>
                 </Card>
               ))
             ) : (
               <div className="col-span-full text-center py-16">
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-lg border border-orange-200/50">
-                  <AlertCircle className="w-20 h-20 text-orange-300 mx-auto mb-6" />
-                  <h3 className="text-3xl font-bold text-gray-600 mb-4 font-handwritten">
-                    Keine passenden Spiele gefunden
-                  </h3>
-                  <p className="text-gray-500 font-body text-lg mb-6">
+                <div className="bg-white rounded-2xl p-8 shadow-lg border border-orange-100 max-w-md mx-auto">
+                  <div className="w-20 h-20 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <AlertCircle className="w-10 h-10 text-orange-500" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-700 mb-4">Keine passenden Spiele gefunden</h3>
+                  <p className="text-gray-500 mb-6 leading-relaxed">
                     Erstell eine Suchanzeige und teile der Community mit, welches Spiel du suchst!
                   </p>
                   {user && (
                     <Button
                       onClick={() => setIsCreateSearchAdOpen(true)}
-                      className="bg-amber-400 hover:bg-amber-500 text-white font-handwritten text-lg px-8 py-3 transform hover:scale-105 hover:-rotate-1 transition-all"
+                      className="bg-amber-500 hover:bg-amber-600 text-white border-0 rounded-xl px-8 py-3 font-medium shadow-lg hover:shadow-xl transition-all duration-300"
                     >
                       <Search className="w-5 h-5 mr-2" />
                       Suchanzeige erstellen
@@ -497,10 +501,12 @@ export default function MarketplacePage() {
             )
           ) : (
             <div className="col-span-full text-center py-16">
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-lg border border-orange-200/50">
-                <Database className="w-20 h-20 text-orange-300 mx-auto mb-6" />
-                <h3 className="text-3xl font-bold text-gray-600 mb-4 font-handwritten">Datenbank nicht verfügbar</h3>
-                <p className="text-gray-500 font-body text-lg">
+              <div className="bg-white rounded-2xl p-8 shadow-lg border border-orange-100 max-w-md mx-auto">
+                <div className="w-20 h-20 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Database className="w-10 h-10 text-orange-500" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-700 mb-4">Datenbank nicht verfügbar</h3>
+                <p className="text-gray-500 leading-relaxed">
                   Führe die SQL-Skripte aus, um Marktplatz-Angebote zu sehen.
                 </p>
               </div>
@@ -589,6 +595,272 @@ export default function MarketplacePage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detailed Offer View Modal */}
+      <Dialog open={isOfferDetailsOpen} onOpenChange={setIsOfferDetailsOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+          {selectedOfferDetails && (
+            <div className="relative">
+              <div className="relative h-48 bg-gradient-to-br from-orange-100 to-pink-100 overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <img
+                    src={selectedOfferDetails.image || "/images/ludoloop-placeholder.png"}
+                    alt={selectedOfferDetails.title}
+                    className="h-40 w-auto object-contain rounded-lg shadow-lg mb-4"
+                  />
+                </div>
+                <div className="absolute top-4 right-4">
+                  <div className={`w-4 h-4 ${getTypeColor(selectedOfferDetails.type)} rounded-full shadow-sm`}></div>
+                </div>
+              </div>
+
+              <div className="p-8 space-y-8">
+                {/* Title and type */}
+                <div className="text-center space-y-2">
+                  <h1 className="text-3xl font-bold text-gray-900">{selectedOfferDetails.title}</h1>
+                  <Badge
+                    variant="outline"
+                    className={`${getTypeColor(selectedOfferDetails.type)} text-white border-0 px-4 py-1 text-sm`}
+                  >
+                    {getTypeText(selectedOfferDetails.type)}
+                  </Badge>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="text-center p-4 bg-gray-50 rounded-xl">
+                    <p className="text-sm text-gray-500 mb-1">Angebot & Preis</p>
+                    <p className="text-2xl font-bold text-orange-600">{selectedOfferDetails.price}</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-xl">
+                    <p className="text-sm text-gray-500 mb-1">Zustand</p>
+                    <p className="text-lg font-semibold text-gray-900">{selectedOfferDetails.condition}</p>
+                  </div>
+                </div>
+
+                {/* Game details section with proper JSX structure */}
+                <div className="bg-white border border-gray-100 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Spieldetails</h3>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Spieldauer</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {selectedOfferDetails.duration || "Nicht angegeben"}
+                      </p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Spieleranzahl</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {selectedOfferDetails.players || "Nicht angegeben"}
+                      </p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Altersempfehlung</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {selectedOfferDetails.age || "Nicht angegeben"}
+                      </p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Kategorie</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {selectedOfferDetails.category || "Nicht angegeben"}
+                      </p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Typus</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {selectedOfferDetails.style || "Nicht angegeben"}
+                      </p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Sprache</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {selectedOfferDetails.language || "Nicht angegeben"}
+                      </p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <p className="text-gray-900 font-medium">{selectedOfferDetails.publisher || "Nicht angegeben"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedOfferDetails.description && (
+                  <div className="bg-white border border-gray-100 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Beschreibung</h3>
+                    <p className="text-gray-700 leading-relaxed">{selectedOfferDetails.description}</p>
+                  </div>
+                )}
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="bg-white border border-gray-100 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Standort</h3>
+                    <div className="flex items-start space-x-3">
+                      <div>
+                        <p className="text-gray-900 font-medium">{selectedOfferDetails.location}</p>
+                        <p className="text-sm text-gray-500 mt-1">{selectedOfferDetails.distance}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-gray-100 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Anbieter</h3>
+                    <div className="flex items-center space-x-4">
+                      <div className="w-16 h-16 rounded-full overflow-hidden shadow-sm border-2 border-orange-200">
+                        <img
+                          src={
+                            selectedOfferDetails.avatar ||
+                            `/placeholder.svg?height=64&width=64&query=avatar+${encodeURIComponent(selectedOfferDetails.owner || selectedOfferDetails.users?.name || "User")}`
+                          }
+                          alt={`${selectedOfferDetails.owner || selectedOfferDetails.users?.name || "User"} Avatar`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to initial avatar if image fails to load
+                            const target = e.target as HTMLImageElement
+                            target.style.display = "none"
+                            const fallback = target.nextElementSibling as HTMLElement
+                            if (fallback) fallback.style.display = "flex"
+                          }}
+                        />
+                        <div
+                          className="w-full h-full bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center"
+                          style={{ display: "none" }}
+                        >
+                          <span className="text-orange-600 font-bold text-xl">
+                            {(selectedOfferDetails.owner || selectedOfferDetails.users?.name || "U")
+                              .charAt(0)
+                              .toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-gray-900 font-semibold text-lg">
+                          {selectedOfferDetails.owner || selectedOfferDetails.users?.name || "Unbekannter Nutzer"}
+                        </p>
+                        {selectedOfferDetails.rating && (
+                          <div className="flex items-center mt-2">
+                            <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                            <span className="text-sm text-gray-600 ml-1 font-medium">
+                              {selectedOfferDetails.rating}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-6 border-t border-gray-100">
+                  <Button
+                    onClick={() => {
+                      setIsOfferDetailsOpen(false)
+                      if (selectedOfferDetails.itemType === "offer") {
+                        handleContactSeller(selectedOfferDetails)
+                      }
+                    }}
+                    className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
+                  >
+                    <MessageCircle className="w-5 h-5 mr-2" />
+                    {selectedOfferDetails.itemType === "offer" ? "Anfragen" : "Antworten"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsOfferDetailsOpen(false)}
+                    className="px-8 py-3 rounded-xl border-gray-200 hover:bg-gray-50 font-medium"
+                  >
+                    Schließen
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Search Ad Details Modal */}
+      <Dialog open={isSearchAdDetailsOpen} onOpenChange={setIsSearchAdDetailsOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedSearchAdDetails && (
+            <div className="space-y-6">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-center text-gray-900">
+                  {selectedSearchAdDetails.title}
+                </DialogTitle>
+              </DialogHeader>
+
+              {/* Search ad image */}
+              <div className="flex justify-center">
+                <div className="relative">
+                  <img
+                    src="/images/ludoloop-placeholder.png"
+                    alt={selectedSearchAdDetails.title}
+                    className="h-32 w-auto object-contain rounded-lg shadow-sm"
+                  />
+                  <div className="absolute top-2 right-2">
+                    <Search className="w-5 h-5 text-purple-500" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Search type */}
+              <div className="text-center">
+                <Badge
+                  className={`${selectedSearchAdDetails.type === "buy" ? "bg-green-500" : "bg-blue-500"} text-white px-4 py-2`}
+                >
+                  {selectedSearchAdDetails.type === "buy" ? "Kaufgesuch" : "Leihgesuch"}
+                </Badge>
+              </div>
+
+              {/* Description */}
+              {selectedSearchAdDetails.description && (
+                <div className="bg-gray-50 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Beschreibung</h3>
+                  <p className="text-gray-700 leading-relaxed">{selectedSearchAdDetails.description}</p>
+                </div>
+              )}
+
+              {/* User info */}
+              <div className="bg-gray-50 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Erstellt von</h3>
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center">
+                    <span className="text-purple-600 font-bold text-lg">
+                      {(selectedSearchAdDetails.users?.name || "U").charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-gray-900 font-semibold">
+                      {selectedSearchAdDetails.users?.name || "Unbekannter Nutzer"}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Erstellt am {new Date(selectedSearchAdDetails.created_at).toLocaleDateString("de-DE")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-4 pt-4">
+                <Button
+                  onClick={() => {
+                    setIsSearchAdDetailsOpen(false)
+                    // Here you could implement contact functionality for search ads
+                  }}
+                  className="flex-1 bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl font-medium"
+                >
+                  <MessageCircle className="w-5 h-5 mr-2" />
+                  Antworten
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsSearchAdDetailsOpen(false)}
+                  className="px-8 py-3 rounded-xl border-gray-200 hover:bg-gray-50 font-medium"
+                >
+                  Schließen
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

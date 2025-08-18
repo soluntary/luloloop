@@ -187,6 +187,7 @@ export function CreateMarketplaceOfferForm({
   const [pickupAddress, setPickupAddress] = useState("")
   const [condition, setCondition] = useState("")
   const [price, setPrice] = useState("")
+  const [openToSuggestions, setOpenToSuggestions] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -333,6 +334,7 @@ export function CreateMarketplaceOfferForm({
     setErrors({})
     setCondition("")
     setPrice("")
+    setOpenToSuggestions(false)
   }
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -371,9 +373,11 @@ export function CreateMarketplaceOfferForm({
   }
 
   const validateStep = (step: number): boolean => {
+    console.log("[v0] validateStep called for step:", step)
     let newErrors: Record<string, string> = {}
 
     if (step === 1) {
+      console.log("[v0] Validating step 1 - selectedGame:", selectedGame, "customGameTitle:", customGameTitle)
       newErrors = {}
 
       if (!selectedGame && !customGameTitle.trim()) {
@@ -381,6 +385,7 @@ export function CreateMarketplaceOfferForm({
       }
 
       if (!selectedGame && customGameTitle.trim()) {
+        console.log("[v0] Validating custom game fields")
         if (!customGamePublisher.trim()) {
           newErrors.customGamePublisher = "Verlag ist erforderlich"
         }
@@ -407,11 +412,13 @@ export function CreateMarketplaceOfferForm({
         }
       }
 
+      console.log("[v0] Step 1 validation errors:", newErrors)
       setErrors(newErrors)
       return Object.keys(newErrors).length === 0
     }
 
     if (step === 2) {
+      console.log("[v0] Validating step 2 - offerType:", offerType, "condition:", condition, "price:", price)
       newErrors = {}
 
       if (!offerType) {
@@ -422,15 +429,33 @@ export function CreateMarketplaceOfferForm({
         newErrors.condition = "Bitte wähle einen Zustand aus"
       }
 
-      if (offerType === "lend" && !price) {
-        newErrors.price = "Bitte gib Preis/Bedingungen an."
+      if (offerType === "lend") {
+        // Check if any daily rate is provided
+        const hasAnyDailyRate = dailyRate1Day || dailyRate2To6Days || dailyRate7To30Days || dailyRateOver30Days
+
+        // Only require price field if no daily rates are provided
+        if (!price && !hasAnyDailyRate) {
+          newErrors.price = "Bitte gib Preis/Bedingungen oder Ausleihgebühren an."
+        }
+
+        console.log("[v0] Validating lend-specific fields - dailyRates:", {
+          dailyRate1Day,
+          dailyRate2To6Days,
+          dailyRate7To30Days,
+          dailyRateOver30Days,
+        })
+
+        // Only show daily rates error if no price and no daily rates
+        if (!price && !hasAnyDailyRate) {
+          newErrors.dailyRates = "Bitte gib mindestens eine Ausleihgebühr an."
+        }
       }
 
-      if (offerType === "trade" && !price) {
-        newErrors.price = "Bitte gib die Tauschbedingungen an."
+      if (offerType === "trade" && !openToSuggestions && !price.trim()) {
+        newErrors.price = "Bitte gib Tauschbedingungen an."
       }
 
-      if ((offerType === "lend" || offerType === "sell") && !depositAmount) {
+      if (offerType === "lend" && !depositAmount) {
         newErrors.depositAmount = "Bitte gib einen Wert für den Pfandbetrag ein."
       }
 
@@ -439,6 +464,12 @@ export function CreateMarketplaceOfferForm({
       }
 
       if (offerType === "lend") {
+        console.log("[v0] Validating lend-specific fields - dailyRates:", {
+          dailyRate1Day,
+          dailyRate2To6Days,
+          dailyRate7To30Days,
+          dailyRateOver30Days,
+        })
         if (!dailyRate1Day && !dailyRate2To6Days && !dailyRate7To30Days && !dailyRateOver30Days) {
           newErrors.dailyRates = "Bitte gib mindestens eine Ausleihgebühr an."
         }
@@ -451,6 +482,7 @@ export function CreateMarketplaceOfferForm({
       }
 
       if (offerType === "sell") {
+        console.log("[v0] Validating sell-specific fields - salePrice:", salePrice)
         if (!salePrice) {
           newErrors.salePrice = "Bitte gib den Verkaufspreis an."
         }
@@ -463,13 +495,18 @@ export function CreateMarketplaceOfferForm({
       }
     }
 
+    console.log("[v0] Step 2 validation errors:", newErrors)
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleNext = () => {
+    console.log("[v0] handleNext called - currentStep:", currentStep)
     if (validateStep(currentStep)) {
+      console.log("[v0] Validation passed, moving to next step")
       setCurrentStep(currentStep + 1)
+    } else {
+      console.log("[v0] Validation failed, staying on current step")
     }
   }
 
@@ -479,8 +516,13 @@ export function CreateMarketplaceOfferForm({
   }
 
   const handleSubmit = async () => {
-    if (!validateStep(2) || !user) return
+    console.log("[v0] handleSubmit called - user:", user?.id, "validateStep(2):", validateStep(2))
+    if (!validateStep(2) || !user) {
+      console.log("[v0] handleSubmit early return - validation failed or no user")
+      return
+    }
 
+    console.log("[v0] Starting form submission...")
     setIsSubmitting(true)
     try {
       let gameTitle = ""
@@ -488,6 +530,7 @@ export function CreateMarketplaceOfferForm({
       let gameId = selectedGame
 
       if (!selectedGame && customGameTitle) {
+        console.log("[v0] Creating new custom game:", customGameTitle)
         const newGameData = {
           title: customGameTitle,
           publisher: customGamePublisher,
@@ -502,61 +545,69 @@ export function CreateMarketplaceOfferForm({
           ...(customGameStyle.length > 0 && { style: customGameStyle.join(", ") }),
         }
 
+        console.log("[v0] New game data:", newGameData)
         const createdGame = await addGame(newGameData)
+        console.log("[v0] Game created successfully:", createdGame)
         gameId = createdGame.id
         gameTitle = customGameTitle
         gamePublisher = customGamePublisher
       } else if (selectedGame) {
+        console.log("[v0] Using existing game:", selectedGame)
         const game = games.find((g) => g.id === selectedGame)
         gameTitle = game?.title || ""
         gamePublisher = game?.publisher || ""
+        console.log("[v0] Found game:", { gameTitle, gamePublisher })
       }
 
       // Convert image to blob URL if present
       let imageUrl = ""
       if (image) {
         imageUrl = URL.createObjectURL(image)
+        console.log("[v0] Created image blob URL:", imageUrl)
       } else if (imagePreview) {
         imageUrl = imagePreview
+        console.log("[v0] Using existing image preview:", imageUrl)
+      }
+
+      let finalPrice = ""
+      if (offerType === "sell") {
+        finalPrice = salePrice ? `${salePrice} CHF` : ""
+      } else if (offerType === "lend") {
+        // Construct price from daily rates
+        const rates = []
+        if (dailyRate1Day) rates.push(`1 Tag: ${dailyRate1Day}CHF`)
+        if (dailyRate2To6Days) rates.push(`2-6 Tage: ${dailyRate2To6Days}CHF`)
+        if (dailyRate7To30Days) rates.push(`7-30 Tage: ${dailyRate7To30Days}CHF`)
+        if (dailyRateOver30Days) rates.push(`>30 Tage: ${dailyRateOver30Days}CHF`)
+        finalPrice = rates.length > 0 ? rates.join(", ") : price
+      } else if (offerType === "trade") {
+        finalPrice = openToSuggestions ? "Offen für Vorschläge" : price
       }
 
       const offerData = {
-        gameId,
+        game_id: gameId,
         title: gameTitle,
         publisher: gamePublisher,
         condition,
         type: offerType,
-        price,
+        price: finalPrice,
         description,
         image: imageUrl,
         active: true,
-        ...(offerType === "lend" && {
-          dailyRate1Day,
-          dailyRate2To6Days,
-          dailyRate7To30Days,
-          dailyRateOver30Days,
-          depositAmount,
-          deliveryPickup,
-          deliveryShipping,
-          pickupAddress: deliveryPickup ? pickupAddress : null,
-          shippingOption: shippingOption ? shippingOption : null,
-        }),
-        ...(offerType === "sell" && {
-          salePrice,
-          deliveryPickup,
-          deliveryShipping,
-          pickupAddress: deliveryPickup ? pickupAddress : null,
-          shippingOption: shippingOption ? shippingOption : null,
-        }),
+        location: deliveryPickup ? pickupAddress : "",
+        distance: "", // Default empty distance
       }
 
+      console.log("[v0] Offer data to be submitted:", offerData)
       await addMarketplaceOffer(offerData)
+      console.log("[v0] Marketplace offer created successfully")
 
       resetForm()
       onSuccess?.()
       onClose()
+      console.log("[v0] Form submission completed successfully")
     } catch (error) {
-      console.error("Error creating marketplace offer:", error)
+      console.error("[v0] Error creating marketplace offer:", error)
       setErrors({ submit: "Fehler beim Erstellen des Angebots. Bitte versuche es erneut." })
     } finally {
       setIsSubmitting(false)
@@ -1407,21 +1458,53 @@ export function CreateMarketplaceOfferForm({
                     <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
                       <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">Tausch Details</h4>
 
-                      <div>
-                        <Label className="text-sm font-semibold text-gray-700 mb-2 block">{getPriceLabel()}</Label>
-                        <Input
-                          placeholder={getPricePlaceholder()}
-                          value={price}
-                          onChange={(e) => setPrice(e.target.value)}
-                          className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white"
-                        />
-                        {errors.price && (
-                          <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                            <AlertCircle className="w-4 h-4" />
-                            <span>{errors.price}</span>
-                          </div>
-                        )}
+                      <div className="mb-4">
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            id="openToSuggestions"
+                            checked={openToSuggestions}
+                            onChange={(e) => setOpenToSuggestions(e.target.checked)}
+                            className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
+                          />
+                          <Label
+                            htmlFor="openToSuggestions"
+                            className="text-sm font-medium text-gray-700 cursor-pointer"
+                          >
+                            Offen für Vorschläge
+                          </Label>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 ml-7">
+                          Ich bin offen für verschiedene Tauschvorschläge
+                        </p>
                       </div>
+
+                      {!openToSuggestions && (
+                        <div>
+                          <Label className="text-sm font-semibold text-gray-700 mb-2 block">{getPriceLabel()}</Label>
+                          <Input
+                            placeholder={getPricePlaceholder()}
+                            value={price}
+                            onChange={(e) => setPrice(e.target.value)}
+                            className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white"
+                          />
+                          {errors.price && (
+                            <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
+                              <AlertCircle className="w-4 h-4" />
+                              <span>{errors.price}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {openToSuggestions && (
+                        <div className="bg-orange-100 border border-orange-300 rounded-xl p-4">
+                          <p className="text-orange-800 text-sm font-medium">
+                            Du bist offen für Tauschvorschläge. Andere Nutzer können dir verschiedene Spiele zum Tausch
+                            anbieten.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
 

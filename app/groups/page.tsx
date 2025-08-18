@@ -19,6 +19,7 @@ import CreateCommunityDialog from "@/components/create-community-dialog"
 import CreateCommunityEventDialog from "@/components/create-community-event-dialog"
 
 import { useSearchParams } from "next/navigation"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface CommunityEvent {
   id: string
@@ -172,6 +173,9 @@ export default function GroupsPage() {
   const [selectedEventForManagement, setSelectedEventForManagement] = useState<CommunityEvent | null>(null)
 
   const [showCreateCommunityForm, setShowCreateCommunityForm] = useState(false)
+
+  const [selectedEventForDetails, setSelectedEventForDetails] = useState<CommunityEvent | null>(null)
+  const [showEventDetailsDialog, setShowEventDetailsDialog] = useState(false)
 
   const searchParams = useSearchParams()
   const tab = searchParams.get("tab")
@@ -706,6 +710,11 @@ export default function GroupsPage() {
     return user && event.participants?.some((p) => p.user_id === user.id && p.status === "joined")
   }
 
+  const handleEventDetails = (event: CommunityEvent) => {
+    setSelectedEventForDetails(event)
+    setShowEventDetailsDialog(true)
+  }
+
   const getTypeColor = (type: string) => {
     switch (type) {
       case "casual":
@@ -741,7 +750,7 @@ export default function GroupsPage() {
       const formatTime = (timeStr: string | null) => {
         if (!timeStr) return null
         // If time is already in HH:mm format, return as is
-        if (timeStr.match(/^\d{2}:\d{2}$/)) return timeStr
+        if (timeStr.match(/^\d{2}:\d{2}$/)) return timeStr.substring(0, 5)
         // If time includes seconds, remove them
         if (timeStr.match(/^\d{2}:\d{2}:\d{2}$/)) return timeStr.substring(0, 5)
         return timeStr
@@ -1352,6 +1361,16 @@ export default function GroupsPage() {
                         </div>
 
                         <div className="flex gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-purple-200 text-purple-600 hover:bg-purple-50 bg-transparent"
+                            onClick={() => {
+                              handleEventDetails(event)
+                            }}
+                          >
+                            Details
+                          </Button>
                           {isEventCreator(event) && (
                             <Button
                               size="sm"
@@ -1498,6 +1517,221 @@ export default function GroupsPage() {
           )}
         </div>
       </div>
+
+      <Dialog open={showEventDetailsDialog} onOpenChange={setShowEventDetailsDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-handwritten text-purple-600">
+              {selectedEventForDetails?.title}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedEventForDetails && (
+            <div className="space-y-6">
+              {/* Event Image */}
+              {selectedEventForDetails.image && (
+                <div className="w-full h-48 rounded-lg overflow-hidden">
+                  <img
+                    src={selectedEventForDetails.image || "/placeholder.svg"}
+                    alt={selectedEventForDetails.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              {/* Event Description */}
+              <div>
+                <h3 className="font-semibold text-lg mb-2">Beschreibung</h3>
+                <p className="text-gray-700 leading-relaxed">
+                  {selectedEventForDetails.description || "Keine Beschreibung verfügbar."}
+                </p>
+              </div>
+
+              {/* Event Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-purple-500" />
+                    <div>
+                      <p className="font-medium">Termin</p>
+                      <p className="text-gray-600">{formatEventDate(selectedEventForDetails)}</p>
+                    </div>
+                  </div>
+
+                  {selectedEventForDetails.location && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-purple-500" />
+                      <div>
+                        <p className="font-medium">Ort</p>
+                        <p className="text-gray-600">{selectedEventForDetails.location}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <User className="w-5 h-5 text-purple-500" />
+                    <div>
+                      <p className="font-medium">Organisator</p>
+                      <p className="text-gray-600">
+                        {selectedEventForDetails.creator?.username ||
+                          selectedEventForDetails.creator?.name ||
+                          "Unbekannt"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-purple-500" />
+                    <div>
+                      <p className="font-medium">Teilnehmer</p>
+                      <p className="text-gray-600">
+                        {getParticipantCount(selectedEventForDetails)} von{" "}
+                        {selectedEventForDetails.max_participants || "unbegrenzt"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className={
+                        selectedEventForDetails.frequency === "einmalig"
+                          ? "border-blue-200 text-blue-700 bg-blue-50"
+                          : selectedEventForDetails.frequency === "regelmässig"
+                            ? "border-green-200 text-green-700 bg-green-50"
+                            : "border-orange-200 text-orange-700 bg-orange-50"
+                      }
+                    >
+                      {selectedEventForDetails.frequency === "einmalig" && "Einmalig"}
+                      {selectedEventForDetails.frequency === "regelmässig" && "Regelmässig"}
+                      {selectedEventForDetails.frequency === "wiederholend" && "Wiederholend"}
+                    </Badge>
+                  </div>
+
+                  {selectedEventForDetails.visibility === "friends" && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="border-gray-200 text-gray-700 bg-gray-50">
+                        Nur für Freunde sichtbar
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Time Slots (if applicable) */}
+              {selectedEventForDetails.use_time_slots &&
+                selectedEventForDetails.time_slots &&
+                selectedEventForDetails.time_slots.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-lg mb-3">Termine</h3>
+                    <div className="space-y-2">
+                      {selectedEventForDetails.time_slots.map((slot, index) => (
+                        <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                          <Calendar className="w-4 h-4 text-purple-500" />
+                          <span className="text-gray-700">
+                            {new Date(slot.date).toLocaleDateString("de-DE", {
+                              weekday: "long",
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            })}
+                            {slot.time_from && slot.time_to && (
+                              <span className="ml-2">
+                                {slot.time_from.substring(0, 5)} - {slot.time_to.substring(0, 5)}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Participants List */}
+              {selectedEventForDetails.participants && selectedEventForDetails.participants.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Teilnehmer</h3>
+                  <div className="space-y-2">
+                    {/* Organizer */}
+                    <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+                      <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium">
+                          {selectedEventForDetails.creator?.username ||
+                            selectedEventForDetails.creator?.name ||
+                            "Organisator"}
+                        </p>
+                        <p className="text-sm text-purple-600">Organisator</p>
+                      </div>
+                    </div>
+
+                    {/* Other participants */}
+                    {selectedEventForDetails.participants
+                      .filter((p) => p.status === "joined")
+                      .map((participant, index) => (
+                        <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
+                            <User className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {participant.user?.username || participant.user?.name || "Teilnehmer"}
+                            </p>
+                            <p className="text-sm text-gray-500">Teilnehmer</p>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                {isEventCreator(selectedEventForDetails) && (
+                  <Button
+                    className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white border-0"
+                    onClick={() => {
+                      setShowEventDetailsDialog(false)
+                      handleManageEvent(selectedEventForDetails)
+                    }}
+                  >
+                    Event verwalten
+                  </Button>
+                )}
+                {!isEventCreator(selectedEventForDetails) && !isEventParticipant(selectedEventForDetails) && (
+                  <Button
+                    className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white border-0"
+                    onClick={() => {
+                      setShowEventDetailsDialog(false)
+                      handleJoinEvent(selectedEventForDetails.id)
+                    }}
+                  >
+                    Teilnehmen
+                  </Button>
+                )}
+                {!isEventCreator(selectedEventForDetails) && isEventParticipant(selectedEventForDetails) && (
+                  <Button
+                    className="bg-gradient-to-r from-red-400 to-red-500 hover:from-red-500 hover:to-red-600 text-white border-0"
+                    onClick={() => {
+                      setShowEventDetailsDialog(false)
+                      handleLeaveEvent(selectedEventForDetails.id)
+                    }}
+                  >
+                    Event verlassen
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => setShowEventDetailsDialog(false)}>
+                  Schließen
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

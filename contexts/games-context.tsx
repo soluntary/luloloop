@@ -69,111 +69,25 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const FALLBACK_IMAGE = "/images/ludoloop-game-placeholder.png"
 
-  // Mock marketplace data for when database is not connected
-  const mockMarketplaceOffers: MarketplaceOffer[] = [
-    {
-      id: "1",
-      title: "Catan - Die Siedler von Catan",
-      publisher: "Kosmos",
-      condition: "Sehr gut",
-      type: "lend",
-      price: "Kostenlos",
-      location: "München, Bayern",
-      distance: "2.3 km",
-      image: "/images/ludoloop-game-placeholder.png",
-      rating: 4.8,
-      active: true,
-      created_at: "2024-01-15T10:00:00Z",
-    },
-    {
-      id: "2",
-      title: "Ticket to Ride Europa",
-      publisher: "Days of Wonder",
-      condition: "Wie neu",
-      type: "trade",
-      price: "Tausch gegen ähnliches Spiel",
-      location: "München, Bayern",
-      distance: "1.8 km",
-      image: "/images/ludoloop-game-placeholder.png",
-      rating: 4.6,
-      active: true,
-      created_at: "2024-01-14T15:30:00Z",
-    },
-    {
-      id: "3",
-      title: "Azul",
-      publisher: "Plan B Games",
-      condition: "Gut",
-      type: "sell",
-      price: "25,00 €",
-      location: "München, Bayern",
-      distance: "3.1 km",
-      image: "/images/ludoloop-game-placeholder.png",
-      rating: 4.9,
-      active: true,
-      created_at: "2024-01-13T09:15:00Z",
-    },
-    {
-      id: "4",
-      title: "Wingspan",
-      publisher: "Stonemaier Games",
-      condition: "Sehr gut",
-      type: "lend",
-      price: "Kostenlos",
-      location: "München, Bayern",
-      distance: "0.9 km",
-      image: "/images/ludoloop-game-placeholder.png",
-      rating: 4.7,
-      active: true,
-      created_at: "2024-01-12T14:20:00Z",
-    },
-    {
-      id: "5",
-      title: "Splendor",
-      publisher: "Space Cowboys",
-      condition: "Wie neu",
-      type: "sell",
-      price: "20,00 €",
-      location: "München, Bayern",
-      distance: "4.2 km",
-      image: "/images/ludoloop-game-placeholder.png",
-      rating: 4.5,
-      active: true,
-      created_at: "2024-01-11T11:45:00Z",
-    },
-    {
-      id: "6",
-      title: "7 Wonders",
-      publisher: "Repos Production",
-      condition: "Gut",
-      type: "trade",
-      price: "Tausch gegen Strategiespiel",
-      location: "München, Bayern",
-      distance: "2.7 km",
-      image: "/images/ludoloop-game-placeholder.png",
-      rating: 4.4,
-      active: true,
-      created_at: "2024-01-10T16:30:00Z",
-    },
-  ]
-
   // Test database connection
   const testDatabaseConnection = async () => {
+    console.log("[v0] Testing database connection...")
     try {
       const { error } = await supabase.from("games").select("count", { count: "exact", head: true })
       if (error) {
-        console.error("Database connection test failed:", error)
+        console.error("[v0] Database connection test failed:", error)
         setError(
           `Datenbank-Verbindung fehlgeschlagen: ${error.message}. Bitte führe die SQL-Skripte aus (01-create-tables.sql, 02-create-policies.sql).`,
         )
         setDatabaseConnected(false)
         return false
       }
+      console.log("[v0] Database connection successful")
       setDatabaseConnected(true)
       setError(null)
       return true
     } catch (err) {
-      console.error("Database connection error:", err)
+      console.error("[v0] Database connection error:", err)
       setError("Datenbank-Verbindung fehlgeschlagen. Bitte überprüfe deine Supabase-Konfiguration.")
       setDatabaseConnected(false)
       return false
@@ -181,10 +95,17 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }
 
   // Load games from database
-  const loadGames = async () => {
-    if (!user || !databaseConnected) return
+  const loadGames = async (forceConnected = false) => {
+    const isConnected = forceConnected || databaseConnected
+    console.log("[v0] loadGames called - user:", user?.id, "databaseConnected:", isConnected)
+
+    if (!user || !isConnected) {
+      console.log("[v0] loadGames early return - user or database not available")
+      return
+    }
 
     try {
+      console.log("[v0] Querying games for user:", user.id)
       const { data, error } = await supabase
         .from("games")
         .select("*")
@@ -192,9 +113,12 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         .order("title", { ascending: true })
 
       if (error) {
-        console.error("Error loading games:", error)
+        console.error("[v0] Error loading games:", error)
         return
       }
+
+      console.log("[v0] Raw games data from database:", data)
+      console.log("[v0] Number of games loaded:", data?.length || 0)
 
       // Ensure fallback image is applied
       const gamesWithFallback = (data || []).map((game) => ({
@@ -202,17 +126,20 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         image: game.image || FALLBACK_IMAGE,
       }))
 
+      console.log("[v0] Games with fallback images:", gamesWithFallback)
       setGames(gamesWithFallback)
+      console.log("[v0] Games state updated with", gamesWithFallback.length, "games")
     } catch (err) {
-      console.error("Error loading games:", err)
+      console.error("[v0] Error loading games:", err)
     }
   }
 
   // Load marketplace offers from database
-  const loadMarketplaceOffers = async () => {
-    if (!databaseConnected) {
-      // Use mock data when database is not connected
-      setMarketplaceOffers(mockMarketplaceOffers)
+  const loadMarketplaceOffers = async (forceConnected = false) => {
+    const isConnected = forceConnected || databaseConnected
+    if (!isConnected) {
+      // Use empty array when database is not connected
+      setMarketplaceOffers([])
       return
     }
 
@@ -225,8 +152,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error("Error loading marketplace offers:", error)
-        // Fallback to mock data on error
-        setMarketplaceOffers(mockMarketplaceOffers)
+        setMarketplaceOffers([])
         return
       }
 
@@ -239,8 +165,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       setMarketplaceOffers(offersWithFallback)
     } catch (err) {
       console.error("Error loading marketplace offers:", err)
-      // Fallback to mock data on error
-      setMarketplaceOffers(mockMarketplaceOffers)
+      setMarketplaceOffers([])
     }
   }
 
@@ -470,22 +395,26 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   // Refresh all data
   const refreshData = async () => {
+    console.log("[v0] refreshData called - user:", user?.id)
     setLoading(true)
     setError(null)
 
     try {
       const connected = await testDatabaseConnection()
+      console.log("[v0] Database connected:", connected)
       if (connected && user) {
-        await Promise.all([loadGames(), loadMarketplaceOffers()])
+        console.log("[v0] Loading games and marketplace offers...")
+        await Promise.all([loadGames(connected), loadMarketplaceOffers(connected)])
       } else {
-        // Load mock data when database is not connected or user not available
-        await loadMarketplaceOffers()
+        console.log("[v0] Skipping data load - not connected or no user")
+        setMarketplaceOffers([])
       }
     } catch (err) {
-      console.error("Error refreshing data:", err)
+      console.error("[v0] Error refreshing data:", err)
       setError("Fehler beim Laden der Daten")
     } finally {
       setLoading(false)
+      console.log("[v0] refreshData completed")
     }
   }
 

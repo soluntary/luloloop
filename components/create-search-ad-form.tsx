@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Search, X, ShoppingCart, Clock } from "lucide-react"
+import { Search, X, Upload, ImageIcon } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase"
 
@@ -24,8 +24,27 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [type, setType] = useState("")
+  const [image, setImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setImage(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeImage = () => {
+    setImage(null)
+    setImagePreview(null)
+  }
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {}
@@ -35,7 +54,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
     }
 
     if (!type) {
-      newErrors.type = "Bitte wähle aus, ob du kaufen oder ausleihen möchtest."
+      newErrors.type = "Bitte wähle aus, ob du kaufen, ausleihen oder tauschen möchtest."
     }
 
     setErrors(newErrors)
@@ -74,6 +93,8 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
       setTitle("")
       setDescription("")
       setType("")
+      setImage(null)
+      setImagePreview(null)
       setErrors({})
 
       onSuccess()
@@ -90,6 +111,8 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
     setTitle("")
     setDescription("")
     setType("")
+    setImage(null)
+    setImagePreview(null)
     setErrors({})
     onClose()
   }
@@ -127,6 +150,51 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
             )}
           </div>
 
+          <div className="space-y-2">
+            <Label className="font-body text-orange-800 font-semibold text-base">Bild (optional)</Label>
+            <div className="space-y-3">
+              {imagePreview ? (
+                <div className="relative">
+                  <img
+                    src={imagePreview || "/placeholder.svg"}
+                    alt="Vorschau"
+                    className="w-full h-32 object-cover rounded-xl border-2 border-orange-200"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 bg-white/90 hover:bg-white border-orange-200 text-orange-600 rounded-lg"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-orange-200 rounded-xl p-6 text-center bg-white/50">
+                  <ImageIcon className="w-8 h-8 text-orange-400 mx-auto mb-2" />
+                  <p className="text-orange-600 text-sm mb-3">
+                    Lade ein Bild hoch oder wir verwenden automatisch ein Logo
+                  </p>
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-orange-300 text-orange-600 hover:bg-orange-50 rounded-lg bg-transparent"
+                      asChild
+                    >
+                      <span>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Bild auswählen
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Type Field */}
           <div className="space-y-2">
             <Label className="font-body text-orange-800 font-semibold text-base flex items-center gap-2">
@@ -138,14 +206,13 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
               </SelectTrigger>
               <SelectContent className="rounded-xl border-2 border-orange-200 shadow-lg">
                 <SelectItem value="buy" className="font-body text-base py-3 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    Kaufen
-                  </div>
+                  <div className="flex items-center gap-2">Kaufen</div>
                 </SelectItem>
                 <SelectItem value="rent" className="font-body text-base py-3 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    Ausleihen
-                  </div>
+                  <div className="flex items-center gap-2">Ausleihen</div>
+                </SelectItem>
+                <SelectItem value="trade" className="font-body text-base py-3 rounded-lg">
+                  <div className="flex items-center gap-2">Tauschen</div>
                 </SelectItem>
               </SelectContent>
             </Select>
