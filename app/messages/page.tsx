@@ -213,31 +213,35 @@ function MessagesContent() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">Nachrichten</h1>
-          <p className="text-xl text-gray-600 transform rotate-1 font-body">Deine Unterhaltungen im Überblick!</p>
+          <h1 className="text-3xl md:text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
+            Nachrichten
+          </h1>
+          <p className="text-lg md:text-xl text-gray-600 transform rotate-1 font-body">
+            Deine Unterhaltungen im Überblick!
+          </p>
         </div>
 
         <div className="max-w-6xl mx-auto">
-          <Card className="h-[600px] flex overflow-hidden border-2 border-teal-200 shadow-lg">
+          <Card className="h-[70vh] md:h-[600px] flex flex-col md:flex-row overflow-hidden border-2 border-teal-200 shadow-lg">
             {/* Conversations Sidebar */}
-            <div className="w-1/3 border-r border-gray-200 bg-white">
-              <div className="p-4 border-b border-gray-200">
+            <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-gray-200 bg-white flex-shrink-0">
+              <div className="p-3 md:p-4 border-b border-gray-200">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
                     placeholder="Unterhaltungen durchsuchen..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 font-body"
+                    className="pl-10 font-body text-sm md:text-base"
                   />
                 </div>
               </div>
 
-              <div className="overflow-y-auto h-full">
+              <div className="overflow-y-auto h-48 md:h-full">
                 {filteredConversations.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500 font-body">Keine Unterhaltungen gefunden</p>
+                  <div className="p-6 md:p-8 text-center">
+                    <MessageCircle className="w-8 h-8 md:w-12 md:h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500 font-body text-sm md:text-base">Keine Unterhaltungen gefunden</p>
                   </div>
                 ) : (
                   filteredConversations.map(([conversationKey, data]: any) => {
@@ -249,7 +253,7 @@ function MessagesContent() {
                     return (
                       <div
                         key={conversationKey}
-                        className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                        className={`p-3 md:p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
                           isSelected ? "bg-teal-50 border-l-4 border-l-teal-400" : ""
                         }`}
                         onClick={() => {
@@ -260,14 +264,16 @@ function MessagesContent() {
                           })
                         }}
                       >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-teal-400 rounded-full flex items-center justify-center flex-shrink-0">
-                            <User className="w-5 h-5 text-white" />
+                        <div className="flex items-center space-x-2 md:space-x-3">
+                          <div className="w-8 h-8 md:w-10 md:h-10 bg-teal-400 rounded-full flex items-center justify-center flex-shrink-0">
+                            <User className="w-4 h-4 md:w-5 md:h-5 text-white" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <h3 className="font-handwritten text-lg text-gray-800 truncate">{data.gameTitle}</h3>
-                              <div className="flex items-center space-x-2">
+                              <h3 className="font-handwritten text-base md:text-lg text-gray-800 truncate">
+                                {data.gameTitle}
+                              </h3>
+                              <div className="flex items-center space-x-1 md:space-x-2">
                                 {unreadCount > 0 && (
                                   <Badge className="bg-red-500 text-white text-xs">{unreadCount}</Badge>
                                 )}
@@ -276,15 +282,19 @@ function MessagesContent() {
                                 </span>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-2 mt-1">
+                            <div className="flex items-center space-x-1 md:space-x-2 mt-1">
                               <Badge
                                 className={`${getOfferTypeColor(latestMessage.offer_type)} text-white text-xs font-body`}
                               >
                                 {getOfferTypeText(latestMessage.offer_type)}
                               </Badge>
-                              <span className="text-sm text-gray-600 font-body truncate">mit {data.partnerName}</span>
+                              <span className="text-xs md:text-sm text-gray-600 font-body truncate">
+                                mit {data.partnerName}
+                              </span>
                             </div>
-                            <p className="text-sm text-gray-600 font-body truncate mt-1">{latestMessage.message}</p>
+                            <p className="text-xs md:text-sm text-gray-600 font-body truncate mt-1">
+                              {latestMessage.message}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -295,21 +305,21 @@ function MessagesContent() {
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 flex flex-col bg-gray-50">
+            <div className="flex-1 flex flex-col bg-gray-50 min-h-0">
               {selectedConversation ? (
                 <>
                   {/* Chat Header */}
-                  <div className="p-4 bg-white border-b border-gray-200">
+                  <div className="p-3 md:p-4 bg-white border-b border-gray-200 flex-shrink-0">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-teal-400 rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-white" />
+                      <div className="flex items-center space-x-2 md:space-x-3">
+                        <div className="w-8 h-8 md:w-10 md:h-10 bg-teal-400 rounded-full flex items-center justify-center">
+                          <User className="w-4 h-4 md:w-5 md:h-5 text-white" />
                         </div>
                         <div>
-                          <h2 className="font-handwritten text-xl text-gray-800">
+                          <h2 className="font-handwritten text-lg md:text-xl text-gray-800">
                             {conversations[selectedConversation]?.gameTitle}
                           </h2>
-                          <p className="text-sm text-gray-600 font-body">
+                          <p className="text-xs md:text-sm text-gray-600 font-body">
                             {getOfferTypeText(conversations[selectedConversation]?.offerType)} •{" "}
                             {selectedMessages.length} Nachricht{selectedMessages.length !== 1 ? "en" : ""}
                           </p>
@@ -319,7 +329,7 @@ function MessagesContent() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setDeleteConfirm({ type: "conversation", id: selectedConversation! })}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -327,38 +337,42 @@ function MessagesContent() {
                   </div>
 
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 min-h-0">
                     {selectedMessages.map((message: any, index: number) => {
                       const isFromCurrentUser = message.from_user_id === user.id
                       return (
                         <div
                           key={message.id}
-                          className={`flex items-start space-x-3 ${isFromCurrentUser ? "flex-row-reverse space-x-reverse" : ""} group`}
+                          className={`flex items-start space-x-2 md:space-x-3 ${isFromCurrentUser ? "flex-row-reverse space-x-reverse" : ""} group`}
                         >
-                          <div className="w-8 h-8 bg-teal-400 rounded-full flex items-center justify-center flex-shrink-0">
-                            <User className="w-4 h-4 text-white" />
+                          <div className="w-6 h-6 md:w-8 md:h-8 bg-teal-400 rounded-full flex items-center justify-center flex-shrink-0">
+                            <User className="w-3 h-3 md:w-4 md:h-4 text-white" />
                           </div>
-                          <div className="flex-1 relative">
+                          <div className="flex-1 relative max-w-[85%] md:max-w-none">
                             <div
-                              className={`rounded-lg p-3 shadow-sm border ${isFromCurrentUser ? "bg-teal-100 ml-8" : "bg-white mr-8"}`}
+                              className={`rounded-lg p-2 md:p-3 shadow-sm border ${isFromCurrentUser ? "bg-teal-100 ml-4 md:ml-8" : "bg-white mr-4 md:mr-8"}`}
                             >
-                              <div className="flex items-center space-x-2 mb-2">
+                              <div className="flex flex-wrap items-center gap-1 md:gap-2 mb-1 md:mb-2">
                                 <Badge
                                   className={`${getOfferTypeColor(message.offer_type)} text-white text-xs font-body`}
                                 >
                                   {getOfferTypeText(message.offer_type)}
                                 </Badge>
-                                <span className="text-sm font-body text-gray-600">{message.game_title}</span>
+                                <span className="text-xs md:text-sm font-body text-gray-600 truncate">
+                                  {message.game_title}
+                                </span>
                                 <span className="text-xs text-gray-500 font-body ml-auto">
                                   {formatTime(message.created_at)}
                                 </span>
                               </div>
-                              <p className="text-gray-800 font-body">{message.message}</p>
+                              <p className="text-gray-800 font-body text-sm md:text-base break-words">
+                                {message.message}
+                              </p>
                               {message.game_image && (
                                 <img
                                   src={message.game_image || "/placeholder.svg"}
                                   alt={message.game_title}
-                                  className="w-16 h-20 rounded-lg shadow-sm mt-2"
+                                  className="w-12 h-16 md:w-16 md:h-20 rounded-lg shadow-sm mt-2"
                                 />
                               )}
                             </div>
@@ -379,19 +393,19 @@ function MessagesContent() {
                   </div>
 
                   {/* Message Input */}
-                  <div className="p-4 bg-white border-t border-gray-200">
-                    <div className="flex items-center space-x-3">
+                  <div className="p-3 md:p-4 bg-white border-t border-gray-200 flex-shrink-0">
+                    <div className="flex items-center space-x-2 md:space-x-3">
                       <Input
                         placeholder="Nachricht schreiben..."
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                        className="flex-1 font-body"
+                        className="flex-1 font-body text-sm md:text-base"
                       />
                       <Button
                         onClick={handleSendMessage}
                         disabled={!newMessage.trim()}
-                        className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
+                        className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten p-2 md:px-4"
                       >
                         <Send className="w-4 h-4" />
                       </Button>
@@ -399,11 +413,13 @@ function MessagesContent() {
                   </div>
                 </>
               ) : (
-                <div className="flex-1 flex items-center justify-center">
+                <div className="flex-1 flex items-center justify-center p-4">
                   <div className="text-center">
-                    <MessageCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-handwritten text-gray-600 mb-2">Wähle eine Unterhaltung</h3>
-                    <p className="text-gray-500 font-body">Klicke auf eine Unterhaltung links, um zu chatten</p>
+                    <MessageCircle className="w-12 h-12 md:w-16 md:h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg md:text-xl font-handwritten text-gray-600 mb-2">Wähle eine Unterhaltung</h3>
+                    <p className="text-gray-500 font-body text-sm md:text-base">
+                      Klicke auf eine Unterhaltung links, um zu chatten
+                    </p>
                   </div>
                 </div>
               )}
@@ -413,17 +429,17 @@ function MessagesContent() {
 
         {/* Confirmation Dialog for Deletions */}
         {deleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <Card className="p-6 max-w-md mx-4">
-              <h3 className="text-lg font-handwritten text-gray-800 mb-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="p-4 md:p-6 max-w-md w-full mx-4">
+              <h3 className="text-base md:text-lg font-handwritten text-gray-800 mb-4">
                 {deleteConfirm.type === "message" ? "Nachricht löschen?" : "Unterhaltung löschen?"}
               </h3>
-              <p className="text-gray-600 font-body mb-6">
+              <p className="text-gray-600 font-body mb-6 text-sm md:text-base">
                 {deleteConfirm.type === "message"
                   ? "Diese Nachricht wird dauerhaft gelöscht und kann nicht wiederhergestellt werden."
                   : "Diese gesamte Unterhaltung wird dauerhaft gelöscht und kann nicht wiederhergestellt werden."}
               </p>
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="flex-1 font-body">
                   Abbrechen
                 </Button>

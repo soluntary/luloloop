@@ -1538,32 +1538,32 @@ function LibraryContent() {
             </div>
           )}
           <div className="bg-white/50 rounded-lg p-4 border border-teal-200">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
               <div className="col-span-full mb-2">
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
                   <div className="flex-1">
                     <Input
                       placeholder="Spiele durchsuchen..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="border-2 border-teal-200 focus:border-teal-400"
+                      className="border-2 border-teal-200 focus:border-teal-400 text-sm md:text-base"
                       disabled={!databaseConnected}
                     />
                   </div>
                   <Button
-                    variant="outline"
-                    className="border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent"
+                    onClick={() => setIsAddGameDialogOpen(true)}
+                    className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten whitespace-nowrap"
                     disabled={!databaseConnected}
                   >
-                    <Search className="w-5 h-5 mr-2" />
-                    Suchen
+                    <Plus className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Spiel hinzufügen</span>
+                    <span className="sm:hidden">Hinzufügen</span>
                   </Button>
                 </div>
               </div>
 
-              {/* Sortierung */}
-              <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Sortieren nach </Label>
+              <div className="col-span-full sm:col-span-1 lg:col-auto">
+                <Label className="text-xs text-gray-600 mb-1 block">Sortieren nach</Label>
                 <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
@@ -1722,19 +1722,19 @@ function LibraryContent() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
           {/* Library Shelf */}
           <div className="lg:col-span-2">
-            <div className="bg-gradient-to-b from-amber-100 to-amber-200 rounded-lg p-6 shadow-lg border-4 border-amber-300">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-b from-amber-100 to-amber-200 rounded-lg p-3 md:p-6 shadow-lg border-4 border-amber-300">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
+                <div className="flex flex-wrap items-center gap-2 md:gap-4">
                   <Button
                     onClick={() => {
                       setIsSelectionMode(!isSelectionMode)
                       setSelectedGames(new Set())
                     }}
                     variant={isSelectionMode ? "outline" : "outline"}
-                    className="border-amber-400 text-white-600 hover:bg-white font-handwritten bg-transparent"
+                    className="border-amber-400 text-white-600 hover:bg-white font-handwritten bg-transparent text-sm"
                   >
                     {isSelectionMode ? "Auswahl beenden" : "Spiele auswählen"}
                   </Button>
@@ -1744,15 +1744,20 @@ function LibraryContent() {
                       <Button
                         onClick={selectAllGames}
                         variant="outline"
-                        className="font-handwritten bg-orange/80 hover:bg-white border-amber-400"
+                        className="font-handwritten bg-orange/80 hover:bg-white border-amber-400 text-sm"
                       >
-                        {selectedGames.size === filteredGames.length ? "Alle abwählen" : "Alle auswählen"}
+                        <span className="hidden sm:inline">
+                          {selectedGames.size === filteredGames.length ? "Alle abwählen" : "Alle auswählen"}
+                        </span>
+                        <span className="sm:hidden">
+                          {selectedGames.size === filteredGames.length ? "Abwählen" : "Auswählen"}
+                        </span>
                       </Button>
 
                       {selectedGames.size > 0 && (
                         <Button
                           onClick={handleBulkDelete}
-                          className="bg-red-400 hover:bg-white-500 text-white font-handwritten"
+                          className="bg-red-400 hover:bg-white-500 text-white font-handwritten text-sm"
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
                           {selectedGames.size} Spiele löschen
@@ -1787,19 +1792,22 @@ function LibraryContent() {
                         <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-b from-amber-600 to-amber-700 rounded-lg shadow-md"></div>
 
                         {/* First row with Add Game Cover and up to 7 games */}
-                        <div className="flex gap-2 pb-4 overflow-x-auto">
+                        <div className="flex gap-1 md:gap-2 pb-4 overflow-x-auto">
                           {/* Add Game Cover - always first */}
                           <div
                             className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300"
                             onClick={() => setIsAddGameDialogOpen(true)}
                           >
-                            <div className="w-24 h-32 bg-gradient-to-br from-teal-100 to-teal-200 rounded-t-lg shadow-lg border-2 border-dashed border-teal-400 overflow-hidden relative flex items-center justify-center">
+                            <div className="w-20 h-28 md:w-24 md:h-32 bg-gradient-to-br from-teal-100 to-teal-200 rounded-t-lg shadow-lg border-2 border-dashed border-teal-400 overflow-hidden relative flex items-center justify-center">
                               <div className="text-center">
-                                <Plus className="w-8 h-8 text-teal-600 mx-auto mb-1" />
-                                <p className="text-xs text-teal-700 font-bold font-handwritten">Spiel hinzufügen</p>
+                                <Plus className="w-6 h-6 md:w-8 md:h-8 text-teal-600 mx-auto mb-1" />
+                                <p className="text-xs text-teal-700 font-bold font-handwritten px-1">
+                                  <span className="hidden sm:inline">Spiel hinzufügen</span>
+                                  <span className="sm:hidden">Hinzufügen</span>
+                                </p>
                               </div>
                             </div>
-                            <div className="w-24 h-2 bg-gradient-to-b from-gray-300 to-gray-400 rounded-b-sm"></div>
+                            <div className="w-20 h-2 md:w-24 md:h-2 bg-gradient-to-b from-gray-300 to-gray-400 rounded-b-sm"></div>
                           </div>
 
                           {/* First 7 games in the same row */}
@@ -1812,19 +1820,20 @@ function LibraryContent() {
                               {isSelectionMode && (
                                 <div className="absolute top-1 right-1 z-10">
                                   <div
-                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                                    className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center ${
                                       selectedGames.has(game.id)
                                         ? "bg-teal-500 border-teal-500"
                                         : "bg-white border-gray-300"
                                     }`}
                                   >
-                                    {selectedGames.has(game.id) && <Check className="w-4 h-4 text-white" />}
+                                    {selectedGames.has(game.id) && (
+                                      <Check className="w-3 h-3 md:w-4 md:h-4 text-white" />
+                                    )}
                                   </div>
                                 </div>
                               )}
-
                               <div
-                                className={`w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 overflow-hidden relative ${
+                                className={`w-20 h-28 md:w-24 md:h-32 bg-white rounded-t-lg shadow-lg border-2 overflow-hidden relative ${
                                   selectedGames.has(game.id) ? "border-teal-500" : "border-gray-300"
                                 }`}
                               >
@@ -1839,7 +1848,7 @@ function LibraryContent() {
                                   </p>
                                 </div>
                               </div>
-                              <div className="w-24 h-2 bg-gradient-to-b from-gray-300 to-gray-400 rounded-b-sm"></div>
+                              <div className="w-20 h-2 md:w-24 md:h-2 bg-gradient-to-b from-gray-300 to-gray-400 rounded-b-sm"></div>
                             </div>
                           ))}
                         </div>
@@ -1934,10 +1943,10 @@ function LibraryContent() {
           {/* Game Details Panel */}
           <div className="lg:col-span-1">
             {selectedGame ? (
-              <Card className="sticky top-8 transform rotate-1 hover:rotate-0 transition-all border-2 border-teal-200">
-                <CardContent className="p-6">
+              <Card className="sticky top-4 lg:top-8 transform rotate-0 lg:rotate-1 hover:rotate-0 transition-all border-2 border-teal-200">
+                <CardContent className="p-4 md:p-6">
                   <div className="text-center mb-4">
-                    <div className="relative w-32 h-40 mx-auto rounded-lg shadow-lg mb-4 overflow-hidden">
+                    <div className="relative w-24 h-32 md:w-32 md:h-40 mx-auto rounded-lg shadow-lg mb-4 overflow-hidden">
                       <img
                         src={selectedGame.image || "/images/ludoloop-game-placeholder.png"}
                         alt={selectedGame.title}
@@ -1945,40 +1954,42 @@ function LibraryContent() {
                       />
                       {/* Game Title Overlay for Detail View */}
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-2">
-                        <p className="text-white text-sm font-bold text-center leading-tight font-handwritten">
+                        <p className="text-white text-xs md:text-sm font-bold text-center leading-tight font-handwritten">
                           {selectedGame.title}
                         </p>
                       </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-800 mb-2 font-handwritten">{selectedGame.title}</h3>
-                    <p className="text-gray-600 font-body">{selectedGame.publisher}</p>
+                    <h3 className="text-xl md:text-2xl font-bold text-gray-800 mb-2 font-handwritten">
+                      {selectedGame.title}
+                    </h3>
+                    <p className="text-gray-600 font-body text-sm md:text-base">{selectedGame.publisher}</p>
                   </div>
 
-                  <div className="space-y-3 mb-6">
-                    <div className="flex justify-between">
+                  <div className="space-y-2 md:space-y-3 mb-6">
+                    <div className="flex justify-between text-sm md:text-base">
                       <span className="font-medium font-body">Spieleranzahl:</span>
                       <span className="font-body">{selectedGame.players}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between text-sm md:text-base">
                       <span className="font-medium font-body">Spieldauer:</span>
                       <span className="font-body">{selectedGame.duration}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between text-sm md:text-base">
                       <span className="font-medium font-body">Altersempfehlung:</span>
                       <span className="font-body">{selectedGame.age}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between text-sm md:text-base">
                       <span className="font-medium font-body">Sprache:</span>
                       <span className="font-body">{selectedGame.language}</span>
                     </div>
                     {selectedGame.type && (
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-sm md:text-base">
                         <span className="font-medium font-body">Kategorie:</span>
                         <span className="font-body">{selectedGame.type}</span>
                       </div>
                     )}
                     {selectedGame.style && (
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-sm md:text-base">
                         <span className="font-medium font-body">Typus:</span>
                         <span className="font-body">{selectedGame.style}</span>
                       </div>
@@ -2523,8 +2534,8 @@ function LibraryContent() {
           <DialogHeader>
             <DialogTitle className="font-handwritten text-2xl text-center">Spiel löschen?</DialogTitle>
             <DialogDescription className="text-center font-body">
-              Bist du sicher, dass du diese <span className="font-bold">{gameToDelete?.title}</span> aus deiner Bibliothek
-              entfernen möchtest?
+              Bist du sicher, dass du diese <span className="font-bold">{gameToDelete?.title}</span> aus deiner
+              Bibliothek entfernen möchtest?
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end space-x-2">

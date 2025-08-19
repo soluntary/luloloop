@@ -145,36 +145,41 @@ export default function ProfilePage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold font-handwritten text-gray-800 mb-2">Profil bearbeiten</h1>
-            <p className="text-gray-600 font-body">Verwalte deine Kontoinformationen und Einstellungen</p>
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold font-handwritten text-gray-800 mb-2">Profil bearbeiten</h1>
+            <p className="text-gray-600 font-body text-sm md:text-base">
+              Verwalte deine Kontoinformationen und Einstellungen
+            </p>
           </div>
 
-          <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="profile" className="font-handwritten">
+          <Tabs defaultValue="profile" className="space-y-4 md:space-y-6">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
+              <TabsTrigger value="profile" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
                 Profil
               </TabsTrigger>
-              <TabsTrigger value="notifications" className="font-handwritten">
-                Benachrichtigungen
+              <TabsTrigger value="notifications" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
+                <span className="hidden sm:inline">Benachrichtigungen</span>
+                <span className="sm:hidden">Benachr.</span>
               </TabsTrigger>
-              <TabsTrigger value="privacy" className="font-handwritten">
+              <TabsTrigger value="privacy" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
                 Datenschutz
               </TabsTrigger>
-              <TabsTrigger value="security" className="font-handwritten">
+              <TabsTrigger value="security" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
                 Sicherheit
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="profile">
               <Card>
-                <CardHeader>
-                  <CardTitle className="font-handwritten">Profil-Details</CardTitle>
-                  <CardDescription>Aktualisiere deine persönlichen Informationen</CardDescription>
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="font-handwritten text-lg md:text-xl">Profil-Details</CardTitle>
+                  <CardDescription className="text-sm md:text-base">
+                    Aktualisiere deine persönlichen Informationen
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-8">
+                <CardContent className="space-y-6 md:space-y-8 p-4 md:p-6">
                   {/* Avatar Section */}
-                  <div className="flex items-center space-x-6">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
                     <div className="relative">
                       <img
                         src={
@@ -182,14 +187,14 @@ export default function ProfilePage() {
                           `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.email) || "/placeholder.svg"}`
                         }
                         alt="Profilbild"
-                        className="w-24 h-24 rounded-full border-4 border-teal-400 shadow-lg"
+                        className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-teal-400 shadow-lg"
                       />
                       <Button
                         size="sm"
-                        className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
+                        className="absolute -bottom-2 -right-2 rounded-full w-7 h-7 md:w-8 md:h-8 p-0"
                         onClick={() => fileInputRef.current?.click()}
                       >
-                        <Camera className="w-4 h-4" />
+                        <Camera className="w-3 h-3 md:w-4 md:h-4" />
                       </Button>
                       <input
                         ref={fileInputRef}
@@ -199,173 +204,202 @@ export default function ProfilePage() {
                         className="hidden"
                       />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-handwritten text-lg font-semibold">Profilbild</h3>
-                      <p className="text-sm text-gray-600 mb-3">
+                    <div className="flex-1 text-center sm:text-left">
+                      <h3 className="font-handwritten text-base md:text-lg font-semibold">Profilbild</h3>
+                      <p className="text-xs md:text-sm text-gray-600 mb-3">
                         Klicke auf das Kamera-Symbol, um ein neues Bild hochzuladen
                       </p>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={generateRandomAvatar}
-                        className="font-handwritten bg-transparent"
+                        className="font-handwritten bg-transparent text-xs md:text-sm"
                       >
-                        <Shuffle className="w-4 h-4 mr-2" />
-                        Zufälligen Avatar generieren
+                        <Shuffle className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                        <span className="hidden sm:inline">Zufälligen Avatar generieren</span>
+                        <span className="sm:hidden">Zufällig</span>
                       </Button>
                     </div>
                   </div>
 
                   {/* Benutzerangaben */}
-                  <div className="border-t pt-6">
-                    <h3 className="font-handwritten text-lg font-semibold mb-4 text-teal-600">Benutzerangaben</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="border-t pt-4 md:pt-6">
+                    <h3 className="font-handwritten text-base md:text-lg font-semibold mb-4 text-teal-600">
+                      Benutzerangaben
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="name">Name</Label>
+                        <Label htmlFor="name" className="text-sm md:text-base">
+                          Name
+                        </Label>
                         <Input
                           id="name"
                           placeholder="Dein vollständiger Name"
                           value={profileData.name}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, name: e.target.value }))}
-                          className="font-body"
+                          className="font-body text-sm md:text-base"
                         />
                         <p className="text-xs text-gray-500">Gib hier deinen vollständigen Namen ein</p>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="username">Benutzername</Label>
+                        <Label htmlFor="username" className="text-sm md:text-base">
+                          Benutzername
+                        </Label>
                         <Input
                           id="username"
                           placeholder="Wird in der Plattform angezeigt"
                           value={profileData.username}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, username: e.target.value }))}
-                          className="font-body"
+                          className="font-body text-sm md:text-base"
                         />
                         <p className="text-xs text-gray-500">Dieser Name wird anderen Benutzern angezeigt</p>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="email">E-Mail-Adresse</Label>
+                        <Label htmlFor="email" className="text-sm md:text-base">
+                          E-Mail-Adresse
+                        </Label>
                         <Input
                           id="email"
                           type="email"
                           value={profileData.email}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, email: e.target.value }))}
-                          className="font-body"
+                          className="font-body text-sm md:text-base"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="birthDate">Geburtsdatum</Label>
+                        <Label htmlFor="birthDate" className="text-sm md:text-base">
+                          Geburtsdatum
+                        </Label>
                         <Input
                           id="birthDate"
                           type="date"
                           value={profileData.birthDate}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, birthDate: e.target.value }))}
-                          className="font-body"
+                          className="font-body text-sm md:text-base"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Telefonnummer</Label>
+                        <Label htmlFor="phone" className="text-sm md:text-base">
+                          Telefonnummer
+                        </Label>
                         <Input
                           id="phone"
                           type="tel"
                           placeholder="+49 123 456789"
                           value={profileData.phone}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, phone: e.target.value }))}
-                          className="font-body"
+                          className="font-body text-sm md:text-base"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="address">Adresse</Label>
+                        <Label htmlFor="address" className="text-sm md:text-base">
+                          Adresse
+                        </Label>
                         <Input
                           id="address"
                           placeholder="Straße, Hausnummer, PLZ, Stadt"
                           value={profileData.address}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, address: e.target.value }))}
-                          className="font-body"
+                          className="font-body text-sm md:text-base"
                         />
                       </div>
 
                       <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="bio">Bio</Label>
+                        <Label htmlFor="bio" className="text-sm md:text-base">
+                          Bio
+                        </Label>
                         <Textarea
                           id="bio"
                           placeholder="Erzähle etwas über dich..."
                           value={profileData.bio}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, bio: e.target.value }))}
-                          className="font-body"
+                          className="font-body text-sm md:text-base min-h-[80px] md:min-h-[100px]"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Spiel-Informationen */}
-                  <div className="border-t pt-6">
-                    <h3 className="font-handwritten text-lg font-semibold mb-4 text-purple-600">Spiel-Informationen</h3>
-                    <div className="grid grid-cols-1 gap-6">
+                  <div className="border-t pt-4 md:pt-6">
+                    <h3 className="font-handwritten text-base md:text-lg font-semibold mb-4 text-purple-600">
+                      Spiel-Informationen
+                    </h3>
+                    <div className="grid grid-cols-1 gap-4 md:gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="favoriteGames">Lieblingsspiele</Label>
+                        <Label htmlFor="favoriteGames" className="text-sm md:text-base">
+                          Lieblingsspiele
+                        </Label>
                         <Input
                           id="favoriteGames"
                           placeholder="z.B. Catan, Azul, Wingspan, Gloomhaven"
                           value={profileData.favoriteGames}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, favoriteGames: e.target.value }))}
-                          className="font-body"
+                          className="font-body text-sm md:text-base"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="preferredGameTypes">Bevorzugte Spielarten</Label>
+                        <Label htmlFor="preferredGameTypes" className="text-sm md:text-base">
+                          Bevorzugte Spielarten
+                        </Label>
                         <Input
                           id="preferredGameTypes"
                           placeholder="z.B. Strategiespiele, Kooperative Spiele, Partyspiele"
                           value={profileData.preferredGameTypes}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, preferredGameTypes: e.target.value }))}
-                          className="font-body"
+                          className="font-body text-sm md:text-base"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Social Media & Website */}
-                  <div className="border-t pt-6">
-                    <h3 className="font-handwritten text-lg font-semibold mb-4 text-indigo-600">
+                  <div className="border-t pt-4 md:pt-6">
+                    <h3 className="font-handwritten text-base md:text-lg font-semibold mb-4 text-indigo-600">
                       Social Media & Website
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="website">Website</Label>
+                        <Label htmlFor="website" className="text-sm md:text-base">
+                          Website
+                        </Label>
                         <Input
                           id="website"
                           placeholder="https://deine-website.de"
                           value={profileData.website}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, website: e.target.value }))}
-                          className="font-body"
+                          className="font-body text-sm md:text-base"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="twitter">Twitter</Label>
+                        <Label htmlFor="twitter" className="text-sm md:text-base">
+                          Twitter
+                        </Label>
                         <Input
                           id="twitter"
                           placeholder="@deinusername"
                           value={profileData.twitter}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, twitter: e.target.value }))}
-                          className="font-body"
+                          className="font-body text-sm md:text-base"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="instagram">Instagram</Label>
+                        <Label htmlFor="instagram" className="text-sm md:text-base">
+                          Instagram
+                        </Label>
                         <Input
                           id="instagram"
                           placeholder="@deinusername"
                           value={profileData.instagram}
                           onChange={(e) => setProfileData((prev) => ({ ...prev, instagram: e.target.value }))}
-                          className="font-body"
+                          className="font-body text-sm md:text-base"
                         />
                       </div>
                     </div>
@@ -376,16 +410,18 @@ export default function ProfilePage() {
 
             <TabsContent value="notifications">
               <Card>
-                <CardHeader>
-                  <CardTitle className="font-handwritten">Benachrichtigungseinstellungen</CardTitle>
-                  <CardDescription>Verwalte, wie und wann du benachrichtigt werden möchtest</CardDescription>
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="font-handwritten text-lg md:text-xl">Benachrichtigungseinstellungen</CardTitle>
+                  <CardDescription className="text-sm md:text-base">
+                    Verwalte, wie und wann du benachrichtigt werden möchtest
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="font-handwritten">E-Mail-Benachrichtigungen</Label>
-                        <p className="text-sm text-gray-600">Erhalte Updates per E-Mail</p>
+                      <div className="flex-1 pr-4">
+                        <Label className="font-handwritten text-sm md:text-base">E-Mail-Benachrichtigungen</Label>
+                        <p className="text-xs md:text-sm text-gray-600">Erhalte Updates per E-Mail</p>
                       </div>
                       <Switch
                         checked={settings.notifications.email}
@@ -399,9 +435,9 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="font-handwritten">Push-Benachrichtigungen</Label>
-                        <p className="text-sm text-gray-600">Sofortige Benachrichtigungen im Browser</p>
+                      <div className="flex-1 pr-4">
+                        <Label className="font-handwritten text-sm md:text-base">Push-Benachrichtigungen</Label>
+                        <p className="text-xs md:text-sm text-gray-600">Sofortige Benachrichtigungen im Browser</p>
                       </div>
                       <Switch
                         checked={settings.notifications.push}
@@ -415,9 +451,9 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="font-handwritten">Marketing-E-Mails</Label>
-                        <p className="text-sm text-gray-600">Neuigkeiten und Angebote</p>
+                      <div className="flex-1 pr-4">
+                        <Label className="font-handwritten text-sm md:text-base">Marketing-E-Mails</Label>
+                        <p className="text-xs md:text-sm text-gray-600">Neuigkeiten und Angebote</p>
                       </div>
                       <Switch
                         checked={settings.notifications.marketing}
@@ -431,9 +467,9 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="font-handwritten">Sicherheitsbenachrichtigungen</Label>
-                        <p className="text-sm text-gray-600">Wichtige Sicherheitsupdates</p>
+                      <div className="flex-1 pr-4">
+                        <Label className="font-handwritten text-sm md:text-base">Sicherheitsbenachrichtigungen</Label>
+                        <p className="text-xs md:text-sm text-gray-600">Wichtige Sicherheitsupdates</p>
                       </div>
                       <Switch
                         checked={settings.notifications.security}
@@ -452,16 +488,18 @@ export default function ProfilePage() {
 
             <TabsContent value="privacy">
               <Card>
-                <CardHeader>
-                  <CardTitle className="font-handwritten">Datenschutz-Einstellungen</CardTitle>
-                  <CardDescription>Kontrolliere, wer deine Informationen sehen kann</CardDescription>
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="font-handwritten text-lg md:text-xl">Datenschutz-Einstellungen</CardTitle>
+                  <CardDescription className="text-sm md:text-base">
+                    Kontrolliere, wer deine Informationen sehen kann
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="font-handwritten">Profil öffentlich sichtbar</Label>
-                        <p className="text-sm text-gray-600">Andere Nutzer können dein Profil sehen</p>
+                      <div className="flex-1 pr-4">
+                        <Label className="font-handwritten text-sm md:text-base">Profil öffentlich sichtbar</Label>
+                        <p className="text-xs md:text-sm text-gray-600">Andere Nutzer können dein Profil sehen</p>
                       </div>
                       <Switch
                         checked={settings.privacy.profileVisible}
@@ -475,9 +513,9 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="font-handwritten">E-Mail-Adresse anzeigen</Label>
-                        <p className="text-sm text-gray-600">E-Mail in deinem Profil sichtbar</p>
+                      <div className="flex-1 pr-4">
+                        <Label className="font-handwritten text-sm md:text-base">E-Mail-Adresse anzeigen</Label>
+                        <p className="text-xs md:text-sm text-gray-600">E-Mail in deinem Profil sichtbar</p>
                       </div>
                       <Switch
                         checked={settings.privacy.emailVisible}
@@ -491,9 +529,9 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="font-handwritten">Telefonnummer anzeigen</Label>
-                        <p className="text-sm text-gray-600">Telefonnummer in deinem Profil sichtbar</p>
+                      <div className="flex-1 pr-4">
+                        <Label className="font-handwritten text-sm md:text-base">Telefonnummer anzeigen</Label>
+                        <p className="text-xs md:text-sm text-gray-600">Telefonnummer in deinem Profil sichtbar</p>
                       </div>
                       <Switch
                         checked={settings.privacy.phoneVisible}
@@ -507,9 +545,9 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="font-handwritten">Standort anzeigen</Label>
-                        <p className="text-sm text-gray-600">Standort in deinem Profil sichtbar</p>
+                      <div className="flex-1 pr-4">
+                        <Label className="font-handwritten text-sm md:text-base">Standort anzeigen</Label>
+                        <p className="text-xs md:text-sm text-gray-600">Standort in deinem Profil sichtbar</p>
                       </div>
                       <Switch
                         checked={settings.privacy.locationVisible}
@@ -523,9 +561,9 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="font-handwritten">Geburtsdatum anzeigen</Label>
-                        <p className="text-sm text-gray-600">Geburtsdatum in deinem Profil sichtbar</p>
+                      <div className="flex-1 pr-4">
+                        <Label className="font-handwritten text-sm md:text-base">Geburtsdatum anzeigen</Label>
+                        <p className="text-xs md:text-sm text-gray-600">Geburtsdatum in deinem Profil sichtbar</p>
                       </div>
                       <Switch
                         checked={settings.privacy.birthDateVisible}
@@ -539,8 +577,8 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="font-handwritten">Spielregal-Sichtbarkeit</Label>
-                      <p className="text-sm text-gray-600 mb-2">Wer kann dein Spielregal sehen?</p>
+                      <Label className="font-handwritten text-sm md:text-base">Spielregal-Sichtbarkeit</Label>
+                      <p className="text-xs md:text-sm text-gray-600 mb-2">Wer kann dein Spielregal sehen?</p>
                       <Select
                         value={settings.privacy.libraryVisibility}
                         onValueChange={(value) =>
@@ -562,9 +600,9 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="font-handwritten">Online-Status anzeigen</Label>
-                        <p className="text-sm text-gray-600">Anderen zeigen, wann du online bist</p>
+                      <div className="flex-1 pr-4">
+                        <Label className="font-handwritten text-sm md:text-base">Online-Status anzeigen</Label>
+                        <p className="text-xs md:text-sm text-gray-600">Anderen zeigen, wann du online bist</p>
                       </div>
                       <Switch
                         checked={settings.privacy.onlineStatus}
@@ -578,9 +616,9 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="font-handwritten">Nachrichten erlauben</Label>
-                        <p className="text-sm text-gray-600">Andere können dir Nachrichten senden</p>
+                      <div className="flex-1 pr-4">
+                        <Label className="font-handwritten text-sm md:text-base">Nachrichten erlauben</Label>
+                        <p className="text-xs md:text-sm text-gray-600">Andere können dir Nachrichten senden</p>
                       </div>
                       <Switch
                         checked={settings.privacy.allowMessages}
@@ -599,16 +637,18 @@ export default function ProfilePage() {
 
             <TabsContent value="security">
               <Card>
-                <CardHeader>
-                  <CardTitle className="font-handwritten">Sicherheitseinstellungen</CardTitle>
-                  <CardDescription>Schütze dein Konto mit erweiterten Sicherheitsoptionen</CardDescription>
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="font-handwritten text-lg md:text-xl">Sicherheitseinstellungen</CardTitle>
+                  <CardDescription className="text-sm md:text-base">
+                    Schütze dein Konto mit erweiterten Sicherheitsoptionen
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="font-handwritten">Zwei-Faktor-Authentifizierung</Label>
-                        <p className="text-sm text-gray-600">Zusätzliche Sicherheit für dein Konto</p>
+                      <div className="flex-1 pr-4">
+                        <Label className="font-handwritten text-sm md:text-base">Zwei-Faktor-Authentifizierung</Label>
+                        <p className="text-xs md:text-sm text-gray-600">Zusätzliche Sicherheit für dein Konto</p>
                       </div>
                       <Switch
                         checked={settings.security.twoFactor}
@@ -622,9 +662,9 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="font-handwritten">Login-Benachrichtigungen</Label>
-                        <p className="text-sm text-gray-600">Benachrichtigung bei neuen Anmeldungen</p>
+                      <div className="flex-1 pr-4">
+                        <Label className="font-handwritten text-sm md:text-base">Login-Benachrichtigungen</Label>
+                        <p className="text-xs md:text-sm text-gray-600">Benachrichtigung bei neuen Anmeldungen</p>
                       </div>
                       <Switch
                         checked={settings.security.loginNotifications}
@@ -638,7 +678,7 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="font-handwritten">Session-Timeout</Label>
+                      <Label className="font-handwritten text-sm md:text-base">Session-Timeout</Label>
                       <Select
                         value={settings.security.sessionTimeout.toString()}
                         onValueChange={(value) =>
@@ -662,16 +702,22 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="border-t pt-6">
-                    <h3 className="font-handwritten text-lg font-semibold mb-4">Daten & Konto</h3>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <Button variant="outline" onClick={handleExportData} className="font-handwritten bg-transparent">
+                  <div className="border-t pt-4 md:pt-6">
+                    <h3 className="font-handwritten text-base md:text-lg font-semibold mb-4">Daten & Konto</h3>
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+                      <Button
+                        variant="outline"
+                        onClick={handleExportData}
+                        className="font-handwritten bg-transparent text-sm md:text-base"
+                      >
                         <Download className="w-4 h-4 mr-2" />
-                        Daten exportieren
+                        <span className="hidden sm:inline">Daten exportieren</span>
+                        <span className="sm:hidden">Export</span>
                       </Button>
-                      <Button variant="destructive" className="font-handwritten">
+                      <Button variant="destructive" className="font-handwritten text-sm md:text-base">
                         <Trash2 className="w-4 h-4 mr-2" />
-                        Konto löschen
+                        <span className="hidden sm:inline">Konto löschen</span>
+                        <span className="sm:hidden">Löschen</span>
                       </Button>
                     </div>
                   </div>
@@ -680,8 +726,12 @@ export default function ProfilePage() {
             </TabsContent>
           </Tabs>
 
-          <div className="mt-8 flex justify-end">
-            <Button onClick={handleSaveProfile} disabled={isLoading} className="font-handwritten px-8">
+          <div className="mt-6 md:mt-8 flex justify-center md:justify-end">
+            <Button
+              onClick={handleSaveProfile}
+              disabled={isLoading}
+              className="font-handwritten px-6 md:px-8 w-full sm:w-auto"
+            >
               <Save className="w-4 h-4 mr-2" />
               {isLoading ? "Speichern..." : "Änderungen speichern"}
             </Button>
@@ -689,13 +739,13 @@ export default function ProfilePage() {
 
           {message && (
             <div
-              className={`mt-4 p-4 rounded-lg ${
+              className={`mt-4 p-3 md:p-4 rounded-lg ${
                 message.includes("erfolgreich")
                   ? "bg-green-50 text-green-700 border border-green-200"
                   : "bg-red-50 text-red-700 border border-red-200"
               }`}
             >
-              <p className="font-body text-sm">{message}</p>
+              <p className="font-body text-xs md:text-sm">{message}</p>
             </div>
           )}
         </div>
