@@ -1,228 +1,375 @@
 "use client"
 
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react'
+import { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react"
+import { supabase } from "@/lib/supabase"
+import { useAuth } from "@/contexts/auth-context"
 
 interface Friend {
-  id: number
+  id: string
   name: string
   email: string
-  avatar: string
-  status: 'pending' | 'accepted' | 'blocked'
+  avatar: string | null
+  status: "pending" | "accepted" | "blocked"
   addedAt: string
-  lastSeen: string
-  gamesCount: number
-  rating: number
+  lastSeen?: string
+  gamesCount?: number
+  rating?: number
 }
 
 interface FriendRequest {
-  id: number
-  fromUser: string
-  toUser: string
-  message: string
-  timestamp: string
-  status: 'pending' | 'accepted' | 'declined'
+  id: string
+  from_user_id: string
+  to_user_id: string
+  from_user_name: string
+  to_user_name: string
+  message: string | null
+  status: "pending" | "accepted" | "declined"
+  created_at: string
 }
 
 interface FriendsContextType {
   friends: Friend[]
   friendRequests: FriendRequest[]
-  sendFriendRequest: (toUser: string, message: string) => void
-  acceptFriendRequest: (requestId: number) => void
-  declineFriendRequest: (requestId: number) => void
-  removeFriend: (friendId: number) => void
+  pendingRequests: FriendRequest[]
+  sentRequests: FriendRequest[]
+  loading: boolean
+  error: string | null
+  sendFriendRequest: (toUserId: string, message?: string) => Promise<void>
+  acceptFriendRequest: (requestId: string) => Promise<void>
+  declineFriendRequest: (requestId: string) => Promise<void>
+  removeFriend: (friendId: string) => Promise<void>
   getFriendByName: (name: string) => Friend | undefined
-  getPendingRequests: (username: string) => FriendRequest[]
-  getSentRequests: (username: string) => FriendRequest[]
+  refreshFriends: () => Promise<void>
 }
 
 const FriendsContext = createContext<FriendsContextType | undefined>(undefined)
 
-// Mock users database for demo
-const mockUsers = [
-  {
-    id: 1,
-    name: "SpieleFan42",
-    email: "spielefan@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=SpieleFan42",
-    lastSeen: "vor 2 Stunden",
-    gamesCount: 15,
-    rating: 4.8
-  },
-  {
-    id: 2,
-    name: "BoardGameLover",
-    email: "boardgame@example.com", 
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=BoardGameLover",
-    lastSeen: "vor 1 Tag",
-    gamesCount: 23,
-    rating: 4.9
-  },
-  {
-    id: 3,
-    name: "MarsExplorer",
-    email: "mars@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=MarsExplorer", 
-    lastSeen: "vor 3 Stunden",
-    gamesCount: 8,
-    rating: 4.7
-  },
-  {
-    id: 4,
-    name: "IslandGuardian",
-    email: "island@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=IslandGuardian",
-    lastSeen: "online",
-    gamesCount: 12,
-    rating: 4.6
-  },
-  {
-    id: 5,
-    name: "CatanMeister",
-    email: "catan@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=CatanMeister",
-    lastSeen: "vor 5 Minuten", 
-    gamesCount: 19,
-    rating: 4.5
-  },
-  {
-    id: 6,
-    name: "FliesenKönig",
-    email: "fliesen@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=FliesenKönig",
-    lastSeen: "vor 1 Stunde",
-    gamesCount: 7,
-    rating: 4.8
-  }
-]
-
 export function FriendsProvider({ children }: { children: ReactNode }) {
   const [friends, setFriends] = useState<Friend[]>([])
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
-  const [isLoaded, setIsLoaded] = useState(false)
+  const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([])
+  const [sentRequests, setSentRequests] = useState<FriendRequest[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Load data from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedFriends = localStorage.getItem('ludoloop_friends')
-      const savedRequests = localStorage.getItem('ludoloop_friend_requests')
-      
-      if (savedFriends) {
-        setFriends(JSON.parse(savedFriends))
+  const { user } = useAuth()
+
+  const refreshFriends = useCallback(async () => {
+    if (!user?.id) return
+
+    try {
+      setLoading(true)
+      setError(null)
+      console.log("[v0] Refreshing friends data for user:", user.id)
+
+      // Load friends
+      const { data: friendsData, error: friendsError } = await supabase
+        .from("friends")
+        .select(`
+          id,
+          friend_id,
+          status,
+          created_at,
+          friend:friend_id (
+            id,
+            name,
+            email,
+            avatar
+          )
+        `)
+        .eq("user_id", user.id)
+        .eq("status", "accepted")
+
+      if (friendsError) {
+        console.error("[v0] Error loading friends:", friendsError)
+        throw friendsError
       }
-      
-      if (savedRequests) {
-        setFriendRequests(JSON.parse(savedRequests))
+
+      // Load friend requests (received)
+      const { data: receivedRequests, error: receivedError } = await supabase
+        .from("friend_requests")
+        .select(`
+          id,
+          from_user_id,
+          to_user_id,
+          message,
+          status,
+          created_at,
+          from_user:from_user_id (
+            id,
+            name,
+            email,
+            avatar
+          )
+        `)
+        .eq("to_user_id", user.id)
+        .eq("status", "pending")
+
+      if (receivedError) {
+        console.error("[v0] Error loading received requests:", receivedError)
+        throw receivedError
       }
-      
-      setIsLoaded(true)
-    }
-  }, [])
 
-  // Save to localStorage whenever data changes
+      // Load friend requests (sent)
+      const { data: sentRequestsData, error: sentError } = await supabase
+        .from("friend_requests")
+        .select(`
+          id,
+          from_user_id,
+          to_user_id,
+          message,
+          status,
+          created_at,
+          to_user:to_user_id (
+            id,
+            name,
+            email,
+            avatar
+          )
+        `)
+        .eq("from_user_id", user.id)
+        .eq("status", "pending")
+
+      if (sentError) {
+        console.error("[v0] Error loading sent requests:", sentError)
+        throw sentError
+      }
+
+      // Transform friends data
+      const transformedFriends: Friend[] = (friendsData || []).map((friendship: any) => ({
+        id: friendship.friend.id,
+        name: friendship.friend.name,
+        email: friendship.friend.email,
+        avatar: friendship.friend.avatar,
+        status: "accepted" as const,
+        addedAt: friendship.created_at,
+      }))
+
+      // Transform received requests
+      const transformedReceived: FriendRequest[] = (receivedRequests || []).map((req: any) => ({
+        id: req.id,
+        from_user_id: req.from_user_id,
+        to_user_id: req.to_user_id,
+        from_user_name: req.from_user.name,
+        to_user_name: user.name || "",
+        message: req.message,
+        status: req.status,
+        created_at: req.created_at,
+      }))
+
+      // Transform sent requests
+      const transformedSent: FriendRequest[] = (sentRequestsData || []).map((req: any) => ({
+        id: req.id,
+        from_user_id: req.from_user_id,
+        to_user_id: req.to_user_id,
+        from_user_name: user.name || "",
+        to_user_name: req.to_user.name,
+        message: req.message,
+        status: req.status,
+        created_at: req.created_at,
+      }))
+
+      setFriends(transformedFriends)
+      setPendingRequests(transformedReceived)
+      setSentRequests(transformedSent)
+      setFriendRequests([...transformedReceived, ...transformedSent])
+
+      console.log("[v0] Friends data loaded:", {
+        friends: transformedFriends.length,
+        pendingRequests: transformedReceived.length,
+        sentRequests: transformedSent.length,
+      })
+    } catch (err: any) {
+      console.error("[v0] Error refreshing friends:", err)
+      setError(err.message || "Failed to load friends data")
+    } finally {
+      setLoading(false)
+    }
+  }, [user?.id, user?.name])
+
   useEffect(() => {
-    if (isLoaded && typeof window !== 'undefined') {
-      localStorage.setItem('ludoloop_friends', JSON.stringify(friends))
+    if (user?.id) {
+      refreshFriends()
+    } else {
+      setFriends([])
+      setFriendRequests([])
+      setPendingRequests([])
+      setSentRequests([])
     }
-  }, [friends, isLoaded])
+  }, [user?.id, refreshFriends])
 
-  useEffect(() => {
-    if (isLoaded && typeof window !== 'undefined') {
-      localStorage.setItem('ludoloop_friend_requests', JSON.stringify(friendRequests))
-    }
-  }, [friendRequests, isLoaded])
-
-  const sendFriendRequest = (toUser: string, message: string) => {
-    const currentUser = JSON.parse(localStorage.getItem('ludoloop_current_user') || '{}')
-    
-    // Check if request already exists
-    const existingRequest = friendRequests.find(
-      req => req.fromUser === currentUser.name && req.toUser === toUser && req.status === 'pending'
-    )
-    
-    if (existingRequest) {
-      alert('Du hast bereits eine Freundschaftsanfrage an diesen Benutzer gesendet!')
-      return
+  const sendFriendRequest = async (toUserId: string, message?: string) => {
+    if (!user?.id) {
+      throw new Error("Must be logged in to send friend requests")
     }
 
-    const newRequest: FriendRequest = {
-      id: Math.max(...friendRequests.map(r => r.id), 0) + 1,
-      fromUser: currentUser.name,
-      toUser,
-      message,
-      timestamp: new Date().toISOString(),
-      status: 'pending'
+    try {
+      setError(null)
+      console.log("[v0] Sending friend request to:", toUserId)
+
+      // Check if request already exists
+      const { data: existingRequest } = await supabase
+        .from("friend_requests")
+        .select("id")
+        .eq("from_user_id", user.id)
+        .eq("to_user_id", toUserId)
+        .eq("status", "pending")
+        .single()
+
+      if (existingRequest) {
+        throw new Error("Du hast bereits eine Freundschaftsanfrage an diesen Benutzer gesendet!")
+      }
+
+      // Insert new friend request
+      const { error: insertError } = await supabase.from("friend_requests").insert({
+        from_user_id: user.id,
+        to_user_id: toUserId,
+        message: message || null,
+        status: "pending",
+      })
+
+      if (insertError) {
+        console.error("[v0] Error sending friend request:", insertError)
+        throw insertError
+      }
+
+      console.log("[v0] Friend request sent successfully")
+      await refreshFriends()
+    } catch (err: any) {
+      console.error("[v0] Error sending friend request:", err)
+      setError(err.message || "Failed to send friend request")
+      throw err
     }
-    
-    setFriendRequests(prev => [...prev, newRequest])
   }
 
-  const acceptFriendRequest = (requestId: number) => {
-    const request = friendRequests.find(r => r.id === requestId)
-    if (!request) return
+  const acceptFriendRequest = async (requestId: string) => {
+    if (!user?.id) return
 
-    // Find user data from mock users
-    const userData = mockUsers.find(u => u.name === request.fromUser)
-    if (!userData) return
+    try {
+      setError(null)
+      console.log("[v0] Accepting friend request:", requestId)
 
-    // Add to friends list
-    const newFriend: Friend = {
-      id: userData.id,
-      name: userData.name,
-      email: userData.email,
-      avatar: userData.avatar,
-      status: 'accepted',
-      addedAt: new Date().toISOString(),
-      lastSeen: userData.lastSeen,
-      gamesCount: userData.gamesCount,
-      rating: userData.rating
+      // Get the request details
+      const { data: request, error: requestError } = await supabase
+        .from("friend_requests")
+        .select("from_user_id, to_user_id")
+        .eq("id", requestId)
+        .single()
+
+      if (requestError || !request) {
+        throw new Error("Friend request not found")
+      }
+
+      // Update request status
+      const { error: updateError } = await supabase
+        .from("friend_requests")
+        .update({ status: "accepted" })
+        .eq("id", requestId)
+
+      if (updateError) {
+        console.error("[v0] Error updating friend request:", updateError)
+        throw updateError
+      }
+
+      // Create friendship entries (bidirectional)
+      const { error: friendshipError } = await supabase.from("friends").insert([
+        {
+          user_id: request.from_user_id,
+          friend_id: request.to_user_id,
+          status: "accepted",
+        },
+        {
+          user_id: request.to_user_id,
+          friend_id: request.from_user_id,
+          status: "accepted",
+        },
+      ])
+
+      if (friendshipError) {
+        console.error("[v0] Error creating friendship:", friendshipError)
+        throw friendshipError
+      }
+
+      console.log("[v0] Friend request accepted successfully")
+      await refreshFriends()
+    } catch (err: any) {
+      console.error("[v0] Error accepting friend request:", err)
+      setError(err.message || "Failed to accept friend request")
+      throw err
     }
-
-    setFriends(prev => [...prev, newFriend])
-    
-    // Update request status
-    setFriendRequests(prev => 
-      prev.map(req => 
-        req.id === requestId ? { ...req, status: 'accepted' } : req
-      )
-    )
   }
 
-  const declineFriendRequest = (requestId: number) => {
-    setFriendRequests(prev => 
-      prev.map(req => 
-        req.id === requestId ? { ...req, status: 'declined' } : req
-      )
-    )
+  const declineFriendRequest = async (requestId: string) => {
+    if (!user?.id) return
+
+    try {
+      setError(null)
+      console.log("[v0] Declining friend request:", requestId)
+
+      const { error } = await supabase.from("friend_requests").update({ status: "declined" }).eq("id", requestId)
+
+      if (error) {
+        console.error("[v0] Error declining friend request:", error)
+        throw error
+      }
+
+      console.log("[v0] Friend request declined successfully")
+      await refreshFriends()
+    } catch (err: any) {
+      console.error("[v0] Error declining friend request:", err)
+      setError(err.message || "Failed to decline friend request")
+      throw err
+    }
   }
 
-  const removeFriend = (friendId: number) => {
-    setFriends(prev => prev.filter(friend => friend.id !== friendId))
+  const removeFriend = async (friendId: string) => {
+    if (!user?.id) return
+
+    try {
+      setError(null)
+      console.log("[v0] Removing friend:", friendId)
+
+      // Remove both friendship entries (bidirectional)
+      const { error } = await supabase
+        .from("friends")
+        .delete()
+        .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`)
+
+      if (error) {
+        console.error("[v0] Error removing friend:", error)
+        throw error
+      }
+
+      console.log("[v0] Friend removed successfully")
+      await refreshFriends()
+    } catch (err: any) {
+      console.error("[v0] Error removing friend:", err)
+      setError(err.message || "Failed to remove friend")
+      throw err
+    }
   }
 
   const getFriendByName = (name: string) => {
-    return friends.find(friend => friend.name === name)
-  }
-
-  const getPendingRequests = (username: string) => {
-    return friendRequests.filter(req => req.toUser === username && req.status === 'pending')
-  }
-
-  const getSentRequests = (username: string) => {
-    return friendRequests.filter(req => req.fromUser === username && req.status === 'pending')
+    return friends.find((friend) => friend.name === name)
   }
 
   return (
-    <FriendsContext.Provider value={{
-      friends,
-      friendRequests,
-      sendFriendRequest,
-      acceptFriendRequest,
-      declineFriendRequest,
-      removeFriend,
-      getFriendByName,
-      getPendingRequests,
-      getSentRequests
-    }}>
+    <FriendsContext.Provider
+      value={{
+        friends,
+        friendRequests,
+        pendingRequests,
+        sentRequests,
+        loading,
+        error,
+        sendFriendRequest,
+        acceptFriendRequest,
+        declineFriendRequest,
+        removeFriend,
+        getFriendByName,
+        refreshFriends,
+      }}
+    >
       {children}
     </FriendsContext.Provider>
   )
@@ -231,10 +378,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 export function useFriends() {
   const context = useContext(FriendsContext)
   if (context === undefined) {
-    throw new Error('useFriends must be used within a FriendsProvider')
+    throw new Error("useFriends must be used within a FriendsProvider")
   }
   return context
 }
-
-// Export mock users for use in other components
-export { mockUsers }
