@@ -430,14 +430,13 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       isRefreshingRef.current = false
       console.log("[v0] refreshData completed")
     }
-  }, [user, loadGames, loadMarketplaceOffers])
+  }, [user]) // Only depend on user, not the entire user object or other functions
 
-  // Initialize data on mount and user change
   useEffect(() => {
     if (user?.id && !isRefreshingRef.current) {
       refreshData()
     }
-  }, [user, refreshData])
+  }, [user?.id, refreshData])
 
   const value: GamesContextType = {
     games,
