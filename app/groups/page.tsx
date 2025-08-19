@@ -620,10 +620,50 @@ export default function GroupsPage() {
     }
   }
 
+  const getFriendshipStatus = (userId: string): "none" | "friends" | "sent" | "received" => {
+    if (!user) {
+      console.log("[v0] getFriendshipStatus - no user")
+      return "none"
+    }
+
+    console.log("[v0] Checking friendship status for user:", userId)
+    console.log("[v0] Current user ID:", user.id)
+    console.log("[v0] All friends:", allFriends)
+    console.log("[v0] All friend requests:", allFriendRequests)
+
+    const isFriend = allFriends.some((friend) => friend.friend_id === userId)
+    if (isFriend) {
+      console.log("[v0] User is already a friend")
+      return "friends"
+    }
+
+    const sentRequest = allFriendRequests.find(
+      (req) => req.from_user_id === user.id && req.to_user_id === userId && req.status === "pending",
+    )
+    if (sentRequest) {
+      console.log("[v0] Found sent request:", sentRequest)
+      return "sent"
+    }
+
+    const receivedRequest = allFriendRequests.find(
+      (req) => req.from_user_id === userId && req.to_user_id === user.id && req.status === "pending",
+    )
+    if (receivedRequest) {
+      console.log("[v0] Found received request:", receivedRequest)
+      return "received"
+    }
+
+    console.log("[v0] No friendship relationship found")
+    return "none"
+  }
+
   const getFriendRequestId = (userId: string): string => {
     const request = allFriendRequests.find(
       (req) => req.from_user_id === userId && req.to_user_id === user?.id && req.status === "pending",
     )
+    console.log("[v0] Looking for friend request ID for user:", userId)
+    console.log("[v0] Found request:", request)
+    console.log("[v0] Returning request ID:", request?.id || "")
     return request?.id || ""
   }
 
@@ -888,7 +928,7 @@ export default function GroupsPage() {
     ? allFriendRequests.filter((req) => req.to_user_id === user.id && req.status === "pending")
     : []
 
-  const getFriendshipStatus = (userId: string) => {
+  const getFriendshipStatusForUser = (userId: string) => {
     if (!user) return "guest"
 
     const isAlreadyFriend = allFriends.some((friend) => friend.id === userId)
@@ -1505,47 +1545,52 @@ export default function GroupsPage() {
                         <p className="text-gray-600 text-sm mb-4 line-clamp-2">{targetUser.bio}</p>
 
                         <div className="flex gap-2 justify-end">
-                          {getFriendshipStatus(targetUser.id) === "none" && (
+                          {getFriendshipStatusForUser(targetUser.id) === "none" && (
                             <Button
                               size="sm"
                               className="bg-gradient-to-r from-blue-400 to-cyan-400 hover:from-blue-500 hover:to-cyan-500 text-white border-0"
-                              onClick={() => handleSendFriendRequest(targetUser.id)}
+                              onClick={() => {
+                                console.log("[v0] Send friend request button clicked for user:", targetUser.id)
+                                handleSendFriendRequest(targetUser.id)
+                              }}
                             >
                               Freundschaft anfragen
                             </Button>
                           )}
-                          {getFriendshipStatus(targetUser.id) === "sent" && (
+                          {getFriendshipStatusForUser(targetUser.id) === "sent" && (
                             <Button size="sm" className="bg-gray-300 text-gray-700" disabled>
                               Anfrage gesendet
                             </Button>
                           )}
-                          {getFriendshipStatus(targetUser.id) === "received" && (
+                          {getFriendshipStatusForUser(targetUser.id) === "received" && (
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
                                 className="bg-green-400 hover:bg-green-500 text-white border-0"
-                                onClick={() =>
-                                  handleAcceptFriendRequest(getFriendRequestId(targetUser.id), targetUser.id)
-                                }
+                                onClick={() => {
+                                  console.log("[v0] Accept friend request button clicked for user:", targetUser.id)
+                                  const requestId = getFriendRequestId(targetUser.id)
+                                  handleAcceptFriendRequest(requestId, targetUser.id)
+                                }}
                               >
                                 Anfrage akzeptieren
                               </Button>
                               <Button
                                 size="sm"
                                 className="bg-red-400 hover:bg-red-500 text-white border-0"
-                                onClick={() => handleRejectFriendRequest(getFriendRequestId(targetUser.id))}
+                                onClick={() => {
+                                  console.log("[v0] Reject friend request button clicked for user:", targetUser.id)
+                                  const requestId = getFriendRequestId(targetUser.id)
+                                  handleRejectFriendRequest(requestId)
+                                }}
                               >
                                 Anfrage ablehnen
                               </Button>
                             </div>
                           )}
-                          {getFriendshipStatus(targetUser.id) === "friend" && (
-                            <Button
-                              size="sm"
-                              className="bg-gradient-to-r from-blue-400 to-cyan-400 hover:from-blue-500 hover:to-cyan-500 text-white border-0"
-                              onClick={() => handleViewLibrary(targetUser)}
-                            >
-                              Spielebibliothek anzeigen
+                          {getFriendshipStatusForUser(targetUser.id) === "friends" && (
+                            <Button size="sm" className="bg-green-300 text-green-700" disabled>
+                              Befreundet
                             </Button>
                           )}
                         </div>
