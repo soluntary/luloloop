@@ -528,6 +528,7 @@ export default function GroupsPage() {
   }
 
   const handleSendFriendRequest = async (userId: string) => {
+    console.log("[v0] Sending friend request to user:", userId)
     if (!user) return
 
     try {
@@ -538,10 +539,11 @@ export default function GroupsPage() {
       )
 
       if (existingRequest) {
-        console.log("Friend request already exists")
+        console.log("[v0] Friend request already exists")
         return
       }
 
+      console.log("[v0] Inserting friend request into database")
       const { error } = await supabase.from("friend_requests").insert([
         {
           from_user_id: user.id,
@@ -552,9 +554,11 @@ export default function GroupsPage() {
 
       if (error) throw error
 
+      console.log("[v0] Friend request sent successfully")
       await loadFriendRequests()
       await loadFriends()
     } catch (error) {
+      console.error("[v0] Error sending friend request:", error)
       if (error instanceof SyntaxError && error.message.includes("JSON")) {
         console.error("JSON parsing error when sending friend request - likely API rate limit:", error.message)
       } else {
@@ -564,6 +568,7 @@ export default function GroupsPage() {
   }
 
   const handleAcceptFriendRequest = async (requestId: string, senderId: string) => {
+    console.log("[v0] Accepting friend request:", requestId, "from sender:", senderId)
     if (!user) return
 
     try {
@@ -581,9 +586,11 @@ export default function GroupsPage() {
 
       if (friendshipError) throw friendshipError
 
+      console.log("[v0] Friend request accepted successfully")
       await loadFriendRequests()
       await loadFriends()
     } catch (error) {
+      console.error("[v0] Error accepting friend request:", error)
       if (error instanceof SyntaxError && error.message.includes("JSON")) {
         console.error("JSON parsing error when accepting friend request - likely API rate limit:", error.message)
       } else {
@@ -593,6 +600,7 @@ export default function GroupsPage() {
   }
 
   const handleRejectFriendRequest = async (requestId: string) => {
+    console.log("[v0] Rejecting friend request:", requestId)
     if (!user) return
 
     try {
@@ -600,14 +608,23 @@ export default function GroupsPage() {
 
       if (error) throw error
 
+      console.log("[v0] Friend request rejected successfully")
       await loadFriendRequests()
     } catch (error) {
+      console.error("[v0] Error rejecting friend request:", error)
       if (error instanceof SyntaxError && error.message.includes("JSON")) {
         console.error("JSON parsing error when rejecting friend request - likely API rate limit:", error.message)
       } else {
         console.error("Error rejecting friend request:", error)
       }
     }
+  }
+
+  const getFriendRequestId = (userId: string): string => {
+    const request = allFriendRequests.find(
+      (req) => req.from_user_id === userId && req.to_user_id === user?.id && req.status === "pending",
+    )
+    return request?.id || ""
   }
 
   const canViewField = (targetUser: UserType, field: string): boolean => {
@@ -1507,14 +1524,16 @@ export default function GroupsPage() {
                               <Button
                                 size="sm"
                                 className="bg-green-400 hover:bg-green-500 text-white border-0"
-                                onClick={() => handleAcceptFriendRequest("", targetUser.id)}
+                                onClick={() =>
+                                  handleAcceptFriendRequest(getFriendRequestId(targetUser.id), targetUser.id)
+                                }
                               >
                                 Anfrage akzeptieren
                               </Button>
                               <Button
                                 size="sm"
                                 className="bg-red-400 hover:bg-red-500 text-white border-0"
-                                onClick={() => handleRejectFriendRequest("")}
+                                onClick={() => handleRejectFriendRequest(getFriendRequestId(targetUser.id))}
                               >
                                 Anfrage ablehnen
                               </Button>
