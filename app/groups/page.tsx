@@ -288,8 +288,13 @@ export default function GroupsPage() {
       console.log("Users loaded:", data?.length || 0)
       return data || []
     } catch (error) {
-      console.error("Failed to load users:", error)
-      return []
+      if (error instanceof SyntaxError && error.message.includes("JSON")) {
+        console.error("JSON parsing error when loading users - likely API rate limit:", error.message)
+        return []
+      } else {
+        console.error("Failed to load users:", error)
+        return []
+      }
     }
   }
 
@@ -332,8 +337,13 @@ export default function GroupsPage() {
       console.log("Friend requests loaded:", data?.length || 0)
       return data || []
     } catch (error) {
-      console.error("Failed to load friend requests:", error)
-      return []
+      if (error instanceof SyntaxError && error.message.includes("JSON")) {
+        console.error("JSON parsing error when loading friend requests - likely API rate limit:", error.message)
+        return []
+      } else {
+        console.error("Failed to load friend requests:", error)
+        return []
+      }
     }
   }
 
@@ -378,8 +388,13 @@ export default function GroupsPage() {
       console.log("Friends loaded:", friendsList.length)
       return friendsList
     } catch (error) {
-      console.error("Failed to load friends:", error)
-      return []
+      if (error instanceof SyntaxError && error.message.includes("JSON")) {
+        console.error("JSON parsing error when loading friends - likely API rate limit:", error.message)
+        return []
+      } else {
+        console.error("Failed to load friends:", error)
+        return []
+      }
     }
   }
 
@@ -387,13 +402,19 @@ export default function GroupsPage() {
     const loadData = async () => {
       setLoading(true)
       try {
-        const [usersData, eventsData, communitiesData, friendRequestsData, friendsData] = await Promise.all([
-          loadUsers(),
-          loadCommunityEvents(),
-          loadCommunities(),
-          user ? loadFriendRequests() : Promise.resolve([]),
-          user ? loadFriends() : Promise.resolve([]),
-        ])
+        const usersData = await loadUsers()
+        await new Promise((resolve) => setTimeout(resolve, 100)) // Small delay
+
+        const eventsData = await loadCommunityEvents()
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        const communitiesData = await loadCommunities()
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        const friendRequestsData = user ? await loadFriendRequests() : []
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        const friendsData = user ? await loadFriends() : []
 
         setUsers(usersData)
         setCommunityEvents(eventsData)
@@ -401,8 +422,13 @@ export default function GroupsPage() {
         setAllFriendRequests(friendRequestsData)
         setAllFriends(friendsData)
       } catch (error) {
-        console.error("Error loading data:", error)
-        setError("Fehler beim Laden der Daten")
+        if (error instanceof SyntaxError && error.message.includes("JSON")) {
+          console.error("JSON parsing error when loading Community data - likely API rate limit:", error.message)
+          setError("Server ist überlastet. Bitte versuche es in einem Moment erneut.")
+        } else {
+          console.error("Error loading data:", error)
+          setError("Fehler beim Laden der Daten")
+        }
       } finally {
         setLoading(false)
       }
@@ -526,15 +552,14 @@ export default function GroupsPage() {
 
       if (error) throw error
 
-      await Promise.all([
-        loadUsers(),
-        loadCommunityEvents(),
-        loadCommunities(),
-        user ? loadFriendRequests() : Promise.resolve(),
-        user ? loadFriends() : Promise.resolve(),
-      ])
+      await loadFriendRequests()
+      await loadFriends()
     } catch (error) {
-      console.error("Error sending friend request:", error)
+      if (error instanceof SyntaxError && error.message.includes("JSON")) {
+        console.error("JSON parsing error when sending friend request - likely API rate limit:", error.message)
+      } else {
+        console.error("Error sending friend request:", error)
+      }
     }
   }
 
@@ -556,15 +581,14 @@ export default function GroupsPage() {
 
       if (friendshipError) throw friendshipError
 
-      await Promise.all([
-        loadUsers(),
-        loadCommunityEvents(),
-        loadCommunities(),
-        user ? loadFriendRequests() : Promise.resolve(),
-        user ? loadFriends() : Promise.resolve(),
-      ])
+      await loadFriendRequests()
+      await loadFriends()
     } catch (error) {
-      console.error("Error accepting friend request:", error)
+      if (error instanceof SyntaxError && error.message.includes("JSON")) {
+        console.error("JSON parsing error when accepting friend request - likely API rate limit:", error.message)
+      } else {
+        console.error("Error accepting friend request:", error)
+      }
     }
   }
 
@@ -576,15 +600,13 @@ export default function GroupsPage() {
 
       if (error) throw error
 
-      await Promise.all([
-        loadUsers(),
-        loadCommunityEvents(),
-        loadCommunities(),
-        user ? loadFriendRequests() : Promise.resolve(),
-        user ? loadFriends() : Promise.resolve(),
-      ])
+      await loadFriendRequests()
     } catch (error) {
-      console.error("Error rejecting friend request:", error)
+      if (error instanceof SyntaxError && error.message.includes("JSON")) {
+        console.error("JSON parsing error when rejecting friend request - likely API rate limit:", error.message)
+      } else {
+        console.error("Error rejecting friend request:", error)
+      }
     }
   }
 
@@ -1125,18 +1147,18 @@ export default function GroupsPage() {
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
                   <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400 w-4 h-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-400 w-4 h-4" />
                     <Input
                       placeholder="Events suchen..."
                       value={eventSearchTerm}
                       onChange={(e) => setEventSearchTerm(e.target.value)}
-                      className="pl-10 border-2 border-purple-200 focus:border-purple-400 rounded-xl"
+                      className="pl-10 border-2 border-teal-200 focus:border-teal-400 rounded-xl"
                     />
                   </div>
                   <div className="flex gap-2 mb-4">
                     {user && (
                       <CreateCommunityEventDialog onEventCreated={handleEventCreated}>
-                        <Button className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white border-0">
+                        <Button className="bg-gradient-to-r from-teal-400 to-indigo-400 hover:from-teal-500 hover:to-indigo-500 text-white border-0">
                           <Plus className="w-4 h-4 mr-2" />
                           Event erstellen
                         </Button>
@@ -1153,8 +1175,8 @@ export default function GroupsPage() {
                       onClick={() => setFrequencyFilter("all")}
                       className={
                         frequencyFilter === "all"
-                          ? "bg-purple-500 hover:bg-purple-600 text-white"
-                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                          ? "bg-teal-500 hover:bg-teal-600 text-white"
+                          : "border-teal-200 text-teal-600 hover:bg-teal-50"
                       }
                     >
                       Alle

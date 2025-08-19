@@ -1348,7 +1348,7 @@ export function CreateMarketplaceOfferForm({
                       </h4>
                       {/* Daily Rates */}
                       <div className="mb-6">
-                        <Label className="text-sm font-semibold text-gray-700 mb-3 block">Ausleihgebühr (CHF)</Label>
+                        <Label className="text-sm font-semibold text-gray-700 mb-3 block">Ausleihgebühr pro Tag (CHF)</Label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="bg-white p-4 rounded-xl border border-teal-200">
                             <Label className="text-sm text-teal-700 font-medium mb-2 block">Für 1 Tag</Label>

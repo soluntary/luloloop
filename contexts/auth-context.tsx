@@ -33,19 +33,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        loadUserProfile(session.user)
-      } else {
-        setLoading(false)
-      }
-    })
+    // Get initial session with proper error handling
+    supabase.auth
+      .getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.error("Auth session error:", error)
+          // If there's an auth error (like invalid refresh token), clear the session
+          if (error.message?.includes("Invalid Refresh Token") || error.message?.includes("Already Used")) {
+            console.log("Clearing invalid session")
+            supabase.auth.signOut()
+          }
+          setUser(null)
+          setLoading(false)
+          return
+        }
 
-    // Listen for auth changes
+        if (session?.user) {
+          loadUserProfile(session.user)
+        } else {
+          setLoading(false)
+        }
+      })
+      .catch((error) => {
+        console.error("Unexpected auth error:", error)
+        setUser(null)
+        setLoading(false)
+      })
+
+    // Listen for auth changes with better error handling
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state change:", event, session?.user?.id)
+
+      if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
+        if (!session?.user) {
+          setUser(null)
+          setLoading(false)
+          return
+        }
+      }
+
       if (session?.user) {
         await loadUserProfile(session.user)
       } else {
@@ -94,11 +123,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userProfile)
     } catch (error) {
       console.error("Error loading user profile:", error)
-      setUser({
-        id: authUser.id,
-        email: authUser.email || "",
-        name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-      })
+      try {
+        setUser({
+          id: authUser.id,
+          email: authUser.email || "",
+          name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+        })
+      } catch (fallbackError) {
+        console.error("Error creating fallback user:", fallbackError)
+        setUser(null)
+      }
     } finally {
       setLoading(false)
     }

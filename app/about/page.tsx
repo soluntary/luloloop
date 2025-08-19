@@ -115,7 +115,7 @@ export default function AboutPage() {
             <div className="space-y-4 mb-6">
               <div className="flex items-center justify-center space-x-3">
                 <Mail className="w-5 h-5 text-teal-600" />
-                <span className="font-body">support@ludoloop.de</span>
+                <span className="font-body">support@ludoloop.ch</span>
               </div>
               <div className="flex items-center justify-center space-x-3">
                 <MapPin className="w-5 h-5 text-teal-600" />

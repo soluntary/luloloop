@@ -23,6 +23,7 @@ import {
   UserCheck,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
+import { useMessages } from "@/contexts/messages-context"
 
 interface NavigationProps {
   currentPage?: string
@@ -47,10 +48,11 @@ export function Navigation({ currentPage }: NavigationProps) {
   const pathname = usePathname()
   const { user, signOut } = useAuth() || { user: null, signOut: null }
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { getUnreadCount } = useMessages()
 
   const loggedInNavItems: NavItem[] = [
     { href: "/", label: "Home", icon: Home, key: "home" },
-    { href: "/library", label: "Bibliothek", icon: LibraryBig, key: "library" },
+    { href: "/library", label: "Ludothek", icon: LibraryBig, key: "library" },
     {
       label: "Community",
       icon: Users,
@@ -115,6 +117,8 @@ export function Navigation({ currentPage }: NavigationProps) {
     }
   }
 
+  const unreadCount = user ? getUnreadCount() : 0
+
   return (
     <nav className="bg-white shadow-lg border-b-4 border-teal-400 sticky top-0 z-50">
       <div className="container mx-auto px-4">
@@ -174,7 +178,7 @@ export function Navigation({ currentPage }: NavigationProps) {
                 <Link key={item.href} href={item.href!}>
                   <Button
                     variant="ghost"
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-base transform hover:scale-105 hover:rotate-1 ${
+                    className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-base transform hover:scale-105 hover:rotate-1 ${
                       active
                         ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
                         : "text-gray-700 hover:bg-teal-400 hover:text-white"
@@ -182,6 +186,11 @@ export function Navigation({ currentPage }: NavigationProps) {
                   >
                     <Icon className="w-5 h-5" />
                     <span>{item.label}</span>
+                    {item.key === "messages" && unreadCount > 0 && (
+                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </div>
+                    )}
                   </Button>
                 </Link>
               )
@@ -306,7 +315,7 @@ export function Navigation({ currentPage }: NavigationProps) {
                   <Link key={item.href} href={item.href!} onClick={() => setIsMobileMenuOpen(false)}>
                     <Button
                       variant="ghost"
-                      className={`w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-base transform hover:scale-105 hover:rotate-1 transition-all ${
+                      className={`relative w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-base transform hover:scale-105 hover:rotate-1 transition-all ${
                         active
                           ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
                           : "text-gray-700 hover:bg-teal-400 hover:text-white"
@@ -314,6 +323,11 @@ export function Navigation({ currentPage }: NavigationProps) {
                     >
                       <Icon className="w-5 h-5" />
                       <span>{item.label}</span>
+                      {item.key === "messages" && unreadCount > 0 && (
+                        <div className="absolute right-4 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </div>
+                      )}
                     </Button>
                   </Link>
                 )

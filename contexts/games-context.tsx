@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "./auth-context"
 
@@ -66,6 +66,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [databaseConnected, setDatabaseConnected] = useState(false)
+  const isRefreshingRef = useRef(false)
 
   const FALLBACK_IMAGE = "/images/ludoloop-game-placeholder.png"
 
@@ -95,79 +96,85 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }
 
   // Load games from database
-  const loadGames = async (forceConnected = false) => {
-    const isConnected = forceConnected || databaseConnected
-    console.log("[v0] loadGames called - user:", user?.id, "databaseConnected:", isConnected)
+  const loadGames = useCallback(
+    async (forceConnected = false) => {
+      const isConnected = forceConnected || databaseConnected
+      console.log("[v0] loadGames called - user:", user?.id, "databaseConnected:", isConnected)
 
-    if (!user || !isConnected) {
-      console.log("[v0] loadGames early return - user or database not available")
-      return
-    }
-
-    try {
-      console.log("[v0] Querying games for user:", user.id)
-      const { data, error } = await supabase
-        .from("games")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("title", { ascending: true })
-
-      if (error) {
-        console.error("[v0] Error loading games:", error)
+      if (!user || !isConnected) {
+        console.log("[v0] loadGames early return - user or database not available")
         return
       }
 
-      console.log("[v0] Raw games data from database:", data)
-      console.log("[v0] Number of games loaded:", data?.length || 0)
+      try {
+        console.log("[v0] Querying games for user:", user.id)
+        const { data, error } = await supabase
+          .from("games")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("title", { ascending: true })
 
-      // Ensure fallback image is applied
-      const gamesWithFallback = (data || []).map((game) => ({
-        ...game,
-        image: game.image || FALLBACK_IMAGE,
-      }))
+        if (error) {
+          console.error("[v0] Error loading games:", error)
+          return
+        }
 
-      console.log("[v0] Games with fallback images:", gamesWithFallback)
-      setGames(gamesWithFallback)
-      console.log("[v0] Games state updated with", gamesWithFallback.length, "games")
-    } catch (err) {
-      console.error("[v0] Error loading games:", err)
-    }
-  }
+        console.log("[v0] Raw games data from database:", data)
+        console.log("[v0] Number of games loaded:", data?.length || 0)
+
+        // Ensure fallback image is applied
+        const gamesWithFallback = (data || []).map((game) => ({
+          ...game,
+          image: game.image || FALLBACK_IMAGE,
+        }))
+
+        console.log("[v0] Games with fallback images:", gamesWithFallback)
+        setGames(gamesWithFallback)
+        console.log("[v0] Games state updated with", gamesWithFallback.length, "games")
+      } catch (err) {
+        console.error("[v0] Error loading games:", err)
+      }
+    },
+    [user, databaseConnected],
+  )
 
   // Load marketplace offers from database
-  const loadMarketplaceOffers = async (forceConnected = false) => {
-    const isConnected = forceConnected || databaseConnected
-    if (!isConnected) {
-      // Use empty array when database is not connected
-      setMarketplaceOffers([])
-      return
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from("marketplace_offers")
-        .select("*")
-        .eq("active", true)
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.error("Error loading marketplace offers:", error)
+  const loadMarketplaceOffers = useCallback(
+    async (forceConnected = false) => {
+      const isConnected = forceConnected || databaseConnected
+      if (!isConnected) {
+        // Use empty array when database is not connected
         setMarketplaceOffers([])
         return
       }
 
-      // Ensure fallback image is applied
-      const offersWithFallback = (data || []).map((offer) => ({
-        ...offer,
-        image: offer.image || FALLBACK_IMAGE,
-      }))
+      try {
+        const { data, error } = await supabase
+          .from("marketplace_offers")
+          .select("*")
+          .eq("active", true)
+          .order("created_at", { ascending: false })
 
-      setMarketplaceOffers(offersWithFallback)
-    } catch (err) {
-      console.error("Error loading marketplace offers:", err)
-      setMarketplaceOffers([])
-    }
-  }
+        if (error) {
+          console.error("Error loading marketplace offers:", error)
+          setMarketplaceOffers([])
+          return
+        }
+
+        // Ensure fallback image is applied
+        const offersWithFallback = (data || []).map((offer) => ({
+          ...offer,
+          image: offer.image || FALLBACK_IMAGE,
+        }))
+
+        setMarketplaceOffers(offersWithFallback)
+      } catch (err) {
+        console.error("Error loading marketplace offers:", err)
+        setMarketplaceOffers([])
+      }
+    },
+    [databaseConnected],
+  )
 
   // Add new game
   const addGame = async (gameData: Omit<Game, "id" | "user_id" | "created_at">) => {
@@ -394,8 +401,14 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }
 
   // Refresh all data
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
+    if (isRefreshingRef.current) {
+      console.log("[v0] refreshData already in progress, skipping")
+      return
+    }
+
     console.log("[v0] refreshData called - user:", user?.id)
+    isRefreshingRef.current = true
     setLoading(true)
     setError(null)
 
@@ -414,16 +427,17 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       setError("Fehler beim Laden der Daten")
     } finally {
       setLoading(false)
+      isRefreshingRef.current = false
       console.log("[v0] refreshData completed")
     }
-  }
+  }, [user, loadGames, loadMarketplaceOffers])
 
   // Initialize data on mount and user change
   useEffect(() => {
-    if (user !== undefined) {
+    if (user?.id && !isRefreshingRef.current) {
       refreshData()
     }
-  }, [user])
+  }, [user, refreshData])
 
   const value: GamesContextType = {
     games,

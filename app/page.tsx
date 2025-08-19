@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Dice6, Users, Repeat, ArrowRightFromLine, ShoppingBag, RefreshCw, Search, Plus, HandCoins, Library } from 'lucide-react'
+import { Dice6, Users, Repeat, Dices, ArrowRightFromLine, ShoppingBag, RefreshCw, Search, Plus, HandCoins, Library } from 'lucide-react'
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import "@/styles/font-handwritten.css"
@@ -32,9 +32,9 @@ export default function HomePage() {
             Entdecke unsere Features
           </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-         <Card className="transform rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-orange-200">
+         <Card className="transform rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-pink-200">
             <CardContent className="p-6 text-center">
-              <div className="w-16 h-16 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
+              <div className="w-16 h-16 bg-pink-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
                 <Library className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">
@@ -43,7 +43,7 @@ export default function HomePage() {
               <p className="text-gray-600 font-body mb-4">
                 Lege deine Spiele digital an und behalte den Überblick über deine Sammlung. 
               </p>
-              <Button asChild variant="outline" className="border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten">
+              <Button asChild variant="outline" className="border-pink-400 text-pink-600 hover:bg-pink-400 hover:text-white font-handwritten">
                 <Link href="/library">
                   Zur Spielebibliothek
                 </Link>
@@ -114,12 +114,31 @@ export default function HomePage() {
                 <Users className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">
-                Spielgruppen
+                Spielgruppen & Community
               </h3>
               <p className="text-gray-600 font-body mb-4">
-                Tritt Spielgruppen bei oder erstelle deine eigene und finde andere Spieler für gemeinsame Spielrunden.
+                Tritt Spielgruppen bei oder gründe deine eigene und finde Gleichgesinnte für gemeinsame Spielrunden.
               </p>
               <Button asChild variant="outline" className="border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten">
+                <Link href="/groups?tab=communities">
+                  Zur Community
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+           <Card className="transform -rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-orange-200">
+            <CardContent className="p-6 text-center">
+              <div className="w-16 h-16 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-4 transform rotate-12">
+                <Dices className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">
+                Events & Spielrunden
+              </h3>
+              <p className="text-gray-600 font-body mb-4">
+                Organisiere deine nächste Spielrunde im Handumdrehen und finde Mitspieler.
+              </p>
+              <Button asChild variant="outline" className="border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten">
                 <Link href="/groups?tab=communities">
                   Zur Community
                 </Link>

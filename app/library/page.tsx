@@ -1022,7 +1022,7 @@ function LibraryContent() {
         {/* Page Header */}
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten flex items-center justify-center gap-4">
-            Meine Spielbibliothek
+            Meine Ludothek
             {loading && (
               <div className="w-8 h-8 bg-teal-400 rounded-full flex items-center justify-center animate-bounce">
                 <BookOpen className="w-4 h-4 text-white" />
@@ -1528,36 +1528,7 @@ function LibraryContent() {
         <div className="space-y-4 mb-8">
           {filteredGames.length > 0 && (
             <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={() => {
-                    setIsSelectionMode(!isSelectionMode)
-                    setSelectedGames(new Set())
-                  }}
-                  variant={isSelectionMode ? "default" : "outline"}
-                  className="font-handwritten"
-                >
-                  {isSelectionMode ? "Auswahl beenden" : "Spiele auswählen"}
-                </Button>
-
-                {isSelectionMode && (
-                  <>
-                    <Button onClick={selectAllGames} variant="outline" className="font-handwritten bg-transparent">
-                      {selectedGames.size === filteredGames.length ? "Alle abwählen" : "Alle auswählen"}
-                    </Button>
-
-                    {selectedGames.size > 0 && (
-                      <Button
-                        onClick={handleBulkDelete}
-                        className="bg-red-400 hover:bg-red-500 text-white font-handwritten"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        {selectedGames.size} Spiele löschen
-                      </Button>
-                    )}
-                  </>
-                )}
-              </div>
+              <div className="flex items-center gap-4"></div>
 
               {isSelectionMode && (
                 <span className="text-sm text-gray-600 font-body">
@@ -1581,7 +1552,7 @@ function LibraryContent() {
                   </div>
                   <Button
                     variant="outline"
-                    className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
+                    className="border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent"
                     disabled={!databaseConnected}
                   >
                     <Search className="w-5 h-5 mr-2" />
@@ -1755,6 +1726,49 @@ function LibraryContent() {
           {/* Library Shelf */}
           <div className="lg:col-span-2">
             <div className="bg-gradient-to-b from-amber-100 to-amber-200 rounded-lg p-6 shadow-lg border-4 border-amber-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-4">
+                  <Button
+                    onClick={() => {
+                      setIsSelectionMode(!isSelectionMode)
+                      setSelectedGames(new Set())
+                    }}
+                    variant={isSelectionMode ? "outline" : "outline"}
+                    className="border-amber-400 text-white-600 hover:bg-white font-handwritten bg-transparent"
+                  >
+                    {isSelectionMode ? "Auswahl beenden" : "Spiele auswählen"}
+                  </Button>
+
+                  {isSelectionMode && (
+                    <>
+                      <Button
+                        onClick={selectAllGames}
+                        variant="outline"
+                        className="font-handwritten bg-orange/80 hover:bg-white border-amber-400"
+                      >
+                        {selectedGames.size === filteredGames.length ? "Alle abwählen" : "Alle auswählen"}
+                      </Button>
+
+                      {selectedGames.size > 0 && (
+                        <Button
+                          onClick={handleBulkDelete}
+                          className="bg-red-400 hover:bg-white-500 text-white font-handwritten"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          {selectedGames.size} Spiele löschen
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {isSelectionMode && (
+                  <span className="text-sm text-amber-700 font-body bg-white/60 px-2 py-1 rounded">
+                    {selectedGames.size} von {filteredGames.length} ausgewählt
+                  </span>
+                )}
+              </div>
+
               {/* Library Background Illustration */}
               <div className="mb-6 text-center">
                 <h3 className="text-2xl font-bold text-amber-800 transform rotate-1 font-handwritten">
@@ -2509,7 +2523,7 @@ function LibraryContent() {
           <DialogHeader>
             <DialogTitle className="font-handwritten text-2xl text-center">Spiel löschen?</DialogTitle>
             <DialogDescription className="text-center font-body">
-              Bist du sicher, dass du <span className="font-bold">{gameToDelete?.title}</span> aus deiner Bibliothek
+              Bist du sicher, dass du diese <span className="font-bold">{gameToDelete?.title}</span> aus deiner Bibliothek
               entfernen möchtest?
             </DialogDescription>
           </DialogHeader>
@@ -2550,7 +2564,7 @@ function LibraryContent() {
           <DialogHeader>
             <DialogTitle className="font-handwritten text-2xl text-center">Spiele löschen?</DialogTitle>
             <DialogDescription className="text-center font-body">
-              Bist du sicher, dass du <span className="font-bold">{selectedGames.size} Spiele</span> aus deiner
+              Bist du sicher, dass du diese <span className="font-bold">{selectedGames.size} Spiele</span> aus deiner
               Bibliothek entfernen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.
             </DialogDescription>
           </DialogHeader>

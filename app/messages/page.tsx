@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { User, MessageCircle, Send, Search } from "lucide-react"
-import { Suspense, useState } from "react"
+import { User, MessageCircle, Send, Search, Trash2 } from "lucide-react"
+import { Suspense, useState, useEffect } from "react"
 import { Navigation } from "@/components/navigation"
 import { ProtectedRoute } from "@/components/protected-route"
-import { useAuth } from "@/contexts/auth-context"
+import { useUser } from "@/contexts/user-context"
 import { useMessages } from "@/contexts/messages-context"
 
 function MessagesLoading() {
@@ -33,34 +33,62 @@ function MessagesLoading() {
 }
 
 function MessagesContent() {
-  const { user } = useAuth()
-  const { getUserMessages, markAsRead, getUnreadCount } = useMessages()
+  const { user } = useUser()
+  const { getUserMessages, markAsRead, getUnreadCount, refreshMessages, sendMessage, deleteMessage } = useMessages()
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
   const [newMessage, setNewMessage] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: "message" | "conversation"; id: string } | null>(null)
+
+  useEffect(() => {
+    if (user) {
+      refreshMessages()
+    }
+  }, [user, refreshMessages])
 
   if (!user) return null
 
-  const userMessages = getUserMessages(user.name)
+  const userMessages = getUserMessages()
 
   const conversations = userMessages.reduce((acc: any, message: any) => {
-    const conversationKey = message.fromUser
+    const isFromCurrentUser = message.from_user_id === user.id
+    const conversationPartnerId = isFromCurrentUser ? message.to_user_id : message.from_user_id
+
+    const conversationKey = `${conversationPartnerId}-${message.game_id || "no-game"}-${message.offer_type}`
+
     if (!acc[conversationKey]) {
-      acc[conversationKey] = []
+      acc[conversationKey] = {
+        messages: [],
+        partnerName: isFromCurrentUser ? "Unknown User" : "Unknown User", // Will be populated from actual user data
+        latestMessage: null,
+        partnerId: conversationPartnerId, // Store actual partner ID for messaging
+        gameTitle: message.game_title,
+        offerType: message.offer_type,
+      }
     }
-    acc[conversationKey].push(message)
+    acc[conversationKey].messages.push(message)
+
+    if (
+      !acc[conversationKey].latestMessage ||
+      new Date(message.created_at) > new Date(acc[conversationKey].latestMessage.created_at)
+    ) {
+      acc[conversationKey].latestMessage = message
+    }
+
     return acc
   }, {})
 
   // Sort conversations by latest message
-  const sortedConversations = Object.entries(conversations).sort(([, messagesA]: any, [, messagesB]: any) => {
-    const latestA = Math.max(...messagesA.map((m: any) => new Date(m.timestamp).getTime()))
-    const latestB = Math.max(...messagesB.map((m: any) => new Date(m.timestamp).getTime()))
+  const sortedConversations = Object.entries(conversations).sort(([, dataA]: any, [, dataB]: any) => {
+    const latestA = dataA.latestMessage ? new Date(dataA.latestMessage.created_at).getTime() : 0
+    const latestB = dataB.latestMessage ? new Date(dataB.latestMessage.created_at).getTime() : 0
     return latestB - latestA
   })
 
-  const filteredConversations = sortedConversations.filter(([userName]) =>
-    userName.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredConversations = sortedConversations.filter(
+    ([conversationKey, data]: any) =>
+      data.gameTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      data.partnerName.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const formatTime = (timestamp: string) => {
@@ -85,6 +113,12 @@ function MessagesContent() {
         return "Tauschen"
       case "sell":
         return "Verkaufen"
+      case "search_buy":
+        return "Suche Kauf"
+      case "search_rent":
+        return "Suche Leihe"
+      case "search_trade":
+        return "Suche Tausch"
       default:
         return type
     }
@@ -98,20 +132,80 @@ function MessagesContent() {
         return "bg-orange-400"
       case "sell":
         return "bg-pink-400"
+      case "search_buy":
+      case "search_rent":
+      case "search_trade":
+        return "bg-purple-400"
       default:
         return "bg-gray-400"
     }
   }
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (newMessage.trim() && selectedConversation) {
-      // In a real app, this would send the message to the backend
-      alert(`Nachricht gesendet an ${selectedConversation}: "${newMessage}"`)
-      setNewMessage("")
+      try {
+        console.log("[v0] Sending message to conversation:", selectedConversation)
+
+        // Get the latest message to extract game info for context
+        const conversationData = conversations[selectedConversation]
+        const latestMessage = conversationData?.latestMessage
+
+        if (!latestMessage) {
+          console.error("[v0] No latest message found for conversation")
+          return
+        }
+
+        await sendMessage({
+          to_user_id: conversationData.partnerId,
+          message: newMessage,
+          game_id: latestMessage.game_id,
+          game_title: latestMessage.game_title,
+          game_image: latestMessage.game_image,
+          offer_type: latestMessage.offer_type,
+        })
+
+        console.log("[v0] Message sent successfully")
+        setNewMessage("")
+
+        await refreshMessages()
+      } catch (error) {
+        console.error("[v0] Error sending message:", error)
+        alert("Fehler beim Senden der Nachricht. Bitte versuche es erneut.")
+      }
     }
   }
 
-  const selectedMessages = selectedConversation ? conversations[selectedConversation] || [] : []
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await deleteMessage(messageId)
+      await refreshMessages()
+      setDeleteConfirm(null)
+    } catch (error) {
+      console.error("Error deleting message:", error)
+      alert("Fehler beim Löschen der Nachricht.")
+    }
+  }
+
+  const handleDeleteConversation = async (partnerId: string) => {
+    try {
+      const conversationMessages = conversations[partnerId]?.messages || []
+      for (const message of conversationMessages) {
+        await deleteMessage(message.id)
+      }
+      await refreshMessages()
+      setSelectedConversation(null)
+      setDeleteConfirm(null)
+    } catch (error) {
+      console.error("Error deleting conversation:", error)
+      alert("Fehler beim Löschen der Unterhaltung.")
+    }
+  }
+
+  const selectedMessages = selectedConversation
+    ? (conversations[selectedConversation]?.messages || []).sort(
+        (a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      )
+    : []
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
@@ -146,22 +240,23 @@ function MessagesContent() {
                     <p className="text-gray-500 font-body">Keine Unterhaltungen gefunden</p>
                   </div>
                 ) : (
-                  filteredConversations.map(([userName, messages]: any) => {
-                    const latestMessage = messages[messages.length - 1]
-                    const unreadCount = messages.filter((m: any) => !m.read).length
-                    const isSelected = selectedConversation === userName
+                  filteredConversations.map(([conversationKey, data]: any) => {
+                    const messages = data.messages
+                    const latestMessage = data.latestMessage || messages[messages.length - 1]
+                    const unreadCount = messages.filter((m: any) => m.to_user_id === user.id && !m.read).length
+                    const isSelected = selectedConversation === conversationKey
 
                     return (
                       <div
-                        key={userName}
+                        key={conversationKey}
                         className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
                           isSelected ? "bg-teal-50 border-l-4 border-l-teal-400" : ""
                         }`}
                         onClick={() => {
-                          setSelectedConversation(userName)
+                          setSelectedConversation(conversationKey)
                           // Mark messages as read when conversation is opened
                           messages.forEach((msg: any) => {
-                            if (!msg.read) markAsRead(msg.id)
+                            if (msg.to_user_id === user.id && !msg.read) markAsRead(msg.id)
                           })
                         }}
                       >
@@ -171,25 +266,23 @@ function MessagesContent() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <h3 className="font-handwritten text-lg text-gray-800 truncate">{userName}</h3>
+                              <h3 className="font-handwritten text-lg text-gray-800 truncate">{data.gameTitle}</h3>
                               <div className="flex items-center space-x-2">
                                 {unreadCount > 0 && (
                                   <Badge className="bg-red-500 text-white text-xs">{unreadCount}</Badge>
                                 )}
                                 <span className="text-xs text-gray-500 font-body">
-                                  {formatTime(latestMessage.timestamp)}
+                                  {formatTime(latestMessage.created_at)}
                                 </span>
                               </div>
                             </div>
                             <div className="flex items-center space-x-2 mt-1">
                               <Badge
-                                className={`${getOfferTypeColor(latestMessage.offerType)} text-white text-xs font-body`}
+                                className={`${getOfferTypeColor(latestMessage.offer_type)} text-white text-xs font-body`}
                               >
-                                {getOfferTypeText(latestMessage.offerType)}
+                                {getOfferTypeText(latestMessage.offer_type)}
                               </Badge>
-                              <span className="text-sm text-gray-600 font-body truncate">
-                                {latestMessage.gameTitle}
-                              </span>
+                              <span className="text-sm text-gray-600 font-body truncate">mit {data.partnerName}</span>
                             </div>
                             <p className="text-sm text-gray-600 font-body truncate mt-1">{latestMessage.message}</p>
                           </div>
@@ -207,49 +300,82 @@ function MessagesContent() {
                 <>
                   {/* Chat Header */}
                   <div className="p-4 bg-white border-b border-gray-200">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-teal-400 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-white" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-teal-400 rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h2 className="font-handwritten text-xl text-gray-800">
+                            {conversations[selectedConversation]?.gameTitle}
+                          </h2>
+                          <p className="text-sm text-gray-600 font-body">
+                            {getOfferTypeText(conversations[selectedConversation]?.offerType)} •{" "}
+                            {selectedMessages.length} Nachricht{selectedMessages.length !== 1 ? "en" : ""}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h2 className="font-handwritten text-xl text-gray-800">{selectedConversation}</h2>
-                        <p className="text-sm text-gray-600 font-body">
-                          {selectedMessages.length} Nachricht{selectedMessages.length !== 1 ? "en" : ""}
-                        </p>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteConfirm({ type: "conversation", id: selectedConversation! })}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
 
                   {/* Messages */}
                   <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {selectedMessages.map((message: any, index: number) => (
-                      <div key={message.id} className="flex items-start space-x-3">
-                        <div className="w-8 h-8 bg-teal-400 rounded-full flex items-center justify-center flex-shrink-0">
-                          <User className="w-4 h-4 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="bg-white rounded-lg p-3 shadow-sm border">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <Badge className={`${getOfferTypeColor(message.offerType)} text-white text-xs font-body`}>
-                                {getOfferTypeText(message.offerType)}
-                              </Badge>
-                              <span className="text-sm font-body text-gray-600">{message.gameTitle}</span>
-                              <span className="text-xs text-gray-500 font-body ml-auto">
-                                {formatTime(message.timestamp)}
-                              </span>
+                    {selectedMessages.map((message: any, index: number) => {
+                      const isFromCurrentUser = message.from_user_id === user.id
+                      return (
+                        <div
+                          key={message.id}
+                          className={`flex items-start space-x-3 ${isFromCurrentUser ? "flex-row-reverse space-x-reverse" : ""} group`}
+                        >
+                          <div className="w-8 h-8 bg-teal-400 rounded-full flex items-center justify-center flex-shrink-0">
+                            <User className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1 relative">
+                            <div
+                              className={`rounded-lg p-3 shadow-sm border ${isFromCurrentUser ? "bg-teal-100 ml-8" : "bg-white mr-8"}`}
+                            >
+                              <div className="flex items-center space-x-2 mb-2">
+                                <Badge
+                                  className={`${getOfferTypeColor(message.offer_type)} text-white text-xs font-body`}
+                                >
+                                  {getOfferTypeText(message.offer_type)}
+                                </Badge>
+                                <span className="text-sm font-body text-gray-600">{message.game_title}</span>
+                                <span className="text-xs text-gray-500 font-body ml-auto">
+                                  {formatTime(message.created_at)}
+                                </span>
+                              </div>
+                              <p className="text-gray-800 font-body">{message.message}</p>
+                              {message.game_image && (
+                                <img
+                                  src={message.game_image || "/placeholder.svg"}
+                                  alt={message.game_title}
+                                  className="w-16 h-20 rounded-lg shadow-sm mt-2"
+                                />
+                              )}
                             </div>
-                            <p className="text-gray-800 font-body">{message.message}</p>
-                            {message.gameImage && (
-                              <img
-                                src={message.gameImage || "/placeholder.svg"}
-                                alt={message.gameTitle}
-                                className="w-16 h-20 rounded-lg shadow-sm mt-2"
-                              />
-                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteConfirm({ type: "message", id: message.id })}
+                              className={`absolute top-1 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50 w-6 h-6 p-0 ${
+                                isFromCurrentUser ? "left-0" : "right-0"
+                              }`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
 
                   {/* Message Input */}
@@ -284,6 +410,39 @@ function MessagesContent() {
             </div>
           </Card>
         </div>
+
+        {/* Confirmation Dialog for Deletions */}
+        {deleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <Card className="p-6 max-w-md mx-4">
+              <h3 className="text-lg font-handwritten text-gray-800 mb-4">
+                {deleteConfirm.type === "message" ? "Nachricht löschen?" : "Unterhaltung löschen?"}
+              </h3>
+              <p className="text-gray-600 font-body mb-6">
+                {deleteConfirm.type === "message"
+                  ? "Diese Nachricht wird dauerhaft gelöscht und kann nicht wiederhergestellt werden."
+                  : "Diese gesamte Unterhaltung wird dauerhaft gelöscht und kann nicht wiederhergestellt werden."}
+              </p>
+              <div className="flex space-x-3">
+                <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="flex-1 font-body">
+                  Abbrechen
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (deleteConfirm.type === "message") {
+                      handleDeleteMessage(deleteConfirm.id)
+                    } else {
+                      handleDeleteConversation(deleteConfirm.id)
+                    }
+                  }}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white font-body"
+                >
+                  Löschen
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   )

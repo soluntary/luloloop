@@ -1,7 +1,9 @@
+import type React from "react"
 import type { Metadata } from "next"
-import { Galindo, McLaren } from 'next/font/google'
+import { Galindo, McLaren } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
+import { UserProvider } from "@/contexts/user-context"
 import { GamesProvider } from "@/contexts/games-context"
 import { MessagesProvider } from "@/contexts/messages-context"
 import { FriendsProvider } from "@/contexts/friends-context"
@@ -23,8 +25,9 @@ const mclaren = McLaren({
 
 export const metadata: Metadata = {
   title: "Ludoloop - Deine Spiele-Community",
-  description: "Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde neue Mitspieler und entdecke grossartige Spiele!",
-    generator: 'v0.dev'
+  description:
+    "Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde neue Mitspieler und entdecke grossartige Spiele!",
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -40,18 +43,18 @@ export default function RootLayout({
       </head>
       <body className={mclaren.className}>
         <AuthProvider>
-          <GamesProvider>
-            <MessagesProvider>
-              <FriendsProvider>
-                <div className="min-h-screen flex flex-col">
-                  <main className="flex-1">
-                    {children}
-                  </main>
-                  <Footer />
-                </div>
-              </FriendsProvider>
-            </MessagesProvider>
-          </GamesProvider>
+          <UserProvider>
+            <GamesProvider>
+              <MessagesProvider>
+                <FriendsProvider>
+                  <div className="min-h-screen flex flex-col">
+                    <main className="flex-1">{children}</main>
+                    <Footer />
+                  </div>
+                </FriendsProvider>
+              </MessagesProvider>
+            </GamesProvider>
+          </UserProvider>
         </AuthProvider>
       </body>
     </html>
