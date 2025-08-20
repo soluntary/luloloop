@@ -9,6 +9,7 @@ import { Navigation } from "@/components/navigation"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useUser } from "@/contexts/user-context"
 import { useMessages } from "@/contexts/messages-context"
+import { UserLink } from "@/components/user-link"
 
 function MessagesLoading() {
   return (
@@ -289,7 +290,10 @@ function MessagesContent() {
                                 {getOfferTypeText(latestMessage.offer_type)}
                               </Badge>
                               <span className="text-xs md:text-sm text-gray-600 font-body truncate">
-                                mit {data.partnerName}
+                                mit{" "}
+                                <UserLink userId={data.partnerId} className="text-teal-600 hover:text-teal-700">
+                                  {data.partnerName}
+                                </UserLink>
                               </span>
                             </div>
                             <p className="text-xs md:text-sm text-gray-600 font-body truncate mt-1">

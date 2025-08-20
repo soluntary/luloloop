@@ -26,6 +26,7 @@ import {
   Tag,
   Users,
   Check,
+  Award,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useState, Suspense, useRef } from "react"
@@ -157,7 +158,17 @@ function LibraryLoading() {
 }
 
 function LibraryContent() {
-  const { games, addGame, updateGame, deleteGame, addMarketplaceOffer, loading, error, databaseConnected } = useGames()
+  const {
+    games,
+    addGame,
+    updateGame,
+    deleteGame,
+    addMarketplaceOffer,
+    loading,
+    error,
+    databaseConnected,
+    toggleGameAvailability,
+  } = useGames()
   const { user } = useAuth()
   const [selectedGame, setSelectedGame] = useState<(typeof games)[0] | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -249,6 +260,8 @@ function LibraryContent() {
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
 
+  const [newGameBesonderheit, setNewGameBesonderheit] = useState("")
+
   const toggleGameSelection = (gameId: string) => {
     const newSelected = new Set(selectedGames)
     if (newSelected.has(gameId)) {
@@ -315,16 +328,16 @@ function LibraryContent() {
       const matchesDuration = !filters.duration || game.duration === filters.duration
 
       // Altersempfehlung Filter
-      const matchesAge = !filters.age || game.age === filters.age
+      const matchesAge = !filters.age || game.age === game.age
 
       // Sprache Filter
-      const matchesLanguage = !filters.language || game.language === filters.language
+      const matchesLanguage = !filters.language || game.language === game.language
 
       // Kategorie Filter (falls vorhanden)
-      const matchesCategory = !filters.category || game.category === filters.category
+      const matchesCategory = !filters.category || game.category === game.category
 
       // Typus Filter
-      const matchesType = !filters.type || game.type === filters.type
+      const matchesType = !filters.type || game.type === game.type
 
       return (
         matchesSearch &&
@@ -608,6 +621,7 @@ function LibraryContent() {
         description: "", // Can be filled later
         category: newGameType.length > 0 ? newGameType[0] : "Brettspiel", // Use first type as category
         age_rating: newGameAge,
+        ...(newGameBesonderheit.trim() && { besonderheit: newGameBesonderheit.trim() }),
       }
 
       await addGame(gameData)
@@ -778,6 +792,7 @@ function LibraryContent() {
     setNewGameType([])
     setNewGameCustomType("")
     setNewGameImage(null)
+    setNewGameBesonderheit("")
     if (fileInputRef.current) {
       fileInputRef.current.value = "" // Reset file input
     }
@@ -1259,182 +1274,22 @@ function LibraryContent() {
                     </div>
                   </div>
 
-                  {/* Kategorien Sektion */}
                   <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border border-purple-200">
                     <h3 className="font-handwritten text-lg text-purple-700 mb-4 flex items-center gap-2">
-                      <Tag className="w-5 h-5" />
-                      Kategorien & Typus
+                      <Award className="w-5 h-5" />
+                      Besonderheiten
                     </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="font-body text-gray-700 font-medium">Kategorie * (Mehrfachauswahl)</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="w-full justify-between font-body bg-white/80 border-2 border-purple-200 hover:border-purple-300"
-                              type="button"
-                            >
-                              {newGameType.length > 0 ? (
-                                <span className="text-purple-600 font-medium">
-                                  {newGameType.length} Kategorie{newGameType.length > 1 ? "n" : ""} ausgewählt
-                                </span>
-                              ) : (
-                                "Kategorie wählen..."
-                              )}
-                              <ChevronDown className="h-4 w-4 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-64 p-0">
-                            <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
-                              <h4 className="font-medium text-sm font-body text-purple-700">Kategorie auswählen:</h4>
-                              {GAME_TYPE_OPTIONS.map((type) => (
-                                <div key={type} className="flex items-center space-x-2">
-                                  <Checkbox
-                                    id={`type-${type}`}
-                                    checked={newGameType.includes(type)}
-                                    onCheckedChange={() => handleNewGameTypeToggle(type)}
-                                    className="border-purple-300 data-[state=checked]:bg-purple-400"
-                                  />
-                                  <Label htmlFor={`type-${type}`} className="text-sm font-body cursor-pointer">
-                                    {type}
-                                  </Label>
-                                </div>
-                              ))}
-                              <div className="border-t pt-2 mt-2">
-                                <h5 className="font-medium text-xs font-body text-gray-600 mb-2">
-                                  Eigene Kategorie hinzufügen:
-                                </h5>
-                                <div className="flex gap-2">
-                                  <Input
-                                    value={newGameCustomType}
-                                    onChange={(e) => setNewGameCustomType(e.target.value)}
-                                    placeholder="Kategorie eingeben..."
-                                    className="text-xs font-body border-purple-200"
-                                    onKeyPress={(e) => {
-                                      if (e.key === "Enter") {
-                                        e.preventDefault()
-                                        handleAddCustomType()
-                                      }
-                                    }}
-                                  />
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    onClick={handleAddCustomType}
-                                    className="bg-purple-400 hover:bg-purple-500 text-white px-2"
-                                  >
-                                    <Plus className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                              {newGameType.length > 0 && (
-                                <div className="border-t pt-2 mt-2">
-                                  <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Ausgewählt:</h5>
-                                  <div className="flex flex-wrap gap-1">
-                                    {newGameType.map((type) => (
-                                      <Badge
-                                        key={type}
-                                        className="text-xs cursor-pointer bg-purple-100 text-purple-700 hover:bg-purple-200"
-                                        onClick={() => handleNewGameTypeToggle(type)}
-                                      >
-                                        {type} ×
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                        {fieldErrors.type && <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.type}</p>}
-                      </div>
-
-                      <div>
-                        <Label className="font-body text-gray-700 font-medium">Typus * (Mehrfachauswahl)</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="w-full justify-between font-body bg-white/80 border-2 border-purple-200 hover:border-purple-300"
-                              type="button"
-                            >
-                              {newGameStyle.length > 0 ? (
-                                <span className="text-purple-600 font-medium">
-                                  {newGameStyle.length} Typus {newGameStyle.length > 1 ? "en" : ""} ausgewählt
-                                </span>
-                              ) : (
-                                "Typus wählen..."
-                              )}
-                              <ChevronDown className="h-4 w-4 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-64 p-0">
-                            <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
-                              <h4 className="font-medium text-sm font-body text-purple-700">Typus auswählen:</h4>
-                              {GAME_STYLE_OPTIONS.map((style) => (
-                                <div key={style} className="flex items-center space-x-2">
-                                  <Checkbox
-                                    id={`style-${style}`}
-                                    checked={newGameStyle.includes(style)}
-                                    onCheckedChange={() => handleNewGameStyleToggle(style)}
-                                    className="border-purple-300 data-[state=checked]:bg-purple-400"
-                                  />
-                                  <Label htmlFor={`style-${style}`} className="text-sm font-body cursor-pointer">
-                                    {style}
-                                  </Label>
-                                </div>
-                              ))}
-                              <div className="border-t pt-2 mt-2">
-                                <h5 className="font-medium text-xs font-body text-gray-600 mb-2">
-                                  Eigene Typus hinzufügen:
-                                </h5>
-                                <div className="flex gap-2">
-                                  <Input
-                                    value={newGameCustomStyle}
-                                    onChange={(e) => setNewGameCustomStyle(e.target.value)}
-                                    placeholder="Typus eingeben..."
-                                    className="text-xs font-body border-purple-200"
-                                    onKeyPress={(e) => {
-                                      if (e.key === "Enter") {
-                                        e.preventDefault()
-                                        handleAddCustomStyle()
-                                      }
-                                    }}
-                                  />
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    onClick={handleAddCustomStyle}
-                                    className="bg-purple-400 hover:bg-purple-500 text-white px-2"
-                                  >
-                                    <Plus className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                              {newGameStyle.length > 0 && (
-                                <div className="border-t pt-2 mt-2">
-                                  <h5 className="font-medium text-xs font-body text-gray-600 mb-2">Ausgewählt:</h5>
-                                  <div className="flex flex-wrap gap-1">
-                                    {newGameStyle.map((style) => (
-                                      <Badge
-                                        key={style}
-                                        className="text-xs cursor-pointer bg-purple-100 text-purple-700 hover:bg-purple-200"
-                                        onClick={() => handleNewGameStyleToggle(style)}
-                                      >
-                                        {style} ×
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                        {fieldErrors.style && (
-                          <p className="text-red-500 text-sm mt-1 font-body">{fieldErrors.style}</p>
-                        )}
-                      </div>
+                    <div>
+                      <Label className="font-body text-gray-700 font-medium">Besonderheit (optional)</Label>
+                      <p className="text-sm text-gray-500 mb-2 font-body">
+                        z.B. Spiel des Jahres 2024, Kennerspiel des Jahres 2024, Kinderspiel des Jahres 2024
+                      </p>
+                      <Input
+                        value={newGameBesonderheit}
+                        onChange={(e) => setNewGameBesonderheit(e.target.value)}
+                        placeholder="Besondere Auszeichnungen oder Merkmale..."
+                        className="font-body border-2 border-purple-200 focus:border-purple-400 bg-white/80"
+                      />
                     </div>
                   </div>
 
@@ -1526,17 +1381,6 @@ function LibraryContent() {
 
         {/* Search, Sort and Filter */}
         <div className="space-y-4 mb-8">
-          {filteredGames.length > 0 && (
-            <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-4"></div>
-
-              {isSelectionMode && (
-                <span className="text-sm text-gray-600 font-body">
-                  {selectedGames.size} von {filteredGames.length} ausgewählt
-                </span>
-              )}
-            </div>
-          )}
           <div className="bg-white/50 rounded-lg p-4 border border-teal-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
               <div className="col-span-full mb-2">
@@ -1832,6 +1676,18 @@ function LibraryContent() {
                                   </div>
                                 </div>
                               )}
+
+                              {!isSelectionMode && (
+                                <div className="absolute top-1 left-1 z-10">
+                                  <div
+                                    className={`w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm ${
+                                      game.available?.includes("available") ? "bg-green-500" : "bg-red-500"
+                                    }`}
+                                    title={game.available?.includes("available") ? "Verfügbar" : "Nicht verfügbar"}
+                                  />
+                                </div>
+                              )}
+
                               <div
                                 className={`w-20 h-28 md:w-24 md:h-32 bg-white rounded-t-lg shadow-lg border-2 overflow-hidden relative ${
                                   selectedGames.has(game.id) ? "border-teal-500" : "border-gray-300"
@@ -1883,8 +1739,20 @@ function LibraryContent() {
                                     </div>
                                   </div>
                                 )}
+
+                                {!isSelectionMode && (
+                                  <div className="absolute top-1 left-1 z-10">
+                                    <div
+                                      className={`w-4 h-4 rounded-full border border-white shadow-sm ${
+                                        game.available?.includes("available") ? "bg-green-500" : "bg-red-500"
+                                      }`}
+                                      title={game.available?.includes("available") ? "Verfügbar" : "Nicht verfügbar"}
+                                    />
+                                  </div>
+                                )}
+
                                 <div
-                                  className={`w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 border-gray-300 overflow-hidden relative ${
+                                  className={`w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 overflow-hidden relative ${
                                     selectedGames.has(game.id) ? "border-teal-500" : "border-gray-300"
                                   }`}
                                 >
@@ -1945,6 +1813,40 @@ function LibraryContent() {
             {selectedGame ? (
               <Card className="sticky top-4 lg:top-8 transform rotate-0 lg:rotate-1 hover:rotate-0 transition-all border-2 border-teal-200">
                 <CardContent className="p-4 md:p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1" />
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-600">
+                        {selectedGame.available?.includes("available") ? "Verfügbar" : "Nicht verfügbar"}
+                      </span>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const isCurrentlyAvailable = selectedGame.available?.includes("available")
+                            await toggleGameAvailability(selectedGame.id, !isCurrentlyAvailable)
+                            // Update selectedGame to reflect the new state immediately
+                            const updatedGame = games.find((g) => g.id === selectedGame.id)
+                            if (updatedGame) {
+                              setSelectedGame(updatedGame)
+                            }
+                          } catch (error) {
+                            console.error("Error toggling availability:", error)
+                          }
+                        }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 ${
+                          selectedGame.available?.includes("available") ? "bg-green-500" : "bg-red-500"
+                        }`}
+                        disabled={!databaseConnected}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            selectedGame.available?.includes("available") ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="text-center mb-4">
                     <div className="relative w-24 h-32 md:w-32 md:h-40 mx-auto rounded-lg shadow-lg mb-4 overflow-hidden">
                       <img
@@ -1992,6 +1894,12 @@ function LibraryContent() {
                       <div className="flex justify-between text-sm md:text-base">
                         <span className="font-medium font-body">Typus:</span>
                         <span className="font-body">{selectedGame.style}</span>
+                      </div>
+                    )}
+                    {selectedGame.besonderheit && (
+                      <div className="flex justify-between text-sm md:text-base">
+                        <span className="font-medium font-body">Besonderheit:</span>
+                        <span className="font-body">{selectedGame.besonderheit}</span>
                       </div>
                     )}
                   </div>

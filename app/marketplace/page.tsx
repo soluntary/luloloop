@@ -30,6 +30,7 @@ import { supabase } from "@/lib/supabase"
 
 import { useMessages } from "@/contexts/messages-context"
 import { useUser } from "@/contexts/user-context"
+import { UserLink } from "@/components/user-link"
 
 export default function MarketplacePage() {
   const { user } = useUser()
@@ -1134,9 +1135,12 @@ Können wir die Details besprechen?`,
                         </div>
                       </div>
                       <div className="flex-1">
-                        <p className="text-gray-900 font-semibold text-lg">
+                        <UserLink
+                          userId={selectedOfferDetails.user_id}
+                          className="text-gray-900 font-semibold text-lg block"
+                        >
                           {selectedOfferDetails.owner || selectedOfferDetails.users?.name || "Unbekannter Nutzer"}
-                        </p>
+                        </UserLink>
                         {selectedOfferDetails.rating && (
                           <div className="flex items-center mt-2">
                             <Star className="w-4 h-4 text-yellow-500 fill-current" />
@@ -1341,9 +1345,9 @@ Können wir die Details besprechen?`,
                       </span>
                     </div>
                     <div>
-                      <p className="text-gray-900 font-semibold">
+                      <UserLink userId={selectedSearchAdDetails.user_id} className="text-gray-900 font-semibold block">
                         {selectedSearchAdDetails.users?.name || "Unbekannter Nutzer"}
-                      </p>
+                      </UserLink>
                       <p className="text-sm text-gray-500">
                         Erstellt am {new Date(selectedSearchAdDetails.created_at).toLocaleDateString("de-DE")}
                       </p>

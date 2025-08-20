@@ -21,6 +21,8 @@ import CreateCommunityEventDialog from "@/components/create-community-event-dial
 import { useSearchParams } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
+import { UserLink } from "@/components/user-link"
+
 interface CommunityEvent {
   id: string
   creator_id: string
@@ -1386,7 +1388,10 @@ export default function GroupsPage() {
                               <div className="flex items-center text-sm text-gray-500">
                                 <User className="w-4 h-4 mr-2" />
                                 <span>
-                                  Organisiert von {event.creator?.username || event.creator?.name || "Unbekannt"}
+                                  Organisiert von{" "}
+                                  <UserLink userId={event.creator_id} className="text-teal-600 hover:text-teal-700">
+                                    {event.creator?.username || event.creator?.name || "Unbekannt"}
+                                  </UserLink>
                                 </span>
                               </div>
 
@@ -1521,9 +1526,12 @@ export default function GroupsPage() {
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
-                            <h3 className="font-handwritten text-xl text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">
+                            <UserLink
+                              userId={targetUser.id}
+                              className="font-handwritten text-xl text-gray-800 mb-2 group-hover:text-blue-600 transition-colors block"
+                            >
                               {targetUser.username || targetUser.name}
-                            </h3>
+                            </UserLink>
                             <div className="flex items-center gap-2 mb-2">
                               {canViewField(targetUser, "email") && (
                                 <div className="flex items-center text-sm text-gray-500">
@@ -1658,11 +1666,11 @@ export default function GroupsPage() {
                     <User className="w-5 h-5 text-purple-500" />
                     <div>
                       <p className="font-medium">Organisator</p>
-                      <p className="text-gray-600">
+                      <UserLink userId={selectedEventForDetails.creator_id} className="text-gray-600">
                         {selectedEventForDetails.creator?.username ||
                           selectedEventForDetails.creator?.name ||
                           "Unbekannt"}
-                      </p>
+                      </UserLink>
                     </div>
                   </div>
                 </div>
@@ -1746,11 +1754,11 @@ export default function GroupsPage() {
                         <User className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="font-medium">
+                        <UserLink userId={selectedEventForDetails.creator_id} className="font-medium">
                           {selectedEventForDetails.creator?.username ||
                             selectedEventForDetails.creator?.name ||
                             "Organisator"}
-                        </p>
+                        </UserLink>
                         <p className="text-sm text-purple-600">Organisator</p>
                       </div>
                     </div>
@@ -1764,9 +1772,9 @@ export default function GroupsPage() {
                             <User className="w-4 h-4 text-white" />
                           </div>
                           <div>
-                            <p className="font-medium">
+                            <UserLink userId={participant.user_id} className="font-medium">
                               {participant.user?.username || participant.user?.name || "Teilnehmer"}
-                            </p>
+                            </UserLink>
                             <p className="text-sm text-gray-500">Teilnehmer</p>
                           </div>
                         </div>

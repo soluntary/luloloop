@@ -39,6 +39,7 @@ interface FriendsContextType {
   declineFriendRequest: (requestId: string) => Promise<void>
   removeFriend: (friendId: string) => Promise<void>
   getFriendByName: (name: string) => Friend | undefined
+  getFriendshipStatus: (userId: string) => "friends" | "pending" | "received" | "none"
   refreshFriends: () => Promise<void>
 }
 
@@ -207,16 +208,21 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
       setError(null)
       console.log("[v0] Sending friend request to:", toUserId)
 
-      // Check if request already exists
-      const { data: existingRequest } = await supabase
+      const { data: existingRequest, error: checkError } = await supabase
         .from("friend_requests")
         .select("id")
         .eq("from_user_id", user.id)
         .eq("to_user_id", toUserId)
         .eq("status", "pending")
-        .single()
+        .maybeSingle() // Use maybeSingle instead of single to handle no results
+
+      if (checkError) {
+        console.error("[v0] Error checking existing request:", checkError)
+        throw checkError
+      }
 
       if (existingRequest) {
+        console.log("[v0] Friend request already exists")
         throw new Error("Du hast bereits eine Freundschaftsanfrage an diesen Benutzer gesendet!")
       }
 
@@ -230,6 +236,12 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
       if (insertError) {
         console.error("[v0] Error sending friend request:", insertError)
+        if (
+          insertError.code === "23505" &&
+          insertError.message.includes("friend_requests_from_user_id_to_user_id_key")
+        ) {
+          throw new Error("Du hast bereits eine Freundschaftsanfrage an diesen Benutzer gesendet!")
+        }
         throw insertError
       }
 
@@ -353,6 +365,25 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
     return friends.find((friend) => friend.name === name)
   }
 
+  const getFriendshipStatus = (userId: string): "friends" | "pending" | "received" | "none" => {
+    // Check if already friends
+    if (friends.some((friend) => friend.id === userId)) {
+      return "friends"
+    }
+
+    // Check if we sent a request to this user
+    if (sentRequests.some((request) => request.to_user_id === userId)) {
+      return "pending"
+    }
+
+    // Check if we received a request from this user
+    if (pendingRequests.some((request) => request.from_user_id === userId)) {
+      return "received"
+    }
+
+    return "none"
+  }
+
   return (
     <FriendsContext.Provider
       value={{
@@ -367,6 +398,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         declineFriendRequest,
         removeFriend,
         getFriendByName,
+        getFriendshipStatus,
         refreshFriends,
       }}
     >

@@ -19,6 +19,7 @@ interface Game {
   created_at?: string
   type?: string
   style?: string
+  besonderheit?: string
 }
 
 interface MarketplaceOffer {
@@ -55,6 +56,7 @@ interface GamesContextType {
   ) => Promise<void>
   deleteMarketplaceOffer: (offerId: string) => Promise<void>
   refreshData: () => Promise<void>
+  toggleGameAvailability: (gameId: string, isAvailable: boolean) => Promise<void>
 }
 
 const GamesContext = createContext<GamesContextType | undefined>(undefined)
@@ -191,6 +193,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         // Only include type and style if they exist in gameData
         ...(gameData.type && { type: gameData.type }),
         ...(gameData.style && { style: gameData.style }),
+        ...(gameData.besonderheit && { besonderheit: gameData.besonderheit }),
       }
 
       const { data, error } = await supabase.from("games").insert([gameWithFallback]).select()
@@ -238,6 +241,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         // Only include type and style if they exist in gameData
         ...(gameData.type && { type: gameData.type }),
         ...(gameData.style && { style: gameData.style }),
+        ...(gameData.besonderheit !== undefined && { besonderheit: gameData.besonderheit }),
       }
 
       const { data, error } = await supabase
@@ -432,6 +436,44 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     }
   }, [user]) // Only depend on user, not the entire user object or other functions
 
+  // Toggle game availability status
+  const toggleGameAvailability = async (gameId: string, isAvailable: boolean) => {
+    if (!user || !databaseConnected) {
+      throw new Error("User not authenticated or database not connected")
+    }
+
+    try {
+      console.log("[v0] Toggling game availability:", gameId, "to", isAvailable)
+
+      // Update the available field - using array format to match existing schema
+      const availableValue = isAvailable ? ["available"] : ["not_available"]
+
+      const { data, error } = await supabase
+        .from("games")
+        .update({ available: availableValue })
+        .eq("id", gameId)
+        .eq("user_id", user.id)
+        .select()
+
+      if (error) {
+        console.error("Error updating game availability:", error)
+        throw new Error(`Fehler beim Aktualisieren der Verfügbarkeit: ${error.message}`)
+      }
+
+      if (data && data.length > 0) {
+        const updatedGame = {
+          ...data[0],
+          image: data[0].image || FALLBACK_IMAGE,
+        }
+        setGames((prev) => prev.map((game) => (game.id === gameId ? updatedGame : game)))
+        console.log("[v0] Game availability updated successfully")
+      }
+    } catch (err) {
+      console.error("Error toggling game availability:", err)
+      throw err
+    }
+  }
+
   useEffect(() => {
     if (user?.id && !isRefreshingRef.current) {
       refreshData()
@@ -451,6 +493,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     updateMarketplaceOffer,
     deleteMarketplaceOffer,
     refreshData,
+    toggleGameAvailability,
   }
 
   return <GamesContext.Provider value={value}>{children}</GamesContext.Provider>

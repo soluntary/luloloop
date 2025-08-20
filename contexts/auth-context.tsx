@@ -31,60 +31,112 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const [initialized, setInitialized] = useState(false)
+
+  const clearInvalidSession = async () => {
+    try {
+      // Clear local storage auth data
+      localStorage.removeItem("supabase.auth.token")
+      localStorage.removeItem("sb-" + supabase.supabaseUrl.split("//")[1] + "-auth-token")
+
+      // Force sign out
+      await supabase.auth.signOut({ scope: "local" })
+
+      // Reset state
+      setUser(null)
+      setLoading(false)
+
+      console.log("[v0] Session cleared due to refresh token error")
+    } catch (error) {
+      console.error("Error clearing session:", error)
+      setUser(null)
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    // Get initial session with proper error handling
-    supabase.auth
-      .getSession()
-      .then(({ data: { session }, error }) => {
+    if (initialized) return
+
+    const initializeAuth = async () => {
+      try {
+        console.log("[v0] Initializing auth...")
+
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+
         if (error) {
-          console.error("Auth session error:", error)
-          // If there's an auth error (like invalid refresh token), clear the session
-          if (error.message?.includes("Invalid Refresh Token") || error.message?.includes("Already Used")) {
-            console.log("Clearing invalid session")
-            supabase.auth.signOut()
+          console.error("[v0] Auth session error:", error)
+          if (
+            error.message?.includes("Invalid Refresh Token") ||
+            error.message?.includes("Refresh Token Not Found") ||
+            error.message?.includes("Already Used") ||
+            error.message?.includes("refresh_token_not_found")
+          ) {
+            console.log("[v0] Detected refresh token error, clearing session aggressively")
+            await clearInvalidSession()
+            setInitialized(true)
+            return
           }
           setUser(null)
           setLoading(false)
+          setInitialized(true)
           return
         }
 
         if (session?.user) {
-          loadUserProfile(session.user)
+          console.log("[v0] Valid session found, loading user profile")
+          await loadUserProfile(session.user)
         } else {
+          console.log("[v0] No session found")
           setLoading(false)
         }
-      })
-      .catch((error) => {
-        console.error("Unexpected auth error:", error)
-        setUser(null)
-        setLoading(false)
-      })
 
-    // Listen for auth changes with better error handling
+        setInitialized(true)
+      } catch (error) {
+        console.error("[v0] Unexpected auth initialization error:", error)
+        await clearInvalidSession()
+        setInitialized(true)
+      }
+    }
+
+    initializeAuth()
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state change:", event, session?.user?.id)
+      console.log("[v0] Auth state change:", event, session?.user?.id)
 
-      if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
-        if (!session?.user) {
+      try {
+        if (event === "SIGNED_OUT") {
           setUser(null)
           setLoading(false)
           return
         }
-      }
 
-      if (session?.user) {
-        await loadUserProfile(session.user)
-      } else {
-        setUser(null)
-        setLoading(false)
+        if (event === "TOKEN_REFRESHED") {
+          if (!session?.user) {
+            console.log("[v0] Token refresh failed, clearing session")
+            await clearInvalidSession()
+            return
+          }
+        }
+
+        if (session?.user) {
+          await loadUserProfile(session.user)
+        } else {
+          setUser(null)
+          setLoading(false)
+        }
+      } catch (error) {
+        console.error("[v0] Error in auth state change handler:", error)
+        await clearInvalidSession()
       }
     })
 
     return () => subscription?.unsubscribe()
-  }, [])
+  }, [initialized])
 
   const loadUserProfile = async (authUser: User) => {
     try {
