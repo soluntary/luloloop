@@ -17,19 +17,24 @@ interface AddressSuggestion {
 export async function geocodeAddress(address: string): Promise<GeocodeResult | null> {
   try {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY
-
     if (!apiKey) {
-      console.log("[v0] Google Maps API key not found, using OpenStreetMap fallback")
+      console.log("Google Maps API key not found, using OpenStreetMap fallback")
 
-      // Use OpenStreetMap Nominatim as fallback
+      // Fallback to OpenStreetMap Nominatim
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=de,at,ch&limit=1&addressdetails=1`,
         {
           headers: {
-            "User-Agent": "LudoLoop/1.0",
+            "User-Agent": "LudoLoop/1.0 (contact@ludoloop.com)",
           },
         },
       )
+
+      if (!response.ok) {
+        console.error("OpenStreetMap API error:", response.status)
+        return null
+      }
+
       const data = await response.json()
 
       if (data && data.length > 0) {
@@ -41,7 +46,7 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult | n
       return null
     }
 
-    // Use Google Maps API if available
+    // Use Google Maps API
     const response = await fetch(
       `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&components=country:DE|country:AT|country:CH`,
     )
@@ -56,7 +61,7 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult | n
     }
     return null
   } catch (error) {
-    console.error("[v0] Geocoding error:", error)
+    console.error("Geocoding error:", error)
     return null
   }
 }
@@ -68,12 +73,24 @@ export async function getAddressSuggestions(input: string): Promise<AddressSugge
     }
 
     const apiKey = process.env.GOOGLE_MAPS_API_KEY
-
     if (!apiKey) {
+      console.log("Google Maps API key not found, using OpenStreetMap fallback")
+
       // Fallback to OpenStreetMap Nominatim
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}&countrycodes=de,at,ch&limit=5&addressdetails=1`,
+        {
+          headers: {
+            "User-Agent": "LudoLoop/1.0 (contact@ludoloop.com)",
+          },
+        },
       )
+
+      if (!response.ok) {
+        console.error("OpenStreetMap API error:", response.status)
+        return []
+      }
+
       const data = await response.json()
 
       if (data && data.length > 0) {

@@ -16,12 +16,11 @@ interface AddressSuggestion {
 }
 
 interface SimpleLocationSearchProps {
-  onLocationSearch?: (results: any[]) => void
+  onLocationSearch?: (location: string, radius: number) => void
   className?: string
-  disabled?: boolean
 }
 
-export function SimpleLocationSearch({ onLocationSearch, className, disabled }: SimpleLocationSearchProps) {
+export function SimpleLocationSearch({ onLocationSearch, className }: SimpleLocationSearchProps) {
   const [address, setAddress] = useState("")
   const [radius, setRadius] = useState("10")
   const [isSearching, setIsSearching] = useState(false)
@@ -99,8 +98,8 @@ export function SimpleLocationSearch({ onLocationSearch, className, disabled }: 
 
       if (coordinates) {
         // Perform location-based search
-        const results = await searchByAddress(address.trim(), Number.parseInt(radius))
-        onLocationSearch?.(results)
+        await searchByAddress(address.trim(), Number.parseInt(radius))
+        onLocationSearch?.(address.trim(), Number.parseInt(radius))
       } else {
         alert("Standort nicht gefunden. Bitte versuchen Sie eine andere Adresse.")
       }
@@ -194,7 +193,7 @@ export function SimpleLocationSearch({ onLocationSearch, className, disabled }: 
 
           <Button
             onClick={handleSearch}
-            disabled={!address.trim() || isSearching || disabled}
+            disabled={!address.trim() || isSearching}
             size="sm"
             className="bg-orange-500 hover:bg-orange-600 text-white h-8 px-3"
           >

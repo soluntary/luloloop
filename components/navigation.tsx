@@ -46,7 +46,7 @@ interface NavItem {
 
 export function Navigation({ currentPage }: NavigationProps) {
   const pathname = usePathname()
-  const { user, signOut } = useAuth()
+  const { user, signOut } = useAuth() || { user: null, signOut: null }
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { getUnreadCount } = useMessages()
 
@@ -107,37 +107,12 @@ export function Navigation({ currentPage }: NavigationProps) {
 
   const handleLogout = async () => {
     try {
-      console.log("[v0] Logout attempt started")
-
-      // Check if we have a valid signOut function
-      if (!signOut || typeof signOut !== "function") {
-        console.error("[v0] SignOut function not available")
-        throw new Error("Auth session missing!")
+      if (signOut && typeof signOut === "function") {
+        await signOut()
       }
-
-      // Check if user is actually logged in
-      if (!user) {
-        console.log("[v0] No user found, redirecting to login")
-        window.location.href = "/login"
-        return
-      }
-
-      console.log("[v0] Calling signOut function")
-      await signOut()
-      console.log("[v0] SignOut successful, redirecting to login")
       window.location.href = "/login"
     } catch (error) {
-      console.error("[v0] Logout error:", error)
-      try {
-        localStorage.removeItem("supabase.auth.token")
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-        if (supabaseUrl) {
-          const domain = supabaseUrl.split("//")[1]
-          localStorage.removeItem(`sb-${domain}-auth-token`)
-        }
-      } catch (storageError) {
-        console.error("[v0] Error clearing storage:", storageError)
-      }
+      console.error("Logout error:", error)
       window.location.href = "/login"
     }
   }

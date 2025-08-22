@@ -33,9 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialized] = useState(false)
+  const [mounted, setMounted] = useState(true)
   const profileLoadingRef = useRef(false)
   const currentUserIdRef = useRef<string | null>(null)
-  const initializationRef = useRef(false)
 
   const clearInvalidSession = async () => {
     try {
@@ -44,14 +44,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await supabase.auth.signOut({ scope: "local" })
 
-      setUser(null)
-      setLoading(false)
+      if (mounted) {
+        setUser(null)
+        setLoading(false)
+      }
 
       console.log("[v0] Session cleared due to refresh token error")
     } catch (error) {
       console.error("Error clearing session:", error)
-      setUser(null)
-      setLoading(false)
+      if (mounted) {
+        setUser(null)
+        setLoading(false)
+      }
     }
   }
 
@@ -67,7 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profileLoadingRef.current = true
         currentUserIdRef.current = authUser.id
 
-        setLoading(true)
+        if (mounted) {
+          setLoading(true)
+        }
 
         const { data: existingUser, error: fetchError } = await supabase
           .from("users")
@@ -135,7 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         console.log("[v0] User profile loaded successfully:", userProfile.name)
-        setUser(userProfile)
+        if (mounted) {
+          setUser(userProfile)
+        }
       } catch (error) {
         console.error("Error loading user profile:", error)
         try {
@@ -161,25 +169,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error("[v0] Fallback database creation failed:", fallbackDbError)
           }
 
-          setUser(fallbackProfile)
+          if (mounted) {
+            setUser(fallbackProfile)
+          }
           console.log("[v0] Fallback user profile created")
         } catch (fallbackError) {
           console.error("Error creating fallback user:", fallbackError)
-          setUser(null)
+          if (mounted) {
+            setUser(null)
+          }
         }
       } finally {
         profileLoadingRef.current = false
-        setLoading(false)
+        if (mounted) {
+          setLoading(false)
+        }
         console.log("[v0] User profile loading completed")
       }
     },
-    [], // Remove all dependencies to prevent recreation
+    [mounted],
   )
 
   useEffect(() => {
-    if (initialized || initializationRef.current) return
+    return () => {
+      setMounted(false)
+    }
+  }, [])
 
-    initializationRef.current = true
+  useEffect(() => {
+    if (initialized) return
+
     console.log("[v0] Initializing auth...")
 
     const {
@@ -187,12 +206,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("[v0] Auth state change:", event, session?.user?.id)
 
+      if (!mounted) {
+        console.log("[v0] Component unmounted, skipping auth state change")
+        return
+      }
+
       try {
         if (event === "SIGNED_OUT") {
           console.log("[v0] User signed out")
           currentUserIdRef.current = null
-          setUser(null)
-          setLoading(false)
+          if (mounted) {
+            setUser(null)
+            setLoading(false)
+          }
           return
         }
 
@@ -210,7 +236,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (event === "SIGNED_IN") {
           console.log("[v0] User signed in successfully, loading profile...")
-          setLoading(true)
+          if (mounted) {
+            setLoading(true)
+          }
         }
 
         if (event === "USER_UPDATED") {
@@ -223,8 +251,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           console.log("[v0] No session user found")
           currentUserIdRef.current = null
-          setUser(null)
-          setLoading(false)
+          if (mounted) {
+            setUser(null)
+            setLoading(false)
+          }
         }
       } catch (error) {
         console.error("[v0] Error in auth state change handler:", error)
@@ -277,7 +307,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth()
 
     return () => subscription?.unsubscribe()
-  }, []) // Remove loadUserProfile dependency to break circular re-initialization
+  }, [])
 
   const signUp = async (email: string, password: string, name: string, username?: string) => {
     const { data, error } = await supabase.auth.signUp({
@@ -347,7 +377,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const updatedUser = { ...user, ...data }
-      setUser(updatedUser)
+      if (mounted) {
+        setUser(updatedUser)
+      }
 
       return true
     } catch (error) {

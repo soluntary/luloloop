@@ -384,7 +384,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
         setLoading(false)
       }
     },
-    [], // Removed geocodeAddress from dependencies since it's now a server action
+    [], // Removed geocodeAddress dependency since it's now a server action
   )
 
   const contextValue: LocationSearchContextType = {

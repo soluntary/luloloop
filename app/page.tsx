@@ -130,7 +130,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Marktplatz</h3>
               <p className="text-gray-600 font-body mb-4">
-                Durchstöbere den Marktplatz nach spannende Angebote von anderen Mitgliedern und finde tolle Spiele zum Ausleihen, Kaufen oder
+                Entdecke spannende Angebote von anderen Mitgliedern und finde tolle Spiele zum Ausleihen, Kaufen oder
                 Tauschen.
               </p>
               <Button
@@ -222,9 +222,9 @@ export default function HomePage() {
               <CheckCircle className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2 font-handwritten">Riesige Spielvielfalt</h3>
+              <h3 className="text-lg font-bold text-gray-800 mb-2 font-handwritten">Spielvielfalt</h3>
               <p className="text-gray-600 font-body">
-                Einfacher Zugang zu tollen Spielen aus der Community. Von Klassikern bis zu den neuesten Releases - entdecke Spiele, die du sonst nie probiert hättest.
+                Einfacher Zugang zu tollen Spielen.
               </p>
             </div>
           </div>

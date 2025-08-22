@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
-  Library,
+  BookOpen,
   PictureInPicture,
   Plus,
   Search,
@@ -138,7 +138,7 @@ function LibraryLoading() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
       <div className="text-center">
-        <div className="w-20 h-20 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce transform rotate-12">
+        <div className="w-20 h-20 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce transform rotate-12">
           <BookOpen className="w-10 h-10 text-white" />
         </div>
         <h2 className="text-3xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
@@ -148,7 +148,7 @@ function LibraryLoading() {
           Deine Spiele werden aus dem Regal geholt!
         </p>
         <div className="mt-8 flex justify-center space-x-2">
-          <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+          <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
           <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
           <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
         </div>
@@ -1058,8 +1058,8 @@ function LibraryContent() {
           <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten flex items-center justify-center gap-4">
             Meine Ludothek
             {loading && (
-              <div className="w-8 h-8 bg-orange-400 rounded-full flex items-center justify-center animate-bounce">
-                <Library className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 bg-teal-400 rounded-full flex items-center justify-center animate-bounce">
+                <BookOpen className="w-4 h-4 text-white" />
               </div>
             )}
           </h1>
@@ -1072,8 +1072,8 @@ function LibraryContent() {
         <Dialog open={isAddGameDialogOpen} onOpenChange={setIsAddGameDialogOpen}>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-handwritten text-2xl text-center flex items-center justify-center gap-2 text-orange-700">
-                <Plus className="w-6 h-6 text-orange-700" />
+              <DialogTitle className="font-handwritten text-2xl text-center flex items-center justify-center gap-2 text-teal-700">
+                <Plus className="w-6 h-6 text-teal-500" />
                 Neues Spiel hinzufügen
               </DialogTitle>
               <p className="text-sm text-gray-500 text-center font-body">
@@ -1400,7 +1400,7 @@ function LibraryContent() {
 
         {/* Search, Sort and Filter */}
         <div className="space-y-4 mb-8">
-          <div className="bg-white/50 rounded-lg p-4 border border-orange-200">
+          <div className="bg-white/50 rounded-lg p-4 border border-teal-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
               <div className="col-span-full mb-2">
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
@@ -1409,13 +1409,13 @@ function LibraryContent() {
                       placeholder="Spiele durchsuchen..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="border-2 border-orange-200 focus:border-orange-400 text-sm md:text-base"
+                      className="border-2 border-teal-200 focus:border-teal-400 text-sm md:text-base"
                       disabled={!databaseConnected}
                     />
                   </div>
                   <Button
                     onClick={() => setIsAddGameDialogOpen(true)}
-                    className="bg-orange-400 hover:bg-orange-500 text-white font-handwritten whitespace-nowrap"
+                    className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten whitespace-nowrap"
                     disabled={!databaseConnected}
                   >
                     <Plus className="w-4 h-4 mr-2" />
