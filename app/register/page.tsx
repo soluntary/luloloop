@@ -45,10 +45,20 @@ export default function RegisterPage() {
       return
     }
 
+    if (!username.trim()) {
+      setError("Benutzername ist erforderlich.")
+      return
+    }
+
+    if (username.length < 3) {
+      setError("Benutzername muss mindestens 3 Zeichen lang sein.")
+      return
+    }
+
     setLoading(true)
 
     try {
-      await signUp(email, password, fullName)
+      await signUp(email, password, fullName, username)
       setSuccess("Registrierung erfolgreich! Bitte überprüfen Sie Ihre E-Mails zur Bestätigung.")
 
       // Redirect to login after successful registration

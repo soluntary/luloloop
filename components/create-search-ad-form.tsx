@@ -151,7 +151,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
           </div>
 
           <div className="space-y-2">
-            <Label className="font-body text-orange-800 font-semibold text-base">Bild (optional)</Label>
+            <Label className="font-body text-orange-800 font-semibold text-base">Bild</Label>
             <div className="space-y-3">
               {imagePreview ? (
                 <div className="relative">
@@ -174,7 +174,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                 <div className="border-2 border-dashed border-orange-200 rounded-xl p-6 text-center bg-white/50">
                   <ImageIcon className="w-8 h-8 text-orange-400 mx-auto mb-2" />
                   <p className="text-orange-600 text-sm mb-3">
-                    Lade ein Bild hoch oder wir verwenden automatisch ein Logo
+                    Lade ein Bild hoch
                   </p>
                   <label className="cursor-pointer">
                     <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />

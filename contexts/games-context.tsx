@@ -20,6 +20,9 @@ interface Game {
   type?: string
   style?: string
   besonderheit?: string
+  latitude?: number
+  longitude?: number
+  location?: string
 }
 
 interface MarketplaceOffer {
@@ -38,6 +41,8 @@ interface MarketplaceOffer {
   active: boolean
   created_at?: string
   rating?: number
+  latitude?: number
+  longitude?: number
 }
 
 interface GamesContextType {
@@ -194,6 +199,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         ...(gameData.type && { type: gameData.type }),
         ...(gameData.style && { style: gameData.style }),
         ...(gameData.besonderheit && { besonderheit: gameData.besonderheit }),
+        ...(gameData.latitude && { latitude: gameData.latitude }),
+        ...(gameData.longitude && { longitude: gameData.longitude }),
+        ...(gameData.location && { location: gameData.location }),
       }
 
       const { data, error } = await supabase.from("games").insert([gameWithFallback]).select()
@@ -242,6 +250,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         ...(gameData.type && { type: gameData.type }),
         ...(gameData.style && { style: gameData.style }),
         ...(gameData.besonderheit !== undefined && { besonderheit: gameData.besonderheit }),
+        ...(gameData.latitude && { latitude: gameData.latitude }),
+        ...(gameData.longitude && { longitude: gameData.longitude }),
+        ...(gameData.location && { location: gameData.location }),
       }
 
       const { data, error } = await supabase
@@ -304,6 +315,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         ...offerData,
         image: offerData.image || FALLBACK_IMAGE,
         user_id: user.id,
+        ...(offerData.latitude && { latitude: offerData.latitude }),
+        ...(offerData.longitude && { longitude: offerData.longitude }),
       }
 
       const { data, error } = await supabase.from("marketplace_offers").insert([offerWithFallback]).select()
@@ -351,6 +364,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       const offerWithFallback = {
         ...offerData,
         image: offerData.image || FALLBACK_IMAGE,
+        ...(offerData.latitude && { latitude: offerData.latitude }),
+        ...(offerData.longitude && { longitude: offerData.longitude }),
       }
 
       const { data, error } = await supabase

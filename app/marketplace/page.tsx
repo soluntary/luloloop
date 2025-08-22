@@ -22,6 +22,7 @@ import {
   Store,
   AlertCircle,
   Calendar,
+  MapPin,
 } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { useGames } from "@/contexts/games-context"
@@ -31,6 +32,10 @@ import { supabase } from "@/lib/supabase"
 import { useMessages } from "@/contexts/messages-context"
 import { useUser } from "@/contexts/user-context"
 import { UserLink } from "@/components/user-link"
+
+import { SimpleLocationSearch } from "@/components/simple-location-search"
+import { LocationPermissionBanner } from "@/components/location-permission-banner"
+import { DistanceBadge } from "@/components/distance-badge"
 
 export default function MarketplacePage() {
   const { user } = useUser()
@@ -62,59 +67,25 @@ export default function MarketplacePage() {
     style: "",
   })
 
+  const [locationSearchResults, setLocationSearchResults] = useState<any[]>([])
+  const [showLocationResults, setShowLocationResults] = useState(false)
+
   const [rentalStartDate, setRentalStartDate] = useState("")
   const [rentalEndDate, setRentalEndDate] = useState("")
   const [calculatedPrice, setCalculatedPrice] = useState<string>("")
 
-  useEffect(() => {
-    if (databaseConnected) {
-      loadSearchAds()
-    }
-  }, [databaseConnected])
-
-  const loadSearchAds = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("search_ads")
-        .select(`
-          id,
-          title,
-          description,
-          type,
-          created_at,
-          active,
-          user_id
-        `)
-        .eq("active", true)
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.error("Error loading search ads:", error)
-        return
-      }
-
-      // Get user names separately to avoid relationship issues
-      const searchAdsWithUsers = await Promise.all(
-        (data || []).map(async (ad) => {
-          const { data: userData } = await supabase.from("users").select("name").eq("id", ad.user_id).single()
-
-          return {
-            ...ad,
-            users: userData || { name: "Unbekannt" },
-          }
-        }),
-      )
-
-      setSearchAds(searchAdsWithUsers)
-    } catch (error) {
-      console.error("Error loading search ads:", error)
-    }
+  const handleLocationSearch = (results: any[]) => {
+    console.log("[v0] Location search results received:", results)
+    setLocationSearchResults(results)
+    setShowLocationResults(true)
   }
 
-  const allItems = [
-    ...marketplaceOffers.map((offer) => ({ ...offer, itemType: "offer" })),
-    ...searchAds.map((ad) => ({ ...ad, itemType: "search" })),
-  ]
+  const allItems = showLocationResults
+    ? locationSearchResults.map((item) => ({ ...item, itemType: "offer" }))
+    : [
+        ...marketplaceOffers.map((offer) => ({ ...offer, itemType: "offer" })),
+        ...searchAds.map((ad) => ({ ...ad, itemType: "search" })),
+      ]
 
   const filteredItems = allItems
     .filter((item) => {
@@ -157,6 +128,11 @@ export default function MarketplacePage() {
     })
     .sort((a, b) => {
       switch (sortBy) {
+        case "distance":
+          if (a.distance !== undefined && b.distance !== undefined) {
+            return a.distance - b.distance
+          }
+          return 0
         case "newest":
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         case "oldest":
@@ -462,6 +438,19 @@ Können wir die Details besprechen?`,
 
   const dynamicFilterOptions = getUniqueFilterValues()
 
+  const loadSearchAds = async () => {
+    try {
+      const { data, error } = await supabase.from("search_ads").select("*")
+      if (error) {
+        console.error("Error fetching search ads:", error)
+      } else {
+        setSearchAds(data || [])
+      }
+    } catch (error) {
+      console.error("Error fetching search ads:", error)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
       <Navigation currentPage="spielemarkt" />
@@ -520,243 +509,275 @@ Können wir die Details besprechen?`,
           )}
         </div>
 
+        {/* Location Permission Banner */}
+        <LocationPermissionBanner />
+
         {/* Search and Filter Bar */}
         <div className="bg-white/50 rounded-lg p-4 border border-orange-200 mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
-            <div className="col-span-full mb-2">
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Input
-                    placeholder="Spiele, Verlage oder Anbieter durchsuchen..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="border-2 border-orange-200 focus:border-orange-400"
-                    disabled={!databaseConnected}
-                  />
+          <div className="space-y-4">
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <Input
+                  placeholder="Spiele, Verlage oder Anbieter durchsuchen..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="border-2 border-orange-200 focus:border-orange-400"
+                  disabled={!databaseConnected}
+                />
+              </div>
+              <Button
+                variant="outline"
+                className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
+                disabled={!databaseConnected}
+              >
+                <Search className="w-5 h-5 mr-2" />
+                Suchen
+              </Button>
+            </div>
+
+            <SimpleLocationSearch onLocationSearch={handleLocationSearch} disabled={!databaseConnected} />
+
+            {showLocationResults && (
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm text-blue-800 font-medium">
+                    Zeige Ergebnisse in der Nähe ({locationSearchResults.length})
+                  </span>
                 </div>
                 <Button
                   variant="outline"
-                  className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
-                  disabled={!databaseConnected}
+                  size="sm"
+                  onClick={() => {
+                    setShowLocationResults(false)
+                    setLocationSearchResults([])
+                  }}
+                  className="text-blue-600 border-blue-300 hover:bg-blue-100"
                 >
-                  <Search className="w-5 h-5 mr-2" />
-                  Suchen
+                  Alle Angebote zeigen
                 </Button>
               </div>
-            </div>
+            )}
 
-            {/* Sortierung */}
-            <div>
-              <Label className="text-xs text-gray-600 mb-1 block">Sortieren nach</Label>
-              <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest" className="text-xs">
-                    Neueste zuerst
-                  </SelectItem>
-                  <SelectItem value="oldest" className="text-xs">
-                    Älteste zuerst
-                  </SelectItem>
-                  <SelectItem value="title" className="text-xs">
-                    Spielname A-Z
-                  </SelectItem>
-                  <SelectItem value="title-desc" className="text-xs">
-                    Spielname Z-A
-                  </SelectItem>
-                  <SelectItem value="price-low" className="text-xs">
-                    Preis aufsteigend
-                  </SelectItem>
-                  <SelectItem value="price-high" className="text-xs">
-                    Preis absteigend
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Anzeigeart */}
-            <div>
-              <Label className="text-xs text-gray-600 mb-1 block">Anzeigeart</Label>
-              <Select value={selectedType} onValueChange={setSelectedType} disabled={!databaseConnected}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Alle" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" className="text-xs">
-                    Alle Anzeigen
-                  </SelectItem>
-                  <SelectItem value="lend" className="text-xs">
-                    Leihangebote
-                  </SelectItem>
-                  <SelectItem value="trade" className="text-xs">
-                    Tauschangebote
-                  </SelectItem>
-                  <SelectItem value="sell" className="text-xs">
-                    Verkaufsangebote
-                  </SelectItem>
-                  <SelectItem value="search" className="text-xs">
-                    Suchanzeigen
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Spieleranzahl Filter */}
-            <div>
-              <Label className="text-xs text-gray-600 mb-1 block">Spieleranzahl</Label>
-              <Select
-                value={filters.playerCount}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({ ...prev, playerCount: value === "all" ? "" : value }))
-                }
-                disabled={!databaseConnected}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Alle" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  {dynamicFilterOptions.playerCounts.map((count) => (
-                    <SelectItem key={count} value={count}>
-                      {count}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {/* Sortierung */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Sortieren nach</Label>
+                <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {showLocationResults && (
+                      <SelectItem value="distance" className="text-xs">
+                        Nach Entfernung
+                      </SelectItem>
+                    )}
+                    <SelectItem value="newest" className="text-xs">
+                      Neueste zuerst
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Spieldauer Filter */}
-            <div>
-              <Label className="text-xs text-gray-600 mb-1 block">Spieldauer</Label>
-              <Select
-                value={filters.duration}
-                onValueChange={(value) => setFilters((prev) => ({ ...prev, duration: value === "all" ? "" : value }))}
-                disabled={!databaseConnected}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Alle" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  {dynamicFilterOptions.durations.map((duration) => (
-                    <SelectItem key={duration} value={duration}>
-                      {duration}
+                    <SelectItem value="oldest" className="text-xs">
+                      Älteste zuerst
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Altersempfehlung Filter */}
-            <div>
-              <Label className="text-xs text-gray-600 mb-1 block">Alter</Label>
-              <Select
-                value={filters.age}
-                onValueChange={(value) => setFilters((prev) => ({ ...prev, age: value === "all" ? "" : value }))}
-                disabled={!databaseConnected}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Alle" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  {dynamicFilterOptions.ages.map((age) => (
-                    <SelectItem key={age} value={age}>
-                      {age}
+                    <SelectItem value="title" className="text-xs">
+                      Spielname A-Z
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Sprache Filter */}
-            <div>
-              <Label className="text-xs text-gray-600 mb-1 block">Sprache</Label>
-              <Select
-                value={filters.language}
-                onValueChange={(value) => setFilters((prev) => ({ ...prev, language: value === "all" ? "" : value }))}
-                disabled={!databaseConnected}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Alle" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  {dynamicFilterOptions.languages.map((language) => (
-                    <SelectItem key={language} value={language}>
-                      {language}
+                    <SelectItem value="title-desc" className="text-xs">
+                      Spielname Z-A
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Kategorie Filter */}
-            <div>
-              <Label className="text-xs text-gray-600 mb-1 block">Kategorie</Label>
-              <Select
-                value={filters.category}
-                onValueChange={(value) => setFilters((prev) => ({ ...prev, category: value === "all" ? "" : value }))}
-                disabled={!databaseConnected}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Alle" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  {dynamicFilterOptions.categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
+                    <SelectItem value="price-low" className="text-xs">
+                      Preis aufsteigend
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Typus Filter */}
-            <div>
-              <Label className="text-xs text-gray-600 mb-1 block">Typus</Label>
-              <Select
-                value={filters.style}
-                onValueChange={(value) => setFilters((prev) => ({ ...prev, style: value === "all" ? "" : value }))}
-                disabled={!databaseConnected}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Alle" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  {dynamicFilterOptions.styles.map((style) => (
-                    <SelectItem key={style} value={style}>
-                      {style}
+                    <SelectItem value="price-high" className="text-xs">
+                      Preis absteigend
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex items-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSearchTerm("")
-                  setSelectedType("all")
-                  setSortBy("newest")
-                  setFilters({
-                    playerCount: "",
-                    duration: "",
-                    age: "",
-                    language: "",
-                    category: "",
-                    style: "",
-                  })
-                }}
-                className="h-8 text-xs border-2 border-gray-400 text-gray-600 hover:bg-gray-400 hover:text-white font-handwritten"
-                disabled={!databaseConnected}
-              >
-                Filter zurücksetzen
-              </Button>
+              {/* Anzeigeart */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Anzeigeart</Label>
+                <Select value={selectedType} onValueChange={setSelectedType} disabled={!databaseConnected}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-xs">
+                      Alle Anzeigen
+                    </SelectItem>
+                    <SelectItem value="lend" className="text-xs">
+                      Leihangebote
+                    </SelectItem>
+                    <SelectItem value="trade" className="text-xs">
+                      Tauschangebote
+                    </SelectItem>
+                    <SelectItem value="sell" className="text-xs">
+                      Verkaufsangebote
+                    </SelectItem>
+                    <SelectItem value="search" className="text-xs">
+                      Suchanzeigen
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Spieleranzahl Filter */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Spieleranzahl</Label>
+                <Select
+                  value={filters.playerCount}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({ ...prev, playerCount: value === "all" ? "" : value }))
+                  }
+                  disabled={!databaseConnected}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    {dynamicFilterOptions.playerCounts.map((count) => (
+                      <SelectItem key={count} value={count}>
+                        {count}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Spieldauer Filter */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Spieldauer</Label>
+                <Select
+                  value={filters.duration}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, duration: value === "all" ? "" : value }))}
+                  disabled={!databaseConnected}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    {dynamicFilterOptions.durations.map((duration) => (
+                      <SelectItem key={duration} value={duration}>
+                        {duration}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Altersempfehlung Filter */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Alter</Label>
+                <Select
+                  value={filters.age}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, age: value === "all" ? "" : value }))}
+                  disabled={!databaseConnected}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    {dynamicFilterOptions.ages.map((age) => (
+                      <SelectItem key={age} value={age}>
+                        {age}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sprache Filter */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Sprache</Label>
+                <Select
+                  value={filters.language}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, language: value === "all" ? "" : value }))}
+                  disabled={!databaseConnected}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    {dynamicFilterOptions.languages.map((language) => (
+                      <SelectItem key={language} value={language}>
+                        {language}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Kategorie Filter */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Kategorie</Label>
+                <Select
+                  value={filters.category}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, category: value === "all" ? "" : value }))}
+                  disabled={!databaseConnected}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    {dynamicFilterOptions.categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Typus Filter */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1 block">Typus</Label>
+                <Select
+                  value={filters.style}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, style: value === "all" ? "" : value }))}
+                  disabled={!databaseConnected}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    {dynamicFilterOptions.styles.map((style) => (
+                      <SelectItem key={style} value={style}>
+                        {style}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm("")
+                    setSelectedType("all")
+                    setSortBy("newest")
+                    setFilters({
+                      playerCount: "",
+                      duration: "",
+                      age: "",
+                      language: "",
+                      category: "",
+                      style: "",
+                    })
+                  }}
+                  className="h-8 text-xs border-2 border-gray-400 text-gray-600 hover:bg-gray-400 hover:text-white font-handwritten"
+                  disabled={!databaseConnected}
+                >
+                  Filter zurücksetzen
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -806,10 +827,27 @@ Können wir die Details besprechen?`,
                           </div>
                         </div>
 
-                        {/* Minimalist content section */}
                         <div className="p-4">
-                          <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{item.title}</h3>
-                          <p className="text-gray-500 text-xs mb-3">{item.publisher}</p>
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{item.title}</h3>
+                              <p className="text-gray-500 text-xs mb-3">{item.publisher}</p>
+                            </div>
+                            {item.distance !== undefined && <DistanceBadge distance={item.distance} className="ml-2" />}
+                          </div>
+
+                          {item.type === "lend" && (item.min_rental_days || item.max_rental_days) && (
+                            <div className="mb-2">
+                              <p className="text-xs text-teal-600 bg-teal-50 px-2 py-1 rounded">
+                                📅 Ausleihdauer:{" "}
+                                {item.min_rental_days && item.max_rental_days
+                                  ? `${item.min_rental_days}-${item.max_rental_days} Tage`
+                                  : item.min_rental_days
+                                    ? `ab ${item.min_rental_days} Tage`
+                                    : `bis ${item.max_rental_days} Tage`}
+                              </p>
+                            </div>
+                          )}
 
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-orange-600 text-sm">{item.price}</span>
@@ -995,292 +1033,314 @@ Können wir die Details besprechen?`,
 
       {/* Detailed Offer View Modal */}
       <Dialog open={isOfferDetailsOpen} onOpenChange={setIsOfferDetailsOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-handwritten text-3xl text-center text-orange-800">
+              {selectedOfferDetails?.title}
+            </DialogTitle>
+          </DialogHeader>
+
           {selectedOfferDetails && (
-            <div className="relative">
-              <div className="relative h-48 bg-gradient-to-br from-orange-100 to-pink-100 overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <img
-                    src={selectedOfferDetails.image || "/images/ludoloop-placeholder.png"}
-                    alt={selectedOfferDetails.title}
-                    className="h-40 w-auto object-contain rounded-lg shadow-lg mb-4"
-                  />
-                </div>
-                <div className="absolute top-4 right-4">
-                  <div className={`w-4 h-4 ${getTypeColor(selectedOfferDetails.type)} rounded-full shadow-sm`}></div>
-                </div>
-              </div>
-
-              <div className="p-8 space-y-8">
-                {/* Title and type */}
-                <div className="text-center space-y-2">
-                  <h1 className="text-3xl font-bold text-gray-900">{selectedOfferDetails.title}</h1>
-                  <Badge
-                    variant="outline"
-                    className={`${getTypeColor(selectedOfferDetails.type)} text-white border-0 px-4 py-1 text-sm`}
-                  >
-                    {getTypeText(selectedOfferDetails.type)}
-                  </Badge>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Angebot & Preis</p>
-                    <p className="font-semibold text-orange-600 text-2xl">
-                      {selectedOfferDetails.price || "Preis auf Anfrage"}
-                    </p>
+            <div className="space-y-6">
+              <div className="relative">
+                <div className="relative h-48 bg-gradient-to-br from-orange-100 to-pink-100 overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <img
+                      src={selectedOfferDetails.image || "/images/ludoloop-placeholder.png"}
+                      alt={selectedOfferDetails.title}
+                      className="h-40 w-auto object-contain rounded-lg shadow-lg mb-4"
+                    />
                   </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Zustand</p>
-                    <p className="font-semibold leading-7 text-sm">
-                      {selectedOfferDetails.condition || "Nicht angegeben"}
-                    </p>
+                  <div className="absolute top-4 right-4">
+                    <div className={`w-4 h-4 ${getTypeColor(selectedOfferDetails.type)} rounded-full shadow-sm`}></div>
                   </div>
                 </div>
 
-                <div>
-                  <h2 className="text-xl font-bold mb-4 text-secondary-foreground">Spieldetails</h2>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-1">Spieldauer</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedOfferDetails.duration || "Nicht angegeben"}
+                <div className="p-8 space-y-8">
+                  {/* Title and type */}
+                  <div className="text-center space-y-2">
+                    <h1 className="text-3xl font-bold text-gray-900">{selectedOfferDetails.title}</h1>
+                    <Badge
+                      variant="outline"
+                      className={`${getTypeColor(selectedOfferDetails.type)} text-white border-0 px-4 py-1 text-sm`}
+                    >
+                      {getTypeText(selectedOfferDetails.type)}
+                    </Badge>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Angebot & Preis</p>
+                      <p className="font-semibold text-orange-600 text-2xl">
+                        {selectedOfferDetails.price || "Preis auf Anfrage"}
                       </p>
                     </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-1">Spieleranzahl</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedOfferDetails.players || "Nicht angegeben"}
-                      </p>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-1">Altersempfehlung</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedOfferDetails.age || "Nicht angegeben"}
-                      </p>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-1">Kategorie</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedOfferDetails.category || "Nicht angegeben"}
-                      </p>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-1">Typus</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedOfferDetails.style || "Nicht angegeben"}
-                      </p>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-1">Sprache</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedOfferDetails.language || "Nicht angegeben"}
-                      </p>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-1">Verlag</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedOfferDetails.publisher || "Nicht angegeben"}
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Zustand</p>
+                      <p className="font-semibold leading-7 text-sm">
+                        {selectedOfferDetails.condition || "Nicht angegeben"}
                       </p>
                     </div>
                   </div>
-                </div>
 
-                {selectedOfferDetails.description && (
-                  <div className="bg-white border border-gray-100 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Beschreibung</h3>
-                    <p className="text-gray-700 leading-relaxed">{selectedOfferDetails.description}</p>
-                  </div>
-                )}
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="bg-white border border-gray-100 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Standort</h3>
-                    <div className="flex items-start space-x-3">
-                      <div>
-                        <p className="text-gray-900 font-medium">{selectedOfferDetails.location}</p>
-                        <p className="text-sm text-gray-500 mt-1">{selectedOfferDetails.distance}</p>
+                  <div>
+                    <h2 className="text-xl font-bold mb-4 text-secondary-foreground">Spieldetails</h2>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-500 mb-1">Spieldauer</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {selectedOfferDetails.duration || "Nicht angegeben"}
+                        </p>
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white border border-gray-100 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Anbieter</h3>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-16 h-16 rounded-full overflow-hidden shadow-sm border-2 border-orange-200">
-                        <img
-                          src={
-                            selectedOfferDetails.avatar ||
-                            `/placeholder.svg?height=64&width=64&query=avatar+${encodeURIComponent(selectedOfferDetails.owner || selectedOfferDetails.users?.name || "User")}`
-                          }
-                          alt={`${selectedOfferDetails.owner || selectedOfferDetails.users?.name || "User"} Avatar`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            // Fallback to initial avatar if image fails to load
-                            const target = e.target as HTMLImageElement
-                            target.style.display = "none"
-                            const fallback = target.nextElementSibling as HTMLElement
-                            if (fallback) fallback.style.display = "flex"
-                          }}
-                        />
-                        <div
-                          className="w-full h-full bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center"
-                          style={{ display: "none" }}
-                        >
-                          <span className="text-orange-600 font-bold text-xl">
-                            {(selectedOfferDetails.owner || selectedOfferDetails.users?.name || "U")
-                              .charAt(0)
-                              .toUpperCase()}
-                          </span>
-                        </div>
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-500 mb-1">Spieleranzahl</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {selectedOfferDetails.players || "Nicht angegeben"}
+                        </p>
                       </div>
-                      <div className="flex-1">
-                        <UserLink
-                          userId={selectedOfferDetails.user_id}
-                          className="text-gray-900 font-semibold text-lg block"
-                        >
-                          {selectedOfferDetails.owner || selectedOfferDetails.users?.name || "Unbekannter Nutzer"}
-                        </UserLink>
-                        {selectedOfferDetails.rating && (
-                          <div className="flex items-center mt-2">
-                            <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                            <span className="text-sm text-gray-600 ml-1 font-medium">
-                              {selectedOfferDetails.rating}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {selectedOfferDetails.type === "lend" && (
-                  <div className="bg-gradient-to-br from-orange-50 to-cyan-50 rounded-xl p-6 border border-orange-200">
-                    <h3 className="text-lg font-semibold text-orange-800 mb-4 flex items-center gap-2">
-                      <Calendar className="w-5 h-5" />
-                      Ausleihzeitraum wählen
-                    </h3>
-                    <div className="grid md:grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <label className="text-sm font-medium text-orange-700 mb-2 block">Von</label>
-                        <input
-                          type="date"
-                          value={rentalStartDate}
-                          onChange={(e) => setRentalStartDate(e.target.value)}
-                          min={new Date().toISOString().split("T")[0]}
-                          className="w-full p-3 border-2 border-orange-200 rounded-lg focus:border-orange-500 focus:outline-none bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-orange-700 mb-2 block">Bis</label>
-                        <input
-                          type="date"
-                          value={rentalEndDate}
-                          onChange={(e) => setRentalEndDate(e.target.value)}
-                          min={rentalStartDate || new Date().toISOString().split("T")[0]}
-                          className="w-full p-3 border-2 border-orange-200 rounded-lg focus:border-orange-500 focus:outline-none bg-white"
-                        />
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-500 mb-1">Altersempfehlung</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {selectedOfferDetails.age || "Nicht angegeben"}
+                        </p>
                       </div>
                     </div>
 
-                    {calculatedPrice && (
-                      <div className="bg-white p-4 rounded-lg border border-orange-200 mb-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-orange-700 font-medium">Gesamt-Ausleihgebühr:</span>
-                          <span className="text-xl font-bold text-orange-800">{calculatedPrice}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {rentalStartDate && rentalEndDate && !calculatedPrice && (
-                      <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-4">
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4 text-orange-600" />
-                          <p className="text-sm text-orange-700">
-                            Für den gewählten Zeitraum ist keine automatische Preisberechnung möglich. Der Anbieter wird
-                            Ihnen ein individuelles Angebot unterbreiten.
+                    {selectedOffer?.type === "lend" &&
+                      (selectedOffer.min_rental_days || selectedOffer.max_rental_days) && (
+                        <div className="mt-4 p-4 bg-teal-50 rounded-lg border border-teal-200">
+                          <h3 className="text-sm font-semibold text-teal-800 mb-2">📅 Ausleihdauer</h3>
+                          <p className="text-sm text-teal-700">
+                            {selectedOffer.min_rental_days && selectedOffer.max_rental_days
+                              ? `Mindestens ${selectedOffer.min_rental_days} Tage, maximal ${selectedOffer.max_rental_days} Tage`
+                              : selectedOffer.min_rental_days
+                                ? `Mindestens ${selectedOffer.min_rental_days} Tage`
+                                : `Maximal ${selectedOffer.max_rental_days} Tage`}
                           </p>
                         </div>
-                      </div>
-                    )}
+                      )}
+                  </div>
 
-                    {(!rentalStartDate || !rentalEndDate) && (
-                      <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-orange-600" />
-                          <p className="text-sm text-orange-700">
-                            Bitte wählen Sie einen Ausleihzeitraum, um die Gesamt-Ausleihgebühr zu berechnen.
-                          </p>
+                  {selectedOfferDetails.description && (
+                    <div className="bg-white border border-gray-100 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Beschreibung</h3>
+                      <p className="text-gray-700 leading-relaxed">{selectedOfferDetails.description}</p>
+                    </div>
+                  )}
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="bg-white border border-gray-100 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Standort</h3>
+                      <div className="flex items-start space-x-3">
+                        <div>
+                          <p className="text-gray-900 font-medium">{selectedOfferDetails.location}</p>
+                          <p className="text-sm text-gray-500 mt-1">{selectedOfferDetails.distance}</p>
                         </div>
                       </div>
-                    )}
+                    </div>
 
-                    {rentalStartDate && rentalEndDate && (
-                      <div className="bg-orange-100 p-4 rounded-lg border border-orange-200">
-                        <h4 className="text-sm font-semibold text-orange-800 mb-2">Ausleih-Zusammenfassung:</h4>
-                        <div className="space-y-1 text-sm text-orange-700">
-                          <div className="flex justify-between">
-                            <span>Zeitraum:</span>
-                            <span className="font-medium">
-                              {new Date(rentalStartDate).toLocaleDateString("de-DE")} -{" "}
-                              {new Date(rentalEndDate).toLocaleDateString("de-DE")}
+                    <div className="bg-white border border-gray-100 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Anbieter</h3>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-16 h-16 rounded-full overflow-hidden shadow-sm border-2 border-orange-200">
+                          <img
+                            src={
+                              selectedOfferDetails.avatar ||
+                              `/placeholder.svg?height=64&width=64&query=avatar+${encodeURIComponent(selectedOfferDetails.owner || selectedOfferDetails.users?.name || "User")}`
+                            }
+                            alt={`${selectedOfferDetails.owner || selectedOfferDetails.users?.name || "User"} Avatar`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Fallback to initial avatar if image fails to load
+                              const target = e.target as HTMLImageElement
+                              target.style.display = "none"
+                              const fallback = target.nextElementSibling as HTMLElement
+                              if (fallback) fallback.style.display = "flex"
+                            }}
+                          />
+                          <div
+                            className="w-full h-full bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center"
+                            style={{ display: "none" }}
+                          >
+                            <span className="text-orange-600 font-bold text-xl">
+                              {(selectedOfferDetails.owner || selectedOfferDetails.users?.name || "U")
+                                .charAt(0)
+                                .toUpperCase()}
                             </span>
                           </div>
-                          <div className="flex justify-between">
-                            <span>Dauer:</span>
-                            <span className="font-medium">
-                              {Math.ceil(
-                                (new Date(rentalEndDate).getTime() - new Date(rentalStartDate).getTime()) /
-                                  (1000 * 60 * 60 * 24),
-                              )}{" "}
-                              Tag
-                              {Math.ceil(
-                                (new Date(rentalEndDate).getTime() - new Date(rentalStartDate).getTime()) /
-                                  (1000 * 60 * 60 * 24),
-                              ) > 1
-                                ? "e"
-                                : ""}
-                            </span>
-                          </div>
-                          {calculatedPrice && (
-                            <div className="flex justify-between border-t border-orange-200 pt-2 mt-2">
-                              <span className="font-semibold">Gesamt-Ausleihgebühr:</span>
-                              <span className="font-bold">{calculatedPrice}</span>
+                        </div>
+                        <div className="flex-1">
+                          <UserLink
+                            userId={selectedOfferDetails.user_id}
+                            className="text-gray-900 font-semibold text-lg block"
+                          >
+                            {selectedOfferDetails.owner || selectedOfferDetails.users?.name || "Unbekannter Nutzer"}
+                          </UserLink>
+                          {selectedOfferDetails.rating && (
+                            <div className="flex items-center mt-2">
+                              <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                              <span className="text-sm text-gray-600 ml-1 font-medium">
+                                {selectedOfferDetails.rating}
+                              </span>
                             </div>
                           )}
                         </div>
                       </div>
-                    )}
+                    </div>
                   </div>
-                )}
 
-                <div className="flex gap-4 pt-6 border-t border-gray-100">
-                  <Button
-                    onClick={() => {
-                      setIsOfferDetailsOpen(false)
-                      if (selectedOfferDetails.itemType === "offer") {
-                        handleContactSeller(selectedOfferDetails)
-                      }
-                    }}
-                    disabled={selectedOfferDetails.type === "lend" && (!rentalStartDate || !rentalEndDate)}
-                    className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  >
-                    <MessageCircle className="w-5 h-5 mr-2" />
-                    {selectedOfferDetails.type === "lend"
-                      ? rentalStartDate && rentalEndDate
-                        ? "Ausleihe anfragen"
-                        : "Zeitraum wählen"
-                      : selectedOfferDetails.itemType === "offer"
-                        ? "Anfragen"
-                        : "Antworten"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsOfferDetailsOpen(false)}
-                    className="px-8 py-3 rounded-xl border-gray-200 hover:bg-gray-50 font-medium"
-                  >
-                    Schliessen
-                  </Button>
+                  {selectedOfferDetails.type === "lend" &&
+                    (selectedOfferDetails.min_rental_days || selectedOfferDetails.max_rental_days) && (
+                      <div className="bg-teal-50 p-4 rounded-xl border border-teal-200">
+                        <h4 className="font-handwritten text-lg text-teal-800 font-bold mb-2 flex items-center">
+                          <Calendar className="w-5 h-5 mr-2" />
+                          Ausleihdauer
+                        </h4>
+                        <div className="space-y-1">
+                          {selectedOfferDetails.min_rental_days && (
+                            <p className="text-teal-700 font-body text-sm">
+                              <span className="font-semibold">Mindestens:</span> {selectedOfferDetails.min_rental_days}{" "}
+                              Tag{selectedOfferDetails.min_rental_days > 1 ? "e" : ""}
+                            </p>
+                          )}
+                          {selectedOfferDetails.max_rental_days && (
+                            <p className="text-teal-700 font-body text-sm">
+                              <span className="font-semibold">Maximal:</span> {selectedOfferDetails.max_rental_days} Tag
+                              {selectedOfferDetails.max_rental_days > 1 ? "e" : ""}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {selectedOfferDetails.type === "lend" && (
+                    <div className="bg-gradient-to-br from-orange-50 to-cyan-50 rounded-xl p-6 border border-orange-200">
+                      <h3 className="text-lg font-semibold text-orange-800 mb-4 flex items-center gap-2">
+                        <Calendar className="w-5 h-5" />
+                        Ausleihzeitraum wählen
+                      </h3>
+                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="text-sm font-medium text-orange-700 mb-2 block">Von</label>
+                          <input
+                            type="date"
+                            value={rentalStartDate}
+                            onChange={(e) => setRentalStartDate(e.target.value)}
+                            min={new Date().toISOString().split("T")[0]}
+                            className="w-full p-3 border-2 border-orange-200 rounded-lg focus:border-orange-500 focus:outline-none bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-orange-700 mb-2 block">Bis</label>
+                          <input
+                            type="date"
+                            value={rentalEndDate}
+                            onChange={(e) => setRentalEndDate(e.target.value)}
+                            min={rentalStartDate || new Date().toISOString().split("T")[0]}
+                            className="w-full p-3 border-2 border-orange-200 rounded-lg focus:border-orange-500 focus:outline-none bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      {calculatedPrice && (
+                        <div className="bg-white p-4 rounded-lg border border-orange-200 mb-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-orange-700 font-medium">Gesamt-Ausleihgebühr:</span>
+                            <span className="text-xl font-bold text-orange-800">{calculatedPrice}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {rentalStartDate && rentalEndDate && !calculatedPrice && (
+                        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-4">
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-orange-600" />
+                            <p className="text-sm text-orange-700">
+                              Für den gewählten Zeitraum ist keine automatische Preisberechnung möglich. Der Anbieter
+                              wird Ihnen ein individuelles Angebot unterbreiten.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {(!rentalStartDate || !rentalEndDate) && (
+                        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-4">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-orange-600" />
+                            <p className="text-sm text-orange-700">
+                              Bitte wählen Sie einen Ausleihzeitraum, um die Gesamt-Ausleihgebühr zu berechnen.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {rentalStartDate && rentalEndDate && (
+                        <div className="bg-orange-100 p-4 rounded-lg border border-orange-200">
+                          <h4 className="text-sm font-semibold text-orange-800 mb-2">Ausleih-Zusammenfassung:</h4>
+                          <div className="space-y-1 text-sm text-orange-700">
+                            <div className="flex justify-between">
+                              <span>Zeitraum:</span>
+                              <span className="font-medium">
+                                {new Date(rentalStartDate).toLocaleDateString("de-DE")} -{" "}
+                                {new Date(rentalEndDate).toLocaleDateString("de-DE")}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Dauer:</span>
+                              <span className="font-medium">
+                                {Math.ceil(
+                                  (new Date(rentalEndDate).getTime() - new Date(rentalStartDate).getTime()) /
+                                    (1000 * 60 * 60 * 24),
+                                )}{" "}
+                                Tag
+                                {Math.ceil(
+                                  (new Date(rentalEndDate).getTime() - new Date(rentalStartDate).getTime()) /
+                                    (1000 * 60 * 60 * 24),
+                                ) > 1
+                                  ? "e"
+                                  : ""}
+                              </span>
+                            </div>
+                            {calculatedPrice && (
+                              <div className="flex justify-between border-t border-orange-200 pt-2 mt-2">
+                                <span className="font-semibold">Gesamt-Ausleihgebühr:</span>
+                                <span className="font-bold">{calculatedPrice}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex gap-4 pt-6 border-t border-gray-100">
+                    <Button
+                      onClick={() => {
+                        setIsOfferDetailsOpen(false)
+                        if (selectedOfferDetails.itemType === "offer") {
+                          handleContactSeller(selectedOfferDetails)
+                        }
+                      }}
+                      disabled={selectedOfferDetails.type === "lend" && (!rentalStartDate || !rentalEndDate)}
+                      className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      <MessageCircle className="w-5 h-5 mr-2" />
+                      {selectedOfferDetails.type === "lend"
+                        ? rentalStartDate && rentalEndDate
+                          ? "Ausleihe anfragen"
+                          : "Zeitraum wählen"
+                        : selectedOfferDetails.itemType === "offer"
+                          ? "Anfragen"
+                          : "Antworten"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsOfferDetailsOpen(false)}
+                      className="px-8 py-3 rounded-xl border-gray-200 hover:bg-gray-50 font-medium"
+                    >
+                      Schliessen
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

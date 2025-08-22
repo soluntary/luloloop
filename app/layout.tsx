@@ -7,6 +7,9 @@ import { UserProvider } from "@/contexts/user-context"
 import { GamesProvider } from "@/contexts/games-context"
 import { MessagesProvider } from "@/contexts/messages-context"
 import { FriendsProvider } from "@/contexts/friends-context"
+import { GeolocationProvider } from "@/contexts/geolocation-context"
+import { LocationSearchProvider } from "@/contexts/location-search-context"
+import { RequestsProvider } from "@/contexts/requests-context"
 import { Footer } from "@/components/footer"
 
 const galindo = Galindo({
@@ -47,10 +50,16 @@ export default function RootLayout({
             <GamesProvider>
               <MessagesProvider>
                 <FriendsProvider>
-                  <div className="min-h-screen flex flex-col">
-                    <main className="flex-1">{children}</main>
-                    <Footer />
-                  </div>
+                  <GeolocationProvider>
+                    <LocationSearchProvider>
+                      <RequestsProvider>
+                        <div className="min-h-screen flex flex-col">
+                          <main className="flex-1">{children}</main>
+                          <Footer />
+                        </div>
+                      </RequestsProvider>
+                    </LocationSearchProvider>
+                  </GeolocationProvider>
                 </FriendsProvider>
               </MessagesProvider>
             </GamesProvider>

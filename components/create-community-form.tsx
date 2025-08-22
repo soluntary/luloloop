@@ -188,7 +188,7 @@ export default function CreateCommunityForm({ onClose, onCommunityCreated }: Cre
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="z.B. Strategiespiele München"
+                    placeholder="z.B. Catan-Fans Zürich"
                     className="font-body"
                     maxLength={100}
                   />

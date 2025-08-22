@@ -366,21 +366,37 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   }
 
   const getFriendshipStatus = (userId: string): "friends" | "pending" | "received" | "none" => {
+    if (!user?.id) {
+      console.log("[v0] getFriendshipStatus - no user")
+      return "none"
+    }
+
+    console.log("[v0] Friendship status for user", userId, ":")
+    console.log("[v0] Sent requests count:", sentRequests.length)
+    console.log(
+      "[v0] Sent requests to this user:",
+      sentRequests.filter((req) => req.to_user_id === userId),
+    )
+
     // Check if already friends
     if (friends.some((friend) => friend.id === userId)) {
+      console.log("[v0] Status: friends")
       return "friends"
     }
 
     // Check if we sent a request to this user
     if (sentRequests.some((request) => request.to_user_id === userId)) {
+      console.log("[v0] Status: pending")
       return "pending"
     }
 
     // Check if we received a request from this user
     if (pendingRequests.some((request) => request.from_user_id === userId)) {
+      console.log("[v0] Status: received")
       return "received"
     }
 
+    console.log("[v0] Status: none")
     return "none"
   }
 

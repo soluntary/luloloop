@@ -39,6 +39,7 @@ import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
 
 import { GameSearchDialog } from "./game-search-dialog"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
 
 const GAME_TYPE_OPTIONS = [
   "Aktions- und Reaktionsspiel",
@@ -180,6 +181,8 @@ export function CreateMarketplaceOfferForm({
   const [dailyRate7To30Days, setDailyRate7To30Days] = useState("")
   const [dailyRateOver30Days, setDailyRateOver30Days] = useState("")
   const [depositAmount, setDepositAmount] = useState("")
+  const [minRentalDays, setMinRentalDays] = useState("")
+  const [maxRentalDays, setMaxRentalDays] = useState("")
   const [salePrice, setSalePrice] = useState("")
   const [deliveryPickup, setDeliveryPickup] = useState(false)
   const [deliveryShipping, setDeliveryShipping] = useState(false)
@@ -188,6 +191,8 @@ export function CreateMarketplaceOfferForm({
   const [condition, setCondition] = useState("")
   const [price, setPrice] = useState("")
   const [openToSuggestions, setOpenToSuggestions] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [databaseConnected, setDatabaseConnected] = useState(true)
 
   useEffect(() => {
     if (isOpen) {
@@ -325,6 +330,8 @@ export function CreateMarketplaceOfferForm({
     setDailyRate7To30Days("")
     setDailyRateOver30Days("")
     setDepositAmount("")
+    setMinRentalDays("")
+    setMaxRentalDays("")
     setSalePrice("")
     setDeliveryPickup(false)
     setDeliveryShipping(false)
@@ -448,6 +455,21 @@ export function CreateMarketplaceOfferForm({
         // Only show daily rates error if no price and no daily rates
         if (!price && !hasAnyDailyRate) {
           newErrors.dailyRates = "Bitte gib mindestens eine Ausleihgebühr an."
+        }
+
+        if (minRentalDays && maxRentalDays) {
+          const minDays = Number.parseInt(minRentalDays)
+          const maxDays = Number.parseInt(maxRentalDays)
+
+          if (minDays < 1) {
+            newErrors.minRentalDays = "Mindestausleihdauer muss mindestens 1 Tag sein."
+          }
+          if (maxDays < 1) {
+            newErrors.maxRentalDays = "Maximalausleihdauer muss mindestens 1 Tag sein."
+          }
+          if (minDays > maxDays) {
+            newErrors.maxRentalDays = "Maximalausleihdauer muss größer als Mindestausleihdauer sein."
+          }
         }
       }
 
@@ -596,9 +618,16 @@ export function CreateMarketplaceOfferForm({
         active: true,
         location: deliveryPickup ? pickupAddress : "",
         distance: "", // Default empty distance
+        ...(offerType === "lend" && minRentalDays && { min_rental_days: Number.parseInt(minRentalDays) }),
+        ...(offerType === "lend" && maxRentalDays && { max_rental_days: Number.parseInt(maxRentalDays) }),
       }
 
       console.log("[v0] Offer data to be submitted:", offerData)
+
+      console.log("[v0] About to call addMarketplaceOffer...")
+      console.log("[v0] Database connected:", databaseConnected)
+      console.log("[v0] User authenticated:", !!user)
+
       await addMarketplaceOffer(offerData)
       console.log("[v0] Marketplace offer created successfully")
 
@@ -607,9 +636,16 @@ export function CreateMarketplaceOfferForm({
       onClose()
       console.log("[v0] Form submission completed successfully")
     } catch (error) {
-      console.error("[v0] Error creating marketplace offer:", error)
-      setErrors({ submit: "Fehler beim Erstellen des Angebots. Bitte versuche es erneut." })
+      console.error("[v0] Error during form submission:", error)
+      console.error("[v0] Error details:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : undefined,
+      })
+
+      setError(error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten")
     } finally {
+      console.log("[v0] Form submission finally block - setting isSubmitting to false")
       setIsSubmitting(false)
     }
   }
@@ -1346,9 +1382,56 @@ export function CreateMarketplaceOfferForm({
                       <h4 className="text-lg font-bold text-teal-800 mb-4 flex items-center gap-2">
                         Verleihen Details
                       </h4>
+
+                      <div className="mb-6">
+                        <Label className="text-sm font-semibold text-gray-700 mb-3 block">
+                          Ausleihdauer (optional)
+                        </Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="bg-white p-4 rounded-xl border border-teal-200">
+                            <Label className="text-sm text-teal-700 font-medium mb-2 block">
+                              Mindestausleihdauer (Tage)
+                            </Label>
+                            <Input
+                              placeholder="z.B. 3"
+                              value={minRentalDays}
+                              onChange={(e) => setMinRentalDays(e.target.value)}
+                              className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg"
+                              type="number"
+                              min="1"
+                            />
+                          </div>
+                          <div className="bg-white p-4 rounded-xl border border-teal-200">
+                            <Label className="text-sm text-teal-700 font-medium mb-2 block">
+                              Maximalausleihdauer (Tage)
+                            </Label>
+                            <Input
+                              placeholder="z.B. 14"
+                              value={maxRentalDays}
+                              onChange={(e) => setMaxRentalDays(e.target.value)}
+                              className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg"
+                              type="number"
+                              min="1"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-sm text-teal-600 mt-3 bg-teal-50 p-3 rounded-lg">
+                          Gib optional eine Mindest- und Maximalausleihdauer an. Diese wird in der Spielanzeige als
+                          Information angezeigt.
+                        </p>
+                        {errors.rentalDuration && (
+                          <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
+                            <AlertCircle className="w-4 h-4" />
+                            <span>{errors.rentalDuration}</span>
+                          </div>
+                        )}
+                      </div>
+
                       {/* Daily Rates */}
                       <div className="mb-6">
-                        <Label className="text-sm font-semibold text-gray-700 mb-3 block">Ausleihgebühr pro Tag (CHF)</Label>
+                        <Label className="text-sm font-semibold text-gray-700 mb-3 block">
+                          Ausleihgebühr pro Tag (CHF)
+                        </Label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="bg-white p-4 rounded-xl border border-teal-200">
                             <Label className="text-sm text-teal-700 font-medium mb-2 block">Für 1 Tag</Label>
@@ -1536,19 +1619,13 @@ export function CreateMarketplaceOfferForm({
 
                           {deliveryPickup && (
                             <div className="ml-7">
-                              <Label className="text-sm font-medium text-gray-700 mb-2 block">Abholadresse</Label>
-                              <Input
+                              <AddressAutocomplete
+                                label="Abholadresse"
                                 placeholder="z.B. Musterstrasse 123, 12345 Musterstadt"
                                 value={pickupAddress}
-                                onChange={(e) => setPickupAddress(e.target.value)}
-                                className="h-10 border-2 border-indigo-200 focus:border-indigo-500 rounded-lg"
+                                onChange={setPickupAddress}
+                                error={errors.pickupAddress}
                               />
-                              {errors.pickupAddress && (
-                                <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                                  <AlertCircle className="w-4 h-4" />
-                                  <span>{errors.pickupAddress}</span>
-                                </div>
-                              )}
                             </div>
                           )}
                         </div>

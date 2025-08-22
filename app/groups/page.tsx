@@ -138,6 +138,9 @@ export default function GroupsPage() {
   const [allFriends, setAllFriends] = useState<UserType[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [optimisticFriendStates, setOptimisticFriendStates] = useState<
+    Record<string, "sending" | "accepting" | "declining" | "accepted" | "declined">
+  >({})
   const [searchTerm, setSearchTerm] = useState("")
   const [activeFilter, setActiveFilter] = useState<"all" | "casual" | "competitive" | "family">("all")
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null)
@@ -151,6 +154,7 @@ export default function GroupsPage() {
   const [communitySearchTerm, setCommunitySearchTerm] = useState("")
   const [eventSearchTerm, setEventSearchTerm] = useState("")
   const [userSearchTerm, setUserSearchTerm] = useState("")
+  const [friendshipFilter, setFriendshipFilter] = useState<"all" | "sent" | "received" | "friends">("all")
   const [frequencyFilter, setFrequencyFilter] = useState<"all" | "einmalig" | "regelmässig" | "wiederholend">("all")
   const [timeFilter, setTimeFilter] = useState<"all" | "heute" | "morgen" | "diese-woche" | "nächste-woche">("all")
 
@@ -533,6 +537,8 @@ export default function GroupsPage() {
     console.log("[v0] Sending friend request to user:", userId)
     if (!user) return
 
+    setOptimisticFriendStates((prev) => ({ ...prev, [userId]: "sending" }))
+
     try {
       const existingRequest = allFriendRequests.find(
         (req) =>
@@ -542,6 +548,11 @@ export default function GroupsPage() {
 
       if (existingRequest) {
         console.log("[v0] Friend request already exists")
+        setOptimisticFriendStates((prev) => {
+          const newState = { ...prev }
+          delete newState[userId]
+          return newState
+        })
         return
       }
 
@@ -559,8 +570,19 @@ export default function GroupsPage() {
       console.log("[v0] Friend request sent successfully")
       await loadFriendRequests()
       await loadFriends()
+
+      setOptimisticFriendStates((prev) => {
+        const newState = { ...prev }
+        delete newState[userId]
+        return newState
+      })
     } catch (error) {
       console.error("[v0] Error sending friend request:", error)
+      setOptimisticFriendStates((prev) => {
+        const newState = { ...prev }
+        delete newState[userId]
+        return newState
+      })
       if (error instanceof SyntaxError && error.message.includes("JSON")) {
         console.error("JSON parsing error when sending friend request - likely API rate limit:", error.message)
       } else {
@@ -572,6 +594,8 @@ export default function GroupsPage() {
   const handleAcceptFriendRequest = async (requestId: string, senderId: string) => {
     console.log("[v0] Accepting friend request:", requestId, "from sender:", senderId)
     if (!user) return
+
+    setOptimisticFriendStates((prev) => ({ ...prev, [senderId]: "accepting" }))
 
     try {
       const { error: updateError } = await supabase
@@ -589,10 +613,25 @@ export default function GroupsPage() {
       if (friendshipError) throw friendshipError
 
       console.log("[v0] Friend request accepted successfully")
+      setOptimisticFriendStates((prev) => ({ ...prev, [senderId]: "accepted" }))
+
       await loadFriendRequests()
       await loadFriends()
+
+      setTimeout(() => {
+        setOptimisticFriendStates((prev) => {
+          const newState = { ...prev }
+          delete newState[senderId]
+          return newState
+        })
+      }, 1000)
     } catch (error) {
       console.error("[v0] Error accepting friend request:", error)
+      setOptimisticFriendStates((prev) => {
+        const newState = { ...prev }
+        delete newState[senderId]
+        return newState
+      })
       if (error instanceof SyntaxError && error.message.includes("JSON")) {
         console.error("JSON parsing error when accepting friend request - likely API rate limit:", error.message)
       } else {
@@ -601,9 +640,11 @@ export default function GroupsPage() {
     }
   }
 
-  const handleRejectFriendRequest = async (requestId: string) => {
+  const handleRejectFriendRequest = async (requestId: string, senderId: string) => {
     console.log("[v0] Rejecting friend request:", requestId)
     if (!user) return
+
+    setOptimisticFriendStates((prev) => ({ ...prev, [senderId]: "declining" }))
 
     try {
       const { error } = await supabase.from("friend_requests").update({ status: "declined" }).eq("id", requestId)
@@ -611,9 +652,24 @@ export default function GroupsPage() {
       if (error) throw error
 
       console.log("[v0] Friend request rejected successfully")
+      setOptimisticFriendStates((prev) => ({ ...prev, [senderId]: "declined" }))
+
       await loadFriendRequests()
+
+      setTimeout(() => {
+        setOptimisticFriendStates((prev) => {
+          const newState = { ...prev }
+          delete newState[senderId]
+          return newState
+        })
+      }, 1000)
     } catch (error) {
       console.error("[v0] Error rejecting friend request:", error)
+      setOptimisticFriendStates((prev) => {
+        const newState = { ...prev }
+        delete newState[senderId]
+        return newState
+      })
       if (error instanceof SyntaxError && error.message.includes("JSON")) {
         console.error("JSON parsing error when rejecting friend request - likely API rate limit:", error.message)
       } else {
@@ -657,6 +713,18 @@ export default function GroupsPage() {
 
     console.log("[v0] No friendship relationship found")
     return "none"
+  }
+
+  const getFriendshipStatusForUser = (
+    userId: string,
+  ): "none" | "friends" | "sent" | "received" | "sending" | "accepting" | "declining" | "accepted" | "declined" => {
+    // Check optimistic state first for immediate UI feedback
+    const optimisticState = optimisticFriendStates[userId]
+    if (optimisticState) {
+      return optimisticState
+    }
+
+    return getFriendshipStatus(userId)
   }
 
   const getFriendRequestId = (userId: string): string => {
@@ -919,18 +987,37 @@ export default function GroupsPage() {
     return matchesSearch && matchesFrequency && matchesTime
   })
 
-  const filteredUsers = (users || []).filter(
-    (user) =>
-      (user.username && user.username.toLowerCase().includes(userSearchTerm.toLowerCase())) ||
-      user.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(userSearchTerm.toLowerCase()),
-  )
+  const filteredUsers = (users || []).filter((targetUser) => {
+    // Search filter
+    const matchesSearch =
+      (targetUser.username && targetUser.username.toLowerCase().includes(userSearchTerm.toLowerCase())) ||
+      targetUser.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+      targetUser.email.toLowerCase().includes(userSearchTerm.toLowerCase())
+
+    // Friendship status filtering
+    if (!matchesSearch) return false
+
+    // Friendship status filter
+    if (friendshipFilter === "all") return true
+
+    const friendshipStatus = getFriendshipStatus(targetUser.id)
+    switch (friendshipFilter) {
+      case "sent":
+        return friendshipStatus === "sent"
+      case "received":
+        return friendshipStatus === "received"
+      case "friends":
+        return friendshipStatus === "friends"
+      default:
+        return true
+    }
+  })
 
   const pendingRequests = user
     ? allFriendRequests.filter((req) => req.to_user_id === user.id && req.status === "pending")
     : []
 
-  const getFriendshipStatusForUser = (userId: string) => {
+  const getFriendshipStatusForUserHelper = (userId: string) => {
     if (!user) return "guest"
 
     const isAlreadyFriend = allFriends.some((friend) => friend.id === userId)
@@ -1043,7 +1130,7 @@ export default function GroupsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 font-body">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-teal-50 font-body">
       {/* Header */}
       <Navigation currentPage="community" />
 
@@ -1246,8 +1333,8 @@ export default function GroupsPage() {
                       onClick={() => setFrequencyFilter("einmalig")}
                       className={
                         frequencyFilter === "einmalig"
-                          ? "bg-purple-500 hover:bg-purple-600 text-white"
-                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                          ? "bg-teal-500 hover:bg-teal-600 text-white"
+                          : "border-teal-200 text-teal-600 hover:bg-teal-50"
                       }
                     >
                       Einmalig
@@ -1258,8 +1345,8 @@ export default function GroupsPage() {
                       onClick={() => setFrequencyFilter("regelmässig")}
                       className={
                         frequencyFilter === "regelmässig"
-                          ? "bg-purple-500 hover:bg-purple-600 text-white"
-                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                          ? "bg-teal-500 hover:bg-teal-600 text-white"
+                          : "border-teal-200 text-teal-600 hover:bg-teal-50"
                       }
                     >
                       Regelmässig
@@ -1270,8 +1357,8 @@ export default function GroupsPage() {
                       onClick={() => setFrequencyFilter("wiederholend")}
                       className={
                         frequencyFilter === "wiederholend"
-                          ? "bg-purple-500 hover:bg-purple-600 text-white"
-                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                          ? "bg-teal-500 hover:bg-teal-600 text-white"
+                          : "border-teal-200 text-teal-600 hover:bg-teal-50"
                       }
                     >
                       Wiederholend
@@ -1285,8 +1372,8 @@ export default function GroupsPage() {
                       onClick={() => setTimeFilter("all")}
                       className={
                         timeFilter === "all"
-                          ? "bg-purple-500 hover:bg-purple-600 text-white"
-                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                          ? "bg-teal-500 hover:bg-teal-600 text-white"
+                          : "border-teal-200 text-teal-600 hover:bg-teal-50"
                       }
                     >
                       Alle Zeiten
@@ -1297,8 +1384,8 @@ export default function GroupsPage() {
                       onClick={() => setTimeFilter("heute")}
                       className={
                         timeFilter === "heute"
-                          ? "bg-purple-500 hover:bg-purple-600 text-white"
-                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                          ? "bg-teal-500 hover:bg-teal-600 text-white"
+                          : "border-teal-200 text-teal-600 hover:bg-teal-50"
                       }
                     >
                       Heute
@@ -1309,8 +1396,8 @@ export default function GroupsPage() {
                       onClick={() => setTimeFilter("morgen")}
                       className={
                         timeFilter === "morgen"
-                          ? "bg-purple-500 hover:bg-purple-600 text-white"
-                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                          ? "bg-teal-500 hover:bg-teal-600 text-white"
+                          : "border-teal-200 text-teal-600 hover:bg-teal-50"
                       }
                     >
                       Morgen
@@ -1321,8 +1408,8 @@ export default function GroupsPage() {
                       onClick={() => setTimeFilter("diese-woche")}
                       className={
                         timeFilter === "diese-woche"
-                          ? "bg-purple-500 hover:bg-purple-600 text-white"
-                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                          ? "bg-teal-500 hover:bg-teal-600 text-white"
+                          : "border-teal-200 text-teal-600 hover:bg-teal-50"
                       }
                     >
                       Diese Woche
@@ -1333,8 +1420,8 @@ export default function GroupsPage() {
                       onClick={() => setTimeFilter("nächste-woche")}
                       className={
                         timeFilter === "nächste-woche"
-                          ? "bg-purple-500 hover:bg-purple-600 text-white"
-                          : "border-purple-200 text-purple-600 hover:bg-purple-50"
+                          ? "bg-teal-500 hover:bg-teal-600 text-white"
+                          : "border-teal-200 text-teal-600 hover:bg-teal-50"
                       }
                     >
                       Nächste Woche
@@ -1346,7 +1433,7 @@ export default function GroupsPage() {
               {/* Events Grid */}
               {loading ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-400 mx-auto"></div>
                   <p className="mt-2 text-gray-600">Events werden geladen...</p>
                 </div>
               ) : filteredCommunityEvents.length === 0 ? (
@@ -1363,12 +1450,12 @@ export default function GroupsPage() {
                   {filteredCommunityEvents.map((event) => (
                     <Card
                       key={event.id}
-                      className="group hover:shadow-xl transition-all duration-300 border-2 border-purple-100 hover:border-purple-300 bg-white/80 backdrop-blur-sm"
+                      className="group hover:shadow-xl transition-all duration-300 border-2 border-teal-100 hover:border-teal-300 bg-white/80 backdrop-blur-sm"
                     >
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
-                            <h3 className="font-handwritten text-xl text-gray-800 mb-3 group-hover:text-purple-600 transition-colors">
+                            <h3 className="font-handwritten text-xl text-gray-800 mb-3 group-hover:text-teal-600 transition-colors">
                               {event.title}
                             </h3>
 
@@ -1448,7 +1535,7 @@ export default function GroupsPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-purple-200 text-purple-600 hover:bg-purple-50 bg-transparent"
+                            className="border-teal-200 text-teal-600 hover:bg-teal-50 bg-transparent"
                             onClick={() => {
                               handleEventDetails(event)
                             }}
@@ -1458,7 +1545,7 @@ export default function GroupsPage() {
                           {isEventCreator(event) && (
                             <Button
                               size="sm"
-                              className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white border-0"
+                              className="bg-gradient-to-r from-teal-400 to-indigo-400 hover:from-teal-500 hover:to-indigo-500 text-white border-0"
                               onClick={() => handleManageEvent(event)}
                             >
                               Verwalten
@@ -1467,7 +1554,7 @@ export default function GroupsPage() {
                           {!isEventCreator(event) && !isEventParticipant(event) && (
                             <Button
                               size="sm"
-                              className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white border-0"
+                              className="bg-gradient-to-r from-teal-400 to-indigo-400 hover:from-teal-500 hover:to-indigo-500 text-white border-0"
                               onClick={() => handleJoinEvent(event.id)}
                             >
                               Teilnehmen
@@ -1504,6 +1591,57 @@ export default function GroupsPage() {
                 />
               </div>
 
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant={friendshipFilter === "all" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFriendshipFilter("all")}
+                  className={
+                    friendshipFilter === "all"
+                      ? "bg-blue-500 hover:bg-blue-600 text-white"
+                      : "border-blue-200 text-blue-600 hover:bg-blue-50"
+                  }
+                >
+                  Alle Mitglieder
+                </Button>
+                <Button
+                  variant={friendshipFilter === "sent" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFriendshipFilter("sent")}
+                  className={
+                    friendshipFilter === "sent"
+                      ? "bg-orange-500 hover:bg-orange-600 text-white"
+                      : "border-orange-200 text-orange-600 hover:bg-orange-50"
+                  }
+                >
+                  Gesendete Anfrage
+                </Button>
+                <Button
+                  variant={friendshipFilter === "received" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFriendshipFilter("received")}
+                  className={
+                    friendshipFilter === "received"
+                      ? "bg-green-500 hover:bg-green-600 text-white"
+                      : "border-green-200 text-green-600 hover:bg-green-50"
+                  }
+                >
+                  Eingegangene Freundschaftsanfrage
+                </Button>
+                <Button
+                  variant={friendshipFilter === "friends" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFriendshipFilter("friends")}
+                  className={
+                    friendshipFilter === "friends"
+                      ? "bg-teal-500 hover:bg-teal-600 text-white"
+                      : "border-teal-200 text-teal-600 hover:bg-teal-50"
+                  }
+                >
+                  Meine Freunde
+                </Button>
+              </div>
+
               {/* Users Grid */}
               {loading ? (
                 <div className="text-center py-8">
@@ -1513,8 +1651,17 @@ export default function GroupsPage() {
               ) : filteredUsers.length === 0 ? (
                 <div className="text-center py-12">
                   <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-handwritten text-gray-600 mb-2">Keine Benutzer gefunden</h3>
-                  <p className="text-gray-500">Erstelle die erste Community oder ändere deine Suchkriterien.</p>
+                  <h3 className="text-xl font-handwritten text-gray-600 mb-2">
+                    {friendshipFilter === "sent" && "Keine gesendeten Anfragen"}
+                    {friendshipFilter === "received" && "Keine eingegangenen Anfragen"}
+                    {friendshipFilter === "friends" && "Keine Freunde gefunden"}
+                    {friendshipFilter === "all" && "Keine Benutzer gefunden"}
+                  </h3>
+                  <p className="text-gray-500">
+                    {friendshipFilter === "all"
+                      ? "Erstelle die erste Community oder ändere deine Suchkriterien."
+                      : "Ändere deine Filterkriterien oder sende neue Freundschaftsanfragen."}
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1565,11 +1712,28 @@ export default function GroupsPage() {
                               Freundschaft anfragen
                             </Button>
                           )}
-                          {getFriendshipStatusForUser(targetUser.id) === "sent" && (
-                            <Button size="sm" className="bg-gray-300 text-gray-700" disabled>
-                              Anfrage gesendet
-                            </Button>
+                          {getFriendshipStatusForUser(targetUser.id) === "sending" && (
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                              <Button size="sm" className="bg-blue-100 text-blue-700 border border-blue-200" disabled>
+                                Wird angefragt
+                              </Button>
+                            </div>
                           )}
+                          {(getFriendshipStatusForUser(targetUser.id) === "sent" ||
+                            getFriendshipStatusForUser(targetUser.id) === "sending") &&
+                            getFriendshipStatusForUser(targetUser.id) !== "sending" && (
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                                <Button
+                                  size="sm"
+                                  className="bg-orange-100 text-orange-700 border border-orange-200"
+                                  disabled
+                                >
+                                  Freundschaft angefragt
+                                </Button>
+                              </div>
+                            )}
                           {getFriendshipStatusForUser(targetUser.id) === "received" && (
                             <div className="flex gap-2">
                               <Button
@@ -1589,10 +1753,50 @@ export default function GroupsPage() {
                                 onClick={() => {
                                   console.log("[v0] Reject friend request button clicked for user:", targetUser.id)
                                   const requestId = getFriendRequestId(targetUser.id)
-                                  handleRejectFriendRequest(requestId)
+                                  handleRejectFriendRequest(requestId, targetUser.id)
                                 }}
                               >
                                 Anfrage ablehnen
+                              </Button>
+                            </div>
+                          )}
+                          {getFriendshipStatusForUser(targetUser.id) === "accepting" && (
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                              <Button
+                                size="sm"
+                                className="bg-green-100 text-green-700 border border-green-200"
+                                disabled
+                              >
+                                Wird angenommen
+                              </Button>
+                            </div>
+                          )}
+                          {getFriendshipStatusForUser(targetUser.id) === "declining" && (
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                              <Button size="sm" className="bg-red-100 text-red-700 border border-red-200" disabled>
+                                Wird abgelehnt...
+                              </Button>
+                            </div>
+                          )}
+                          {getFriendshipStatusForUser(targetUser.id) === "accepted" && (
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <Button
+                                size="sm"
+                                className="bg-green-200 text-green-800 border border-green-300"
+                                disabled
+                              >
+                                befreundet
+                              </Button>
+                            </div>
+                          )}
+                          {getFriendshipStatusForUser(targetUser.id) === "declined" && (
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                              <Button size="sm" className="bg-red-200 text-red-800 border border-red-300" disabled>
+                                Freundschaftsanfrage abgelehnt
                               </Button>
                             </div>
                           )}
@@ -1615,7 +1819,7 @@ export default function GroupsPage() {
       <Dialog open={showEventDetailsDialog} onOpenChange={setShowEventDetailsDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-handwritten text-purple-600">
+            <DialogTitle className="text-2xl font-handwritten text-teal-600">
               {selectedEventForDetails?.title}
             </DialogTitle>
           </DialogHeader>
@@ -1645,7 +1849,7 @@ export default function GroupsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-purple-500" />
+                    <Calendar className="w-5 h-5 text-teal-500" />
                     <div>
                       <p className="font-medium">Termin</p>
                       <p className="text-gray-600">{formatEventDate(selectedEventForDetails)}</p>
@@ -1654,7 +1858,7 @@ export default function GroupsPage() {
 
                   {selectedEventForDetails.location && (
                     <div className="flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-purple-500" />
+                      <MapPin className="w-5 h-5 text-teal-500" />
                       <div>
                         <p className="font-medium">Ort</p>
                         <p className="text-gray-600">{selectedEventForDetails.location}</p>
@@ -1663,7 +1867,7 @@ export default function GroupsPage() {
                   )}
 
                   <div className="flex items-center gap-2">
-                    <User className="w-5 h-5 text-purple-500" />
+                    <User className="w-5 h-5 text-teal-500" />
                     <div>
                       <p className="font-medium">Organisator</p>
                       <UserLink userId={selectedEventForDetails.creator_id} className="text-gray-600">
@@ -1677,7 +1881,7 @@ export default function GroupsPage() {
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-purple-500" />
+                    <Users className="w-5 h-5 text-teal-500" />
                     <div>
                       <p className="font-medium">Teilnehmer</p>
                       <p className="text-gray-600">
@@ -1723,7 +1927,7 @@ export default function GroupsPage() {
                     <div className="space-y-2">
                       {selectedEventForDetails.time_slots.map((slot, index) => (
                         <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                          <Calendar className="w-4 h-4 text-purple-500" />
+                          <Calendar className="w-4 h-4 text-teal-500" />
                           <span className="text-gray-700">
                             {new Date(slot.date).toLocaleDateString("de-DE", {
                               weekday: "long",
@@ -1749,8 +1953,8 @@ export default function GroupsPage() {
                   <h3 className="font-semibold text-lg mb-3">Teilnehmer</h3>
                   <div className="space-y-2">
                     {/* Organizer */}
-                    <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-                      <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                    <div className="flex items-center gap-3 p-3 bg-teal-50 rounded-lg">
+                      <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center">
                         <User className="w-4 h-4 text-white" />
                       </div>
                       <div>
@@ -1759,7 +1963,7 @@ export default function GroupsPage() {
                             selectedEventForDetails.creator?.name ||
                             "Organisator"}
                         </UserLink>
-                        <p className="text-sm text-purple-600">Organisator</p>
+                        <p className="text-sm text-teal-600">Organisator</p>
                       </div>
                     </div>
 
@@ -1787,7 +1991,7 @@ export default function GroupsPage() {
               <div className="flex gap-3 pt-4 border-t">
                 {isEventCreator(selectedEventForDetails) && (
                   <Button
-                    className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white border-0"
+                    className="bg-gradient-to-r from-teal-400 to-indigo-400 hover:from-teal-500 hover:to-indigo-500 text-white border-0"
                     onClick={() => {
                       setShowEventDetailsDialog(false)
                       handleManageEvent(selectedEventForDetails)
@@ -1798,7 +2002,7 @@ export default function GroupsPage() {
                 )}
                 {!isEventCreator(selectedEventForDetails) && !isEventParticipant(selectedEventForDetails) && (
                   <Button
-                    className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white border-0"
+                    className="bg-gradient-to-r from-teal-400 to-indigo-400 hover:from-teal-500 hover:to-indigo-500 text-white border-0"
                     onClick={() => {
                       setShowEventDetailsDialog(false)
                       handleJoinEvent(selectedEventForDetails.id)

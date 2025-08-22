@@ -29,12 +29,7 @@ export default function AboutPage() {
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-4 font-handwritten">Unsere Mission</h2>
               <p className="text-gray-600 font-body">
-                Gesellschaftsspiele bringen Menschen zusammen, schaffen unvergessliche Erlebnisse und fördern Gemeinschaft.
-                Doch oft stehen tolle Spiele ungenutzt im Regal, während andere genau danach suchen. Mit unserer
-                Plattform möchten wir diese Lücke schliessen, den Zugang zu Spielen für alle erleichtern und eine lebendige
-                Gemeinschaft schaffen, die den Geist des gemeinsamen Spielens fördert. Ob Du Deine Lieblingsspiele teilen
-                möchtest, auf der Suche nach neuen (Spiel-)Freunde bist oder einfach Deine Sammlung verkaufen möchtest – bei
-                Ludoloop findest Du die passende Möglichkeit.
+               Brett- und Gesellschaftsspiele bringen Menschen zusammen, schaffen unvergessliche Erlebnisse, fördern Gemeinschaft und machen Spass. Doch oft stehen tolle Spiele ungenutzt im Regal, während andere genau danach suchen. Mit unserer Plattform möchten wir diese Lücke schliessen, den Zugang zu Spielen für alle erleichtern und eine lebendige Gemeinschaft schaffen, die den Geist des gemeinsamen Spielens fördert. Ob Du Deine Lieblingsspiele teilen möchtest, auf der Suche nach neuen (Spiel-)Freunde bist oder einfach Deine Sammlung verkaufen möchtest – bei Ludoloop findest Du die passende Möglichkeit.
               </p>
             </CardContent>
           </Card>
@@ -46,7 +41,7 @@ export default function AboutPage() {
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-4 font-handwritten">Unsere Vision</h2>
               <p className="text-gray-600 font-body">
-              Eine digitale Heim-Bibliothek für jede Spielesammlung, kombiniert mit einer freundlichen Nachbarschaftsplattform: langfristig wollen wir die erste Adresse sein, wenn es um Ausleihen, Tauschen, Verkaufen und gemeinsame Spielrunden geht. Wir setzen auf Vertrauen, Transparenz und gute Regeln — damit aus Fremden Mitspieler werden.
+              
               </p>
             </CardContent>
           </Card>
