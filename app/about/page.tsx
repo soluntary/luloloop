@@ -41,7 +41,7 @@ export default function AboutPage() {
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-4 font-handwritten">Unsere Vision</h2>
               <p className="text-gray-600 font-body">
-              
+              Wir glauben, dass Gesellschaftsspiele mehr sind als nur Unterhaltung – sie sind Brücken zwischen Menschen. Unsere Vision ist es, die größte digitale Gemeinschaft rund um Brett- und Gesellschaftsspiele aufzubauen, in der Spiele nicht unbenutzt im Regal verstauben, sondern immer wieder neue Freude bereiten. Wir möchten das gemeinsame Spielen fördern, den Zugang zu Spielen erleichtern und nachhaltigen Umgang mit Spielen unterstützen.
               </p>
             </CardContent>
           </Card>

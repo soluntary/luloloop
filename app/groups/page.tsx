@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import CreateCommunityDialog from "@/components/create-community-dialog"
 import CreateCommunityEventDialog from "@/components/create-community-event-dialog"
+import EventManagementDialog from "@/components/event-management-dialog"
 
 import { useSearchParams } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -652,7 +653,11 @@ export default function GroupsPage() {
       if (error) throw error
 
       console.log("[v0] Friend request rejected successfully")
-      setOptimisticFriendStates((prev) => ({ ...prev, [senderId]: "declined" }))
+      setOptimisticFriendStates((prev) => {
+        const newState = { ...prev }
+        delete newState[senderId]
+        return newState
+      })
 
       await loadFriendRequests()
 
@@ -2030,6 +2035,18 @@ export default function GroupsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <EventManagementDialog
+        event={selectedEventForManagement}
+        isOpen={showEventManagementDialog}
+        onClose={() => {
+          setShowEventManagementDialog(false)
+          setSelectedEventForManagement(null)
+        }}
+        onEventUpdated={loadCommunityEvents}
+        onEventDeleted={loadCommunityEvents}
+        isCreator={selectedEventForManagement ? isEventCreator(selectedEventForManagement) : false}
+      />
     </div>
   )
 }

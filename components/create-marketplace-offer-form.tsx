@@ -160,6 +160,8 @@ export function CreateMarketplaceOfferForm({
   const [customGameTitle, setCustomGameTitle] = useState("")
   const [customGamePublisher, setCustomGamePublisher] = useState("")
 
+  const [publisherOptions, setPublisherOptions] = useState<string[]>(PUBLISHER_OPTIONS)
+
   const [customGameCustomPublisher, setCustomGameCustomPublisher] = useState("")
   const [customGamePlayerCount, setCustomGamePlayerCount] = useState("")
   const [customGameDuration, setCustomGameDuration] = useState("")
@@ -285,13 +287,96 @@ export function CreateMarketplaceOfferForm({
 
     // Fill custom game fields with BoardGameGeek data
     setCustomGameTitle(game.name || "")
-    setCustomGamePublisher(game.publishers?.[0] || "")
-    setCustomGamePlayerCount(game.playerCount || "")
-    setCustomGameDuration(game.playingTime || "")
-    setCustomGameAge(game.minAge ? `${game.minAge}+` : "")
+
+    if (game.publishers && game.publishers.length > 0) {
+      const publisher = game.publishers[0]
+      console.log("[v0] Processing publisher:", publisher)
+      console.log("[v0] Current publisherOptions:", publisherOptions)
+
+      const matchingPublisher = publisherOptions.find((option) => option.toLowerCase() === publisher.toLowerCase())
+      console.log("[v0] Publisher in options?", !!matchingPublisher)
+
+      if (matchingPublisher) {
+        setCustomGamePublisher(matchingPublisher)
+        console.log("[v0] Set existing publisher:", matchingPublisher)
+      } else {
+        const newOptions = [...publisherOptions, publisher]
+        setPublisherOptions(newOptions)
+        setCustomGamePublisher(publisher)
+        console.log("[v0] Adding new publisher to options:", publisher)
+        console.log("[v0] Set new publisher:", publisher)
+      }
+      console.log("[v0] Updated publisherOptions:", publisherOptions)
+    }
+
+    if (game.minPlayers && game.maxPlayers) {
+      const playerCount = `${game.minPlayers} bis ${game.maxPlayers} Personen`
+      const matchingOption = PLAYER_COUNT_OPTIONS.find((option) => {
+        const match = option.match(/(\d+) bis (\d+) Personen/)
+        if (match) {
+          const [, min, max] = match
+          return Number.parseInt(min) <= game.minPlayers && Number.parseInt(max) >= game.maxPlayers
+        }
+        return false
+      })
+      // Use matching option if found, otherwise use the generated string
+      setCustomGamePlayerCount(matchingOption || playerCount)
+    }
+
+    if (game.playingTime) {
+      let durationOption = ""
+      if (game.playingTime < 10) durationOption = "< 10 Min."
+      else if (game.playingTime <= 20) durationOption = "10-20 Min."
+      else if (game.playingTime <= 30) durationOption = "20-30 Min."
+      else if (game.playingTime <= 45) durationOption = "30-45 Min."
+      else if (game.playingTime <= 60) durationOption = "45-60 Min."
+      else if (game.playingTime <= 90) durationOption = "60-90 Min."
+      else durationOption = "> 90 Min."
+
+      setCustomGameDuration(durationOption)
+    }
+
+    if (game.minAge) {
+      let ageOption = ""
+      if (game.minAge <= 4) ageOption = "bis 4 Jahren"
+      else if (game.minAge <= 5) ageOption = "ab 4 bis 5 Jahren"
+      else if (game.minAge <= 7) ageOption = "ab 6 bis 7 Jahren"
+      else if (game.minAge <= 9) ageOption = "ab 8 bis 9 Jahren"
+      else if (game.minAge <= 11) ageOption = "ab 10 bis 11 Jahren"
+      else if (game.minAge <= 13) ageOption = "ab 12 bis 13 Jahren"
+      else if (game.minAge <= 17) ageOption = "ab 14 bis 17 Jahren"
+      else ageOption = "ab 18 Jahren"
+
+      setCustomGameAge(ageOption)
+    }
+
     setCustomGameLanguage("Deutsch") // Default language
-    setCustomGameType(game.categories || [])
-    setCustomGameStyle(game.mechanics || [])
+
+    if (game.categories && game.categories.length > 0) {
+      const mappedTypes: string[] = []
+      game.categories.forEach((category: string) => {
+        if (category.includes("Card")) mappedTypes.push("Kartenspiel")
+        else if (category.includes("Dice")) mappedTypes.push("Würfelspiel")
+        else if (category.includes("Party")) mappedTypes.push("Partyspiel")
+        else if (category.includes("Strategy")) mappedTypes.push("Brettspiel")
+        else if (category.includes("Family")) mappedTypes.push("Brettspiel")
+      })
+      if (mappedTypes.length === 0) mappedTypes.push("Brettspiel")
+      setCustomGameType([...new Set(mappedTypes)])
+    }
+
+    if (game.mechanics && game.mechanics.length > 0) {
+      const mappedStyles: string[] = []
+      game.mechanics.forEach((mechanic: string) => {
+        if (mechanic.includes("Cooperative")) mappedStyles.push("Kooperativ")
+        else if (mechanic.includes("Solo")) mappedStyles.push("Solospiel")
+        else if (mechanic.includes("Team")) mappedStyles.push("Team vs. Team")
+        else mappedStyles.push("Kompetitiv") // Default
+      })
+      if (mappedStyles.length === 0) mappedStyles.push("Kompetitiv")
+      setCustomGameStyle([...new Set(mappedStyles)])
+    }
+
     setCustomGameImage(game.image || null)
 
     // Clear any existing game selection and enable custom game mode
@@ -393,11 +478,21 @@ export function CreateMarketplaceOfferForm({
 
       if (!selectedGame && customGameTitle.trim()) {
         console.log("[v0] Validating custom game fields")
-        if (!customGamePublisher.trim()) {
+
+        if (!customGameTitle.trim()) {
+          newErrors.customGameTitle = "Bitte gib einen Spielnamen ein."
+        }
+        if (!customGamePublisher.trim() || customGamePublisher === "custom") {
           newErrors.customGamePublisher = "Verlag ist erforderlich"
         }
-        if (!condition) {
-          newErrors.condition = "Zustand ist erforderlich"
+        if (!customGameLanguage || customGameLanguage === "custom") {
+          newErrors.customGameLanguage = "Sprache ist erforderlich"
+        }
+        if (customGameType.length === 0) {
+          newErrors.customGameType = "Bitte wähle mindestens eine Kategorie."
+        }
+        if (customGameStyle.length === 0) {
+          newErrors.customGameStyle = "Bitte wähle mindestens einen Typus."
         }
         if (!customGamePlayerCount) {
           newErrors.customGamePlayerCount = "Spieleranzahl ist erforderlich"
@@ -408,14 +503,8 @@ export function CreateMarketplaceOfferForm({
         if (!customGameAge) {
           newErrors.customGameAge = "Altersempfehlung ist erforderlich"
         }
-        if (!customGameLanguage || customGameLanguage === "custom") {
-          newErrors.customGameLanguage = "Sprache ist erforderlich"
-        }
-        if (customGameType.length === 0) {
-          newErrors.customGameType = "Bitte wähle mindestens eine Kategorie."
-        }
-        if (customGameStyle.length === 0) {
-          newErrors.customGameStyle = "Bitte wähle mindestens einen Typus."
+        if (!condition) {
+          newErrors.condition = "Zustand ist erforderlich"
         }
       }
 
@@ -902,7 +991,7 @@ export function CreateMarketplaceOfferForm({
                                 <SelectValue placeholder="Verlag wählen..." />
                               </SelectTrigger>
                               <SelectContent className="rounded-xl">
-                                {PUBLISHER_OPTIONS.map((publisher) => (
+                                {publisherOptions.map((publisher) => (
                                   <SelectItem key={publisher} value={publisher} className="rounded-lg">
                                     {publisher}
                                   </SelectItem>
@@ -1004,211 +1093,6 @@ export function CreateMarketplaceOfferForm({
                         )}
                       </div>
 
-                      {/* Categories Section */}
-                      <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
-                          <Tag className="w-5 h-5" />
-                          Kategorien & Typus
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* Category Selection */}
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">
-                              Kategorie * (Mehrfachauswahl)
-                            </Label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="w-full justify-between h-12 border-2 border-orange-200 hover:border-orange-300 rounded-xl bg-white transition-colors"
-                                  type="button"
-                                  disabled={!!selectedGame}
-                                >
-                                  {customGameType.length > 0 ? (
-                                    <span className="text-orange-600 font-medium">
-                                      {customGameType.length} Kategorie{customGameType.length > 1 ? "n" : ""} ausgewählt
-                                    </span>
-                                  ) : (
-                                    "Kategorie wählen..."
-                                  )}
-                                  <ChevronDown className="h-4 w-4 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-72 p-0 rounded-xl border-orange-200">
-                                <div className="p-4 space-y-3 max-h-64 overflow-y-auto">
-                                  <h4 className="font-semibold text-sm text-orange-800">Kategorie auswählen:</h4>
-                                  {GAME_TYPE_OPTIONS.map((type) => (
-                                    <div
-                                      key={type}
-                                      className="flex items-center space-x-3 p-2 hover:bg-orange-50 rounded-lg transition-colors"
-                                    >
-                                      <Checkbox
-                                        id={`type-${type}`}
-                                        checked={customGameType.includes(type)}
-                                        onCheckedChange={() => handleCustomGameTypeToggle(type)}
-                                        className="border-orange-300 data-[state=checked]:bg-orange-600"
-                                      />
-                                      <Label htmlFor={`type-${type}`} className="text-sm cursor-pointer flex-1">
-                                        {type}
-                                      </Label>
-                                    </div>
-                                  ))}
-                                  <div className="border-t border-orange-200 pt-3 mt-3">
-                                    <h5 className="font-medium text-xs text-gray-600 mb-2">
-                                      Eigene Kategorie hinzufügen:
-                                    </h5>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        value={customGameCustomType}
-                                        onChange={(e) => setCustomGameCustomType(e.target.value)}
-                                        placeholder="Kategorie eingeben..."
-                                        className="text-sm border-orange-200 rounded-lg"
-                                        onKeyPress={(e) => {
-                                          if (e.key === "Enter") {
-                                            e.preventDefault()
-                                            handleAddCustomType()
-                                          }
-                                        }}
-                                      />
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={handleAddCustomType}
-                                        className="bg-orange-500 hover:bg-orange-600 text-white px-2 rounded-lg"
-                                      >
-                                        <Plus className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  {customGameType.length > 0 && (
-                                    <div className="border-t border-orange-200 pt-3 mt-3">
-                                      <h5 className="font-medium text-xs text-gray-600 mb-2">Ausgewählt:</h5>
-                                      <div className="flex flex-wrap gap-1">
-                                        {customGameType.map((type) => (
-                                          <Badge
-                                            key={type}
-                                            className="text-xs cursor-pointer bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-full px-2 py-1"
-                                            onClick={() => handleCustomGameTypeToggle(type)}
-                                          >
-                                            {type} ×
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-
-                          {/* Style Selection */}
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">
-                              Typus * (Mehrfachauswahl)
-                            </Label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="w-full justify-between h-12 border-2 border-orange-200 hover:border-orange-300 rounded-xl bg-white transition-colors"
-                                  type="button"
-                                  disabled={!!selectedGame}
-                                >
-                                  {customGameStyle.length > 0 ? (
-                                    <span className="text-orange-600 font-medium">
-                                      {customGameStyle.length} Typus {customGameStyle.length > 1 ? "en" : ""} ausgewählt
-                                    </span>
-                                  ) : (
-                                    "Typus wählen..."
-                                  )}
-                                  <ChevronDown className="h-4 w-4 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-72 p-0 rounded-xl border-orange-200">
-                                <div className="p-4 space-y-3 max-h-64 overflow-y-auto">
-                                  <h4 className="font-semibold text-sm text-orange-800">Typus auswählen:</h4>
-                                  {GAME_STYLE_OPTIONS.map((style) => (
-                                    <div
-                                      key={style}
-                                      className="flex items-center space-x-3 p-2 hover:bg-orange-50 rounded-lg transition-colors"
-                                    >
-                                      <Checkbox
-                                        id={`style-${style}`}
-                                        checked={customGameStyle.includes(style)}
-                                        onCheckedChange={() => handleCustomGameStyleToggle(style)}
-                                        className="border-orange-300 data-[state=checked]:bg-orange-600"
-                                      />
-                                      <Label htmlFor={`style-${style}`} className="text-sm cursor-pointer flex-1">
-                                        {style}
-                                      </Label>
-                                    </div>
-                                  ))}
-                                  <div className="border-t border-orange-200 pt-3 mt-3">
-                                    <h5 className="font-medium text-xs text-gray-600 mb-2">
-                                      Eigenen Typus hinzufügen:
-                                    </h5>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        value={customGameCustomStyle}
-                                        onChange={(e) => setCustomGameCustomStyle(e.target.value)}
-                                        placeholder="Typus eingeben..."
-                                        className="text-sm border-orange-200 rounded-lg"
-                                        onKeyPress={(e) => {
-                                          if (e.key === "Enter") {
-                                            e.preventDefault()
-                                            handleAddCustomStyle()
-                                          }
-                                        }}
-                                      />
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={handleAddCustomStyle}
-                                        className="bg-orange-500 hover:bg-orange-600 text-white px-2 rounded-lg"
-                                      >
-                                        <Plus className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  {customGameStyle.length > 0 && (
-                                    <div className="border-t border-orange-200 pt-3 mt-3">
-                                      <h5 className="font-medium text-xs text-gray-600 mb-2">Ausgewählt:</h5>
-                                      <div className="flex flex-wrap gap-1">
-                                        {customGameStyle.map((style) => (
-                                          <Badge
-                                            key={style}
-                                            className="text-xs cursor-pointer bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-full px-2 py-1"
-                                            onClick={() => handleCustomGameStyleToggle(style)}
-                                          >
-                                            {style} ×
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                        </div>
-                        {(errors.customGameType || errors.customGameStyle) && (
-                          <div className="mt-3 space-y-1">
-                            {errors.customGameType && (
-                              <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-2 rounded-lg">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>{errors.customGameType}</span>
-                              </div>
-                            )}
-                            {errors.customGameStyle && (
-                              <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-2 rounded-lg">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>{errors.customGameStyle}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
                       {/* Game Details Section */}
                       <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
                         <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
@@ -1292,6 +1176,198 @@ export function CreateMarketplaceOfferForm({
                             )}
                           </div>
                         )}
+                      </div>
+
+                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 border border-purple-200 shadow-sm">
+                        <h3 className="text-lg font-bold text-purple-800 mb-4 flex items-center gap-2">
+                          <Tag className="w-5 h-5" />
+                          Kategorien & Typus
+                        </h3>
+                        <div className="space-y-4">
+                          <div>
+                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">
+                              Kategorie * (Mehrfachauswahl)
+                            </Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className="w-full justify-between h-12 border-2 border-purple-200 focus:border-purple-500 rounded-xl bg-white hover:border-purple-300 transition-colors"
+                                  type="button"
+                                  disabled={!!selectedGame}
+                                >
+                                  {customGameType.length > 0 ? (
+                                    <span className="text-purple-600 font-medium">
+                                      {customGameType.length} Kategorie{customGameType.length > 1 ? "n" : ""} ausgewählt
+                                    </span>
+                                  ) : (
+                                    "Kategorie wählen..."
+                                  )}
+                                  <ChevronDown className="h-4 w-4 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80 p-0">
+                                <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                                  <h4 className="font-medium text-sm text-purple-700">Kategorie auswählen:</h4>
+                                  {GAME_TYPE_OPTIONS.map((type) => (
+                                    <div key={type} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id={`custom-type-${type}`}
+                                        checked={customGameType.includes(type)}
+                                        onCheckedChange={() => handleCustomGameTypeToggle(type)}
+                                        className="border-purple-300 data-[state=checked]:bg-purple-600"
+                                      />
+                                      <Label htmlFor={`custom-type-${type}`} className="text-sm cursor-pointer">
+                                        {type}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                  <div className="border-t pt-2 mt-2">
+                                    <h5 className="font-medium text-xs text-gray-600 mb-2">
+                                      Eigene Kategorie hinzufügen:
+                                    </h5>
+                                    <div className="flex gap-2">
+                                      <Input
+                                        value={customGameCustomType}
+                                        onChange={(e) => setCustomGameCustomType(e.target.value)}
+                                        placeholder="Kategorie eingeben..."
+                                        className="text-xs border-purple-200"
+                                        onKeyPress={(e) => {
+                                          if (e.key === "Enter") {
+                                            e.preventDefault()
+                                            handleAddCustomType()
+                                          }
+                                        }}
+                                      />
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={handleAddCustomType}
+                                        className="bg-purple-500 hover:bg-purple-600 text-white px-2"
+                                      >
+                                        <Plus className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  {customGameType.length > 0 && (
+                                    <div className="border-t pt-2 mt-2">
+                                      <h5 className="font-medium text-xs text-gray-600 mb-2">Ausgewählt:</h5>
+                                      <div className="flex flex-wrap gap-1">
+                                        {customGameType.map((type) => (
+                                          <Badge
+                                            key={type}
+                                            className="text-xs cursor-pointer bg-purple-100 text-purple-700 hover:bg-purple-200"
+                                            onClick={() => handleCustomGameTypeToggle(type)}
+                                          >
+                                            {type} ×
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                            {errors.customGameType && (
+                              <div className="flex items-center space-x-2 text-red-600 text-sm mt-3 bg-red-50 p-2 rounded-lg">
+                                <AlertCircle className="w-4 h-4" />
+                                <span>{errors.customGameType}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">
+                              Typus * (Mehrfachauswahl)
+                            </Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className="w-full justify-between h-12 border-2 border-purple-200 focus:border-purple-500 rounded-xl bg-white hover:border-purple-300 transition-colors"
+                                  type="button"
+                                  disabled={!!selectedGame}
+                                >
+                                  {customGameStyle.length > 0 ? (
+                                    <span className="text-purple-600 font-medium">
+                                      {customGameStyle.length} Typus {customGameStyle.length > 1 ? "en" : ""} ausgewählt
+                                    </span>
+                                  ) : (
+                                    "Typus wählen..."
+                                  )}
+                                  <ChevronDown className="h-4 w-4 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80 p-0">
+                                <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                                  <h4 className="font-medium text-sm text-purple-700">Typus auswählen:</h4>
+                                  {GAME_STYLE_OPTIONS.map((style) => (
+                                    <div key={style} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id={`custom-style-${style}`}
+                                        checked={customGameStyle.includes(style)}
+                                        onCheckedChange={() => handleCustomGameStyleToggle(style)}
+                                        className="border-purple-300 data-[state=checked]:bg-purple-600"
+                                      />
+                                      <Label htmlFor={`custom-style-${style}`} className="text-sm cursor-pointer">
+                                        {style}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                  <div className="border-t pt-2 mt-2">
+                                    <h5 className="font-medium text-xs text-gray-600 mb-2">
+                                      Eigenen Typus hinzufügen:
+                                    </h5>
+                                    <div className="flex gap-2">
+                                      <Input
+                                        value={customGameCustomStyle}
+                                        onChange={(e) => setCustomGameCustomStyle(e.target.value)}
+                                        placeholder="Typus eingeben..."
+                                        className="text-xs border-purple-200"
+                                        onKeyPress={(e) => {
+                                          if (e.key === "Enter") {
+                                            e.preventDefault()
+                                            handleAddCustomStyle()
+                                          }
+                                        }}
+                                      />
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={handleAddCustomStyle}
+                                        className="bg-purple-500 hover:bg-purple-600 text-white px-2"
+                                      >
+                                        <Plus className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  {customGameStyle.length > 0 && (
+                                    <div className="border-t pt-2 mt-2">
+                                      <h5 className="font-medium text-xs text-gray-600 mb-2">Ausgewählt:</h5>
+                                      <div className="flex flex-wrap gap-1">
+                                        {customGameStyle.map((style) => (
+                                          <Badge
+                                            key={style}
+                                            className="text-xs cursor-pointer bg-purple-100 text-purple-700 hover:bg-purple-200"
+                                            onClick={() => handleCustomGameStyleToggle(style)}
+                                          >
+                                            {style} ×
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                            {errors.customGameStyle && (
+                              <div className="flex items-center space-x-2 text-red-600 text-sm mt-3 bg-red-50 p-2 rounded-lg">
+                                <AlertCircle className="w-4 h-4" />
+                                <span>{errors.customGameStyle}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1605,7 +1681,7 @@ export function CreateMarketplaceOfferForm({
                             <Checkbox
                               id="pickup"
                               checked={deliveryPickup}
-                              onCheckedChange={(checked) => setDeliveryPickup(checked as boolean)}
+                              onChange={(checked) => setDeliveryPickup(checked as boolean)}
                               className="border-indigo-400 data-[state=checked]:bg-indigo-600"
                             />
                             <Label
@@ -1636,7 +1712,7 @@ export function CreateMarketplaceOfferForm({
                             <Checkbox
                               id="shipping"
                               checked={deliveryShipping}
-                              onCheckedChange={(checked) => {
+                              onChange={(checked) => {
                                 setDeliveryShipping(checked as boolean)
                                 if (!checked) setShippingOption("")
                               }}
@@ -1655,7 +1731,7 @@ export function CreateMarketplaceOfferForm({
                           {deliveryShipping && (
                             <div className="ml-7">
                               <Label className="text-sm font-medium text-gray-700 mb-2 block">Versandoption</Label>
-                              <Select value={shippingOption} onValueChange={setShippingOption}>
+                              <Select value={shippingOption} onChange={setShippingOption}>
                                 <SelectTrigger className="h-10 border-2 border-indigo-200 focus:border-indigo-500 rounded-lg">
                                   <SelectValue placeholder="Versandoption wählen..." />
                                 </SelectTrigger>

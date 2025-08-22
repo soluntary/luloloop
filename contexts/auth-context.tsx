@@ -32,7 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const [initialized, setInitialized] = useState(false)
+  const initializationRef = useRef(false)
   const [mounted, setMounted] = useState(true)
   const profileLoadingRef = useRef(false)
   const currentUserIdRef = useRef<string | null>(null)
@@ -197,9 +197,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (initialized) return
+    if (initializationRef.current) return
 
     console.log("[v0] Initializing auth...")
+    initializationRef.current = true
 
     const {
       data: { subscription },
@@ -279,12 +280,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ) {
             console.log("[v0] Detected refresh token error, clearing session aggressively")
             await clearInvalidSession()
-            setInitialized(true)
             return
           }
-          setUser(null)
-          setLoading(false)
-          setInitialized(true)
+          if (mounted) {
+            setUser(null)
+            setLoading(false)
+          }
           return
         }
 
@@ -293,14 +294,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await loadUserProfile(session.user)
         } else {
           console.log("[v0] No session found")
-          setLoading(false)
+          if (mounted) {
+            setUser(null)
+            setLoading(false)
+          }
         }
-
-        setInitialized(true)
       } catch (error) {
         console.error("[v0] Unexpected auth initialization error:", error)
         await clearInvalidSession()
-        setInitialized(true)
       }
     }
 

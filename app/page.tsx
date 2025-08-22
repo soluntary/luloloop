@@ -130,7 +130,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Marktplatz</h3>
               <p className="text-gray-600 font-body mb-4">
-                Entdecke spannende Angebote von anderen Mitgliedern und finde tolle Spiele zum Ausleihen, Kaufen oder
+                Stöbere durch den Marktplatz, entdecke spannende Angebote von anderen Mitgliedern und finde tolle Spiele zum Ausleihen, Kaufen oder
                 Tauschen.
               </p>
               <Button

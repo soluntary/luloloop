@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -22,8 +21,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const { signIn } = useAuth()
+  const { signIn, user } = useAuth()
   const router = useRouter()
+
+  useEffect(() => {
+    if (user) {
+      console.log("[v0] User authenticated, redirecting to home")
+      router.push("/")
+    }
+  }, [user, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,10 +38,10 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password)
-      router.push("/")
+      console.log("[v0] SignIn API call completed, waiting for auth state update...")
     } catch (error: any) {
+      console.log("[v0] SignIn failed:", error.message)
       setError(error.message || "Anmeldung fehlgeschlagen.")
-    } finally {
       setLoading(false)
     }
   }

@@ -440,39 +440,36 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       } else {
         console.log("[v0] Skipping data load - not connected or no user")
         setMarketplaceOffers([])
+        setLoading(false)
       }
     } catch (err) {
       console.error("[v0] Error refreshing data:", err)
       setError("Fehler beim Laden der Daten")
     } finally {
-      setLoading(false)
+      if (user) {
+        setLoading(false)
+      }
       isRefreshingRef.current = false
       console.log("[v0] refreshData completed")
     }
   }, [user]) // Only depend on user, not the entire user object or other functions
 
-  // Toggle game availability status
   const toggleGameAvailability = async (gameId: string, isAvailable: boolean) => {
     if (!user || !databaseConnected) {
       throw new Error("User not authenticated or database not connected")
     }
 
     try {
-      console.log("[v0] Toggling game availability:", gameId, "to", isAvailable)
-
-      // Update the available field - using array format to match existing schema
-      const availableValue = isAvailable ? ["available"] : ["not_available"]
-
       const { data, error } = await supabase
         .from("games")
-        .update({ available: availableValue })
+        .update({ available: isAvailable ? ["available"] : [] })
         .eq("id", gameId)
         .eq("user_id", user.id)
         .select()
 
       if (error) {
-        console.error("Error updating game availability:", error)
-        throw new Error(`Fehler beim Aktualisieren der Verfügbarkeit: ${error.message}`)
+        console.error("Error toggling game availability:", error)
+        throw new Error(`Fehler beim Ändern der Verfügbarkeit des Spiels: ${error.message}`)
       }
 
       if (data && data.length > 0) {
@@ -481,7 +478,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
           image: data[0].image || FALLBACK_IMAGE,
         }
         setGames((prev) => prev.map((game) => (game.id === gameId ? updatedGame : game)))
-        console.log("[v0] Game availability updated successfully")
       }
     } catch (err) {
       console.error("Error toggling game availability:", err)
@@ -490,7 +486,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    if (user?.id && !isRefreshingRef.current) {
+    if (!isRefreshingRef.current) {
       refreshData()
     }
   }, [user?.id, refreshData])
