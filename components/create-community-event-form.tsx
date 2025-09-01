@@ -442,7 +442,7 @@ export default function CreateCommunityEventForm({ communityId, onSuccess, onCan
   }
 
   const filteredFriendGames = showFriendGameDialog
-    ? userGames.filter((game) => game.title.toLowerCase().includes(friendGameSearchTerm.toLowerCase()))
+    ? userGames.filter((game) => game?.title?.toLowerCase().includes((friendGameSearchTerm || "").toLowerCase()))
     : []
 
   return (
@@ -1161,100 +1161,114 @@ export default function CreateCommunityEventForm({ communityId, onSuccess, onCan
         </DialogContent>
       </Dialog>
 
-      {showFriendGameDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-900">
-                  Spiele von {showFriendGameDialog.friendName} anfragen
-                </h3>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setShowFriendGameDialog(null)}>
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
-              <p className="text-sm text-gray-500 mt-2">
-                Wähle Spiele aus dem Regal von {showFriendGameDialog.friendName}, die zum Event mitgebracht werden
-                sollen
-              </p>
+      <Dialog open={!!showFriendGameDialog} onOpenChange={() => setShowFriendGameDialog(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Gamepad2 className="h-5 w-5 mr-2" />
+              Spiele von {showFriendGameDialog?.friendName} anfragen
+            </DialogTitle>
+            <p className="text-sm text-gray-500 mt-2">
+              Wähle Spiele aus dem Regal von {showFriendGameDialog?.friendName}, die zum Event mitgebracht werden sollen
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Search bar for friend's games */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Spiele durchsuchen..."
+                value={friendGameSearchTerm}
+                onChange={(e) => setFriendGameSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              />
             </div>
 
-            <div className="p-6 overflow-y-auto max-h-[60vh]">
-              {/* Search bar for friend's games */}
-              <div className="mb-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    placeholder="Spiele durchsuchen..."
-                    value={friendGameSearchTerm}
-                    onChange={(e) => setFriendGameSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              {/* Friend's games grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredFriendGames.map((game) => (
-                  <div
-                    key={game.id}
-                    className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                      friendGameRequests[showFriendGameDialog.friendId]?.some((g) => g.id === game.id)
-                        ? "border-green-500 bg-green-50"
-                        : "border-gray-200 hover:border-pink-300 hover:bg-pink-50"
-                    }`}
-                    onClick={() => handleToggleFriendGameRequest(showFriendGameDialog.friendId, game)}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <GamepadIcon className="w-6 h-6 text-gray-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 truncate">{game.title}</h4>
-                        {game.publisher && <p className="text-sm text-gray-500">{game.publisher}</p>}
-                        <div className="flex items-center space-x-2 mt-1">
-                          {game.min_players && game.max_players && (
-                            <span className="text-xs text-gray-400">
-                              {game.min_players}-{game.max_players} Spieler
-                            </span>
-                          )}
-                          {game.duration && <span className="text-xs text-gray-400">{game.duration} Min</span>}
-                        </div>
-                      </div>
-                      {friendGameRequests[showFriendGameDialog.friendId]?.some((g) => g.id === game.id) && (
-                        <Check className="w-5 h-5 text-green-600" />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {filteredFriendGames.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <GamepadIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p>Keine Spiele gefunden</p>
-                </div>
-              )}
-            </div>
-
-            <div className="p-6 border-t border-gray-200 bg-gray-50">
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-gray-600">
-                  {friendGameRequests[showFriendGameDialog.friendId]?.length || 0} Spiele ausgewählt
+            {filteredFriendGames.length === 0 ? (
+              <div className="text-center py-8">
+                <Gamepad2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Keine Spiele gefunden</p>
+                <p className="text-sm text-gray-500 mt-2">
+                  {friendGameSearchTerm
+                    ? "Versuche einen anderen Suchbegriff"
+                    : `${showFriendGameDialog?.friendName} hat noch keine Spiele im Spielregal`}
                 </p>
-                <Button
-                  type="button"
-                  onClick={() => setShowFriendGameDialog(null)}
-                  className="bg-pink-600 hover:bg-pink-700 text-white"
-                >
-                  Fertig
-                </Button>
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredFriendGames.map((game) => {
+                  const isRequested = friendGameRequests[showFriendGameDialog?.friendId || ""]?.some(
+                    (g) => g.id === game.id,
+                  )
+                  return (
+                    <div
+                      key={game.id}
+                      className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                        isRequested ? "border-green-500 bg-green-50" : "hover:bg-gray-50 border-gray-200"
+                      }`}
+                      onClick={() =>
+                        showFriendGameDialog && handleToggleFriendGameRequest(showFriendGameDialog.friendId, game)
+                      }
+                    >
+                      <div className="aspect-square bg-gray-100 rounded-md mb-2 overflow-hidden relative">
+                        <img
+                          src={game.image || "/placeholder.svg"}
+                          alt={game.title}
+                          className="w-full h-full object-cover"
+                        />
+                        {isRequested && (
+                          <div className="absolute top-2 right-2 bg-green-500 rounded-full p-1">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <h4 className="font-medium text-sm text-gray-900 truncate">{game.title}</h4>
+                      {game.publisher && <p className="text-xs text-gray-500 truncate">{game.publisher}</p>}
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-gray-500">{game.condition}</span>
+                        {game.available?.includes("available") && (
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Verfügbar</span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Selected games summary */}
+            {showFriendGameDialog && friendGameRequests[showFriendGameDialog.friendId]?.length > 0 && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  {friendGameRequests[showFriendGameDialog.friendId].length} Spiele ausgewählt
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {friendGameRequests[showFriendGameDialog.friendId].map((game) => (
+                    <span
+                      key={game.id}
+                      className="inline-flex items-center px-2 py-1 bg-white border border-gray-200 rounded-md text-xs"
+                    >
+                      {game.title}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleRemoveFriendGameRequest(showFriendGameDialog.friendId, game.id)
+                        }}
+                        className="ml-1 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Game Shelf Selection Modal */}
       <Dialog open={showGameShelfModal} onOpenChange={setShowGameShelfModal}>

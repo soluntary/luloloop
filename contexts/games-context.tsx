@@ -466,7 +466,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       isRefreshingRef.current = false
       console.log("[v0] refreshData completed")
     }
-  }, [user, loadGames, loadMarketplaceOffers, databaseConnected])
+  }, [loadGames, loadMarketplaceOffers]) // Removed user and databaseConnected from dependencies to prevent infinite loops
 
   const toggleGameAvailability = async (gameId: string, isAvailable: boolean) => {
     if (!user || !databaseConnected) {
@@ -511,7 +511,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       userIdRef.current = null
       setLoading(false)
     }
-  }, [user, refreshData])
+  }, [user]) // Removed refreshData from dependencies to prevent circular dependency and infinite loops
 
   const value: GamesContextType = {
     games,
