@@ -1,8 +1,9 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
 import { useAuth } from "./auth-context"
+import type { AuthUser } from "@/types/auth"
 
 interface Game {
   id: string
@@ -74,8 +75,11 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [databaseConnected, setDatabaseConnected] = useState(false)
   const isRefreshingRef = useRef(false)
+  const userIdRef = useRef<string | null>(null)
 
   const FALLBACK_IMAGE = "/images/ludoloop-game-placeholder.png"
+
+  const supabase = createClient()
 
   // Test database connection
   const testDatabaseConnection = async () => {
@@ -95,7 +99,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       setError(null)
       return true
     } catch (err) {
-      console.error("[v0] Database connection error:", err)
+      console.error("[v0] Database connection test failed:", err)
       setError("Datenbank-Verbindung fehlgeschlagen. Bitte überprüfe deine Supabase-Konfiguration.")
       setDatabaseConnected(false)
       return false
@@ -104,21 +108,22 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   // Load games from database
   const loadGames = useCallback(
-    async (forceConnected = false) => {
+    async (forceConnected = false, currentUser?: AuthUser | null) => {
+      const userToUse = currentUser || user
       const isConnected = forceConnected || databaseConnected
-      console.log("[v0] loadGames called - user:", user?.id, "databaseConnected:", isConnected)
+      console.log("[v0] loadGames called - user:", userToUse?.id, "databaseConnected:", isConnected)
 
-      if (!user || !isConnected) {
+      if (!userToUse || !isConnected) {
         console.log("[v0] loadGames early return - user or database not available")
         return
       }
 
       try {
-        console.log("[v0] Querying games for user:", user.id)
+        console.log("[v0] Querying games for user:", userToUse.id)
         const { data, error } = await supabase
           .from("games")
           .select("*")
-          .eq("user_id", user.id)
+          .eq("user_id", userToUse.id)
           .order("title", { ascending: true })
 
         if (error) {
@@ -142,7 +147,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         console.error("[v0] Error loading games:", err)
       }
     },
-    [user, databaseConnected],
+    [user, databaseConnected, supabase],
   )
 
   // Load marketplace offers from database
@@ -180,7 +185,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         setMarketplaceOffers([])
       }
     },
-    [databaseConnected],
+    [databaseConnected, supabase],
   )
 
   // Add new game
@@ -426,7 +431,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    console.log("[v0] refreshData called - user:", user?.id)
+    const currentUser = user
+    console.log("[v0] refreshData called - user:", currentUser?.id)
     isRefreshingRef.current = true
     setLoading(true)
     setError(null)
@@ -434,25 +440,33 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     try {
       const connected = await testDatabaseConnection()
       console.log("[v0] Database connected:", connected)
-      if (connected && user) {
+      if (connected) {
         console.log("[v0] Loading games and marketplace offers...")
-        await Promise.all([loadGames(connected), loadMarketplaceOffers(connected)])
+        const promises = [loadMarketplaceOffers(connected)]
+        // Only load user's games if authenticated
+        if (currentUser) {
+          promises.push(loadGames(connected, currentUser))
+          userIdRef.current = currentUser.id
+        } else {
+          userIdRef.current = null
+        }
+        await Promise.all(promises)
       } else {
-        console.log("[v0] Skipping data load - not connected or no user")
+        console.log("[v0] Skipping data load - not connected")
         setMarketplaceOffers([])
-        setLoading(false)
+        if (!currentUser) {
+          setLoading(false)
+        }
       }
     } catch (err) {
       console.error("[v0] Error refreshing data:", err)
       setError("Fehler beim Laden der Daten")
     } finally {
-      if (user) {
-        setLoading(false)
-      }
+      setLoading(false)
       isRefreshingRef.current = false
       console.log("[v0] refreshData completed")
     }
-  }, [user]) // Only depend on user, not the entire user object or other functions
+  }, [user, loadGames, loadMarketplaceOffers, databaseConnected])
 
   const toggleGameAvailability = async (gameId: string, isAvailable: boolean) => {
     if (!user || !databaseConnected) {
@@ -486,10 +500,18 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    if (!isRefreshingRef.current) {
+    // Only refresh if user ID actually changed
+    if (user?.id !== userIdRef.current && !isRefreshingRef.current) {
+      console.log("[v0] User changed from", userIdRef.current, "to", user?.id, "- refreshing data")
       refreshData()
+    } else if (!user && userIdRef.current && !isRefreshingRef.current) {
+      // User logged out
+      console.log("[v0] User logged out - clearing data")
+      setGames([])
+      userIdRef.current = null
+      setLoading(false)
     }
-  }, [user?.id, refreshData])
+  }, [user, refreshData])
 
   const value: GamesContextType = {
     games,

@@ -46,7 +46,7 @@ export default function HomePage() {
       {/* Features */}
       <section className="container mx-auto px-4 py-16 bg-white/50 rounded-3xl mx-4 mb-16">
         <h2 className="text-4xl font-handwritten text-center text-gray-800 mb-12 transform rotate-1">
-          Entdecke unsere Features
+          Entdecke unsere tollen Features
         </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           <Card className="transform rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-pink-200">

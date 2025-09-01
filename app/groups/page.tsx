@@ -129,14 +129,25 @@ function CommunityLoading() {
 
 export default function GroupsPage() {
   const { user, loading: authLoading } = useAuth()
-  const { friends, friendRequests, sendFriendRequest, acceptFriendRequest, rejectFriendRequest } = useFriends()
+  const {
+    friends,
+    friendRequests,
+    pendingRequests,
+    sentRequests,
+    sendFriendRequest,
+    acceptFriendRequest,
+    declineFriendRequest,
+    getFriendshipStatus,
+    loading: friendsLoading,
+    refreshFriends,
+    loadFriendRequests,
+    loadFriends,
+  } = useFriends()
   const { games } = useGames()
 
   const [communities, setCommunities] = useState<Community[]>([])
   const [communityEvents, setCommunityEvents] = useState<CommunityEvent[]>([])
   const [users, setUsers] = useState<UserType[]>([])
-  const [allFriendRequests, setAllFriendRequests] = useState<FriendRequest[]>([])
-  const [allFriends, setAllFriends] = useState<UserType[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [optimisticFriendStates, setOptimisticFriendStates] = useState<
@@ -273,176 +284,48 @@ export default function GroupsPage() {
   const loadUsers = async () => {
     try {
       console.log("Loading users...")
-
-      const { data: tableCheck, error: tableError } = await supabase.from("users").select("count").limit(1)
-
-      if (tableError) {
-        console.warn("Users table does not exist:", tableError)
-        return []
-      }
-
       const { data, error } = await supabase
         .from("users")
-        .select("*")
-        .neq("id", user?.id || "00000000-0000-0000-0000-000000000000")
-        .order("name")
+        .select("id, name, username, email, bio, avatar, created_at, settings")
+        .neq("id", user?.id || "")
 
-      if (error) {
-        console.error("Error loading users:", error)
-        return []
-      }
+      if (error) throw error
 
       console.log("Users loaded:", data?.length || 0)
       return data || []
     } catch (error) {
-      if (error instanceof SyntaxError && error.message.includes("JSON")) {
-        console.error("JSON parsing error when loading users - likely API rate limit:", error.message)
-        return []
-      } else {
-        console.error("Failed to load users:", error)
-        return []
-      }
-    }
-  }
-
-  const loadFriendRequests = async () => {
-    if (!user) return []
-
-    try {
-      console.log("Loading friend requests...")
-
-      const { data: tableCheck, error: tableError } = await supabase.from("friend_requests").select("count").limit(1)
-
-      if (tableError) {
-        console.warn("Friend requests table does not exist:", tableError)
-        return []
-      }
-
-      let { data, error } = await supabase
-        .from("friend_requests")
-        .select(`
-          *,
-          sender:users!friend_requests_from_user_id_fkey(*),
-          receiver:users!friend_requests_to_user_id_fkey(*)
-        `)
-        .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
-
-      if (error) {
-        console.error("Error loading friend requests with user info:", error)
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from("friend_requests")
-          .select("*")
-          .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
-
-        if (fallbackError) {
-          console.error("Fallback friend requests query failed:", fallbackError)
-          return []
-        }
-        data = fallbackData
-      }
-
-      console.log("Friend requests loaded:", data?.length || 0)
-      return data || []
-    } catch (error) {
-      if (error instanceof SyntaxError && error.message.includes("JSON")) {
-        console.error("JSON parsing error when loading friend requests - likely API rate limit:", error.message)
-        return []
-      } else {
-        console.error("Failed to load friend requests:", error)
-        return []
-      }
-    }
-  }
-
-  const loadFriends = async () => {
-    if (!user) return []
-
-    try {
-      console.log("Loading friends...")
-
-      const { data: tableCheck, error: tableError } = await supabase.from("friends").select("count").limit(1)
-
-      if (tableError) {
-        console.warn("Friends table does not exist:", tableError)
-        return []
-      }
-
-      let { data, error } = await supabase
-        .from("friends")
-        .select(`
-          *,
-          friend:users!friends_friend_id_fkey(*)
-        `)
-        .eq("user_id", user.id)
-        .eq("status", "accepted")
-
-      if (error) {
-        console.error("Error loading friends with user info:", error)
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from("friends")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("status", "accepted")
-
-        if (fallbackError) {
-          console.error("Fallback friends query failed:", fallbackError)
-          return []
-        }
-        data = fallbackData
-      }
-
-      const friendsList = data?.map((friendship) => friendship.friend).filter(Boolean) || []
-      console.log("Friends loaded:", friendsList.length)
-      return friendsList
-    } catch (error) {
-      if (error instanceof SyntaxError && error.message.includes("JSON")) {
-        console.error("JSON parsing error when loading friends - likely API rate limit:", error.message)
-        return []
-      } else {
-        console.error("Failed to load friends:", error)
-        return []
-      }
+      console.error("Failed to load users:", error)
+      return []
     }
   }
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
+      setError(null)
+
       try {
-        const usersData = await loadUsers()
-        await new Promise((resolve) => setTimeout(resolve, 100)) // Small delay
+        const [communitiesData, eventsData, usersData] = await Promise.all([
+          loadCommunities(),
+          loadCommunityEvents(),
+          loadUsers(),
+        ])
 
-        const eventsData = await loadCommunityEvents()
-        await new Promise((resolve) => setTimeout(resolve, 100))
-
-        const communitiesData = await loadCommunities()
-        await new Promise((resolve) => setTimeout(resolve, 100))
-
-        const friendRequestsData = user ? await loadFriendRequests() : []
-        await new Promise((resolve) => setTimeout(resolve, 100))
-
-        const friendsData = user ? await loadFriends() : []
-
-        setUsers(usersData)
-        setCommunityEvents(eventsData)
         setCommunities(communitiesData)
-        setAllFriendRequests(friendRequestsData)
-        setAllFriends(friendsData)
-      } catch (error) {
-        if (error instanceof SyntaxError && error.message.includes("JSON")) {
-          console.error("JSON parsing error when loading Community data - likely API rate limit:", error.message)
-          setError("Server ist überlastet. Bitte versuche es in einem Moment erneut.")
-        } else {
-          console.error("Error loading data:", error)
-          setError("Fehler beim Laden der Daten")
-        }
+        setCommunityEvents(eventsData)
+        setUsers(usersData)
+      } catch (err: any) {
+        console.error("Error loading data:", err)
+        setError(err.message || "Failed to load data")
       } finally {
         setLoading(false)
       }
     }
 
-    loadData()
-  }, [user])
+    if (!authLoading) {
+      loadData()
+    }
+  }, [user, authLoading])
 
   const createCommunity = async () => {
     if (!user) {
@@ -541,37 +424,8 @@ export default function GroupsPage() {
     setOptimisticFriendStates((prev) => ({ ...prev, [userId]: "sending" }))
 
     try {
-      const existingRequest = allFriendRequests.find(
-        (req) =>
-          (req.from_user_id === user.id && req.to_user_id === userId) ||
-          (req.from_user_id === userId && req.to_user_id === user.id),
-      )
-
-      if (existingRequest) {
-        console.log("[v0] Friend request already exists")
-        setOptimisticFriendStates((prev) => {
-          const newState = { ...prev }
-          delete newState[userId]
-          return newState
-        })
-        return
-      }
-
-      console.log("[v0] Inserting friend request into database")
-      const { error } = await supabase.from("friend_requests").insert([
-        {
-          from_user_id: user.id,
-          to_user_id: userId,
-          status: "pending",
-        },
-      ])
-
-      if (error) throw error
-
+      await sendFriendRequest(userId)
       console.log("[v0] Friend request sent successfully")
-      await loadFriendRequests()
-      await loadFriends()
-
       setOptimisticFriendStates((prev) => {
         const newState = { ...prev }
         delete newState[userId]
@@ -584,140 +438,71 @@ export default function GroupsPage() {
         delete newState[userId]
         return newState
       })
-      if (error instanceof SyntaxError && error.message.includes("JSON")) {
-        console.error("JSON parsing error when sending friend request - likely API rate limit:", error.message)
-      } else {
-        console.error("Error sending friend request:", error)
-      }
     }
   }
 
-  const handleAcceptFriendRequest = async (requestId: string, senderId: string) => {
-    console.log("[v0] Accepting friend request:", requestId, "from sender:", senderId)
+  const handleAcceptFriendRequest = async (userId: string) => {
+    console.log("[v0] Accepting friend request from user:", userId)
     if (!user) return
 
-    setOptimisticFriendStates((prev) => ({ ...prev, [senderId]: "accepting" }))
+    setOptimisticFriendStates((prev) => ({ ...prev, [userId]: "accepting" }))
 
     try {
-      const { error: updateError } = await supabase
-        .from("friend_requests")
-        .update({ status: "accepted" })
-        .eq("id", requestId)
+      // Find the request ID from pending requests
+      const request = pendingRequests.find((req) => req.from_user_id === userId)
+      if (request) {
+        await acceptFriendRequest(request.id)
+        console.log("[v0] Friend request accepted successfully")
+        setOptimisticFriendStates((prev) => ({ ...prev, [userId]: "accepted" }))
 
-      if (updateError) throw updateError
-
-      const { error: friendshipError } = await supabase.from("friends").insert([
-        { user_id: user.id, friend_id: senderId, status: "accepted" },
-        { user_id: senderId, friend_id: user.id, status: "accepted" },
-      ])
-
-      if (friendshipError) throw friendshipError
-
-      console.log("[v0] Friend request accepted successfully")
-      setOptimisticFriendStates((prev) => ({ ...prev, [senderId]: "accepted" }))
-
-      await loadFriendRequests()
-      await loadFriends()
-
-      setTimeout(() => {
-        setOptimisticFriendStates((prev) => {
-          const newState = { ...prev }
-          delete newState[senderId]
-          return newState
-        })
-      }, 1000)
+        setTimeout(() => {
+          setOptimisticFriendStates((prev) => {
+            const newState = { ...prev }
+            delete newState[userId]
+            return newState
+          })
+        }, 1000)
+      }
     } catch (error) {
       console.error("[v0] Error accepting friend request:", error)
       setOptimisticFriendStates((prev) => {
         const newState = { ...prev }
-        delete newState[senderId]
+        delete newState[userId]
         return newState
       })
-      if (error instanceof SyntaxError && error.message.includes("JSON")) {
-        console.error("JSON parsing error when accepting friend request - likely API rate limit:", error.message)
-      } else {
-        console.error("Error accepting friend request:", error)
-      }
     }
   }
 
-  const handleRejectFriendRequest = async (requestId: string, senderId: string) => {
-    console.log("[v0] Rejecting friend request:", requestId)
+  const handleRejectFriendRequest = async (userId: string) => {
+    console.log("[v0] Rejecting friend request from user:", userId)
     if (!user) return
 
-    setOptimisticFriendStates((prev) => ({ ...prev, [senderId]: "declining" }))
+    setOptimisticFriendStates((prev) => ({ ...prev, [userId]: "declining" }))
 
     try {
-      const { error } = await supabase.from("friend_requests").update({ status: "declined" }).eq("id", requestId)
+      // Find the request ID from pending requests
+      const request = pendingRequests.find((req) => req.from_user_id === userId)
+      if (request) {
+        await declineFriendRequest(request.id)
+        console.log("[v0] Friend request rejected successfully")
+        setOptimisticFriendStates((prev) => ({ ...prev, [userId]: "declined" }))
 
-      if (error) throw error
-
-      console.log("[v0] Friend request rejected successfully")
-      setOptimisticFriendStates((prev) => {
-        const newState = { ...prev }
-        delete newState[senderId]
-        return newState
-      })
-
-      await loadFriendRequests()
-
-      setTimeout(() => {
-        setOptimisticFriendStates((prev) => {
-          const newState = { ...prev }
-          delete newState[senderId]
-          return newState
-        })
-      }, 1000)
+        setTimeout(() => {
+          setOptimisticFriendStates((prev) => {
+            const newState = { ...prev }
+            delete newState[userId]
+            return newState
+          })
+        }, 1000)
+      }
     } catch (error) {
       console.error("[v0] Error rejecting friend request:", error)
       setOptimisticFriendStates((prev) => {
         const newState = { ...prev }
-        delete newState[senderId]
+        delete newState[userId]
         return newState
       })
-      if (error instanceof SyntaxError && error.message.includes("JSON")) {
-        console.error("JSON parsing error when rejecting friend request - likely API rate limit:", error.message)
-      } else {
-        console.error("Error rejecting friend request:", error)
-      }
     }
-  }
-
-  const getFriendshipStatus = (userId: string): "none" | "friends" | "sent" | "received" => {
-    if (!user) {
-      console.log("[v0] getFriendshipStatus - no user")
-      return "none"
-    }
-
-    console.log("[v0] Checking friendship status for user:", userId)
-    console.log("[v0] Current user ID:", user.id)
-    console.log("[v0] All friends:", allFriends)
-    console.log("[v0] All friend requests:", allFriendRequests)
-
-    const isFriend = allFriends.some((friend) => friend.friend_id === userId)
-    if (isFriend) {
-      console.log("[v0] User is already a friend")
-      return "friends"
-    }
-
-    const sentRequest = allFriendRequests.find(
-      (req) => req.from_user_id === user.id && req.to_user_id === userId && req.status === "pending",
-    )
-    if (sentRequest) {
-      console.log("[v0] Found sent request:", sentRequest)
-      return "sent"
-    }
-
-    const receivedRequest = allFriendRequests.find(
-      (req) => req.from_user_id === userId && req.to_user_id === user.id && req.status === "pending",
-    )
-    if (receivedRequest) {
-      console.log("[v0] Found received request:", receivedRequest)
-      return "received"
-    }
-
-    console.log("[v0] No friendship relationship found")
-    return "none"
   }
 
   const getFriendshipStatusForUser = (
@@ -732,20 +517,10 @@ export default function GroupsPage() {
     return getFriendshipStatus(userId)
   }
 
-  const getFriendRequestId = (userId: string): string => {
-    const request = allFriendRequests.find(
-      (req) => req.from_user_id === userId && req.to_user_id === user?.id && req.status === "pending",
-    )
-    console.log("[v0] Looking for friend request ID for user:", userId)
-    console.log("[v0] Found request:", request)
-    console.log("[v0] Returning request ID:", request?.id || "")
-    return request?.id || ""
-  }
-
   const canViewField = (targetUser: UserType, field: string): boolean => {
     if (!user || targetUser.id === user.id) return true
 
-    const isFriend = allFriends.some((friend) => friend.id === targetUser.id)
+    const isFriend = friends.some((friend) => friend.id === targetUser.id)
     const privacySettings = targetUser.settings?.privacy || {}
 
     switch (field) {
@@ -999,7 +774,6 @@ export default function GroupsPage() {
       targetUser.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
       targetUser.email.toLowerCase().includes(userSearchTerm.toLowerCase())
 
-    // Friendship status filtering
     if (!matchesSearch) return false
 
     // Friendship status filter
@@ -1008,7 +782,7 @@ export default function GroupsPage() {
     const friendshipStatus = getFriendshipStatus(targetUser.id)
     switch (friendshipFilter) {
       case "sent":
-        return friendshipStatus === "sent"
+        return friendshipStatus === "pending"
       case "received":
         return friendshipStatus === "received"
       case "friends":
@@ -1017,30 +791,6 @@ export default function GroupsPage() {
         return true
     }
   })
-
-  const pendingRequests = user
-    ? allFriendRequests.filter((req) => req.to_user_id === user.id && req.status === "pending")
-    : []
-
-  const getFriendshipStatusForUserHelper = (userId: string) => {
-    if (!user) return "guest"
-
-    const isAlreadyFriend = allFriends.some((friend) => friend.id === userId)
-    if (isAlreadyFriend) return "friend"
-
-    const pendingRequest = allFriendRequests.find(
-      (req) =>
-        ((req.from_user_id === user.id && req.to_user_id === userId) ||
-          (req.from_user_id === userId && req.to_user_id === user.id)) &&
-        req.status === "pending",
-    )
-
-    if (pendingRequest) {
-      return pendingRequest.from_user_id === user.id ? "sent" : "received"
-    }
-
-    return "none"
-  }
 
   const GuestLoginPrompt = ({ action }: { action: string }) => (
     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
@@ -1229,14 +979,7 @@ export default function GroupsPage() {
                             <h3 className="font-handwritten text-xl text-gray-800 mb-2 group-hover:text-teal-600 transition-colors">
                               {community.name}
                             </h3>
-                            <div className="flex items-center gap-2 mb-2">
-                              {community.location && (
-                                <div className="flex items-center text-sm text-gray-500">
-                                  <MapPin className="w-3 h-3 mr-1" />
-                                  {community.location}
-                                </div>
-                              )}
-                            </div>
+                            <div className="flex items-center gap-2 mb-2"></div>
                           </div>
                           {community.image && (
                             <img
@@ -1648,7 +1391,7 @@ export default function GroupsPage() {
               </div>
 
               {/* Users Grid */}
-              {loading ? (
+              {loading || friendsLoading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto"></div>
                   <p className="mt-2 text-gray-600">Benutzer werden geladen...</p>
@@ -1673,10 +1416,10 @@ export default function GroupsPage() {
                   {filteredUsers.map((targetUser) => (
                     <Card
                       key={targetUser.id}
-                      className="group hover:shadow-xl transition-all duration-300 border-2 border-blue-100 hover:border-blue-300 bg-white/80 backdrop-blur-sm"
+                      className="group hover:shadow-xl transition-all duration-300 border-2 border-blue-100 hover:border-blue-300 bg-white/80 backdrop-blur-sm relative"
                     >
                       <CardContent className="p-6">
-                        <div className="flex items-start justify-between mb-4">
+                        <div className="flex justify-between mb-4 items-end">
                           <div className="flex-1">
                             <UserLink
                               userId={targetUser.id}
@@ -1684,14 +1427,6 @@ export default function GroupsPage() {
                             >
                               {targetUser.username || targetUser.name}
                             </UserLink>
-                            <div className="flex items-center gap-2 mb-2">
-                              {canViewField(targetUser, "email") && (
-                                <div className="flex items-center text-sm text-gray-500">
-                                  <LogIn className="w-3 h-3 mr-1" />
-                                  {targetUser.email}
-                                </div>
-                              )}
-                            </div>
                           </div>
                           {targetUser.avatar && (
                             <img
@@ -1702,17 +1437,14 @@ export default function GroupsPage() {
                           )}
                         </div>
 
-                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{targetUser.bio}</p>
+                        <p className="text-gray-600 text-sm line-clamp-2 mb-10">{targetUser.bio}</p>
 
-                        <div className="flex gap-2 justify-end">
+                        <div className="absolute bottom-2 left-2 mx-4 flex-col">
                           {getFriendshipStatusForUser(targetUser.id) === "none" && (
                             <Button
                               size="sm"
                               className="bg-gradient-to-r from-blue-400 to-cyan-400 hover:from-blue-500 hover:to-cyan-500 text-white border-0"
-                              onClick={() => {
-                                console.log("[v0] Send friend request button clicked for user:", targetUser.id)
-                                handleSendFriendRequest(targetUser.id)
-                              }}
+                              onClick={() => handleSendFriendRequest(targetUser.id)}
                             >
                               Freundschaft anfragen
                             </Button>
@@ -1725,43 +1457,32 @@ export default function GroupsPage() {
                               </Button>
                             </div>
                           )}
-                          {(getFriendshipStatusForUser(targetUser.id) === "sent" ||
-                            getFriendshipStatusForUser(targetUser.id) === "sending") &&
-                            getFriendshipStatusForUser(targetUser.id) !== "sending" && (
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
-                                <Button
-                                  size="sm"
-                                  className="bg-orange-100 text-orange-700 border border-orange-200"
-                                  disabled
-                                >
-                                  Freundschaft angefragt
-                                </Button>
-                              </div>
-                            )}
+                          {getFriendshipStatusForUser(targetUser.id) === "pending" && (
+                            <div className="flex gap-2 flex-col justify-start items-start mx-0">
+                              <Button
+                                size="sm"
+                                className="bg-orange-100 text-orange-600 border border-orange-200"
+                                disabled
+                              >
+                                Freundschaft angefragt
+                              </Button>
+                            </div>
+                          )}
                           {getFriendshipStatusForUser(targetUser.id) === "received" && (
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
                                 className="bg-green-400 hover:bg-green-500 text-white border-0"
-                                onClick={() => {
-                                  console.log("[v0] Accept friend request button clicked for user:", targetUser.id)
-                                  const requestId = getFriendRequestId(targetUser.id)
-                                  handleAcceptFriendRequest(requestId, targetUser.id)
-                                }}
+                                onClick={() => handleAcceptFriendRequest(targetUser.id)}
                               >
-                                Anfrage akzeptieren
+                                Annehmen
                               </Button>
                               <Button
                                 size="sm"
                                 className="bg-red-400 hover:bg-red-500 text-white border-0"
-                                onClick={() => {
-                                  console.log("[v0] Reject friend request button clicked for user:", targetUser.id)
-                                  const requestId = getFriendRequestId(targetUser.id)
-                                  handleRejectFriendRequest(requestId, targetUser.id)
-                                }}
+                                onClick={() => handleRejectFriendRequest(targetUser.id)}
                               >
-                                Anfrage ablehnen
+                                Ablehnen
                               </Button>
                             </div>
                           )}
@@ -1790,7 +1511,7 @@ export default function GroupsPage() {
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                               <Button
                                 size="sm"
-                                className="bg-green-200 text-green-800 border border-green-300"
+                                className="bg-green-300 text-green-700 border border-green-300"
                                 disabled
                               >
                                 befreundet
@@ -1806,7 +1527,7 @@ export default function GroupsPage() {
                             </div>
                           )}
                           {getFriendshipStatusForUser(targetUser.id) === "friends" && (
-                            <Button size="sm" className="bg-green-300 text-green-700" disabled>
+                            <Button size="sm" className="bg-green-300 text-green-800 border border-green-300" disabled>
                               Befreundet
                             </Button>
                           )}

@@ -15,6 +15,7 @@ interface Message {
   created_at: string
   read: boolean
   game_image: string
+  delivery_preference?: string
 }
 
 interface MessagesContextType {
@@ -26,6 +27,7 @@ interface MessagesContextType {
     game_title: string
     game_image: string
     offer_type: string
+    delivery_preference?: string
   }) => Promise<void>
   markAsRead: (messageId: string) => Promise<void>
   deleteMessage: (messageId: string) => Promise<void>
@@ -90,6 +92,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     game_title: string
     game_image: string
     offer_type: string
+    delivery_preference?: string
   }) => {
     if (!user) throw new Error("User not authenticated")
 
@@ -105,6 +108,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
           game_image: messageData.game_image,
           offer_type: messageData.offer_type,
           read: false,
+          delivery_preference: messageData.delivery_preference,
         })
         .select()
         .single()

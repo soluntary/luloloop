@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
 
 interface Friend {
@@ -54,6 +54,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
 
   const { user } = useAuth()
+  const supabase = createClient()
 
   const refreshFriends = useCallback(async () => {
     if (!user?.id) return
@@ -186,7 +187,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [user?.id, user?.name])
+  }, [user?.id, user?.name, supabase])
 
   useEffect(() => {
     if (user?.id) {
@@ -208,22 +209,45 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
       setError(null)
       console.log("[v0] Sending friend request to:", toUserId)
 
-      const { data: existingRequest, error: checkError } = await supabase
-        .from("friend_requests")
-        .select("id")
-        .eq("from_user_id", user.id)
-        .eq("to_user_id", toUserId)
-        .eq("status", "pending")
-        .maybeSingle() // Use maybeSingle instead of single to handle no results
+      const [existingRequestResult, existingFriendshipResult] = await Promise.all([
+        supabase
+          .from("friend_requests")
+          .select("id, status")
+          .eq("from_user_id", user.id)
+          .eq("to_user_id", toUserId)
+          .in("status", ["pending", "accepted"])
+          .maybeSingle(),
+        supabase
+          .from("friends")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("friend_id", toUserId)
+          .eq("status", "accepted")
+          .maybeSingle(),
+      ])
 
-      if (checkError) {
-        console.error("[v0] Error checking existing request:", checkError)
-        throw checkError
+      if (existingRequestResult.error && existingRequestResult.error.code !== "PGRST116") {
+        console.error("[v0] Error checking existing request:", existingRequestResult.error)
+        throw existingRequestResult.error
       }
 
-      if (existingRequest) {
-        console.log("[v0] Friend request already exists")
-        throw new Error("Du hast bereits eine Freundschaftsanfrage an diesen Benutzer gesendet!")
+      if (existingFriendshipResult.error && existingFriendshipResult.error.code !== "PGRST116") {
+        console.error("[v0] Error checking existing friendship:", existingFriendshipResult.error)
+        throw existingFriendshipResult.error
+      }
+
+      if (existingRequestResult.data) {
+        console.log("[v0] Friend request already exists with status:", existingRequestResult.data.status)
+        if (existingRequestResult.data.status === "pending") {
+          throw new Error("Du hast bereits eine Freundschaftsanfrage an diesen Benutzer gesendet!")
+        } else if (existingRequestResult.data.status === "accepted") {
+          throw new Error("Ihr seid bereits befreundet!")
+        }
+      }
+
+      if (existingFriendshipResult.data) {
+        console.log("[v0] Users are already friends")
+        throw new Error("Ihr seid bereits befreundet!")
       }
 
       // Insert new friend request
@@ -367,36 +391,26 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
   const getFriendshipStatus = (userId: string): "friends" | "pending" | "received" | "none" => {
     if (!user?.id) {
-      console.log("[v0] getFriendshipStatus - no user")
       return "none"
     }
 
-    console.log("[v0] Friendship status for user", userId, ":")
-    console.log("[v0] Sent requests count:", sentRequests.length)
-    console.log(
-      "[v0] Sent requests to this user:",
-      sentRequests.filter((req) => req.to_user_id === userId),
-    )
-
     // Check if already friends
     if (friends.some((friend) => friend.id === userId)) {
-      console.log("[v0] Status: friends")
       return "friends"
     }
 
-    // Check if we sent a request to this user
-    if (sentRequests.some((request) => request.to_user_id === userId)) {
-      console.log("[v0] Status: pending")
+    const hasSentRequest = sentRequests.some((request) => request.to_user_id === userId && request.status === "pending")
+    if (hasSentRequest) {
       return "pending"
     }
 
-    // Check if we received a request from this user
-    if (pendingRequests.some((request) => request.from_user_id === userId)) {
-      console.log("[v0] Status: received")
+    const hasReceivedRequest = pendingRequests.some(
+      (request) => request.from_user_id === userId && request.status === "pending",
+    )
+    if (hasReceivedRequest) {
       return "received"
     }
 
-    console.log("[v0] Status: none")
     return "none"
   }
 

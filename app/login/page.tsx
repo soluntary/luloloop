@@ -21,7 +21,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const { signIn, user } = useAuth()
+  const { signIn, user, loading: authLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -30,6 +30,12 @@ export default function LoginPage() {
       router.push("/")
     }
   }, [user, router])
+
+  useEffect(() => {
+    if (!authLoading && loading) {
+      setLoading(false)
+    }
+  }, [authLoading, loading])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

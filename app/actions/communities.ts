@@ -1,5 +1,6 @@
 "use server"
 
+import { cookies } from "next/headers"
 import { createServerClient } from "@/lib/supabase"
 
 export interface Community {
@@ -40,7 +41,7 @@ export async function createCommunity(
   userId: string,
 ): Promise<{ success: boolean; error?: string; community?: Community }> {
   try {
-    const supabase = createServerClient()
+    const supabase = createServerClient(cookies())
 
     // Verify user exists
     const { data: user, error: userError } = await supabase.from("users").select("id").eq("id", userId).single()
@@ -94,7 +95,7 @@ export async function createCommunity(
 
 export async function getCommunities(userId?: string): Promise<Community[]> {
   try {
-    const supabase = createServerClient()
+    const supabase = createServerClient(cookies())
 
     const { data: communities, error } = await supabase
       .from("communities")
@@ -136,7 +137,7 @@ export async function joinCommunity(
   userId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = createServerClient()
+    const supabase = createServerClient(cookies())
 
     // Check if community exists and has space
     const { data: community, error: communityError } = await supabase
@@ -195,7 +196,7 @@ export async function leaveCommunity(
   userId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = createServerClient()
+    const supabase = createServerClient(cookies())
 
     // Check if user is the creator
     const { data: community } = await supabase.from("communities").select("creator_id").eq("id", communityId).single()

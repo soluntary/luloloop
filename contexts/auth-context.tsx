@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, type ReactNode, useCallback, useRef } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
 import type { User } from "@supabase/supabase-js"
 
 interface AuthUser {
@@ -36,6 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(true)
   const profileLoadingRef = useRef(false)
   const currentUserIdRef = useRef<string | null>(null)
+
+  const supabase = createClient()
 
   const clearInvalidSession = async () => {
     try {

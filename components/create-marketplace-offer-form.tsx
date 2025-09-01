@@ -34,6 +34,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Search,
+  Clock,
 } from "lucide-react"
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
@@ -566,11 +567,7 @@ export function CreateMarketplaceOfferForm({
         newErrors.price = "Bitte gib Tauschbedingungen an."
       }
 
-      if (offerType === "lend" && !depositAmount) {
-        newErrors.depositAmount = "Bitte gib einen Wert für den Pfandbetrag ein."
-      }
-
-      if ((offerType === "lend" || offerType === "sell") && !deliveryPickup && !deliveryShipping) {
+      if (!deliveryPickup && !deliveryShipping) {
         newErrors.delivery = "Bitte wähle mindestens eine Zustellungsoption."
       }
 
@@ -707,6 +704,10 @@ export function CreateMarketplaceOfferForm({
         active: true,
         location: deliveryPickup ? pickupAddress : "",
         distance: "", // Default empty distance
+        pickup_available: deliveryPickup,
+        shipping_available: deliveryShipping,
+        pickup_address: deliveryPickup ? pickupAddress : null,
+        shipping_options: deliveryShipping ? { option: shippingOption } : null,
         ...(offerType === "lend" && minRentalDays && { min_rental_days: Number.parseInt(minRentalDays) }),
         ...(offerType === "lend" && maxRentalDays && { max_rental_days: Number.parseInt(maxRentalDays) }),
       }
@@ -1454,134 +1455,102 @@ export function CreateMarketplaceOfferForm({
 
                   {/* Lending specific fields */}
                   {offerType === "lend" && (
-                    <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl p-6 border border-teal-200 shadow-sm">
+                    <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl p-6 border border-teal-200 shadow-sm">
                       <h4 className="text-lg font-bold text-teal-800 mb-4 flex items-center gap-2">
-                        Verleihen Details
+                        <Clock className="w-5 h-5" />
+                        Ausleihkonditionen *
                       </h4>
 
-                      <div className="mb-6">
-                        <Label className="text-sm font-semibold text-gray-700 mb-3 block">
-                          Ausleihdauer (optional)
-                        </Label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-white p-4 rounded-xl border border-teal-200">
-                            <Label className="text-sm text-teal-700 font-medium mb-2 block">
-                              Mindestausleihdauer (Tage)
-                            </Label>
-                            <Input
-                              placeholder="z.B. 3"
-                              value={minRentalDays}
-                              onChange={(e) => setMinRentalDays(e.target.value)}
-                              className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg"
-                              type="number"
-                              min="1"
-                            />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Daily Rates */}
+                        <div>
+                          <Label className="text-sm font-semibold text-gray-700 mb-2 block">Tagespreise (CHF) *</Label>
+                          <div className="space-y-3">
+                            <div>
+                              <Label className="text-xs text-gray-600 mb-1 block">1 Tag</Label>
+                              <Input
+                                placeholder="z.B. 5.00"
+                                value={dailyRate1Day}
+                                onChange={(e) => setDailyRate1Day(e.target.value)}
+                                className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg bg-white"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-gray-600 mb-1 block">2-6 Tage</Label>
+                              <Input
+                                placeholder="z.B. 4.00"
+                                value={dailyRate2To6Days}
+                                onChange={(e) => setDailyRate2To6Days(e.target.value)}
+                                className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg bg-white"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-gray-600 mb-1 block">7-30 Tage</Label>
+                              <Input
+                                placeholder="z.B. 3.00"
+                                value={dailyRate7To30Days}
+                                onChange={(e) => setDailyRate7To30Days(e.target.value)}
+                                className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg bg-white"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-gray-600 mb-1 block">Über 30 Tage</Label>
+                              <Input
+                                placeholder="z.B. 2.00"
+                                value={dailyRateOver30Days}
+                                onChange={(e) => setDailyRateOver30Days(e.target.value)}
+                                className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg bg-white"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                              />
+                            </div>
                           </div>
-                          <div className="bg-white p-4 rounded-xl border border-teal-200">
-                            <Label className="text-sm text-teal-700 font-medium mb-2 block">
-                              Maximalausleihdauer (Tage)
-                            </Label>
-                            <Input
-                              placeholder="z.B. 14"
-                              value={maxRentalDays}
-                              onChange={(e) => setMaxRentalDays(e.target.value)}
-                              className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg"
-                              type="number"
-                              min="1"
-                            />
+                          {errors.dailyRates && (
+                            <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
+                              <AlertCircle className="w-4 h-4" />
+                              <span>{errors.dailyRates}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Rental Duration */}
+                        <div>
+                          <Label className="text-sm font-semibold text-gray-700 mb-2 block">Ausleihzeit</Label>
+                          <div className="space-y-3">
+                            <div>
+                              <Label className="text-xs text-gray-600 mb-1 block">Mindestausleihzeit (Tage)</Label>
+                              <Input
+                                placeholder="z.B. 1"
+                                value={minRentalDays}
+                                onChange={(e) => setMinRentalDays(e.target.value)}
+                                className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg bg-white"
+                                type="number"
+                                min="1"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-gray-600 mb-1 block">Maximalausleihzeit (Tage)</Label>
+                              <Input
+                                placeholder="z.B. 30"
+                                value={maxRentalDays}
+                                onChange={(e) => setMaxRentalDays(e.target.value)}
+                                className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg bg-white"
+                                type="number"
+                                min="1"
+                              />
+                            </div>
                           </div>
                         </div>
-                        <p className="text-sm text-teal-600 mt-3 bg-teal-50 p-3 rounded-lg">
-                          Gib optional eine Mindest- und Maximalausleihdauer an. Diese wird in der Spielanzeige als
-                          Information angezeigt.
-                        </p>
-                        {errors.rentalDuration && (
-                          <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                            <AlertCircle className="w-4 h-4" />
-                            <span>{errors.rentalDuration}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Daily Rates */}
-                      <div className="mb-6">
-                        <Label className="text-sm font-semibold text-gray-700 mb-3 block">
-                          Ausleihgebühr pro Tag (CHF)
-                        </Label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-white p-4 rounded-xl border border-teal-200">
-                            <Label className="text-sm text-teal-700 font-medium mb-2 block">Für 1 Tag</Label>
-                            <Input
-                              placeholder="z.B. 10.00"
-                              value={dailyRate1Day}
-                              onChange={(e) => setDailyRate1Day(e.target.value)}
-                              className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg"
-                              type="number"
-                              step="0.01"
-                              min="0"
-                            />
-                          </div>
-                          <div className="bg-white p-4 rounded-xl border border-teal-200">
-                            <Label className="text-sm text-teal-700 font-medium mb-2 block">Für 2 bis 6 Tage</Label>
-                            <Input
-                              placeholder="z.B. 8.00"
-                              value={dailyRate2To6Days}
-                              onChange={(e) => setDailyRate2To6Days(e.target.value)}
-                              className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg"
-                              type="number"
-                              step="0.01"
-                              min="0"
-                            />
-                          </div>
-                          <div className="bg-white p-4 rounded-xl border border-teal-200">
-                            <Label className="text-sm text-teal-700 font-medium mb-2 block">Für 7 bis 30 Tage</Label>
-                            <Input
-                              placeholder="z.B. 5.00"
-                              value={dailyRate7To30Days}
-                              onChange={(e) => setDailyRate7To30Days(e.target.value)}
-                              className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg"
-                              type="number"
-                              step="0.01"
-                              min="0"
-                            />
-                          </div>
-                          <div className="bg-white p-4 rounded-xl border border-teal-200">
-                            <Label className="text-sm text-teal-700 font-medium mb-2 block">Für mehr als 30 Tage</Label>
-                            <Input
-                              placeholder="z.B. 3.00"
-                              value={dailyRateOver30Days}
-                              onChange={(e) => setDailyRateOver30Days(e.target.value)}
-                              className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg"
-                              type="number"
-                              step="0.01"
-                              min="0"
-                            />
-                          </div>
-                        </div>
-                        <p className="text-sm text-teal-600 mt-3 bg-teal-50 p-3 rounded-lg">
-                          Gib gestaffelte Tagespreise an. Lasse Felder leer für kostenlose Ausleihe in diesen
-                          Zeiträumen.
-                        </p>
-                      </div>
-
-                      {/* Deposit Amount */}
-                      <div>
-                        <Label className="text-sm font-semibold text-gray-700 mb-2 block">Pfandbetrag (CHF) *</Label>
-                        <Input
-                          placeholder="z.B. 50.00"
-                          value={depositAmount}
-                          onChange={(e) => setDepositAmount(e.target.value)}
-                          className="h-12 border-2 border-teal-200 focus:border-teal-500 rounded-xl bg-white"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                        />
-                        {errors.depositAmount && (
-                          <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                            <AlertCircle className="w-4 h-4" />
-                            <span>{errors.depositAmount}</span>
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}
@@ -1667,101 +1636,104 @@ export function CreateMarketplaceOfferForm({
                     </div>
                   )}
 
-                  {/* Delivery Options */}
-                  {(offerType === "lend" || offerType === "sell") && (
-                    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-200 shadow-sm">
-                      <h4 className="text-lg font-bold text-indigo-800 mb-4 flex items-center gap-2">
-                        Zustellungsoptionen *
-                      </h4>
+                  <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-200 shadow-sm">
+                    <h4 className="text-lg font-bold text-indigo-800 mb-4 flex items-center gap-2">
+                      <Truck className="w-5 h-5" />
+                      Welche Zustelloption bietest du an? *
+                    </h4>
 
-                      <div className="space-y-4">
-                        {/* Pickup Option */}
-                        <div className="bg-white p-4 rounded-xl border border-indigo-200">
-                          <div className="flex items-center space-x-3 mb-3">
-                            <Checkbox
-                              id="pickup"
-                              checked={deliveryPickup}
-                              onChange={(checked) => setDeliveryPickup(checked as boolean)}
-                              className="border-indigo-400 data-[state=checked]:bg-indigo-600"
-                            />
-                            <Label
-                              htmlFor="pickup"
-                              className="font-medium text-indigo-800 cursor-pointer flex items-center gap-2"
-                            >
-                              <MapPin className="w-4 h-4" />
-                              Abholung
-                            </Label>
-                          </div>
-
-                          {deliveryPickup && (
-                            <div className="ml-7">
-                              <AddressAutocomplete
-                                label="Abholadresse"
-                                placeholder="z.B. Musterstrasse 123, 12345 Musterstadt"
-                                value={pickupAddress}
-                                onChange={setPickupAddress}
-                                error={errors.pickupAddress}
-                              />
-                            </div>
-                          )}
+                    <div className="space-y-4">
+                      {/* Pickup Option */}
+                      <div className="bg-white p-4 rounded-xl border border-indigo-200">
+                        <div className="flex items-center space-x-3 mb-3">
+                          <Checkbox
+                            id="pickup"
+                            checked={deliveryPickup}
+                            onCheckedChange={(checked) => setDeliveryPickup(checked === true)}
+                            className="border-indigo-400 data-[state=checked]:bg-indigo-600"
+                          />
+                          <Label
+                            htmlFor="pickup"
+                            className="font-medium text-indigo-800 cursor-pointer flex items-center gap-2"
+                          >
+                            <MapPin className="w-4 h-4" />
+                            Abholung
+                          </Label>
                         </div>
 
-                        {/* Shipping Option */}
-                        <div className="bg-white p-4 rounded-xl border border-indigo-200">
-                          <div className="flex items-center space-x-3 mb-3">
-                            <Checkbox
-                              id="shipping"
-                              checked={deliveryShipping}
-                              onChange={(checked) => {
-                                setDeliveryShipping(checked as boolean)
-                                if (!checked) setShippingOption("")
-                              }}
-                              className="border-indigo-400 data-[state=checked]:bg-indigo-600"
+                        {deliveryPickup && (
+                          <div className="ml-7">
+                            <AddressAutocomplete
+                              label="Abholadresse"
+                              placeholder="z.B. Musterstrasse 123, 12345 Musterstadt"
+                              value={pickupAddress}
+                              onChange={setPickupAddress}
+                              error={errors.pickupAddress}
                             />
-                            <Label
-                              htmlFor="shipping"
-                              className="font-medium text-indigo-800 cursor-pointer flex items-center gap-2"
-                            >
-                              <Package className="w-4 h-4" />
-                              Postversand (Kosten zu Lasten der{" "}
-                              {offerType === "lend" ? "Leihnehmer*innen" : "Käufer*innen"})
-                            </Label>
                           </div>
-
-                          {deliveryShipping && (
-                            <div className="ml-7">
-                              <Label className="text-sm font-medium text-gray-700 mb-2 block">Versandoption</Label>
-                              <Select value={shippingOption} onChange={setShippingOption}>
-                                <SelectTrigger className="h-10 border-2 border-indigo-200 focus:border-indigo-500 rounded-lg">
-                                  <SelectValue placeholder="Versandoption wählen..." />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl">
-                                  {shippingOptions.map((option) => (
-                                    <SelectItem key={option.value} value={option.value} className="rounded-lg">
-                                      {option.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              {errors.shippingOption && (
-                                <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                                  <AlertCircle className="w-4 h-4" />
-                                  <span>{errors.shippingOption}</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
 
-                      {errors.delivery && (
-                        <div className="flex items-center space-x-2 text-red-600 text-sm mt-3 bg-red-50 p-2 rounded-lg">
-                          <AlertCircle className="w-4 h-4" />
-                          <span>{errors.delivery}</span>
+                      {/* Shipping Option */}
+                      <div className="bg-white p-4 rounded-xl border border-indigo-200">
+                        <div className="flex items-center space-x-3 mb-3">
+                          <Checkbox
+                            id="shipping"
+                            checked={deliveryShipping}
+                            onCheckedChange={(checked) => {
+                              setDeliveryShipping(checked === true)
+                              if (checked !== true) setShippingOption("")
+                            }}
+                            className="border-indigo-400 data-[state=checked]:bg-indigo-600"
+                          />
+                          <Label
+                            htmlFor="shipping"
+                            className="font-medium text-indigo-800 cursor-pointer flex items-center gap-2"
+                          >
+                            <Package className="w-4 h-4" />
+                            Versand (Kosten zu Lasten der{" "}
+                            {offerType === "lend"
+                              ? "Leihnehmer*innen"
+                              : offerType === "sell"
+                                ? "Käufer*innen"
+                                : "Tauschpartner*innen"}
+                            )
+                          </Label>
                         </div>
-                      )}
+
+                        {deliveryShipping && (
+                          <div className="ml-7">
+                            <Label className="text-sm font-medium text-gray-700 mb-2 block">Versandoption</Label>
+                            <Select value={shippingOption} onValueChange={setShippingOption}>
+                              <SelectTrigger className="h-10 border-2 border-indigo-200 focus:border-indigo-500 rounded-lg">
+                                <SelectValue placeholder="Versandoption wählen..." />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl">
+                                {shippingOptions.map((option) => (
+                                  <SelectItem key={option.value} value={option.value} className="rounded-lg">
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {errors.shippingOption && (
+                              <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
+                                <AlertCircle className="w-4 h-4" />
+                                <span>{errors.shippingOption}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
+
+                    {errors.delivery && (
+                      <div className="flex items-center space-x-2 text-red-600 text-sm mt-4 bg-red-50 p-3 rounded-lg">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>{errors.delivery}</span>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Description */}
                   <div className="bg-white rounded-2xl p-6 border border-amber-100 shadow-sm">
@@ -1911,38 +1883,20 @@ export function CreateMarketplaceOfferForm({
                           )}
                         </div>
                       </div>
-                      {/* Lending Details */}
                       {offerType === "lend" && (
-                        <div className="md:col-span-2 bg-white rounded-xl p-4 border border-teal-100">
-                          <h4 className="font-bold text-teal-700 mb-3 flex items-center gap-2">Verleihen Details</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white rounded-xl p-4 border border-teal-100">
+                          <h4 className="font-bold text-teal-700 mb-3 flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            Ausleihkonditionen
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <span className="text-sm text-gray-600 block mb-2">Ausleihgebühr:</span>
+                              <span className="text-sm text-gray-600 block mb-2">Tagespreise:</span>
                               <div className="space-y-1 text-sm">
-                                {dailyRate1Day && (
-                                  <p className="flex justify-between">
-                                    <span>1 Tag:</span>
-                                    <span className="font-medium">CHF {dailyRate1Day}</span>
-                                  </p>
-                                )}
-                                {dailyRate2To6Days && (
-                                  <p className="flex justify-between">
-                                    <span>2-6 Tage:</span>
-                                    <span className="font-medium">CHF {dailyRate2To6Days}</span>
-                                  </p>
-                                )}
-                                {dailyRate7To30Days && (
-                                  <p className="flex justify-between">
-                                    <span>7-30 Tage:</span>
-                                    <span className="font-medium">CHF {dailyRate7To30Days}</span>
-                                  </p>
-                                )}
-                                {dailyRateOver30Days && (
-                                  <p className="flex justify-between">
-                                    <span>Über 30 Tage:</span>
-                                    <span className="font-medium">CHF {dailyRateOver30Days}</span>
-                                  </p>
-                                )}
+                                {dailyRate1Day && <p>1 Tag: CHF {dailyRate1Day}</p>}
+                                {dailyRate2To6Days && <p>2-6 Tage: CHF {dailyRate2To6Days}</p>}
+                                {dailyRate7To30Days && <p>7-30 Tage: CHF {dailyRate7To30Days}</p>}
+                                {dailyRateOver30Days && <p>Über 30 Tage: CHF {dailyRateOver30Days}</p>}
                                 {!dailyRate1Day &&
                                   !dailyRate2To6Days &&
                                   !dailyRate7To30Days &&
@@ -1952,44 +1906,45 @@ export function CreateMarketplaceOfferForm({
                               </div>
                             </div>
                             <div>
-                              <span className="text-sm text-gray-600 block mb-2">Pfandbetrag:</span>
-                              <span className="font-bold text-teal-600 text-lg">CHF {depositAmount}</span>
+                              <span className="text-sm text-gray-600 block mb-2">Ausleihzeit:</span>
+                              <div className="space-y-1 text-sm">
+                                {minRentalDays && <p>Min: {minRentalDays} Tage</p>}
+                                {maxRentalDays && <p>Max: {maxRentalDays} Tage</p>}
+                              </div>
                             </div>
                           </div>
                         </div>
                       )}
 
                       {/* Delivery Options */}
-                      {(offerType === "lend" || offerType === "sell") && (
-                        <div className="md:col-span-2 bg-white rounded-xl p-4 border border-indigo-100">
-                          <h4 className="font-bold text-indigo-700 mb-3 flex items-center gap-2">
-                            <Truck className="w-4 h-4" />
-                            Zustellungsoptionen
-                          </h4>
-                          <div className="flex flex-wrap gap-2">
-                            {deliveryPickup && (
-                              <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
-                                <Badge variant="outline" className="mb-2 bg-indigo-100 text-indigo-700">
-                                  <MapPin className="w-3 h-3 mr-1" />
-                                  Abholung
-                                </Badge>
-                                <p className="text-xs text-gray-600">{pickupAddress}</p>
-                              </div>
-                            )}
-                            {deliveryShipping && (
-                              <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
-                                <Badge variant="outline" className="mb-2 bg-indigo-100 text-indigo-700">
-                                  <Package className="w-3 h-3 mr-1" />
-                                  Postversand
-                                </Badge>
-                                <p className="text-xs text-gray-600">
-                                  {shippingOptions.find((opt) => opt.value === shippingOption)?.label}
-                                </p>
-                              </div>
-                            )}
-                          </div>
+                      <div className="md:col-span-2 bg-white rounded-xl p-4 border border-indigo-100">
+                        <h4 className="font-bold text-indigo-700 mb-3 flex items-center gap-2">
+                          <Truck className="w-4 h-4" />
+                          Zustellungsoptionen
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {deliveryPickup && (
+                            <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
+                              <Badge variant="outline" className="mb-2 bg-indigo-100 text-indigo-700">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                Abholung
+                              </Badge>
+                              <p className="text-xs text-gray-600">{pickupAddress}</p>
+                            </div>
+                          )}
+                          {deliveryShipping && (
+                            <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
+                              <Badge variant="outline" className="mb-2 bg-indigo-100 text-indigo-700">
+                                <Package className="w-3 h-3 mr-1" />
+                                Postversand
+                              </Badge>
+                              <p className="text-xs text-gray-600">
+                                {shippingOptions.find((opt) => opt.value === shippingOption)?.label}
+                              </p>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </div>
 
                     {/* Description */}

@@ -1,53 +1,183 @@
-import { createClient } from "@supabase/supabase-js"
+import { createBrowserClient, createServerClient as createSupabaseServerClient } from "@supabase/ssr"
+import type { cookies } from "next/headers"
 import { cache } from "react"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co"
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-key"
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
 
-// Check if Supabase environment variables are available
-export const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+export const isSupabaseConfigured = !!(
+  supabaseUrl &&
+  supabaseAnonKey &&
+  supabaseUrl !== "https://placeholder.supabase.co" &&
+  supabaseAnonKey !== "placeholder-key" &&
+  !supabaseUrl.includes("placeholder") &&
+  !supabaseAnonKey.includes("placeholder")
+)
 
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : {
-      auth: {
-        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-        onAuthStateChange: () => ({ data: { subscription: null } }),
-        signUp: () => Promise.resolve({ data: { user: null }, error: { message: "Supabase not configured" } }),
-        signInWithPassword: () =>
-          Promise.resolve({ data: { user: null }, error: { message: "Supabase not configured" } }),
-        signOut: () => Promise.resolve({ error: null }),
-        resetPasswordForEmail: () => Promise.resolve({ data: null, error: { message: "Supabase not configured" } }),
-        updateUser: () => Promise.resolve({ data: { user: null }, error: { message: "Supabase not configured" } }),
-      },
-      from: () => ({
-        select: () => ({
-          eq: () => ({ data: [], error: null }),
-          neq: () => ({ data: [], error: null }),
-          or: () => ({ data: [], error: null }),
-          order: () => ({ data: [], error: null }),
-          limit: () => ({ data: [], error: null, count: 0 }),
+console.log("[v0] Supabase configuration check:", {
+  hasUrl: !!supabaseUrl,
+  hasKey: !!supabaseAnonKey,
+  isConfigured: isSupabaseConfigured,
+  url: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : "undefined",
+})
+
+let browserClientInstance: any = null
+let mockClientInstance: any = null
+
+function createMockClient() {
+  if (mockClientInstance) return mockClientInstance
+
+  mockClientInstance = {
+    from: (table: string) => ({
+      select: (columns?: string) => ({
+        eq: (column: string, value: any) => ({
+          order: (column: string, options?: any) => ({
+            single: () => Promise.resolve({ data: null, error: { message: "Supabase not configured" } }),
+            then: (resolve: any) => resolve({ data: [], error: null }),
+          }),
+          single: () => Promise.resolve({ data: null, error: { message: "Supabase not configured" } }),
+          then: (resolve: any) => resolve({ data: [], error: null }),
         }),
-        insert: () => Promise.resolve({ data: null, error: { message: "Supabase not configured" } }),
-        update: () => ({ eq: () => Promise.resolve({ data: null, error: { message: "Supabase not configured" } }) }),
-        delete: () => ({ eq: () => Promise.resolve({ data: null, error: { message: "Supabase not configured" } }) }),
+        neq: (column: string, value: any) => ({
+          order: (column: string, options?: any) => ({
+            then: (resolve: any) => resolve({ data: [], error: null }),
+          }),
+          then: (resolve: any) => resolve({ data: [], error: null }),
+        }),
+        order: (column: string, options?: any) => ({
+          then: (resolve: any) => resolve({ data: [], error: null }),
+        }),
+        then: (resolve: any) => resolve({ data: [], error: null }),
       }),
-    }
-
-// Create a cached version of the Supabase client for Server Components
-export const createServerClient = cache(() => {
-  if (!isSupabaseConfigured) {
-    console.warn("Supabase environment variables are not set. Using dummy client.")
-    return {
-      auth: {
-        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-      },
-    }
+      insert: (data: any) => ({
+        select: () => ({
+          then: (resolve: any) => resolve({ data: [], error: { message: "Supabase not configured" } }),
+        }),
+        then: (resolve: any) => resolve({ data: [], error: { message: "Supabase not configured" } }),
+      }),
+      update: (data: any) => ({
+        eq: (column: string, value: any) => ({
+          select: () => ({
+            then: (resolve: any) => resolve({ data: [], error: { message: "Supabase not configured" } }),
+          }),
+          then: (resolve: any) => resolve({ data: [], error: { message: "Supabase not configured" } }),
+        }),
+      }),
+      delete: () => ({
+        eq: (column: string, value: any) => ({
+          then: (resolve: any) => resolve({ data: [], error: { message: "Supabase not configured" } }),
+        }),
+      }),
+    }),
+    auth: {
+      getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+      signInWithPassword: () =>
+        Promise.resolve({ data: { user: null, session: null }, error: { message: "Supabase not configured" } }),
+      signUp: () =>
+        Promise.resolve({ data: { user: null, session: null }, error: { message: "Supabase not configured" } }),
+      signOut: () => Promise.resolve({ error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    },
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey)
-})
+  return mockClientInstance
+}
+
+export function createClient() {
+  if (!isSupabaseConfigured) {
+    return createMockClient()
+  }
+
+  if (browserClientInstance) return browserClientInstance
+
+  browserClientInstance = createBrowserClient(supabaseUrl!, supabaseAnonKey!, {
+    cookies: {
+      getAll() {
+        if (typeof document === "undefined" || !document.cookie) {
+          return []
+        }
+
+        try {
+          return document.cookie
+            .split(";")
+            .map((cookie) => cookie.trim().split("="))
+            .filter(([name]) => name)
+            .map(([name, value]) => ({ name, value: decodeURIComponent(value || "") }))
+        } catch (error) {
+          console.warn("[v0] Cookie parsing error:", error)
+          return []
+        }
+      },
+      setAll(cookiesToSet) {
+        if (typeof document === "undefined") {
+          return
+        }
+
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            const cookieOptions = []
+            if (options?.maxAge) cookieOptions.push(`max-age=${options.maxAge}`)
+            if (options?.path) cookieOptions.push(`path=${options.path}`)
+            if (options?.domain) cookieOptions.push(`domain=${options.domain}`)
+            if (options?.secure) cookieOptions.push("secure")
+            if (options?.httpOnly) cookieOptions.push("httponly")
+            if (options?.sameSite) cookieOptions.push(`samesite=${options.sameSite}`)
+
+            const cookieString = `${name}=${encodeURIComponent(value || "")}${cookieOptions.length ? "; " + cookieOptions.join("; ") : ""}`
+            document.cookie = cookieString
+          })
+        } catch (error) {
+          console.warn("[v0] Cookie setting error:", error)
+        }
+      },
+    },
+  })
+
+  return browserClientInstance
+}
+
+export function createServerClient(cookieStore: ReturnType<typeof cookies>) {
+  if (!isSupabaseConfigured) {
+    return createMockClient()
+  }
+
+  if (!cookieStore) {
+    // Return a client without cookie handling if cookies are not available
+    return createSupabaseServerClient(supabaseUrl!, supabaseAnonKey!, {
+      cookies: {
+        getAll() {
+          return []
+        },
+        setAll() {
+          // No-op when cookies are not available
+        },
+      },
+    })
+  }
+
+  return createSupabaseServerClient(supabaseUrl!, supabaseAnonKey!, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll()
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+        } catch {
+          // The "setAll" method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing
+          // user sessions.
+        }
+      },
+    },
+  })
+}
+
+// Create a cached version of the Supabase client for Server Components
+export const createServerClientFunc = cache(createServerClient)
+
+export const supabase = createClient()
 
 // Database types
 export interface Database {

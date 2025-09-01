@@ -29,7 +29,7 @@ export default function AboutPage() {
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-4 font-handwritten">Unsere Mission</h2>
               <p className="text-gray-600 font-body">
-               Brett- und Gesellschaftsspiele bringen Menschen zusammen, schaffen unvergessliche Erlebnisse, fördern Gemeinschaft und machen Spass. Doch oft stehen tolle Spiele ungenutzt im Regal, während andere genau danach suchen. Mit unserer Plattform möchten wir diese Lücke schliessen, den Zugang zu Spielen für alle erleichtern und eine lebendige Gemeinschaft schaffen, die den Geist des gemeinsamen Spielens fördert. Ob Du Deine Lieblingsspiele teilen möchtest, auf der Suche nach neuen (Spiel-)Freunde bist oder einfach Deine Sammlung verkaufen möchtest – bei Ludoloop findest Du die passende Möglichkeit.
+               Brett- und Gesellschaftsspiele bringen Menschen zusammen, schaffen unvergessliche Erlebnisse, fördern Gemeinschaft und machen Spass. Doch oft stehen tolle Spiele ungenutzt im Regal, während andere genau danach suchen. Mit unserer Plattform möchten wir diese Lücke schliessen, den Zugang zu Spielen für alle erleichtern und nachhaltigen Umgang mit Spielen unterstützen. Ob Du Deine Lieblingsspiele teilen möchtest, auf der Suche nach neuen (Spiel-)Freunde bist oder einfach Deine Sammlung verkaufen möchtest – bei uns findest Du alles an einem Ort.
               </p>
             </CardContent>
           </Card>

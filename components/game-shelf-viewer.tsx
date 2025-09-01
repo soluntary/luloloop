@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, ArrowLeft, Repeat, ShoppingCart, Clock, User, MapPin, Calendar, Users, Gamepad2 } from "lucide-react"
+import { ArrowLeft, Library, Repeat, ShoppingCart, MapPin, Calendar, Gamepad2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequests } from "@/contexts/requests-context"
@@ -172,8 +172,8 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
               <Button variant="ghost" size="sm" onClick={onBack} className="mr-2">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <BookOpen className="h-5 w-5 mr-2" />
-              {userName}s Spielregal
+              <Library className="h-5 w-5 mr-2" />
+              {userName}'s Spielregal
             </DialogTitle>
           </DialogHeader>
 
@@ -187,7 +187,7 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
               <div className="bg-gradient-to-b from-amber-100 to-amber-200 rounded-lg p-6 shadow-lg border-4 border-amber-300">
                 <div className="mb-6 text-center">
                   <h3 className="text-2xl font-bold text-amber-800 transform rotate-1 font-handwritten">
-                    {userName}s Spielregal
+                    {userName}'s Spielregal
                   </h3>
                   <p className="text-amber-700 text-sm mt-2">{games.length} Spiele</p>
                 </div>
@@ -224,17 +224,7 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
 
               {/* Game Details */}
               <div className="space-y-3">
-                {selectedGame.publisher && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <User className="h-4 w-4 mr-2" />
-                    {selectedGame.publisher}
-                  </div>
-                )}
-
                 <div className="flex items-center text-sm text-gray-600">
-                  <Badge variant="outline" className="mr-2">
-                    {selectedGame.condition}
-                  </Badge>
                   {selectedGame.available?.includes("available") ? (
                     <Badge className="bg-green-100 text-green-800">Verfügbar</Badge>
                   ) : (
@@ -242,24 +232,61 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
                   )}
                 </div>
 
+                {selectedGame.publisher && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="text-sm text-gray-900 font-semibold mr-1">Verlag:</span>
+                    <span>{selectedGame.publisher}</span>
+                  </div>
+                )}
+
                 {selectedGame.players && (
                   <div className="flex items-center text-sm text-gray-600">
-                    <Users className="h-4 w-4 mr-2" />
-                    {selectedGame.players} Spieler
+                    <span className="text-sm text-gray-900 font-semibold mr-1">Spieleranzahl:</span>
+                    <span>{selectedGame.players}</span>
                   </div>
                 )}
 
                 {selectedGame.duration && (
                   <div className="flex items-center text-sm text-gray-600">
-                    <Clock className="h-4 w-4 mr-2" />
-                    {selectedGame.duration}
+                    <span className="text-sm text-gray-900 font-semibold mr-1">Spieldauer:</span>
+                    <span>{selectedGame.duration}</span>
+                  </div>
+                )}
+
+                {selectedGame.age && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="text-sm text-gray-900 font-semibold mr-1">Altersempfehlung:</span>
+                    <span>{selectedGame.age}</span>
+                  </div>
+                )}
+
+                {selectedGame.language && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="text-sm text-gray-900 font-semibold mr-1">Sprache:</span>
+                    <span>{selectedGame.language}</span>
+                  </div>
+                )}
+
+                {selectedGame.type && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="text-sm text-gray-900 font-semibold mr-1">Kategorie:</span>
+                    <span>{selectedGame.type}</span>
+                  </div>
+                )}
+
+                {selectedGame.style && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <div className="flex items-start">
+                    <span className="text-sm text-gray-900 font-semibold mr-1">Typus:</span>
+                    <span>{selectedGame.style}</span>
+                    </div>
                   </div>
                 )}
 
                 {selectedGame.location && (
                   <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    {selectedGame.location}
+                    <span className="text-sm text-gray-900 font-semibold mr-1">Standort:</span>
+                    <span>{selectedGame.location}</span>
                   </div>
                 )}
               </div>
@@ -267,7 +294,7 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
               {/* Action Buttons */}
               {selectedGame.available?.includes("available") && currentUser && (
                 <div className="space-y-2 pt-4 border-t">
-                  <p className="text-sm font-medium text-gray-900 mb-3">Interesse an diesem Spiel?</p>
+                  <p className="text-sm text-gray-900 mb-3 font-semibold">Interesse an diesem Spiel?</p>
                   <div className="grid grid-cols-3 gap-2">
                     <Button
                       onClick={() => handleRequestClick("trade")}
@@ -276,7 +303,8 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
                       className="flex flex-col items-center p-3 h-auto"
                     >
                       <Repeat className="h-4 w-4 mb-1" />
-                      <span className="text-xs">Tauschen</span>
+                      <span className="text-xs">Tauschanfrage</span>
+                      <span className="text-xs">senden</span>
                     </Button>
                     <Button
                       onClick={() => handleRequestClick("buy")}
@@ -285,7 +313,8 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
                       className="flex flex-col items-center p-3 h-auto"
                     >
                       <ShoppingCart className="h-4 w-4 mb-1" />
-                      <span className="text-xs">Kaufen</span>
+                      <span className="text-xs">Kaufanfrage</span>
+                      <span className="text-xs">senden</span>
                     </Button>
                     <Button
                       onClick={() => handleRequestClick("rent")}
@@ -294,7 +323,8 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
                       className="flex flex-col items-center p-3 h-auto"
                     >
                       <Calendar className="h-4 w-4 mb-1" />
-                      <span className="text-xs">Ausleihen</span>
+                      <span className="text-xs">Leihanfrage</span>
+                      <span className="text-xs">senden</span>
                     </Button>
                   </div>
                 </div>
@@ -347,7 +377,7 @@ function GameRequestDialog({
       case "buy":
         return "Kauf"
       case "rent":
-        return "Ausleihe"
+        return "Leih"
       default:
         return ""
     }
@@ -370,7 +400,7 @@ function GameRequestDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {getRequestTypeText()}-Anfrage für "{game.title}"
+            {getRequestTypeText()}anfrage für "{game.title}"
           </DialogTitle>
         </DialogHeader>
 

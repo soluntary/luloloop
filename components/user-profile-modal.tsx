@@ -12,7 +12,7 @@ import {
   Twitter,
   MessageCircle,
   UserPlus,
-  BookOpen,
+  Library,
   Lock,
   Eye,
   Send,
@@ -202,7 +202,7 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900">{profile.name}</h3>
+                  <h3 className="text-xl text-gray-900 font-thin">{profile.name}</h3>
                   <div className="flex items-center text-sm text-gray-500 mt-1">
                     <CalendarDays className="h-4 w-4 mr-1" />
                     Mitglied seit {formatMemberSince(profile.created_at)}
@@ -213,7 +213,7 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
               {/* Bio */}
               {profile.bio && profile.settings?.showBio !== false && (
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Über mich</h4>
+                  <h4 className="text-gray-900 mb-2 font-semibold">Über mich</h4>
                   <p className="text-gray-600 text-sm">{profile.bio}</p>
                 </div>
               )}
@@ -221,8 +221,8 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
               {!isCurrentUser && currentUser && (
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-gray-900 flex items-center">
-                      <BookOpen className="h-4 w-4 mr-2" />
+                    <h4 className="text-gray-900 flex items-center font-semibold">
+                      <Library className="h-4 w-4 mr-2" />
                       Spielregal
                     </h4>
                     <div className="flex items-center text-xs text-gray-500">
@@ -239,7 +239,7 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
 
                   {canViewUserShelf ? (
                     <Button onClick={handleViewShelf} className="w-full bg-teal-600 hover:bg-teal-700" size="sm">
-                      <BookOpen className="h-4 w-4 mr-2" />
+                      <Library className="h-4 w-4 mr-2" />
                       Spielregal ansehen
                     </Button>
                   ) : shelfRequestStatus ? (
@@ -419,8 +419,8 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
 //             <Button variant="ghost" size="sm" onClick={onBack} className="mr-2">
 //               ←
 //             </Button>
-//             <BookOpen className="h-5 w-5 mr-2" />
-//             {userName}s Spielregal
+//             <Library className="h-5 w-5 mr-2" />
+//             {userName}'s Spielregal
 //           </DialogTitle>
 //         </DialogHeader>
 //         <div className="text-center py-8 text-gray-500">Spielregal-Viewer wird implementiert...</div>

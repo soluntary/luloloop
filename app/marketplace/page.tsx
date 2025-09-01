@@ -36,6 +36,7 @@ import { UserLink } from "@/components/user-link"
 import { SimpleLocationSearch } from "@/components/simple-location-search"
 import { LocationPermissionBanner } from "@/components/location-permission-banner"
 import { DistanceBadge } from "@/components/distance-badge"
+import { useLocationSearch } from "@/contexts/location-search-context"
 
 export default function MarketplacePage() {
   const { user } = useUser()
@@ -48,6 +49,7 @@ export default function MarketplacePage() {
   const [selectedOffer, setSelectedOffer] = useState<(typeof marketplaceOffers)[0] | null>(null)
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false)
   const [contactMessage, setContactMessage] = useState("")
+  const [selectedDeliveryOption, setSelectedDeliveryOption] = useState<"pickup" | "shipping" | "">("")
   const [isCreateOfferOpen, setIsCreateOfferOpen] = useState(false)
   const [searchAds, setSearchAds] = useState<any[]>([])
   const [isCreateSearchAdOpen, setIsCreateSearchAdOpen] = useState(false)
@@ -74,14 +76,39 @@ export default function MarketplacePage() {
   const [rentalEndDate, setRentalEndDate] = useState("")
   const [calculatedPrice, setCalculatedPrice] = useState<string>("")
 
-  const handleLocationSearch = (results: any[]) => {
-    console.log("[v0] Location search results received:", results)
-    setLocationSearchResults(results)
-    setShowLocationResults(true)
+  const { searchByAddress } = useLocationSearch()
+
+  const handleLocationSearch = async (address: string, radius: number) => {
+    console.log("[v0] Location search initiated for:", address, "radius:", radius)
+    try {
+      const results = await searchByAddress(address, radius)
+      console.log("[v0] Location search results received:", results)
+
+      let searchResults: any[] = []
+      if (Array.isArray(results)) {
+        searchResults = results
+      } else if (results && typeof results === "object") {
+        // If results is a single object, wrap it in an array
+        searchResults = [results]
+      } else {
+        // If results is a string or other type, create empty array
+        searchResults = []
+      }
+
+      setLocationSearchResults(searchResults)
+      setShowLocationResults(true)
+    } catch (error) {
+      console.error("[v0] Location search error:", error)
+      setLocationSearchResults([])
+      setShowLocationResults(false)
+    }
   }
 
   const allItems = showLocationResults
-    ? locationSearchResults.map((item) => ({ ...item, itemType: "offer" }))
+    ? (Array.isArray(locationSearchResults) ? locationSearchResults : []).map((item) => ({
+        ...item,
+        itemType: "offer",
+      }))
     : [
         ...marketplaceOffers.map((offer) => ({ ...offer, itemType: "offer" })),
         ...searchAds.map((ad) => ({ ...ad, itemType: "search" })),
@@ -196,28 +223,73 @@ export default function MarketplacePage() {
 
   const handleContactSeller = (offer: (typeof marketplaceOffers)[0]) => {
     setSelectedOffer(offer)
+    setSelectedDeliveryOption("")
 
+    let baseMessage = ""
     if (offer.type === "lend" && rentalStartDate && rentalEndDate && calculatedPrice) {
-      setContactMessage(
-        `Hallo! Ich interessiere mich für dein Spiel "${offer.title}" und möchte es vom ${new Date(rentalStartDate).toLocaleDateString("de-DE")} bis ${new Date(rentalEndDate).toLocaleDateString("de-DE")} ausleihen. 
+      baseMessage = `Hallo! Ich interessiere mich für dein Spiel "${offer.title}" und möchte es vom ${new Date(rentalStartDate).toLocaleDateString("de-DE")} bis ${new Date(rentalEndDate).toLocaleDateString("de-DE")} ausleihen. 
 
-Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}
-
-Können wir die Details besprechen?`,
-      )
+Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
     } else {
-      setContactMessage(
-        `Hallo! Ich interessiere mich für dein Spiel "${offer.title}". Können wir uns darüber unterhalten?`,
-      )
+      baseMessage = `Hallo! Ich interessiere mich für dein Spiel "${offer.title}".`
     }
 
+    const hasBothOptions = offer.pickup_available && offer.shipping_available
+    if (!hasBothOptions) {
+      if (offer.pickup_available) {
+        baseMessage += `\n\nIch würde das Spiel gerne abholen.`
+      } else if (offer.shipping_available) {
+        baseMessage += `\n\nIch würde das Spiel gerne per Versand erhalten.`
+      }
+      baseMessage += `\n\nKönnen wir die Details besprechen?`
+    } else {
+      baseMessage += `\n\nKönnen wir die Details besprechen?`
+    }
+
+    setContactMessage(baseMessage)
     setIsContactDialogOpen(true)
+  }
+
+  const updateMessageWithDeliveryOption = (deliveryOption: "pickup" | "shipping") => {
+    if (!selectedOffer) return
+
+    let baseMessage = ""
+    if (selectedOffer.type === "lend" && rentalStartDate && rentalEndDate && calculatedPrice) {
+      baseMessage = `Hallo! Ich interessiere mich für dein Spiel "${selectedOffer.title}" und möchte es vom ${new Date(rentalStartDate).toLocaleDateString("de-DE")} bis ${new Date(rentalEndDate).toLocaleDateString("de-DE")} ausleihen. 
+
+Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
+    } else {
+      baseMessage = `Hallo! Ich interessiere mich für dein Spiel "${selectedOffer.title}".`
+    }
+
+    if (deliveryOption === "pickup") {
+      baseMessage += `\n\nIch würde das Spiel gerne abholen.`
+    } else if (deliveryOption === "shipping") {
+      baseMessage += `\n\nIch würde das Spiel gerne per Versand erhalten.`
+    }
+
+    baseMessage += `\n\nKönnen wir die Details besprechen?`
+    setContactMessage(baseMessage)
   }
 
   const handleSendMessage = async () => {
     if (!user || !selectedOffer || !contactMessage.trim()) return
 
+    const hasBothOptions = selectedOffer.pickup_available && selectedOffer.shipping_available
+    if (hasBothOptions && !selectedDeliveryOption) {
+      alert("Bitte wähle eine Zustellungsoption aus.")
+      return
+    }
+
     try {
+      const deliveryPreference = hasBothOptions
+        ? selectedDeliveryOption
+        : selectedOffer.pickup_available
+          ? "pickup"
+          : selectedOffer.shipping_available
+            ? "shipping"
+            : undefined
+
       await sendMessage({
         to_user_id: selectedOffer.user_id,
         message: contactMessage,
@@ -225,6 +297,7 @@ Können wir die Details besprechen?`,
         game_title: selectedOffer.title,
         game_image: selectedOffer.image || "/images/ludoloop-placeholder.png",
         offer_type: selectedOffer.type,
+        delivery_preference: deliveryPreference,
       })
 
       // Show success message
@@ -233,6 +306,7 @@ Können wir die Details besprechen?`,
       setIsContactDialogOpen(false)
       setContactMessage("")
       setSelectedOffer(null)
+      setSelectedDeliveryOption("")
     } catch (error) {
       console.error("Error sending message:", error)
       alert("Fehler beim Senden der Nachricht. Bitte versuche es erneut.")
@@ -247,7 +321,7 @@ Können wir die Details besprechen?`,
       try {
         const { data: gameData, error } = await supabase
           .from("games")
-          .select("duration, players, category, style, age, language")
+          .select("duration, players, category, style, age, language, game_types")
           .eq("id", item.game_id)
           .single()
 
@@ -261,6 +335,7 @@ Können wir die Details besprechen?`,
             style: gameData.style,
             age: gameData.age,
             language: gameData.language,
+            game_types: gameData.game_types,
           })
         } else {
           setSelectedOfferDetails(item)
@@ -785,9 +860,9 @@ Können wir die Details besprechen?`,
         {/* Results Count */}
         {databaseConnected && (
           <div className="mb-6 flex items-center justify-between">
-            <p className="text-gray-600 font-body text-lg">
+            <p className="text-gray-600 font-body">
               <span className="font-bold text-orange-600">{filteredItems.length}</span>{" "}
-              {filteredItems.length === 1 ? "Eintrag" : "Einträge"} gefunden
+              {filteredItems.length === 1 ? "Eintrag" : "Anzeigen"} gefunden
             </p>
             <div className="flex items-center space-x-2 text-sm text-gray-500 font-body">
               <div className="w-2 h-2 bg-teal-400 rounded-full"></div>
@@ -836,16 +911,20 @@ Können wir die Details besprechen?`,
                             {item.distance !== undefined && <DistanceBadge distance={item.distance} className="ml-2" />}
                           </div>
 
-                          {item.type === "lend" && (item.min_rental_days || item.max_rental_days) && (
+                          {(item.pickup_available || item.shipping_available) && (
                             <div className="mb-2">
-                              <p className="text-xs text-teal-600 bg-teal-50 px-2 py-1 rounded">
-                                📅 Ausleihdauer:{" "}
-                                {item.min_rental_days && item.max_rental_days
-                                  ? `${item.min_rental_days}-${item.max_rental_days} Tage`
-                                  : item.min_rental_days
-                                    ? `ab ${item.min_rental_days} Tage`
-                                    : `bis ${item.max_rental_days} Tage`}
-                              </p>
+                              <div className="flex flex-wrap gap-1">
+                                {item.pickup_available && (
+                                  <span className="text-xs text-black-600 bg-indigo-50 px-2 py-1 rounded flex items-center gap-1">
+                                    📍 Abholung
+                                  </span>
+                                )}
+                                {item.shipping_available && (
+                                  <span className="text-xs text-black-600 bg-indigo-50 px-2 py-1 rounded flex items-center gap-1">
+                                    📦 Versand
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           )}
 
@@ -998,6 +1077,62 @@ Können wir die Details besprechen?`,
               )}
             </div>
 
+            {selectedOffer?.pickup_available && selectedOffer?.shipping_available && (
+              <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                <h4 className="text-sm font-semibold text-indigo-800 mb-3">Welche Option bevorzugst du?</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      id="pickup-option"
+                      name="delivery-option"
+                      value="pickup"
+                      checked={selectedDeliveryOption === "pickup"}
+                      onChange={(e) => {
+                        setSelectedDeliveryOption("pickup")
+                        updateMessageWithDeliveryOption("pickup")
+                      }}
+                      className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 focus:ring-indigo-500 focus:ring-2"
+                    />
+                    <Label htmlFor="pickup-option" className="text-sm font-medium text-indigo-800 cursor-pointer">
+                      Abholung
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      id="shipping-option"
+                      name="delivery-option"
+                      value="shipping"
+                      checked={selectedDeliveryOption === "shipping"}
+                      onChange={(e) => {
+                        setSelectedDeliveryOption("shipping")
+                        updateMessageWithDeliveryOption("shipping")
+                      }}
+                      className="w-4 h-4 text-teal-600 bg-gray-100 border-gray-300 focus:ring-indigo-500 focus:ring-2"
+                    />
+                    <Label htmlFor="shipping-option" className="text-sm font-medium text-indigo-800 cursor-pointer">
+                      Versand (Kosten zu Ihren Lasten)
+                    </Label>
+                  </div>
+                </div>
+
+                {selectedDeliveryOption === "pickup" && (
+                  <div className="mt-3 p-3 bg-teal-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-700">
+                      Die genaue Adresse wird dir von dem/der Spielanbieter/-in bekannt gegeben, sobald deine Anfrage
+                      angenommen wurde.
+                    </p>
+                  </div>
+                )}
+                {selectedDeliveryOption === "shipping" && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-700">Weitere Details mit dem/der Spielanbieter/-in besprechen.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
               <Label className="font-body">Deine Nachricht:</Label>
               <Textarea
@@ -1013,7 +1148,10 @@ Können wir die Details besprechen?`,
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsContactDialogOpen(false)}
+                onClick={() => {
+                  setIsContactDialogOpen(false)
+                  setSelectedDeliveryOption("")
+                }}
                 className="flex-1 font-handwritten"
               >
                 Abbrechen
@@ -1032,316 +1170,276 @@ Können wir die Details besprechen?`,
       </Dialog>
 
       {/* Detailed Offer View Modal */}
+      {/* Redesigning the offer details dialog with a cleaner, more cohesive design */}
       <Dialog open={isOfferDetailsOpen} onOpenChange={setIsOfferDetailsOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-handwritten text-3xl text-center text-orange-800">
+            <DialogTitle className="text-2xl font-bold text-center text-gray-900">
               {selectedOfferDetails?.title}
             </DialogTitle>
           </DialogHeader>
 
           {selectedOfferDetails && (
-            <div className="space-y-6">
+            <div className="space-y-8">
+              {/* Hero Section */}
               <div className="relative">
-                <div className="relative h-48 bg-gradient-to-br from-orange-100 to-pink-100 overflow-hidden">
+                <div className="relative h-56 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl overflow-hidden border border-slate-200">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <img
                       src={selectedOfferDetails.image || "/images/ludoloop-placeholder.png"}
                       alt={selectedOfferDetails.title}
-                      className="h-40 w-auto object-contain rounded-lg shadow-lg mb-4"
+                      className="h-44 w-auto object-contain rounded-xl shadow-lg"
                     />
                   </div>
-                  <div className="absolute top-4 right-4">
-                    <div className={`w-4 h-4 ${getTypeColor(selectedOfferDetails.type)} rounded-full shadow-sm`}></div>
-                  </div>
-                </div>
-
-                <div className="p-8 space-y-8">
-                  {/* Title and type */}
-                  <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-bold text-gray-900">{selectedOfferDetails.title}</h1>
+                  <div className="absolute top-6 right-6">
                     <Badge
-                      variant="outline"
-                      className={`${getTypeColor(selectedOfferDetails.type)} text-white border-0 px-4 py-1 text-sm`}
+                      className={`${getTypeColor(selectedOfferDetails.type)} text-white border-0 px-4 py-2 text-sm font-medium shadow-sm`}
                     >
                       {getTypeText(selectedOfferDetails.type)}
                     </Badge>
                   </div>
+                </div>
+              </div>
 
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-1">Angebot & Preis</p>
-                      <p className="font-semibold text-orange-600 text-2xl">
-                        {selectedOfferDetails.price || "Preis auf Anfrage"}
-                      </p>
-                    </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-1">Zustand</p>
-                      <p className="font-semibold leading-7 text-sm">
-                        {selectedOfferDetails.condition || "Nicht angegeben"}
-                      </p>
-                    </div>
+              {/* Price and Condition */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
+                  <p className="text-sm text-slate-500 mb-2">Preis</p>
+                  <p className="text-2xl font-bold text-slate-900">{selectedOfferDetails.price || "Auf Anfrage"}</p>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
+                  <p className="text-sm text-slate-500 mb-2">Zustand</p>
+                  <p className="text-lg font-semibold text-slate-900">
+                    {selectedOfferDetails.condition || "Nicht angegeben"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Game Details */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                <h2 className="text-xl font-bold mb-6">SPIELDETAILS</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 rounded-xl bg-slate-50">
+                    <p className="mb-2 font-normal text-xs text-slate-500">Verlag</p>
+                    <p className="text-sm font-semibold text-black">
+                      {selectedOfferDetails.publisher || "Nicht angegeben"}
+                    </p>
                   </div>
-
-                  <div>
-                    <h2 className="text-xl font-bold mb-4 text-secondary-foreground">Spieldetails</h2>
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500 mb-1">Spieldauer</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {selectedOfferDetails.duration || "Nicht angegeben"}
-                        </p>
-                      </div>
-                      <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500 mb-1">Spieleranzahl</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {selectedOfferDetails.players || "Nicht angegeben"}
-                        </p>
-                      </div>
-                      <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500 mb-1">Altersempfehlung</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {selectedOfferDetails.age || "Nicht angegeben"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {selectedOffer?.type === "lend" &&
-                      (selectedOffer.min_rental_days || selectedOffer.max_rental_days) && (
-                        <div className="mt-4 p-4 bg-teal-50 rounded-lg border border-teal-200">
-                          <h3 className="text-sm font-semibold text-teal-800 mb-2">📅 Ausleihdauer</h3>
-                          <p className="text-sm text-teal-700">
-                            {selectedOffer.min_rental_days && selectedOffer.max_rental_days
-                              ? `Mindestens ${selectedOffer.min_rental_days} Tage, maximal ${selectedOffer.max_rental_days} Tage`
-                              : selectedOffer.min_rental_days
-                                ? `Mindestens ${selectedOffer.min_rental_days} Tage`
-                                : `Maximal ${selectedOffer.max_rental_days} Tage`}
-                          </p>
-                        </div>
-                      )}
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <p className="text-slate-500 mb-2 font-normal text-xs">Sprache</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {selectedOfferDetails.language || "Nicht angegeben"}
+                    </p>
                   </div>
-
-                  {selectedOfferDetails.description && (
-                    <div className="bg-white border border-gray-100 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Beschreibung</h3>
-                      <p className="text-gray-700 leading-relaxed">{selectedOfferDetails.description}</p>
-                    </div>
-                  )}
-
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="bg-white border border-gray-100 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Standort</h3>
-                      <div className="flex items-start space-x-3">
-                        <div>
-                          <p className="text-gray-900 font-medium">{selectedOfferDetails.location}</p>
-                          <p className="text-sm text-gray-500 mt-1">{selectedOfferDetails.distance}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white border border-gray-100 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Anbieter</h3>
-                      <div className="flex items-center space-x-4">
-                        <div className="w-16 h-16 rounded-full overflow-hidden shadow-sm border-2 border-orange-200">
-                          <img
-                            src={
-                              selectedOfferDetails.avatar ||
-                              `/placeholder.svg?height=64&width=64&query=avatar+${encodeURIComponent(selectedOfferDetails.owner || selectedOfferDetails.users?.name || "User")}`
-                            }
-                            alt={`${selectedOfferDetails.owner || selectedOfferDetails.users?.name || "User"} Avatar`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              // Fallback to initial avatar if image fails to load
-                              const target = e.target as HTMLImageElement
-                              target.style.display = "none"
-                              const fallback = target.nextElementSibling as HTMLElement
-                              if (fallback) fallback.style.display = "flex"
-                            }}
-                          />
-                          <div
-                            className="w-full h-full bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center"
-                            style={{ display: "none" }}
-                          >
-                            <span className="text-orange-600 font-bold text-xl">
-                              {(selectedOfferDetails.owner || selectedOfferDetails.users?.name || "U")
-                                .charAt(0)
-                                .toUpperCase()}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <UserLink
-                            userId={selectedOfferDetails.user_id}
-                            className="text-gray-900 font-semibold text-lg block"
-                          >
-                            {selectedOfferDetails.owner || selectedOfferDetails.users?.name || "Unbekannter Nutzer"}
-                          </UserLink>
-                          {selectedOfferDetails.rating && (
-                            <div className="flex items-center mt-2">
-                              <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                              <span className="text-sm text-gray-600 ml-1 font-medium">
-                                {selectedOfferDetails.rating}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <p className="text-xs text-slate-500 mb-2">Spieleranzahl</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {selectedOfferDetails.players || "Nicht angegeben"}
+                    </p>
                   </div>
-
-                  {selectedOfferDetails.type === "lend" &&
-                    (selectedOfferDetails.min_rental_days || selectedOfferDetails.max_rental_days) && (
-                      <div className="bg-teal-50 p-4 rounded-xl border border-teal-200">
-                        <h4 className="font-handwritten text-lg text-teal-800 font-bold mb-2 flex items-center">
-                          <Calendar className="w-5 h-5 mr-2" />
-                          Ausleihdauer
-                        </h4>
-                        <div className="space-y-1">
-                          {selectedOfferDetails.min_rental_days && (
-                            <p className="text-teal-700 font-body text-sm">
-                              <span className="font-semibold">Mindestens:</span> {selectedOfferDetails.min_rental_days}{" "}
-                              Tag{selectedOfferDetails.min_rental_days > 1 ? "e" : ""}
-                            </p>
-                          )}
-                          {selectedOfferDetails.max_rental_days && (
-                            <p className="text-teal-700 font-body text-sm">
-                              <span className="font-semibold">Maximal:</span> {selectedOfferDetails.max_rental_days} Tag
-                              {selectedOfferDetails.max_rental_days > 1 ? "e" : ""}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                  {selectedOfferDetails.type === "lend" && (
-                    <div className="bg-gradient-to-br from-orange-50 to-cyan-50 rounded-xl p-6 border border-orange-200">
-                      <h3 className="text-lg font-semibold text-orange-800 mb-4 flex items-center gap-2">
-                        <Calendar className="w-5 h-5" />
-                        Ausleihzeitraum wählen
-                      </h3>
-                      <div className="grid md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <label className="text-sm font-medium text-orange-700 mb-2 block">Von</label>
-                          <input
-                            type="date"
-                            value={rentalStartDate}
-                            onChange={(e) => setRentalStartDate(e.target.value)}
-                            min={new Date().toISOString().split("T")[0]}
-                            className="w-full p-3 border-2 border-orange-200 rounded-lg focus:border-orange-500 focus:outline-none bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-orange-700 mb-2 block">Bis</label>
-                          <input
-                            type="date"
-                            value={rentalEndDate}
-                            onChange={(e) => setRentalEndDate(e.target.value)}
-                            min={rentalStartDate || new Date().toISOString().split("T")[0]}
-                            className="w-full p-3 border-2 border-orange-200 rounded-lg focus:border-orange-500 focus:outline-none bg-white"
-                          />
-                        </div>
-                      </div>
-
-                      {calculatedPrice && (
-                        <div className="bg-white p-4 rounded-lg border border-orange-200 mb-4">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-orange-700 font-medium">Gesamt-Ausleihgebühr:</span>
-                            <span className="text-xl font-bold text-orange-800">{calculatedPrice}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {rentalStartDate && rentalEndDate && !calculatedPrice && (
-                        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-4">
-                          <div className="flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4 text-orange-600" />
-                            <p className="text-sm text-orange-700">
-                              Für den gewählten Zeitraum ist keine automatische Preisberechnung möglich. Der Anbieter
-                              wird Ihnen ein individuelles Angebot unterbreiten.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {(!rentalStartDate || !rentalEndDate) && (
-                        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-4">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-orange-600" />
-                            <p className="text-sm text-orange-700">
-                              Bitte wählen Sie einen Ausleihzeitraum, um die Gesamt-Ausleihgebühr zu berechnen.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {rentalStartDate && rentalEndDate && (
-                        <div className="bg-orange-100 p-4 rounded-lg border border-orange-200">
-                          <h4 className="text-sm font-semibold text-orange-800 mb-2">Ausleih-Zusammenfassung:</h4>
-                          <div className="space-y-1 text-sm text-orange-700">
-                            <div className="flex justify-between">
-                              <span>Zeitraum:</span>
-                              <span className="font-medium">
-                                {new Date(rentalStartDate).toLocaleDateString("de-DE")} -{" "}
-                                {new Date(rentalEndDate).toLocaleDateString("de-DE")}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Dauer:</span>
-                              <span className="font-medium">
-                                {Math.ceil(
-                                  (new Date(rentalEndDate).getTime() - new Date(rentalStartDate).getTime()) /
-                                    (1000 * 60 * 60 * 24),
-                                )}{" "}
-                                Tag
-                                {Math.ceil(
-                                  (new Date(rentalEndDate).getTime() - new Date(rentalStartDate).getTime()) /
-                                    (1000 * 60 * 60 * 24),
-                                ) > 1
-                                  ? "e"
-                                  : ""}
-                              </span>
-                            </div>
-                            {calculatedPrice && (
-                              <div className="flex justify-between border-t border-orange-200 pt-2 mt-2">
-                                <span className="font-semibold">Gesamt-Ausleihgebühr:</span>
-                                <span className="font-bold">{calculatedPrice}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="flex gap-4 pt-6 border-t border-gray-100">
-                    <Button
-                      onClick={() => {
-                        setIsOfferDetailsOpen(false)
-                        if (selectedOfferDetails.itemType === "offer") {
-                          handleContactSeller(selectedOfferDetails)
-                        }
-                      }}
-                      disabled={selectedOfferDetails.type === "lend" && (!rentalStartDate || !rentalEndDate)}
-                      className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    >
-                      <MessageCircle className="w-5 h-5 mr-2" />
-                      {selectedOfferDetails.type === "lend"
-                        ? rentalStartDate && rentalEndDate
-                          ? "Ausleihe anfragen"
-                          : "Zeitraum wählen"
-                        : selectedOfferDetails.itemType === "offer"
-                          ? "Anfragen"
-                          : "Antworten"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsOfferDetailsOpen(false)}
-                      className="px-8 py-3 rounded-xl border-gray-200 hover:bg-gray-50 font-medium"
-                    >
-                      Schliessen
-                    </Button>
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <p className="text-xs text-slate-500 mb-2">Spieldauer</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {selectedOfferDetails.duration || "Nicht angegeben"}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <p className="text-xs text-slate-500 mb-2">Altersempfehlung</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {selectedOfferDetails.age || "Nicht angegeben"}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <p className="text-xs text-slate-500 mb-2">Kategorie</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {Array.isArray(selectedOfferDetails.categories)
+                        ? selectedOfferDetails.categories.join(", ")
+                        : selectedOfferDetails.categories || "Nicht angegeben"}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <p className="text-xs text-slate-500 mb-2">Typus</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {Array.isArray(selectedOfferDetails.game_types)
+                        ? selectedOfferDetails.game_types.join(", ")
+                        : selectedOfferDetails.game_types || "Nicht angegeben"}
+                    </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Description */}
+              {selectedOfferDetails.description && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Beschreibung</h3>
+                  <p className="text-slate-700 leading-relaxed">{selectedOfferDetails.description}</p>
+                </div>
+              )}
+
+              {/* Provider */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">ANBIETER</h3>
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 border-2 border-slate-200">
+                    <img
+                      src={
+                        selectedOfferDetails.avatar ||
+                        `/placeholder.svg?height=64&width=64&query=avatar+${encodeURIComponent(selectedOfferDetails.owner || selectedOfferDetails.users?.name || "User")}`
+                      }
+                      alt={`${selectedOfferDetails.owner || selectedOfferDetails.users?.name || "User"} Avatar`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement
+                        target.style.display = "none"
+                        const fallback = target.nextElementSibling as HTMLElement
+                        if (fallback) fallback.style.display = "flex"
+                      }}
+                    />
+                    <div
+                      className="w-full h-full bg-slate-200 rounded-full flex items-center justify-center"
+                      style={{ display: "none" }}
+                    >
+                      <span className="text-slate-600 font-bold text-xl">
+                        {(selectedOfferDetails.owner || selectedOfferDetails.users?.name || "U")
+                          .charAt(0)
+                          .toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <UserLink
+                      userId={selectedOfferDetails.user_id}
+                      className="text-slate-900 font-semibold text-lg block hover:text-blue-600"
+                    >
+                      {selectedOfferDetails.owner || selectedOfferDetails.users?.name || "Unbekannter Nutzer"}
+                    </UserLink>
+                    {selectedOfferDetails.rating && (
+                      <div className="flex items-center mt-2">
+                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                        <span className="text-sm text-slate-600 ml-1 font-medium">{selectedOfferDetails.rating}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery Options */}
+              {(selectedOfferDetails.pickup_available || selectedOfferDetails.shipping_available) && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                  <h4 className="text-lg font-semibold text-slate-900 mb-4">
+                    Der/die Spielanbieter/-in bietet folgende Option(en) an:
+                  </h4>
+                  <div className="space-y-3">
+                    {selectedOfferDetails.pickup_available && (
+                      <div className="bg-slate-50 p-4 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-slate-900 font-medium">📍 Abholung</span>
+                        </div>
+                        {selectedOfferDetails.pickup_address && (
+                          <p className="text-sm text-slate-600">Adresse: {selectedOfferDetails.pickup_address}</p>
+                        )}
+                      </div>
+                    )}
+                    {selectedOfferDetails.pickup_available && selectedOfferDetails.shipping_available && (
+                      <div className="text-center py-2">
+                        <span className="text-slate-500 font-medium">oder</span>
+                      </div>
+                    )}
+                    {selectedOfferDetails.shipping_available && (
+                      <div className="bg-slate-50 p-4 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-slate-900 font-medium">📦 Versand</span>
+                        </div>
+                        <p className="text-sm text-slate-600">
+                          Kosten zu Ihren Lasten. Weitere Details mit dem/der Spielanbieter/-in besprechen.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Rental Period Selection for Lending */}
+              {selectedOfferDetails.type === "lend" && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    Ausleihzeitraum wählen
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="text-sm font-medium text-blue-800 mb-2 block">Von</label>
+                      <input
+                        type="date"
+                        value={rentalStartDate}
+                        onChange={(e) => setRentalStartDate(e.target.value)}
+                        min={new Date().toISOString().split("T")[0]}
+                        className="w-full p-3 border border-blue-200 rounded-xl focus:border-blue-400 focus:outline-none bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-blue-800 mb-2 block">Bis</label>
+                      <input
+                        type="date"
+                        value={rentalEndDate}
+                        onChange={(e) => setRentalEndDate(e.target.value)}
+                        min={rentalStartDate || new Date().toISOString().split("T")[0]}
+                        className="w-full p-3 border border-blue-200 rounded-xl focus:border-blue-400 focus:outline-none bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {calculatedPrice && (
+                    <div className="bg-white p-4 rounded-xl border border-blue-200 mb-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-blue-800 font-medium">Gesamt-Ausleihgebühr:</span>
+                        <span className="text-xl font-bold text-blue-900">{calculatedPrice}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {rentalStartDate && rentalEndDate && !calculatedPrice && (
+                    <div className="bg-blue-100 p-4 rounded-xl border border-blue-200 mb-4">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-blue-700" />
+                        <p className="text-sm text-blue-800">
+                          Für den gewählten Zeitraum ist keine automatische Preisberechnung möglich. Der Anbieter wird
+                          Ihnen ein individuelles Angebot unterbreiten.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-6 border-t border-slate-200">
+                <Button
+                  onClick={() => {
+                    setIsOfferDetailsOpen(false)
+                    if (selectedOfferDetails.itemType === "offer") {
+                      handleContactSeller(selectedOfferDetails)
+                    }
+                  }}
+                  disabled={selectedOfferDetails.type === "lend" && (!rentalStartDate || !rentalEndDate)}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
+                >
+                  <MessageCircle className="w-5 h-5 mr-2" />
+                  {selectedOfferDetails.type === "lend"
+                    ? rentalStartDate && rentalEndDate
+                      ? "Ausleihe anfragen"
+                      : "Zeitraum wählen"
+                    : selectedOfferDetails.itemType === "offer"
+                      ? "Anfragen"
+                      : "Antworten"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsOfferDetailsOpen(false)}
+                  className="px-8 py-3 rounded-xl border-slate-300 hover:bg-slate-50 font-medium"
+                >
+                  Schliessen
+                </Button>
               </div>
             </div>
           )}
