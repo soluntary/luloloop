@@ -2,24 +2,21 @@ import { createBrowserClient, createServerClient as createSupabaseServerClient }
 import type { cookies } from "next/headers"
 import { cache } from "react"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
+function getSupabaseConfig() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
 
-export const isSupabaseConfigured = !!(
-  supabaseUrl &&
-  supabaseAnonKey &&
-  supabaseUrl !== "https://placeholder.supabase.co" &&
-  supabaseAnonKey !== "placeholder-key" &&
-  !supabaseUrl.includes("placeholder") &&
-  !supabaseAnonKey.includes("placeholder")
-)
+  const isConfigured = !!(
+    url &&
+    key &&
+    url !== "https://placeholder.supabase.co" &&
+    key !== "placeholder-key" &&
+    !url.includes("placeholder") &&
+    !key.includes("placeholder")
+  )
 
-console.log("[v0] Supabase configuration check:", {
-  hasUrl: !!supabaseUrl,
-  hasKey: !!supabaseAnonKey,
-  isConfigured: isSupabaseConfigured,
-  url: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : "undefined",
-})
+  return { url, key, isConfigured }
+}
 
 let browserClientInstance: any = null
 let mockClientInstance: any = null
@@ -85,13 +82,22 @@ function createMockClient() {
 }
 
 export function createClient() {
-  if (!isSupabaseConfigured) {
+  const { url, key, isConfigured } = getSupabaseConfig()
+
+  console.log("[v0] Supabase configuration check:", {
+    hasUrl: !!url,
+    hasKey: !!key,
+    isConfigured,
+    url: url ? `${url.substring(0, 20)}...` : "undefined",
+  })
+
+  if (!isConfigured) {
     return createMockClient()
   }
 
   if (browserClientInstance) return browserClientInstance
 
-  browserClientInstance = createBrowserClient(supabaseUrl!, supabaseAnonKey!, {
+  browserClientInstance = createBrowserClient(url!, key!, {
     cookies: {
       getAll() {
         if (typeof document === "undefined" || !document.cookie) {
@@ -138,13 +144,15 @@ export function createClient() {
 }
 
 export function createServerClient(cookieStore: ReturnType<typeof cookies>) {
-  if (!isSupabaseConfigured) {
+  const { url, key, isConfigured } = getSupabaseConfig()
+
+  if (!isConfigured) {
     return createMockClient()
   }
 
   if (!cookieStore) {
     // Return a client without cookie handling if cookies are not available
-    return createSupabaseServerClient(supabaseUrl!, supabaseAnonKey!, {
+    return createSupabaseServerClient(url!, key!, {
       cookies: {
         getAll() {
           return []
@@ -156,7 +164,7 @@ export function createServerClient(cookieStore: ReturnType<typeof cookies>) {
     })
   }
 
-  return createSupabaseServerClient(supabaseUrl!, supabaseAnonKey!, {
+  return createSupabaseServerClient(url!, key!, {
     cookies: {
       getAll() {
         return cookieStore.getAll()
@@ -173,9 +181,6 @@ export function createServerClient(cookieStore: ReturnType<typeof cookies>) {
     },
   })
 }
-
-// Create a cached version of the Supabase client for Server Components
-export const createServerClientFunc = cache(createServerClient)
 
 export const supabase = createClient()
 
@@ -593,3 +598,6 @@ export interface Database {
     }
   }
 }
+
+// Create a cached version of the Supabase client for Server Components
+export const createServerClientFunc = cache(createServerClient)
