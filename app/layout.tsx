@@ -10,7 +10,11 @@ import { FriendsProvider } from "@/contexts/friends-context"
 import { GeolocationProvider } from "@/contexts/geolocation-context"
 import { LocationSearchProvider } from "@/contexts/location-search-context"
 import { RequestsProvider } from "@/contexts/requests-context"
+import { AvatarProvider } from "@/contexts/avatar-context"
+import { ProfileSyncProvider } from "@/contexts/profile-sync-context"
 import { Footer } from "@/components/footer"
+import { Toaster } from "@/components/ui/toaster"
+import { SecurityEventLogger } from "@/components/security-event-logger"
 
 const galindo = Galindo({
   subsets: ["latin"],
@@ -47,22 +51,29 @@ export default function RootLayout({
       <body className={mclaren.className}>
         <AuthProvider>
           <UserProvider>
-            <GamesProvider>
-              <MessagesProvider>
-                <FriendsProvider>
-                  <GeolocationProvider>
-                    <LocationSearchProvider>
-                      <RequestsProvider>
-                        <div className="min-h-screen flex flex-col">
-                          <main className="flex-1">{children}</main>
-                          <Footer />
-                        </div>
-                      </RequestsProvider>
-                    </LocationSearchProvider>
-                  </GeolocationProvider>
-                </FriendsProvider>
-              </MessagesProvider>
-            </GamesProvider>
+            <AvatarProvider>
+              <ProfileSyncProvider>
+                <GamesProvider>
+                  <MessagesProvider>
+                    <FriendsProvider>
+                      <GeolocationProvider>
+                        <LocationSearchProvider>
+                          <RequestsProvider>
+                            <SecurityEventLogger>
+                              <div className="min-h-screen flex flex-col">
+                                <main className="flex-1">{children}</main>
+                                <Footer />
+                              </div>
+                            </SecurityEventLogger>
+                            <Toaster />
+                          </RequestsProvider>
+                        </LocationSearchProvider>
+                      </GeolocationProvider>
+                    </FriendsProvider>
+                  </MessagesProvider>
+                </GamesProvider>
+              </ProfileSyncProvider>
+            </AvatarProvider>
           </UserProvider>
         </AuthProvider>
       </body>

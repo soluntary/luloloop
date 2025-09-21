@@ -6,7 +6,6 @@ import {
   Users,
   Repeat,
   Dices,
-  ArrowRightFromLine,
   Store,
   Plus,
   HandCoins,
@@ -17,20 +16,20 @@ import {
   Target,
   Coins,
   Leaf,
-  Globe,
   Shield,
 } from "lucide-react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
+import { LeaderboardAd, MediumRectangleAd } from "@/components/advertising/ad-placements"
 import "@/styles/font-handwritten.css"
 import "@/styles/font-body.css"
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
+    
       {/* Navigation */}
       <Navigation currentPage="home" />
-
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 text-center">
         <div className="max-w-4xl mx-auto">
@@ -48,6 +47,10 @@ export default function HomePage() {
         <h2 className="text-4xl font-handwritten text-center text-gray-800 mb-12 transform rotate-1">
           Entdecke unsere tollen Features
         </h2>
+        <p className="text-lg text-gray-600 text-center mb-12 font-body transform rotate-1">
+          Alles was du brauchst für deine Brettspiel-Leidenschaft an einem Ort
+        </p>
+
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           <Card className="transform rotate-1 hover:rotate-0 transition-all hover:shadow-xl border-2 border-pink-200">
             <CardContent className="p-6 text-center">
@@ -130,8 +133,8 @@ export default function HomePage() {
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Marktplatz</h3>
               <p className="text-gray-600 font-body mb-4">
-                Stöbere durch den Marktplatz, entdecke spannende Angebote von anderen Mitgliedern und finde tolle Spiele zum Ausleihen, Kaufen oder
-                Tauschen.
+                Stöbere durch den Marktplatz, entdecke spannende Angebote von anderen Mitgliedern und finde tolle Spiele
+                zum Ausleihen, Kaufen oder Tauschen.
               </p>
               <Button
                 asChild
@@ -148,7 +151,7 @@ export default function HomePage() {
               <div className="w-16 h-16 bg-pink-400 rounded-full flex items-center justify-center mx-auto mb-4 transform rotate-12">
                 <Users className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Spielgruppen & Community</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Spielgruppen</h3>
               <p className="text-gray-600 font-body mb-4">
                 Tritt Spielgruppen bei oder gründe deine eigene und finde Gleichgesinnte für gemeinsame Spielrunden.
               </p>
@@ -167,7 +170,7 @@ export default function HomePage() {
               <div className="w-16 h-16 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-4 transform rotate-12">
                 <Dices className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Events & Spielrunden</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Events</h3>
               <p className="text-gray-600 font-body mb-4">
                 Organisiere deine nächste Spielrunde im Handumdrehen und finde Mitspieler.
               </p>
@@ -223,9 +226,7 @@ export default function HomePage() {
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-800 mb-2 font-handwritten">Spielvielfalt</h3>
-              <p className="text-gray-600 font-body">
-                Einfacher Zugang zu tollen Spielen.
-              </p>
+              <p className="text-gray-600 font-body">Einfacher Zugang zu tollen Spielen.</p>
             </div>
           </div>
 
@@ -236,7 +237,8 @@ export default function HomePage() {
             <div>
               <h3 className="text-lg font-bold text-gray-800 mb-2 font-handwritten">Nachhaltig und kostensparend</h3>
               <p className="text-gray-600 font-body">
-                Weniger ungenutzte Spiele im Regal, mehr Kreislauf durch Tausch und Verleih - gut für Umwelt und Geldbeutel.
+                Weniger ungenutzte Spiele im Regal, mehr Kreislauf durch Tausch und Verleih - gut für Umwelt und
+                Geldbeutel.
               </p>
             </div>
           </div>
@@ -287,6 +289,10 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
+
+      <div className="container mx-auto px-4 py-4">
+        <LeaderboardAd />
+      </div>
     </div>
   )
 }

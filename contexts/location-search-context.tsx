@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 import { useGeolocation } from "./geolocation-context"
 import { geocodeAddress } from "@/lib/actions/geocoding"
 
@@ -52,6 +52,8 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
     radius: 10, // Default 10km radius
     useCurrentLocation: true,
   })
+
+  const supabase = createClient()
 
   const setFilters = useCallback((newFilters: Partial<LocationSearchFilters>) => {
     setFiltersState((prev) => ({ ...prev, ...newFilters }))
@@ -123,7 +125,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
         setLoading(false)
       }
     },
-    [filters, getSearchCoordinates],
+    [filters, getSearchCoordinates, supabase],
   )
 
   const searchMarketplaceOffersNearby = useCallback(
@@ -186,7 +188,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
         setLoading(false)
       }
     },
-    [filters, getSearchCoordinates],
+    [filters, getSearchCoordinates, supabase],
   )
 
   const searchEventsNearby = useCallback(
@@ -249,7 +251,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
         setLoading(false)
       }
     },
-    [filters, getSearchCoordinates],
+    [filters, getSearchCoordinates, supabase],
   )
 
   const searchCommunitiesNearby = useCallback(
@@ -312,7 +314,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
         setLoading(false)
       }
     },
-    [filters, getSearchCoordinates],
+    [filters, getSearchCoordinates, supabase],
   )
 
   const searchByAddress = useCallback(
@@ -384,7 +386,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
         setLoading(false)
       }
     },
-    [], // Removed geocodeAddress dependency since it's now a server action
+    [supabase], // Added supabase dependency
   )
 
   const contextValue: LocationSearchContextType = {

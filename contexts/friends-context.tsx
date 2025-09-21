@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react"
-import { createClient } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 
 interface Friend {
@@ -9,11 +9,8 @@ interface Friend {
   name: string
   email: string
   avatar: string | null
-  status: "pending" | "accepted" | "blocked"
+  status: "active"
   addedAt: string
-  lastSeen?: string
-  gamesCount?: number
-  rating?: number
 }
 
 interface FriendRequest {
@@ -29,16 +26,14 @@ interface FriendRequest {
 
 interface FriendsContextType {
   friends: Friend[]
-  friendRequests: FriendRequest[]
   pendingRequests: FriendRequest[]
   sentRequests: FriendRequest[]
   loading: boolean
   error: string | null
-  sendFriendRequest: (toUserId: string, message?: string) => Promise<void>
+  sendFriendRequest: (toUserId: string, message?: string) => Promise<{ success: boolean; alreadyExists: boolean }>
   acceptFriendRequest: (requestId: string) => Promise<void>
   declineFriendRequest: (requestId: string) => Promise<void>
   removeFriend: (friendId: string) => Promise<void>
-  getFriendByName: (name: string) => Friend | undefined
   getFriendshipStatus: (userId: string) => "friends" | "pending" | "received" | "none"
   refreshFriends: () => Promise<void>
 }
@@ -47,7 +42,6 @@ const FriendsContext = createContext<FriendsContextType | undefined>(undefined)
 
 export function FriendsProvider({ children }: { children: ReactNode }) {
   const [friends, setFriends] = useState<Friend[]>([])
-  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([])
   const [sentRequests, setSentRequests] = useState<FriendRequest[]>([])
   const [loading, setLoading] = useState(false)
@@ -57,22 +51,27 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   const supabase = createClient()
 
   const refreshFriends = useCallback(async () => {
-    if (!user?.id) return
+    if (!user?.id) {
+      console.log("[v0] FRIENDS: No user ID, clearing data")
+      setFriends([])
+      setPendingRequests([])
+      setSentRequests([])
+      return
+    }
 
     try {
       setLoading(true)
       setError(null)
-      console.log("[v0] Refreshing friends data for user:", user.id)
+      console.log("[v0] FRIENDS: Starting refresh for user:", user.id)
 
-      // Load friends
+      console.log("[v0] FRIENDS: Loading friends...")
       const { data: friendsData, error: friendsError } = await supabase
         .from("friends")
         .select(`
-          id,
           friend_id,
           status,
           created_at,
-          friend:friend_id (
+          users:friend_id (
             id,
             name,
             email,
@@ -80,15 +79,12 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
           )
         `)
         .eq("user_id", user.id)
-        .eq("status", "accepted")
+        .eq("status", "active")
 
-      if (friendsError) {
-        console.error("[v0] Error loading friends:", friendsError)
-        throw friendsError
-      }
+      console.log("[v0] FRIENDS: Friends result:", { friendsData, friendsError })
 
-      // Load friend requests (received)
-      const { data: receivedRequests, error: receivedError } = await supabase
+      console.log("[v0] FRIENDS: Loading sent requests...")
+      const { data: sentData, error: sentError } = await supabase
         .from("friend_requests")
         .select(`
           id,
@@ -97,7 +93,28 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
           message,
           status,
           created_at,
-          from_user:from_user_id (
+          users:to_user_id (
+            id,
+            name,
+            email,
+            avatar
+          )
+        `)
+        .eq("from_user_id", user.id)
+
+      console.log("[v0] FRIENDS: Sent requests result:", { sentData, sentError })
+
+      console.log("[v0] FRIENDS: Loading received requests...")
+      const { data: receivedData, error: receivedError } = await supabase
+        .from("friend_requests")
+        .select(`
+          id,
+          from_user_id,
+          to_user_id,
+          message,
+          status,
+          created_at,
+          users:from_user_id (
             id,
             name,
             email,
@@ -107,82 +124,51 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         .eq("to_user_id", user.id)
         .eq("status", "pending")
 
-      if (receivedError) {
-        console.error("[v0] Error loading received requests:", receivedError)
-        throw receivedError
-      }
+      console.log("[v0] FRIENDS: Received requests result:", { receivedData, receivedError })
 
-      // Load friend requests (sent)
-      const { data: sentRequestsData, error: sentError } = await supabase
-        .from("friend_requests")
-        .select(`
-          id,
-          from_user_id,
-          to_user_id,
-          message,
-          status,
-          created_at,
-          to_user:to_user_id (
-            id,
-            name,
-            email,
-            avatar
-          )
-        `)
-        .eq("from_user_id", user.id)
-        .eq("status", "pending")
-
-      if (sentError) {
-        console.error("[v0] Error loading sent requests:", sentError)
-        throw sentError
-      }
-
-      // Transform friends data
-      const transformedFriends: Friend[] = (friendsData || []).map((friendship: any) => ({
-        id: friendship.friend.id,
-        name: friendship.friend.name,
-        email: friendship.friend.email,
-        avatar: friendship.friend.avatar,
-        status: "accepted" as const,
-        addedAt: friendship.created_at,
+      const transformedFriends: Friend[] = (friendsData || []).map((f: any) => ({
+        id: f.friend_id,
+        name: f.users?.name || "Unknown User",
+        email: f.users?.email || "",
+        avatar: f.users?.avatar || null,
+        status: "active" as const,
+        addedAt: f.created_at,
       }))
 
-      // Transform received requests
-      const transformedReceived: FriendRequest[] = (receivedRequests || []).map((req: any) => ({
-        id: req.id,
-        from_user_id: req.from_user_id,
-        to_user_id: req.to_user_id,
-        from_user_name: req.from_user.name,
-        to_user_name: user.name || "",
-        message: req.message,
-        status: req.status,
-        created_at: req.created_at,
-      }))
-
-      // Transform sent requests
-      const transformedSent: FriendRequest[] = (sentRequestsData || []).map((req: any) => ({
-        id: req.id,
-        from_user_id: req.from_user_id,
-        to_user_id: req.to_user_id,
+      const pendingSentRequests = (sentData || []).filter((r: any) => r.status === "pending")
+      const transformedSent: FriendRequest[] = pendingSentRequests.map((r: any) => ({
+        id: r.id,
+        from_user_id: r.from_user_id,
+        to_user_id: r.to_user_id,
         from_user_name: user.name || "",
-        to_user_name: req.to_user.name,
-        message: req.message,
-        status: req.status,
-        created_at: req.created_at,
+        to_user_name: r.users?.name || "Unknown User",
+        message: r.message,
+        status: r.status,
+        created_at: r.created_at,
+      }))
+
+      const transformedReceived: FriendRequest[] = (receivedData || []).map((r: any) => ({
+        id: r.id,
+        from_user_id: r.from_user_id,
+        to_user_id: r.to_user_id,
+        from_user_name: r.users?.name || "Unknown User",
+        to_user_name: user.name || "",
+        message: r.message,
+        status: r.status,
+        created_at: r.created_at,
       }))
 
       setFriends(transformedFriends)
-      setPendingRequests(transformedReceived)
       setSentRequests(transformedSent)
-      setFriendRequests([...transformedReceived, ...transformedSent])
+      setPendingRequests(transformedReceived)
 
-      console.log("[v0] Friends data loaded:", {
+      console.log("[v0] FRIENDS: Data loaded successfully:", {
         friends: transformedFriends.length,
-        pendingRequests: transformedReceived.length,
-        sentRequests: transformedSent.length,
+        sent: transformedSent.length,
+        received: transformedReceived.length,
       })
     } catch (err: any) {
-      console.error("[v0] Error refreshing friends:", err)
+      console.error("[v0] FRIENDS: Error refreshing data:", err)
       setError(err.message || "Failed to load friends data")
     } finally {
       setLoading(false)
@@ -190,89 +176,132 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   }, [user?.id, user?.name, supabase])
 
   useEffect(() => {
-    if (user?.id) {
-      refreshFriends()
-    } else {
-      setFriends([])
-      setFriendRequests([])
-      setPendingRequests([])
-      setSentRequests([])
-    }
-  }, [user?.id, refreshFriends])
+    refreshFriends()
+  }, [refreshFriends])
 
   const sendFriendRequest = async (toUserId: string, message?: string) => {
     if (!user?.id) {
       throw new Error("Must be logged in to send friend requests")
     }
 
+    if (user.id === toUserId) {
+      throw new Error("Du kannst dir nicht selbst eine Freundschaftsanfrage senden!")
+    }
+
     try {
       setError(null)
-      console.log("[v0] Sending friend request to:", toUserId)
+      console.log("[v0] FRIENDS: Sending friend request from", user.id, "to", toUserId)
 
-      const [existingRequestResult, existingFriendshipResult] = await Promise.all([
-        supabase
-          .from("friend_requests")
-          .select("id, status")
-          .eq("from_user_id", user.id)
-          .eq("to_user_id", toUserId)
-          .in("status", ["pending", "accepted"])
-          .maybeSingle(),
-        supabase
-          .from("friends")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("friend_id", toUserId)
-          .eq("status", "accepted")
-          .maybeSingle(),
-      ])
+      console.log("[v0] FRIENDS: Checking for existing friendship...")
+      const { data: existingFriendship, error: friendshipError } = await supabase
+        .from("friends")
+        .select("id, status")
+        .eq("user_id", user.id)
+        .eq("friend_id", toUserId)
+        .maybeSingle()
 
-      if (existingRequestResult.error && existingRequestResult.error.code !== "PGRST116") {
-        console.error("[v0] Error checking existing request:", existingRequestResult.error)
-        throw existingRequestResult.error
-      }
+      console.log("[v0] FRIENDS: Existing friendship check result:", { existingFriendship, friendshipError })
 
-      if (existingFriendshipResult.error && existingFriendshipResult.error.code !== "PGRST116") {
-        console.error("[v0] Error checking existing friendship:", existingFriendshipResult.error)
-        throw existingFriendshipResult.error
-      }
-
-      if (existingRequestResult.data) {
-        console.log("[v0] Friend request already exists with status:", existingRequestResult.data.status)
-        if (existingRequestResult.data.status === "pending") {
-          throw new Error("Du hast bereits eine Freundschaftsanfrage an diesen Benutzer gesendet!")
-        } else if (existingRequestResult.data.status === "accepted") {
-          throw new Error("Ihr seid bereits befreundet!")
-        }
-      }
-
-      if (existingFriendshipResult.data) {
-        console.log("[v0] Users are already friends")
+      if (existingFriendship && existingFriendship.status === "active") {
+        console.log("[v0] FRIENDS: Active friendship found, throwing error")
         throw new Error("Ihr seid bereits befreundet!")
       }
 
-      // Insert new friend request
-      const { error: insertError } = await supabase.from("friend_requests").insert({
-        from_user_id: user.id,
-        to_user_id: toUserId,
-        message: message || null,
-        status: "pending",
-      })
+      console.log("[v0] FRIENDS: Checking for reverse friendship...")
+      const { data: reverseFriendship, error: reverseError } = await supabase
+        .from("friends")
+        .select("id, status")
+        .eq("user_id", toUserId)
+        .eq("friend_id", user.id)
+        .maybeSingle()
+
+      console.log("[v0] FRIENDS: Reverse friendship check result:", { reverseFriendship, reverseError })
+
+      if (reverseFriendship && reverseFriendship.status === "active") {
+        console.log("[v0] FRIENDS: Reverse active friendship found, throwing error")
+        throw new Error("Ihr seid bereits befreundet!")
+      }
+
+      console.log("[v0] FRIENDS: Checking for existing friend request...")
+      const { data: existingRequest, error: requestError } = await supabase
+        .from("friend_requests")
+        .select("id, status")
+        .eq("from_user_id", user.id)
+        .eq("to_user_id", toUserId)
+        .maybeSingle()
+
+      console.log("[v0] FRIENDS: Existing request check:", { existingRequest, requestError })
+
+      if (existingRequest) {
+        if (existingRequest.status === "pending") {
+          console.log("[v0] FRIENDS: Request already exists and is pending")
+          await refreshFriends()
+          return { success: true, alreadyExists: true }
+        }
+        if (existingRequest.status === "accepted") {
+          console.log("[v0] FRIENDS: Request already accepted, checking if friendship exists...")
+
+          // Check if friendship already exists
+          const { data: friendship } = await supabase
+            .from("friends")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("friend_id", toUserId)
+            .maybeSingle()
+
+          if (!friendship) {
+            console.log("[v0] FRIENDS: Creating missing friendship from accepted request...")
+            await supabase.from("friends").insert([
+              {
+                user_id: user.id,
+                friend_id: toUserId,
+                status: "active",
+              },
+              {
+                user_id: toUserId,
+                friend_id: user.id,
+                status: "active",
+              },
+            ])
+          }
+
+          console.log("[v0] FRIENDS: Request already accepted, friendship ensured")
+          await refreshFriends()
+          return { success: true, alreadyExists: true }
+        }
+        if (existingRequest.status === "declined") {
+          console.log("[v0] FRIENDS: Previous request was declined, deleting and creating new one")
+          await supabase.from("friend_requests").delete().eq("id", existingRequest.id)
+        }
+      }
+
+      console.log("[v0] FRIENDS: Inserting new friend request...")
+      const { data: insertData, error: insertError } = await supabase
+        .from("friend_requests")
+        .insert({
+          from_user_id: user.id,
+          to_user_id: toUserId,
+          message: message || null,
+          status: "pending",
+        })
+        .select()
+
+      console.log("[v0] FRIENDS: Insert result:", { insertData, insertError })
 
       if (insertError) {
-        console.error("[v0] Error sending friend request:", insertError)
-        if (
-          insertError.code === "23505" &&
-          insertError.message.includes("friend_requests_from_user_id_to_user_id_key")
-        ) {
-          throw new Error("Du hast bereits eine Freundschaftsanfrage an diesen Benutzer gesendet!")
+        console.error("[v0] FRIENDS: Insert error:", insertError)
+        if (insertError.message?.includes("duplicate key")) {
+          await refreshFriends()
+          return { success: true, alreadyExists: true }
         }
         throw insertError
       }
 
-      console.log("[v0] Friend request sent successfully")
+      console.log("[v0] FRIENDS: Friend request sent successfully")
       await refreshFriends()
+      return { success: true, alreadyExists: false }
     } catch (err: any) {
-      console.error("[v0] Error sending friend request:", err)
+      console.error("[v0] FRIENDS: Error sending friend request:", err)
       setError(err.message || "Failed to send friend request")
       throw err
     }
@@ -283,53 +312,65 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
     try {
       setError(null)
-      console.log("[v0] Accepting friend request:", requestId)
+      console.log("[v0] FRIENDS: Accepting friend request:", requestId)
 
-      // Get the request details
       const { data: request, error: requestError } = await supabase
         .from("friend_requests")
-        .select("from_user_id, to_user_id")
+        .select("from_user_id, to_user_id, status")
         .eq("id", requestId)
         .single()
+
+      console.log("[v0] FRIENDS: Request data:", { request, requestError })
 
       if (requestError || !request) {
         throw new Error("Friend request not found")
       }
 
-      // Update request status
+      if (request.status !== "pending") {
+        throw new Error("Friend request is no longer available")
+      }
+
+      console.log("[v0] FRIENDS: Updating request status to accepted")
       const { error: updateError } = await supabase
         .from("friend_requests")
         .update({ status: "accepted" })
         .eq("id", requestId)
 
+      console.log("[v0] FRIENDS: Update result:", { updateError })
+
       if (updateError) {
-        console.error("[v0] Error updating friend request:", updateError)
         throw updateError
       }
 
-      // Create friendship entries (bidirectional)
+      console.log("[v0] FRIENDS: Creating friendship entries...")
       const { error: friendshipError } = await supabase.from("friends").insert([
         {
           user_id: request.from_user_id,
           friend_id: request.to_user_id,
-          status: "accepted",
+          status: "active",
         },
         {
           user_id: request.to_user_id,
           friend_id: request.from_user_id,
-          status: "accepted",
+          status: "active",
         },
       ])
 
+      console.log("[v0] FRIENDS: Friendship creation result:", { friendshipError })
+
       if (friendshipError) {
-        console.error("[v0] Error creating friendship:", friendshipError)
-        throw friendshipError
+        if (friendshipError.message?.includes("duplicate key")) {
+          console.log("[v0] FRIENDS: Friendship already exists, continuing...")
+        } else {
+          console.error("[v0] FRIENDS: Failed to create friendship:", friendshipError)
+          throw friendshipError
+        }
       }
 
-      console.log("[v0] Friend request accepted successfully")
+      console.log("[v0] FRIENDS: Friend request accepted successfully")
       await refreshFriends()
     } catch (err: any) {
-      console.error("[v0] Error accepting friend request:", err)
+      console.error("[v0] FRIENDS: Error accepting friend request:", err)
       setError(err.message || "Failed to accept friend request")
       throw err
     }
@@ -340,19 +381,20 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
     try {
       setError(null)
-      console.log("[v0] Declining friend request:", requestId)
+      console.log("[v0] FRIENDS: Declining friend request:", requestId)
 
       const { error } = await supabase.from("friend_requests").update({ status: "declined" }).eq("id", requestId)
 
+      console.log("[v0] FRIENDS: Decline result:", { error })
+
       if (error) {
-        console.error("[v0] Error declining friend request:", error)
         throw error
       }
 
-      console.log("[v0] Friend request declined successfully")
+      console.log("[v0] FRIENDS: Friend request declined successfully")
       await refreshFriends()
     } catch (err: any) {
-      console.error("[v0] Error declining friend request:", err)
+      console.error("[v0] FRIENDS: Error declining friend request:", err)
       setError(err.message || "Failed to decline friend request")
       throw err
     }
@@ -363,51 +405,52 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
     try {
       setError(null)
-      console.log("[v0] Removing friend:", friendId)
+      console.log("[v0] FRIENDS: Removing friend:", friendId)
 
-      // Remove both friendship entries (bidirectional)
       const { error } = await supabase
         .from("friends")
         .delete()
         .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`)
 
       if (error) {
-        console.error("[v0] Error removing friend:", error)
         throw error
       }
 
-      console.log("[v0] Friend removed successfully")
+      console.log("[v0] FRIENDS: Friend removed successfully")
       await refreshFriends()
     } catch (err: any) {
-      console.error("[v0] Error removing friend:", err)
+      console.error("[v0] FRIENDS: Error removing friend:", err)
       setError(err.message || "Failed to remove friend")
       throw err
     }
   }
 
-  const getFriendByName = (name: string) => {
-    return friends.find((friend) => friend.name === name)
-  }
-
   const getFriendshipStatus = (userId: string): "friends" | "pending" | "received" | "none" => {
-    if (!user?.id) {
+    if (!user?.id || userId === user.id) {
       return "none"
     }
 
-    // Check if already friends
-    if (friends.some((friend) => friend.id === userId)) {
+    const isFriend = friends.some((friend) => friend.id === userId)
+    const sentRequest = sentRequests.find((r) => r.to_user_id === userId)
+    const receivedRequest = pendingRequests.find((r) => r.from_user_id === userId)
+
+    console.log(`[v0] FRIENDS: Status check for ${userId}:`, {
+      isFriend,
+      hasSentRequest: !!sentRequest,
+      hasReceivedRequest: !!receivedRequest,
+      sentRequestsTotal: sentRequests.length,
+      receivedRequestsTotal: pendingRequests.length,
+    })
+
+    if (isFriend) {
       return "friends"
     }
 
-    const hasSentRequest = sentRequests.some((request) => request.to_user_id === userId && request.status === "pending")
-    if (hasSentRequest) {
+    if (sentRequest) {
       return "pending"
     }
 
-    const hasReceivedRequest = pendingRequests.some(
-      (request) => request.from_user_id === userId && request.status === "pending",
-    )
-    if (hasReceivedRequest) {
+    if (receivedRequest) {
       return "received"
     }
 
@@ -418,7 +461,6 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
     <FriendsContext.Provider
       value={{
         friends,
-        friendRequests,
         pendingRequests,
         sentRequests,
         loading,
@@ -427,7 +469,6 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         acceptFriendRequest,
         declineFriendRequest,
         removeFriend,
-        getFriendByName,
         getFriendshipStatus,
         refreshFriends,
       }}

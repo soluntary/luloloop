@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -40,7 +39,7 @@ import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
 
 import { GameSearchDialog } from "./game-search-dialog"
-import { AddressAutocomplete } from "@/components/address-autocomplete"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 
 const GAME_TYPE_OPTIONS = [
   "Aktions- und Reaktionsspiel",
@@ -212,6 +211,59 @@ export function CreateMarketplaceOfferForm({
       }
     }
   }, [isOpen, preselectedGame, preselectedOfferType])
+
+  useEffect(() => {
+    if (deliveryPickup && user) {
+      console.log("[v0] User profile data:", {
+        street: user.street,
+        houseNumber: user.houseNumber,
+        house_number: user.house_number,
+        zipCode: user.zipCode,
+        zip_code: user.zip_code,
+        city: user.city,
+        country: user.country,
+      })
+
+      // Check if all required address components are present
+      const hasStreet = user.street && user.street.trim() !== ""
+      const hasHouseNumber =
+        (user.houseNumber && user.houseNumber.trim() !== "") || (user.house_number && user.house_number.trim() !== "")
+      const hasZip = (user.zipCode && user.zipCode.trim() !== "") || (user.zip_code && user.zip_code.trim() !== "")
+      const hasCity = user.city && user.city.trim() !== ""
+      const hasCountry = user.country && user.country.trim() !== ""
+
+      console.log("[v0] Address completeness check:", {
+        hasStreet,
+        hasHouseNumber,
+        hasZip,
+        hasCity,
+        hasCountry,
+      })
+
+      if (hasStreet && hasHouseNumber && hasZip && hasCity && hasCountry) {
+        // All components available - construct complete address
+        const houseNumber = user.houseNumber || user.house_number
+        const zipCode = user.zipCode || user.zip_code
+        const fullAddress = `${user.street} ${houseNumber}, ${zipCode} ${user.city}, ${user.country}`
+        setPickupAddress(fullAddress)
+        console.log("[v0] Complete pickup address:", fullAddress)
+      } else {
+        // Missing components - show helpful message
+        const missing = []
+        if (!hasStreet) missing.push("Strasse")
+        if (!hasHouseNumber) missing.push("Hausnummer")
+        if (!hasZip) missing.push("PLZ")
+        if (!hasCity) missing.push("Ort")
+        if (!hasCountry) missing.push("Land")
+
+        const message = `Bitte Adresse im Profil vervollständigen (fehlt: ${missing.join(", ")})`
+        setPickupAddress(message)
+        console.log("[v0] Incomplete address - missing:", missing)
+      }
+    } else if (!deliveryPickup) {
+      setPickupAddress("")
+    }
+  }, [deliveryPickup, user])
 
   const shippingOptions = [
     { value: "postpac-a-2kg", label: "PostPac Economy (A-Post) bis 2 kg: CHF 10.50" },
@@ -390,6 +442,24 @@ export function CreateMarketplaceOfferForm({
     setIsGameSearchOpen(false)
 
     console.log("[v0] Game data filled into form")
+  }
+
+  const handleGameSelection = (gameId: string) => {
+    setSelectedGame(gameId)
+
+    if (gameId) {
+      // Find the selected game and use its image
+      const selectedGameData = games.find((g) => g.id === gameId)
+      if (selectedGameData?.image) {
+        setImagePreview(selectedGameData.image)
+        // Clear any uploaded file since we're using the game's image
+        setImage(null)
+      }
+    } else {
+      // If no game selected, clear the image preview
+      setImagePreview("")
+      setImage(null)
+    }
   }
 
   const resetForm = () => {
@@ -830,7 +900,7 @@ export function CreateMarketplaceOfferForm({
                         <Label className="text-sm font-semibold text-gray-700 mb-2 block">
                           Aus deiner Bibliothek wählen
                         </Label>
-                        <Select value={selectedGame} onValueChange={setSelectedGame}>
+                        <Select value={selectedGame} onValueChange={handleGameSelection}>
                           <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
                             <SelectValue placeholder="Spiel aus Bibliothek wählen..." />
                           </SelectTrigger>
@@ -854,6 +924,12 @@ export function CreateMarketplaceOfferForm({
                             ))}
                           </SelectContent>
                         </Select>
+                        {selectedGame && (
+                          <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                            <ImageIcon className="w-3 h-3" />
+                            Spielbild wird automatisch verwendet
+                          </p>
+                        )}
                       </div>
 
                       <div className="relative">
@@ -873,12 +949,14 @@ export function CreateMarketplaceOfferForm({
                             onCheckedChange={(checked) => {
                               if (checked) {
                                 setSelectedGame("")
+                                setImagePreview("")
+                                setImage(null)
                               }
                             }}
                             className="border-orange-400 data-[state=checked]:bg-orange-600"
                           />
                           <Label htmlFor="custom-game" className="font-medium text-black-800 cursor-pointer">
-                            Neues Spiel hinzufügen
+                            Neues Spiel erstellen
                           </Label>
                         </div>
 
@@ -1649,12 +1727,24 @@ export function CreateMarketplaceOfferForm({
                           <Checkbox
                             id="pickup"
                             checked={deliveryPickup}
-                            onCheckedChange={(checked) => setDeliveryPickup(checked === true)}
+                            onChange={(checked) => {
+                              console.log(
+                                "[v0] Pickup checkbox clicked - checked:",
+                                checked,
+                                "current state:",
+                                deliveryPickup,
+                              )
+                              setDeliveryPickup(checked === true)
+                            }}
                             className="border-indigo-400 data-[state=checked]:bg-indigo-600"
                           />
                           <Label
                             htmlFor="pickup"
                             className="font-medium text-indigo-800 cursor-pointer flex items-center gap-2"
+                            onClick={() => {
+                              console.log("[v0] Pickup label clicked - current state:", deliveryPickup)
+                              setDeliveryPickup(!deliveryPickup)
+                            }}
                           >
                             <MapPin className="w-4 h-4" />
                             Abholung
@@ -1662,14 +1752,17 @@ export function CreateMarketplaceOfferForm({
                         </div>
 
                         {deliveryPickup && (
-                          <div className="ml-7">
-                            <AddressAutocomplete
-                              label="Abholadresse"
-                              placeholder="z.B. Musterstrasse 123, 12345 Musterstadt"
-                              value={pickupAddress}
-                              onChange={setPickupAddress}
-                              error={errors.pickupAddress}
-                            />
+                          <div className="flex items-center gap-2 text-sm">
+                            <span>bei</span>
+                            <span
+                              className={`px-2 py-1 rounded text-sm ${
+                                pickupAddress.includes("unvollständig") || pickupAddress.includes("vervollständigen")
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-indigo-100 text-indigo-700"
+                              }`}
+                            >
+                              {pickupAddress || "Adresse wird geladen..."}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -1680,7 +1773,13 @@ export function CreateMarketplaceOfferForm({
                           <Checkbox
                             id="shipping"
                             checked={deliveryShipping}
-                            onCheckedChange={(checked) => {
+                            onChange={(checked) => {
+                              console.log(
+                                "[v0] Shipping checkbox clicked - checked:",
+                                checked,
+                                "current state:",
+                                deliveryShipping,
+                              )
                               setDeliveryShipping(checked === true)
                               if (checked !== true) setShippingOption("")
                             }}
@@ -1689,6 +1788,12 @@ export function CreateMarketplaceOfferForm({
                           <Label
                             htmlFor="shipping"
                             className="font-medium text-indigo-800 cursor-pointer flex items-center gap-2"
+                            onClick={() => {
+                              console.log("[v0] Shipping label clicked - current state:", deliveryShipping)
+                              const newState = !deliveryShipping
+                              setDeliveryShipping(newState)
+                              if (!newState) setShippingOption("")
+                            }}
                           >
                             <Package className="w-4 h-4" />
                             Versand (Kosten zu Lasten der{" "}
@@ -1741,14 +1846,27 @@ export function CreateMarketplaceOfferForm({
                       <FileText className="w-4 h-4" />
                       Beschreibung
                     </Label>
-                    <Textarea
+                    <RichTextEditor
                       placeholder="Zusätzliche Informationen zum Spiel oder Angebot..."
                       value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="border-2 border-amber-200 focus:border-amber-500 rounded-xl bg-white resize-none"
+                      onChange={setDescription}
+                      className="border-2 border-amber-200 focus:border-amber-500 rounded-xl bg-white"
                       rows={4}
+                      maxLength={2000}
                     />
                   </div>
+
+                  {selectedGame && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                      <div className="flex items-start gap-2">
+                        <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm text-blue-800">
+                          Das Spielbild wird automatisch für die Anzeige verwendet. Gerne darfst du hier ein anderes
+                          Bild hochladen.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Image Upload */}
                   <div className="bg-white rounded-2xl p-6 border border-purple-100 shadow-sm">
@@ -1773,11 +1891,19 @@ export function CreateMarketplaceOfferForm({
                           >
                             <X className="w-4 h-4" />
                           </Button>
+                          {selectedGame && !image && (
+                            <div className="absolute bottom-3 left-3 bg-green-100 text-green-800 px-2 py-1 rounded-lg text-xs font-medium">
+                              Spielbild
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="text-center">
                           <ImageIcon className="w-16 h-16 text-purple-300 mx-auto mb-4" />
-                          <p className="text-purple-600 font-medium mb-2">Bild hochladen</p>
+                          <p className="text-purple-600 font-medium mb-2">
+                            {selectedGame ? "Zusätzliches Bild hochladen" : "Bild hochladen"}
+                          </p>
+
                           <input
                             type="file"
                             accept="image/jpeg,image/jpg,image/png,image/webp"

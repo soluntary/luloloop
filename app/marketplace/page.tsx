@@ -27,7 +27,7 @@ import {
 import { Navigation } from "@/components/navigation"
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 
 import { useMessages } from "@/contexts/messages-context"
 import { useUser } from "@/contexts/user-context"
@@ -37,12 +37,21 @@ import { SimpleLocationSearch } from "@/components/simple-location-search"
 import { LocationPermissionBanner } from "@/components/location-permission-banner"
 import { DistanceBadge } from "@/components/distance-badge"
 import { useLocationSearch } from "@/contexts/location-search-context"
+import { LeaderboardAd, MediumRectangleAd, WideSkyscraperAd } from "@/components/advertising/ad-placements"
 
 export default function MarketplacePage() {
-  const { user } = useUser()
   const { sendMessage } = useMessages()
   const { marketplaceOffers, loading, error, databaseConnected } = useGames()
   const { user: authUser } = useAuth()
+  const { user } = useUser()
+  console.log(
+    "[v0] Marketplace page render - loading:",
+    loading,
+    "databaseConnected:",
+    databaseConnected,
+    "authUser:",
+    !!authUser,
+  )
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
@@ -247,7 +256,6 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
     }
 
     setContactMessage(baseMessage)
-    setIsContactDialogOpen(true)
   }
 
   const updateMessageWithDeliveryOption = (deliveryOption: "pickup" | "shipping") => {
@@ -319,6 +327,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
       setIsSearchAdDetailsOpen(true)
     } else if (item.itemType === "offer" && item.game_id) {
       try {
+        const supabase = createClient()
         const { data: gameData, error } = await supabase
           .from("games")
           .select("duration, players, category, style, age, language, game_types")
@@ -466,6 +475,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
   }, [isOfferDetailsOpen])
 
   if (loading) {
+    console.log("[v0] Marketplace showing loading state")
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
@@ -489,6 +499,10 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
         </div>
       </div>
     )
+  }
+
+  if (error && !databaseConnected) {
+    console.log("[v0] Database connection error, showing fallback content")
   }
 
   const getUniqueFilterValues = () => {
@@ -515,6 +529,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
 
   const loadSearchAds = async () => {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.from("search_ads").select("*")
       if (error) {
         console.error("Error fetching search ads:", error)
@@ -590,27 +605,26 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
         {/* Search and Filter Bar */}
         <div className="bg-white/50 rounded-lg p-4 border border-orange-200 mb-8">
           <div className="space-y-4">
-            <div className="flex gap-4">
+            {/* Search Bar */}
+            <div className="flex gap-4 items-center">
               <div className="flex-1">
                 <Input
                   placeholder="Spiele, Verlage oder Anbieter durchsuchen..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="border-2 border-orange-200 focus:border-orange-400"
-                  disabled={!databaseConnected}
                 />
               </div>
               <Button
                 variant="outline"
                 className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
-                disabled={!databaseConnected}
               >
                 <Search className="w-5 h-5 mr-2" />
                 Suchen
               </Button>
             </div>
 
-            <SimpleLocationSearch onLocationSearch={handleLocationSearch} disabled={!databaseConnected} />
+            <SimpleLocationSearch onLocationSearch={handleLocationSearch} />
 
             {showLocationResults && (
               <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -858,160 +872,151 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
         </div>
 
         {/* Results Count */}
-        {databaseConnected && (
-          <div className="mb-6 flex items-center justify-between">
-            <p className="text-gray-600 font-body">
-              <span className="font-bold text-orange-600">{filteredItems.length}</span>{" "}
-              {filteredItems.length === 1 ? "Eintrag" : "Anzeigen"} gefunden
-            </p>
-            <div className="flex items-center space-x-2 text-sm text-gray-500 font-body">
-              <div className="w-2 h-2 bg-teal-400 rounded-full"></div>
-              <span>Leihangebote</span>
-              <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
-              <span>Tauschangebote</span>
-              <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
-              <span>Verkaufsangebot</span>
-              <Search className="w-4 h-4 text-purple-500" />
-              <span>Suchanzeigen</span>
+        <div className="mb-6 flex items-center justify-between">
+          <p className="text-gray-600 font-body">
+            <span className="font-bold text-orange-600">{filteredItems.length}</span>{" "}
+            {filteredItems.length === 1 ? "Eintrag" : "Anzeigen"} gefunden
+            {!databaseConnected && <span className="text-red-500 ml-2">(Offline-Modus)</span>}
+          </p>
+          <div className="flex items-center space-x-2 text-sm text-gray-500 font-body">
+            <div className="w-2 h-2 bg-teal-400 rounded-full"></div>
+            <span>Leihangebote</span>
+            <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+            <span>Tauschangebote</span>
+            <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
+            <span>Verkaufsangebot</span>
+            <Search className="w-4 h-4 text-purple-500" />
+            <span>Suchanzeigen</span>
+          </div>
+        </div>
+
+        {/* Content Grid with Sidebar */}
+        <div className="flex gap-8">
+          {/* Main Content */}
+          <div className="flex-1">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-12">
+              {filteredItems.length > 0 ? (
+                filteredItems.map((item) => (
+                  <Card
+                    key={`${item.itemType}-${item.id}`}
+                    className="group bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer overflow-hidden"
+                    onClick={() => handleOfferClick(item)}
+                  >
+                    <CardContent className="p-0">
+                      {item.itemType === "offer" ? (
+                        <>
+                          {/* Minimalist image section */}
+                          <div className="relative">
+                            <img
+                              src={item.image || "/images/ludoloop-placeholder.png"}
+                              alt={item.title}
+                              className="w-full h-32 object-cover"
+                            />
+                            <div className="absolute top-2 right-2">
+                              <div className={`w-3 h-3 ${getTypeColor(item.type)} rounded-full`}></div>
+                            </div>
+                          </div>
+
+                          <div className="p-4">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{item.title}</h3>
+                                <p className="text-gray-500 text-xs mb-3">{item.publisher}</p>
+                              </div>
+                              {item.distance !== undefined && (
+                                <DistanceBadge distance={item.distance} className="ml-2" />
+                              )}
+                            </div>
+
+                            {(item.pickup_available || item.shipping_available) && (
+                              <div className="mb-2">
+                                <div className="flex flex-wrap gap-1">
+                                  {item.pickup_available && (
+                                    <span className="text-xs text-black-600 bg-indigo-50 px-2 py-1 rounded flex items-center gap-1">
+                                      📍 Abholung
+                                    </span>
+                                  )}
+                                  {item.shipping_available && (
+                                    <span className="text-xs text-black-600 bg-indigo-50 px-2 py-1 rounded flex items-center gap-1">
+                                      📦 Versand
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-orange-600 text-sm">{item.price}</span>
+                              <Badge variant="outline" className="text-xs border-gray-200 text-gray-600">
+                                {item.condition}
+                              </Badge>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        /* Minimalist search ad card */
+                        <>
+                          {/* Image section for search ads */}
+                          <div className="relative">
+                            <img
+                              src="/images/ludoloop-placeholder.png"
+                              alt={item.title}
+                              className="w-full h-32 object-cover"
+                            />
+                            <div className="absolute top-2 right-2">
+                              <Search className="w-4 h-4 text-purple-500" />
+                            </div>
+                          </div>
+
+                          {/* Content section */}
+                          <div className="p-4">
+                            <h3 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">{item.title}</h3>
+                            <div className="flex justify">
+                              {item.type === "buy" && (
+                                <Badge className="bg-purple-500 hover:bg-purple-500 text-white text-xs px-2 py-1 border-0 pointer-events-none">
+                                  Suche zum Kaufen
+                                </Badge>
+                              )}
+                              {item.type === "rent" && (
+                                <Badge className="bg-purple-500 hover:bg-purple-500 text-white text-xs px-2 py-1 border-0 pointer-events-none">
+                                  Suche zum Ausleihen
+                                </Badge>
+                              )}
+                              {item.type === "trade" && (
+                                <Badge className="bg-purple-500 hover:bg-purple-500 text-white text-xs px-2 py-1 border-0 pointer-events-none">
+                                  Suche zum Tauschen
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <ShoppingCart className="w-12 h-12 text-gray-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-600 mb-4 font-handwritten">
+                    {!databaseConnected ? "Marktplatz temporär nicht verfügbar" : "Keine Angebote gefunden"}
+                  </h3>
+                  <p className="text-gray-500 font-body">
+                    {!databaseConnected
+                      ? "Bitte versuche es später erneut oder melde dich an für den vollen Zugriff."
+                      : "Versuche andere Suchbegriffe oder erstelle selbst ein Angebot!"}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
-        )}
 
-        {/* Content Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-12">
-          {databaseConnected ? (
-            filteredItems.length > 0 ? (
-              filteredItems.map((item) => (
-                <Card
-                  key={`${item.itemType}-${item.id}`}
-                  className="group bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer overflow-hidden"
-                  onClick={() => handleOfferClick(item)}
-                >
-                  <CardContent className="p-0">
-                    {item.itemType === "offer" ? (
-                      <>
-                        {/* Minimalist image section */}
-                        <div className="relative">
-                          <img
-                            src={item.image || "/images/ludoloop-placeholder.png"}
-                            alt={item.title}
-                            className="w-full h-32 object-cover"
-                          />
-                          <div className="absolute top-2 right-2">
-                            <div className={`w-3 h-3 ${getTypeColor(item.type)} rounded-full`}></div>
-                          </div>
-                        </div>
-
-                        <div className="p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{item.title}</h3>
-                              <p className="text-gray-500 text-xs mb-3">{item.publisher}</p>
-                            </div>
-                            {item.distance !== undefined && <DistanceBadge distance={item.distance} className="ml-2" />}
-                          </div>
-
-                          {(item.pickup_available || item.shipping_available) && (
-                            <div className="mb-2">
-                              <div className="flex flex-wrap gap-1">
-                                {item.pickup_available && (
-                                  <span className="text-xs text-black-600 bg-indigo-50 px-2 py-1 rounded flex items-center gap-1">
-                                    📍 Abholung
-                                  </span>
-                                )}
-                                {item.shipping_available && (
-                                  <span className="text-xs text-black-600 bg-indigo-50 px-2 py-1 rounded flex items-center gap-1">
-                                    📦 Versand
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-orange-600 text-sm">{item.price}</span>
-                            <Badge variant="outline" className="text-xs border-gray-200 text-gray-600">
-                              {item.condition}
-                            </Badge>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      /* Minimalist search ad card */
-                      <>
-                        {/* Image section for search ads */}
-                        <div className="relative">
-                          <img
-                            src="/images/ludoloop-placeholder.png"
-                            alt={item.title}
-                            className="w-full h-32 object-cover"
-                          />
-                          <div className="absolute top-2 right-2">
-                            <Search className="w-4 h-4 text-purple-500" />
-                          </div>
-                        </div>
-
-                        {/* Content section */}
-                        <div className="p-4">
-                          <h3 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">{item.title}</h3>
-                          <div className="flex justify">
-                            {item.type === "buy" && (
-                              <Badge className="bg-purple-500 hover:bg-purple-500 text-white text-xs px-2 py-1 border-0 pointer-events-none">
-                                Suche zum Kaufen
-                              </Badge>
-                            )}
-                            {item.type === "rent" && (
-                              <Badge className="bg-purple-500 hover:bg-purple-500 text-white text-xs px-2 py-1 border-0 pointer-events-none">
-                                Suche zum Ausleihen
-                              </Badge>
-                            )}
-                            {item.type === "trade" && (
-                              <Badge className="bg-purple-500 hover:bg-purple-500 text-white text-xs px-2 py-1 border-0 pointer-events-none">
-                                Suche zum Tauschen
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-16">
-                <div className="bg-white rounded-2xl p-8 shadow-lg border border-orange-100 max-w-md mx-auto">
-                  <div className="w-20 h-20 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <AlertCircle className="w-10 h-10 text-orange-500" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-700 mb-4">Keine passenden Spiele gefunden</h3>
-                  <p className="text-gray-500 mb-6 leading-relaxed">
-                    Erstell eine Suchanzeige und teile der Community mit, welches Spiel du suchst!
-                  </p>
-                  {authUser && (
-                    <Button
-                      onClick={() => setIsCreateSearchAdOpen(true)}
-                      className="bg-amber-500 hover:bg-amber-600 text-white border-0 rounded-xl px-8 py-3 font-medium shadow-lg hover:shadow-xl transition-all duration-300"
-                    >
-                      <Search className="w-5 h-5 mr-2" />
-                      Suchanzeige erstellen
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )
-          ) : (
-            <div className="col-span-full text-center py-16">
-              <div className="bg-white rounded-2xl p-8 shadow-lg border border-orange-100 max-w-md mx-auto">
-                <div className="w-20 h-20 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <Database className="w-10 h-10 text-orange-500" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-700 mb-4">Datenbank nicht verfügbar</h3>
-                <p className="text-gray-500 leading-relaxed">
-                  Führe die SQL-Skripte aus, um Marktplatz-Angebote zu sehen.
-                </p>
-              </div>
+          <div className="hidden lg:block w-48 flex-shrink-0">
+            <div className="sticky top-8">
+              <WideSkyscraperAd />
             </div>
-          )}
+          </div>
         </div>
 
         {/* Call to Action Section */}
@@ -1226,7 +1231,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-slate-500 mb-2 font-normal text-xs">Sprache</p>
+                    <p className="text-xs text-slate-500 mb-2">Sprache</p>
                     <p className="text-sm font-semibold text-slate-900">
                       {selectedOfferDetails.language || "Nicht angegeben"}
                     </p>
@@ -1336,7 +1341,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                           <span className="text-slate-900 font-medium">📍 Abholung</span>
                         </div>
                         {selectedOfferDetails.pickup_address && (
-                          <p className="text-sm text-slate-600">Adresse: {selectedOfferDetails.pickup_address}</p>
+                          <p className="text-sm text-slate-600">Bei: {selectedOfferDetails.pickup_address}</p>
                         )}
                       </div>
                     )}

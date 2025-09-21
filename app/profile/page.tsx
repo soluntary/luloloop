@@ -3,51 +3,80 @@
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
+import { useAvatar } from "@/contexts/avatar-context"
 import { useGames } from "@/contexts/games-context"
+import { useProfileSync } from "@/contexts/profile-sync-context"
+import { updateUserProfile } from "@/app/actions/profile-sync"
+
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Camera, Save, Download, Trash2, Shuffle, Edit, Store, SearchIcon, AlertTriangle } from "lucide-react"
+import { Globe, Twitter, Instagram, Upload, Shuffle, RefreshCw, Check, X } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { EditMarketplaceOfferForm } from "@/components/edit-marketplace-offer-form"
-import { EditSearchAdForm } from "@/components/edit-search-ad-form"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useToast } from "@/components/ui/use-toast" // Assuming useToast is available
+
+import {
+  getSecurityNotificationPreferences,
+  updateSecurityNotificationPreferences,
+  logSecurityEvent,
+} from "@/app/actions/security-notifications"
+import { SecurityEventsDashboard } from "@/components/security-events-dashboard"
+import {
+  getMessageNotificationPreferences,
+  updateMessageNotificationPreferences,
+  type MessageNotificationPreferences,
+} from "@/app/actions/message-notifications"
+import {
+  updateSocialNotificationPreferences,
+  updateMarketingNotificationPreferences,
+  updateDeliveryMethodPreferences,
+  updatePrivacySettings,
+  updateSecuritySettings,
+  getAllNotificationPreferences,
+} from "@/app/actions/comprehensive-notifications"
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth()
+  const { updateAvatar } = useAvatar()
   const { marketplaceOffers, deleteMarketplaceOffer, refreshData } = useGames()
+  const { syncProfile, invalidateUserData } = useProfileSync()
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast() // Initialize toast
 
   const [userOffers, setUserOffers] = useState<any[]>([])
   const [userSearchAds, setUserSearchAds] = useState<any[]>([])
+  const [userEvents, setUserEvents] = useState<any[]>([])
   const [editingOffer, setEditingOffer] = useState<any>(null)
   const [editingSearchAd, setEditingSearchAd] = useState<any>(null)
   const [isEditOfferOpen, setIsEditOfferOpen] = useState(false)
   const [isEditSearchAdOpen, setIsEditSearchAdOpen] = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: "offer" | "searchAd"; id: string } | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: "offer" | "searchAd" | "event"; id: string } | null>(null)
+  const [loadingEvents, setLoadingEvents] = useState(true)
 
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [profileData, setProfileData] = useState({
     name: user?.name || "",
     username: user?.username || "",
-    anzeigename: user?.anzeigename || "",
     email: user?.email || "",
     birthDate: user?.birthDate || "",
+    showBirthDate: user?.showBirthDate || false,
     phone: user?.phone || "",
     address: user?.address || "",
-    location: user?.location || "",
+    street: user?.street || "",
+    houseNumber: user?.house_number || user?.houseNumber || "",
+    zipCode: user?.zip_code || user?.zipCode || "",
+    city: user?.city || "",
+    country: user?.country || "Schweiz",
     bio: user?.bio || "",
     favoriteGames: user?.favoriteGames || "",
-    preferredGameTypes: user?.preferredGameTypes || "",
     website: user?.website || "",
     twitter: user?.twitter || "",
     instagram: user?.instagram || "",
@@ -60,6 +89,13 @@ export default function ProfilePage() {
       push: user?.settings?.notifications?.push ?? true,
       marketing: user?.settings?.notifications?.marketing ?? false,
       security: user?.settings?.notifications?.security ?? true,
+      userMessages: user?.settings?.notifications?.userMessages ?? true,
+      friendRequests: user?.settings?.notifications?.friendRequests ?? true,
+      eventReminders: user?.settings?.notifications?.eventReminders ?? true,
+      groupInvites: user?.settings?.notifications?.groupInvites ?? true,
+      forumReplies: user?.settings?.notifications?.forumReplies ?? true,
+      gameUpdates: user?.settings?.notifications?.gameUpdates ?? false,
+      weeklyDigest: user?.settings?.notifications?.weeklyDigest ?? true,
     },
     privacy: {
       profileVisible: user?.settings?.privacy?.profileVisible ?? true,
@@ -70,11 +106,64 @@ export default function ProfilePage() {
       locationVisible: user?.settings?.privacy?.locationVisible ?? true,
       birthDateVisible: user?.settings?.privacy?.birthDateVisible ?? false,
       libraryVisibility: user?.settings?.privacy?.libraryVisibility ?? "private",
+      showBio: user?.settings?.privacy?.showBio ?? true,
+      showSocialMedia: user?.settings?.privacy?.showSocialMedia ?? true,
+      showFavoriteGames: user?.settings?.privacy?.showFavoriteGames ?? true,
+      showJoinDate: user?.settings?.privacy?.showJoinDate ?? true,
+      allowFriendRequests: user?.settings?.privacy?.allowFriendRequests ?? true,
+      showOnlineStatus: user?.settings?.privacy?.showOnlineStatus ?? true,
     },
     security: {
       twoFactor: user?.settings?.security?.twoFactor ?? false,
       loginNotifications: user?.settings?.security?.loginNotifications ?? true,
       sessionTimeout: user?.settings?.security?.sessionTimeout ?? 30,
+    },
+  })
+
+  const [securityNotificationPrefs, setSecurityNotificationPrefs] = useState({
+    login_attempts: true,
+    password_changes: true,
+    email_changes: true,
+    suspicious_activity: true,
+    new_device_login: true,
+    account_recovery: true,
+    security_settings_changes: true,
+  })
+
+  const [messageNotificationPrefs, setMessageNotificationPrefs] = useState<MessageNotificationPreferences>({
+    user_id: "",
+    direct_messages: true,
+    game_inquiries: true,
+    event_inquiries: true,
+    group_inquiries: true,
+    marketplace_messages: true,
+    instant_notifications: true,
+    daily_digest: false,
+    weekly_digest: false,
+    quiet_hours_enabled: false,
+    quiet_hours_start: "22:00",
+    quiet_hours_end: "08:00",
+    weekend_notifications: true,
+  })
+
+  const [comprehensivePrefs, setComprehensivePrefs] = useState({
+    social: {
+      friend_requests: { platform: true, email: true },
+      friend_accepts: { platform: true, email: true },
+      friend_declines: { platform: true, email: true },
+      forum_replies: { platform: true, email: true },
+      forum_comment_replies: { platform: true, email: true },
+      shelf_access_requests: { platform: true, email: true },
+      message_notifications: { platform: true, email: true },
+      event_invitations: { platform: true, email: true },
+    },
+    privacy: {
+      profile_visibility: "public",
+      allow_friend_requests: true,
+      allow_messages_from: "everyone",
+    },
+    security: {
+      security_events_notifications: true,
     },
   })
 
@@ -85,161 +174,436 @@ export default function ProfilePage() {
   const [isEmailChanging, setIsEmailChanging] = useState(false)
   const [emailChangeMessage, setEmailChangeMessage] = useState("")
 
-  const handleEmailChange = async () => {
-    if (!emailChangeData.newEmail || !emailChangeData.currentPassword) {
-      setEmailChangeMessage("Bitte geben Sie sowohl die neue E-Mail-Adresse als auch Ihr aktuelles Passwort ein.")
-      return
-    }
+  const supabase = createClient()
 
-    setIsEmailChanging(true)
-    setEmailChangeMessage("")
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [selectedAvatarStyle, setSelectedAvatarStyle] = useState<string>("adventurer")
+
+  const generateAvatarPreview = async (style?: string) => {
+    if (!user?.id) return
+
+    const avatarStyles = [
+      "croodles", // Playful, hand-drawn style
+      "micah", // Modern male avatars
+      "notionists", // Professional, clean avatars
+      "avataaars", // Classic cartoon-style avatars
+    ]
+
+    const styleToUse = style || selectedAvatarStyle
+    const seed = user.id + Date.now() + Math.random() // More randomness
+
+    const avatarUrl = `https://api.dicebear.com/7.x/${styleToUse}/svg?seed=${seed}&backgroundColor=transparent&radius=50&size=200&flip=false`
+
+    setAvatarPreview(avatarUrl)
+    return avatarUrl
+  }
+
+  const generateAvatar = async () => {
+    if (!avatarPreview || !user?.id) return
 
     try {
-      // First verify the current password by attempting to sign in
-      const { error: passwordError } = await supabase.auth.signInWithPassword({
-        email: user?.email || "",
-        password: emailChangeData.currentPassword,
-      })
-
-      if (passwordError) {
-        setEmailChangeMessage("Das eingegebene Passwort ist nicht korrekt.")
-        return
-      }
-
-      // Update email address - this will send a verification email
-      const { error: updateError } = await supabase.auth.updateUser({
-        email: emailChangeData.newEmail,
-      })
-
-      if (updateError) {
-        setEmailChangeMessage(`Fehler beim Ändern der E-Mail-Adresse: ${updateError.message}`)
-        return
-      }
-
-      setEmailChangeMessage(
-        "Eine Bestätigungs-E-Mail wurde an Ihre neue E-Mail-Adresse gesendet. Bitte bestätigen Sie die Änderung über den Link in der E-Mail.",
-      )
-      setEmailChangeData({ newEmail: "", currentPassword: "" })
+      setIsLoading(true)
+      setProfileData((prev) => ({ ...prev, avatar: avatarPreview }))
+      updateAvatar(user.id, avatarPreview)
+      setAvatarPreview(null)
+      setMessage("Avatar erfolgreich erstellt!")
     } catch (error) {
-      console.error("Email change error:", error)
-      setEmailChangeMessage("Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.")
+      console.error("Error generating avatar:", error)
+      setMessage("Fehler beim Erstellen des Avatars.")
     } finally {
-      setIsEmailChanging(false)
+      setIsLoading(false)
+    }
+  }
+
+  const fetchUserEvents = async () => {
+    if (!user?.id) return
+
+    try {
+      setLoadingEvents(true)
+      const { data: events, error } = await supabase
+        .from("ludo_events")
+        .select(`
+          *,
+          creator:users!creator_id (
+            username,
+            name,
+            avatar
+          )
+        `)
+        .eq("creator_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Error fetching user events:", error)
+        return
+      }
+
+      setUserEvents(events || [])
+    } catch (error) {
+      console.error("Error fetching user events:", error)
+    } finally {
+      setLoadingEvents(false)
     }
   }
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       loadUserListings()
+      fetchUserEvents()
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    const loadSecurityPreferences = async () => {
+      const result = await getSecurityNotificationPreferences()
+      if (result.success && result.preferences) {
+        setSecurityNotificationPrefs(result.preferences)
+      }
+    }
+
+    const loadMessageNotificationPrefs = async () => {
+      if (user?.id) {
+        const prefs = await getMessageNotificationPreferences(user.id)
+        if (prefs) {
+          setMessageNotificationPrefs(prefs)
+        }
+      }
+    }
+
+    const loadComprehensivePrefs = async () => {
+      try {
+        const prefs = await getAllNotificationPreferences()
+        setComprehensivePrefs(prefs)
+      } catch (error) {
+        console.error("[v0] Error loading comprehensive preferences:", error)
+      }
+    }
+
+    if (user) {
+      loadSecurityPreferences()
+      loadMessageNotificationPrefs() // Call the new function
+      loadComprehensivePrefs() // Load comprehensive preferences
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (user) {
+      setProfileData((prev) => ({
+        ...prev,
+        name: user.name || "",
+        username: user.username || "",
+        email: user.email || "",
+        birthDate: user.birthDate || "",
+        showBirthDate: user.showBirthDate || false,
+        phone: user.phone || "",
+        address: user.address || "",
+        street: user.street || "",
+        houseNumber: user.house_number || user.houseNumber || "",
+        zipCode: user.zip_code || user.zipCode || "",
+        city: user.city || "",
+        country: user.country || "Schweiz",
+        bio: user.bio || "",
+        favoriteGames: user.favoriteGames || "",
+        website: user.website || "",
+        twitter: user.twitter || "",
+        instagram: user.instagram || "",
+        avatar: user.avatar || "",
+      }))
     }
   }, [user])
 
   const loadUserListings = async () => {
-    if (!user) return
+    if (!user?.id) return
 
     try {
-      const userMarketplaceOffers = marketplaceOffers.filter((offer) => offer.user_id === user.id)
+      // Load marketplace offers
+      const userMarketplaceOffers = marketplaceOffers.filter((offer) => offer.creator_id === user.id)
       setUserOffers(userMarketplaceOffers)
 
-      const { data: searchAds, error } = await supabase
+      // Load search ads
+      const { data: searchAds, error: searchAdsError } = await supabase
         .from("search_ads")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
 
-      if (!error && searchAds) {
-        setUserSearchAds(searchAds)
+      if (searchAdsError) {
+        console.error("Error loading search ads:", searchAdsError)
+      } else {
+        setUserSearchAds(searchAds || [])
       }
     } catch (error) {
       console.error("Error loading user listings:", error)
     }
   }
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const result = e.target?.result as string
-        setProfileData((prev) => ({ ...prev, avatar: result }))
-      }
-      reader.readAsDataURL(file)
+  const handleInputChange = (field: string, value: string | boolean) => {
+    setProfileData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleSettingsChange = (category: string, field: string, value: boolean | string | number) => {
+    setSettings((prev) => ({
+      ...prev,
+      [category]: {
+        ...prev[category as keyof typeof prev],
+        [field]: value,
+      },
+    }))
+  }
+
+  const handleSecurityNotificationChange = async (key: string, value: boolean) => {
+    const updatedPrefs = { ...securityNotificationPrefs, [key]: value }
+    setSecurityNotificationPrefs(updatedPrefs)
+
+    const result = await updateSecurityNotificationPreferences({ [key]: value })
+    if (result.success) {
+      // Log the security settings change
+      await logSecurityEvent({
+        eventType: "security_settings_change",
+        additionalData: { setting: key, value },
+      })
+      toast({
+        title: "Einstellungen gespeichert",
+        description: "Deine Sicherheitsbenachrichtigungen wurden aktualisiert.",
+      })
+    } else {
+      toast({
+        title: "Fehler",
+        description: "Die Einstellungen konnten nicht gespeichert werden.",
+        variant: "destructive",
+      })
+      // Revert the change
+      setSecurityNotificationPrefs(securityNotificationPrefs)
     }
   }
 
-  const generateRandomAvatar = () => {
-    const randomSeed = Math.random().toString(36).substring(7)
-    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${randomSeed}`
-    setProfileData((prev) => ({ ...prev, avatar: avatarUrl }))
-  }
-
-  const handleSaveProfile = async () => {
-    console.log("[v0] Profile save button clicked")
-    setIsLoading(true)
-    setMessage("")
+  const handleMessageNotificationChange = async (key: string, value: boolean | string) => {
+    const updatedPrefs = { ...messageNotificationPrefs, [key]: value }
+    setMessageNotificationPrefs(updatedPrefs)
 
     try {
-      console.log("[v0] Calling updateProfile with data:", {
-        name: profileData.name,
-        username: profileData.username,
-        email: profileData.email,
+      await updateMessageNotificationPreferences(updatedPrefs)
+      toast({
+        title: "Einstellungen gespeichert",
+        description: "Deine Nachrichten-Benachrichtigungen wurden aktualisiert.",
       })
-
-      await updateProfile({
-        name: profileData.name,
-        username: profileData.username,
-        anzeigename: profileData.anzeigename,
-        email: profileData.email,
-        birthDate: profileData.birthDate,
-        phone: profileData.phone,
-        address: profileData.address,
-        location: profileData.location,
-        bio: profileData.bio,
-        favoriteGames: profileData.favoriteGames,
-        preferredGameTypes: profileData.preferredGameTypes,
-        avatar: profileData.avatar,
-        website: profileData.website,
-        twitter: profileData.twitter,
-        instagram: profileData.instagram,
-        settings,
-      })
-
-      console.log("[v0] Profile update successful")
-      setMessage("Profil erfolgreich gespeichert! Änderungen werden in der gesamten App synchronisiert.")
     } catch (error) {
-      console.error("[v0] Profile save error:", error)
-      setMessage("Fehler beim Speichern des Profils. Bitte versuche es erneut.")
+      toast({
+        title: "Fehler",
+        description: "Die Einstellungen konnten nicht gespeichert werden.",
+        variant: "destructive",
+      })
+      // Revert the change
+      setMessageNotificationPrefs(messageNotificationPrefs)
+    }
+  }
+
+  const handleSocialNotificationChange = async (key: string, type: "platform" | "email", value: boolean) => {
+    try {
+      const updatedSetting = {
+        ...comprehensivePrefs.social[key as keyof typeof comprehensivePrefs.social],
+        [type]: value,
+      }
+
+      setComprehensivePrefs((prev) => ({
+        ...prev,
+        social: { ...prev.social, [key]: updatedSetting },
+      }))
+
+      await updateSocialNotificationPreferences({ [key]: updatedSetting })
+      setMessage("Benachrichtigungseinstellungen erfolgreich gespeichert!")
+    } catch (error) {
+      console.error("[v0] Error updating social notifications:", error)
+      setMessage("Fehler beim Speichern der Benachrichtigungen.")
+    }
+  }
+
+  const handleMarketingNotificationChange = async (key: string, value: boolean) => {
+    try {
+      setComprehensivePrefs((prev) => ({
+        ...prev,
+        marketing: { ...prev.marketing, [key]: value },
+      }))
+
+      await updateMarketingNotificationPreferences({ [key]: value })
+      setMessage("Marketing-Benachrichtigungseinstellungen erfolgreich gespeichert!")
+    } catch (error) {
+      console.error("[v0] Error updating marketing notifications:", error)
+      setMessage("Fehler beim Speichern der Marketing-Benachrichtigungen.")
+    }
+  }
+
+  const handleDeliveryMethodChange = async (key: string, value: any) => {
+    try {
+      setComprehensivePrefs((prev) => ({
+        ...prev,
+        delivery: { ...prev.delivery, [key]: value },
+      }))
+
+      await updateDeliveryMethodPreferences({ [key]: value })
+      setMessage("Übertragungsart-Einstellungen erfolgreich gespeichert!")
+    } catch (error) {
+      console.error("[v0] Error updating delivery method:", error)
+      setMessage("Fehler beim Speichern der Übertragungsart-Einstellungen.")
+    }
+  }
+
+  const handlePrivacySettingChange = async (key: string, value: any) => {
+    try {
+      setComprehensivePrefs((prev) => ({
+        ...prev,
+        privacy: { ...prev.privacy, [key]: value },
+      }))
+
+      await updatePrivacySettings({ [key]: value })
+      setMessage("Privatsphäre-Einstellungen erfolgreich gespeichert!")
+    } catch (error) {
+      console.error("[v0] Error updating privacy settings:", error)
+      setMessage("Fehler beim Speichern der Privatsphäre-Einstellungen.")
+    }
+  }
+
+  const handleSecuritySettingChange = async (key: string, value: any) => {
+    try {
+      setComprehensivePrefs((prev) => ({
+        ...prev,
+        security: { ...prev.security, [key]: value },
+      }))
+
+      await updateSecuritySettings({ [key]: value })
+      setMessage("Sicherheitseinstellungen erfolgreich gespeichert!")
+    } catch (error) {
+      console.error("[v0] Error updating security settings:", error)
+      setMessage("Fehler beim Speichern der Sicherheitseinstellungen.")
+    }
+  }
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !user?.id) return
+
+    console.log("[v0] Starting photo upload:", { fileName: file.name, fileSize: file.size, userId: user.id })
+
+    try {
+      setIsLoading(true)
+
+      // Create FormData for the upload
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("userId", user.id)
+
+      console.log("[v0] FormData created, sending to API...")
+
+      // Upload to Vercel Blob via API route
+      const response = await fetch("/api/upload-avatar", {
+        method: "POST",
+        body: formData,
+      })
+
+      console.log("[v0] API response status:", response.status)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.log("[v0] Upload error:", errorData)
+        throw new Error(errorData.error || "Upload failed")
+      }
+
+      const { url } = await response.json()
+      console.log("[v0] Upload successful, URL:", url)
+
+      setProfileData((prev) => ({ ...prev, avatar: url }))
+      updateAvatar(user.id, url)
+      setMessage("Avatar erfolgreich hochgeladen!")
+    } catch (error) {
+      console.error("[v0] Error uploading avatar:", error)
+      setMessage("Fehler beim Hochladen des Avatars.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleExportData = () => {
-    const data = {
-      profile: profileData,
-      settings,
-      exportDate: new Date().toISOString(),
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user?.id) return
+
+    try {
+      setIsLoading(true)
+      setMessage("")
+
+      const updatedData = {
+        name: profileData.name,
+        username: profileData.username,
+        // anzeigename: profileData.anzeigename, // This field seems to be missing in profileData state
+        birth_date: profileData.birthDate,
+        phone: profileData.phone,
+        street: profileData.street,
+        house_number: profileData.houseNumber,
+        zip_code: profileData.zipCode,
+        city: profileData.city,
+        country: profileData.country,
+        // location: profileData.location, // This field seems to be missing in profileData state
+        bio: profileData.bio,
+        favorite_games: profileData.favoriteGames,
+        // preferred_game_types: profileData.preferredGameTypes, // This field seems to be missing in profileData state
+        website: profileData.website,
+        twitter: profileData.twitter,
+        instagram: profileData.instagram,
+        avatar: profileData.avatar,
+        settings: settings,
+      }
+
+      const result = await updateUserProfile(user.id, updatedData)
+
+      if (result.success) {
+        // Update local auth context
+        await updateProfile(updatedData)
+
+        // Update avatar cache if avatar changed
+        if (profileData.avatar) {
+          updateAvatar(user.id, profileData.avatar)
+        }
+
+        // Trigger platform-wide synchronization
+        syncProfile(user.id, result.data)
+
+        setMessage("Profil erfolgreich aktualisiert!")
+        console.log("[v0] Profile updated and synchronized across platform")
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error)
+      setMessage("Fehler beim Aktualisieren des Profils.")
+    } finally {
+      setIsLoading(false)
     }
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `ludoloop-profile-${new Date().toISOString().split("T")[0]}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
   }
 
-  const handleEditOffer = (offer: any) => {
-    setEditingOffer(offer)
-    setIsEditOfferOpen(true)
-  }
+  const handleEmailChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user?.email || !emailChangeData.newEmail || !emailChangeData.currentPassword) return
 
-  const handleEditSearchAd = (searchAd: any) => {
-    setEditingSearchAd(searchAd)
-    setIsEditSearchAdOpen(true)
+    try {
+      setIsEmailChanging(true)
+      setEmailChangeMessage("")
+
+      const { error } = await supabase.auth.updateUser(
+        { email: emailChangeData.newEmail },
+        {
+          emailRedirectTo: `${window.location.origin}/profile`,
+        },
+      )
+
+      if (error) throw error
+
+      setEmailChangeMessage("Bestätigungs-E-Mail gesendet! Überprüfe dein Postfach.")
+      setEmailChangeData({ newEmail: "", currentPassword: "" })
+    } catch (error: any) {
+      console.error("Error changing email:", error)
+      setEmailChangeMessage(error.message || "Fehler beim Ändern der E-Mail-Adresse.")
+    } finally {
+      setIsEmailChanging(false)
+    }
   }
 
   const handleDeleteOffer = async (offerId: string) => {
@@ -271,31 +635,74 @@ export default function ProfilePage() {
     }
   }
 
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      const { error } = await supabase.from("ludo_events").delete().eq("id", eventId).eq("creator_id", user?.id)
+
+      if (error) {
+        console.error("Error deleting event:", error)
+        return
+      }
+
+      fetchUserEvents()
+      setDeleteConfirm(null)
+    } catch (error) {
+      console.error("Error deleting event:", error)
+    }
+  }
+
   const handleEditSuccess = async () => {
     await refreshData()
     await loadUserListings()
   }
 
+  const formatEventDate = (date: string) => {
+    return new Date(date).toLocaleDateString("de-DE", {
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+  }
+
+  const getFrequencyText = (frequency: string, intervalType?: string) => {
+    if (frequency === "weekly") return "Wöchentlich"
+    if (frequency === "biweekly") return "Alle 2 Wochen"
+    if (frequency === "monthly") return "Monatlich"
+    if (frequency === "custom" && intervalType) return intervalType
+    return frequency
+  }
+
   if (!user) {
-    router.push("/login")
-    return null
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-purple-50">
+        <Navigation currentPage="profile" />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-md mx-auto text-center">
+            <h1 className="text-2xl font-bold mb-4">Anmeldung erforderlich</h1>
+            <p className="text-gray-600 mb-6">Du musst angemeldet sein, um dein Profil zu bearbeiten.</p>
+            <Button onClick={() => router.push("/auth")}>Zur Anmeldung</Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
       <Navigation currentPage="profile" />
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 md:mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold font-handwritten text-gray-800 mb-2">Profil bearbeiten</h1>
+            <h1 className="text-2xl md:text-3xl font-bold font-handwritten text-gray-800 mb-2">Profileinstellungen</h1>
             <p className="text-gray-600 font-body text-sm md:text-base">
               Verwalte deine Kontoinformationen und Einstellungen
             </p>
           </div>
 
           <Tabs defaultValue="profile" className="space-y-4 md:space-y-6">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 h-auto">
               <TabsTrigger value="profile" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
                 Profil
               </TabsTrigger>
@@ -303,12 +710,16 @@ export default function ProfilePage() {
                 <span className="hidden sm:inline">Meine Anzeigen</span>
                 <span className="sm:hidden">Anzeigen</span>
               </TabsTrigger>
+              <TabsTrigger value="events" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
+                <span className="hidden sm:inline">Meine Events</span>
+                <span className="sm:hidden">Events</span>
+              </TabsTrigger>
               <TabsTrigger value="notifications" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
                 <span className="hidden sm:inline">Benachrichtigungen</span>
                 <span className="sm:hidden">Benachr.</span>
               </TabsTrigger>
               <TabsTrigger value="privacy" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
-                Datenschutz
+                Privatsphäre
               </TabsTrigger>
               <TabsTrigger value="security" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
                 Sicherheit
@@ -318,91 +729,138 @@ export default function ProfilePage() {
             <TabsContent value="profile">
               <Card>
                 <CardHeader className="p-4 md:p-6">
-                  <CardTitle className="font-handwritten text-lg md:text-xl">Profil-Details</CardTitle>
+                  <CardTitle className="font-handwritten text-lg md:text-xl">Profilinformationen</CardTitle>
                   <CardDescription className="text-sm md:text-base">
                     Aktualisiere deine persönlichen Informationen
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 md:space-y-8 p-4 md:p-6">
                   {/* Avatar Section */}
-                  <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+                  <div className="flex flex-col items-center space-y-4">
                     <div className="relative">
-                      <img
-                        src={
-                          profileData.avatar ||
-                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.email) || "/placeholder.svg"}`
-                        }
-                        alt="Profilbild"
-                        className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-teal-400 shadow-lg"
-                      />
-                      <Button
-                        size="sm"
-                        className="absolute -bottom-2 -right-2 rounded-full w-7 h-7 md:w-8 md:h-8 p-0"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <Camera className="w-3 h-3 md:w-4 md:h-4" />
-                      </Button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
+                      <Avatar className="w-24 h-24">
+                        <AvatarImage src={avatarPreview || profileData.avatar || ""} alt="Profilbild" />
+                        <AvatarFallback className="text-2xl">
+                          {profileData.username?.charAt(0)?.toUpperCase() || "U"}
+                        </AvatarFallback>
+                      </Avatar>
                     </div>
-                    <div className="flex-1 text-center sm:text-left">
-                      <h3 className="font-handwritten text-base md:text-lg font-semibold">Profilbild</h3>
-                      <p className="text-xs md:text-sm text-gray-600 mb-3">
-                        Klicke auf das Kamera-Symbol, um ein neues Bild hochzuladen
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={generateRandomAvatar}
-                        className="font-handwritten bg-transparent text-xs md:text-sm"
-                      >
-                        <Shuffle className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-                        <span className="hidden sm:inline">Zufälligen Avatar generieren</span>
-                        <span className="sm:hidden">Zufällig</span>
-                      </Button>
+
+                    <div className="flex flex-col items-center space-y-3">
+                      <div className="flex space-x-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById("avatar-upload")?.click()}
+                          disabled={isLoading}
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Foto hochladen
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => generateAvatarPreview()}
+                          disabled={isLoading}
+                        >
+                          <Shuffle className="w-4 h-4 mr-2" />
+                          Avatar erstellen
+                        </Button>
+                      </div>
+
+                      {/* Avatar Style Selection */}
+                      {avatarPreview && (
+                        <div className="flex flex-col items-center space-y-2 p-3 border rounded-lg bg-muted/50">
+                          <p className="text-sm text-muted-foreground">Avatar-Stil wählen:</p>
+                          <div className="flex flex-wrap gap-1 justify-center">
+                            {[
+                              { key: "croodles", label: "Verspielt" },
+                              { key: "micah", label: "Modern" },
+                              { key: "notionists", label: "Professionell" },
+                              { key: "avataaars", label: "Klassisch" },
+                            ].map((style) => (
+                              <Button
+                                key={style.key}
+                                type="button"
+                                variant={selectedAvatarStyle === style.key ? "default" : "outline"}
+                                size="sm"
+                                className="text-xs px-2 py-1"
+                                onClick={() => {
+                                  setSelectedAvatarStyle(style.key)
+                                  generateAvatarPreview(style.key)
+                                }}
+                              >
+                                {style.label}
+                              </Button>
+                            ))}
+                          </div>
+
+                          <div className="flex space-x-2">
+                            <Button type="button" variant="outline" size="sm" onClick={() => generateAvatarPreview()}>
+                              <RefreshCw className="w-3 h-3 mr-1" />
+                              Neu generieren
+                            </Button>
+
+                            <Button type="button" size="sm" onClick={generateAvatar} disabled={isLoading}>
+                              <Check className="w-3 h-3 mr-1" />
+                              Verwenden
+                            </Button>
+
+                            <Button type="button" variant="ghost" size="sm" onClick={() => setAvatarPreview(null)}>
+                              <X className="w-3 h-3 mr-1" />
+                              Abbrechen
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                      id="avatar-upload"
+                    />
                   </div>
 
-                  {/* Benutzerangaben */}
-                  <div className="border-t pt-4 md:pt-6">
-                    <h3 className="font-handwritten text-base md:text-lg font-semibold mb-4 text-teal-600">
-                      Benutzerangaben
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="name" className="text-sm md:text-base">
-                          Name
-                        </Label>
-                        <Input
-                          id="name"
-                          placeholder="Dein vollständiger Name"
-                          value={profileData.name}
-                          onChange={(e) => setProfileData((prev) => ({ ...prev, name: e.target.value }))}
-                          className="font-body text-sm md:text-base"
-                        />
-                        <p className="text-xs text-gray-500">Gib hier deinen vollständigen Namen ein</p>
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-4">
+                      {/* Basic Profile Information */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name" className="text-sm md:text-base">
+                            Vollständiger Name
+                          </Label>
+                          <Input
+                            id="name"
+                            value={profileData.name}
+                            onChange={(e) => handleInputChange("name", e.target.value)}
+                            className="text-sm md:text-base"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="username" className="text-sm md:text-base">
+                            Benutzername
+                          </Label>
+                          <Input
+                            id="username"
+                            name="username"
+                            value={profileData.username}
+                            onChange={(e) => handleInputChange("username", e.target.value)}
+                            className="text-sm md:text-base"
+                          />
+                          <p className="text-sm text-muted-foreground">
+                            Dieser Name wird auf der Plattform angezeigt und ist für andere Nutzer sichtbar.
+                          </p>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="username" className="text-sm md:text-base">
-                          Benutzername
-                        </Label>
-                        <Input
-                          id="username"
-                          placeholder="Wird in der Plattform angezeigt"
-                          value={profileData.username}
-                          onChange={(e) => setProfileData((prev) => ({ ...prev, username: e.target.value }))}
-                          className="font-body text-sm md:text-base"
-                        />
-                        <p className="text-xs text-gray-500">Dieser Name wird anderen Benutzern angezeigt</p>
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
                         <Label htmlFor="email" className="text-sm md:text-base">
                           E-Mail-Adresse
                         </Label>
@@ -410,417 +868,481 @@ export default function ProfilePage() {
                           id="email"
                           type="email"
                           value={profileData.email}
+                          onChange={(e) => handleInputChange("email", e.target.value)}
+                          className="text-sm md:text-base"
                           disabled
-                          className="font-body text-sm md:text-base bg-gray-50"
                         />
-                        <p className="text-xs text-gray-500">
-                          Ihre aktuelle E-Mail-Adresse. Verwenden Sie den Bereich unten, um sie zu ändern.
+                        <p className="text-sm text-muted-foreground">
+                          Die E-Mail-Adresse kann im Sicherheits-Tab geändert werden.
                         </p>
                       </div>
 
-                      <div className="space-y-2 md:col-span-2 border border-orange-200 rounded-lg bg-orange-50">
-                        <h3 className="font-semibold text-orange-800">E-Mail-Adresse ändern</h3>
-
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="newEmail" className="text-sm">
-                            Neue E-Mail-Adresse
+                          <Label htmlFor="birthDate" className="text-sm md:text-base">
+                            Geburtsdatum
                           </Label>
                           <Input
-                            id="newEmail"
-                            type="email"
-                            placeholder="neue@email.com"
-                            value={emailChangeData.newEmail}
-                            onChange={(e) => setEmailChangeData((prev) => ({ ...prev, newEmail: e.target.value }))}
-                            className="font-body text-sm"
+                            id="birthDate"
+                            type="date"
+                            value={profileData.birthDate}
+                            onChange={(e) => handleInputChange("birthDate", e.target.value)}
+                            className="text-sm md:text-base"
                           />
                         </div>
-
                         <div className="space-y-2">
-                          <Label htmlFor="currentPassword" className="text-sm">
-                            Aktuelles Passwort bestätigen
+                          <Label htmlFor="phone" className="text-sm md:text-base">
+                            Telefonnummer
                           </Label>
                           <Input
-                            id="currentPassword"
-                            type="password"
-                            placeholder="Ihr aktuelles Passwort"
-                            value={emailChangeData.currentPassword}
-                            onChange={(e) =>
-                              setEmailChangeData((prev) => ({ ...prev, currentPassword: e.target.value }))
-                            }
-                            className="font-body text-sm"
+                            id="phone"
+                            value={profileData.phone}
+                            onChange={(e) => handleInputChange("phone", e.target.value)}
+                            placeholder="+41 XX XXX XX XX"
+                            className="text-sm md:text-base"
                           />
                         </div>
-
-                        <Button
-                          onClick={handleEmailChange}
-                          disabled={isEmailChanging || !emailChangeData.newEmail || !emailChangeData.currentPassword}
-                          className="w-full bg-orange-600 hover:bg-orange-700"
-                        >
-                          {isEmailChanging ? "E-Mail wird geändert..." : "E-Mail-Adresse ändern"}
-                        </Button>
-
-                        {emailChangeMessage && (
-                          <div
-                            className={`text-sm p-3 rounded ${
-                              emailChangeMessage.includes("Fehler") || emailChangeMessage.includes("nicht korrekt")
-                                ? "bg-red-100 text-red-700 border border-red-200"
-                                : "bg-green-100 text-green-700 border border-green-200"
-                            }`}
-                          >
-                            {emailChangeMessage}
-                          </div>
-                        )}
-
-                        <p className="text-xs text-orange-600">
-                          Nach der Bestätigung wird eine Verifizierungs-E-Mail an die neue Adresse gesendet. Die
-                          Änderung wird erst nach der Bestätigung wirksam.
-                        </p>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="birthDate" className="text-sm md:text-base">
-                          Geburtsdatum
-                        </Label>
-                        <Input
-                          id="birthDate"
-                          type="date"
-                          value={profileData.birthDate}
-                          onChange={(e) => setProfileData((prev) => ({ ...prev, birthDate: e.target.value }))}
-                          className="font-body text-sm md:text-base"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-sm md:text-base">
-                          Telefonnummer
-                        </Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="+49 123 456789"
-                          value={profileData.phone}
-                          onChange={(e) => setProfileData((prev) => ({ ...prev, phone: e.target.value }))}
-                          className="font-body text-sm md:text-base"
-                        />
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="address" className="text-sm md:text-base">
-                          Adresse
-                        </Label>
-                        <Input
-                          id="address"
-                          placeholder="Strasse, Hausnummer, PLZ, Stadt"
-                          value={profileData.address}
-                          onChange={(e) => setProfileData((prev) => ({ ...prev, address: e.target.value }))}
-                          className="font-body text-sm md:text-base"
-                        />
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="bio" className="text-sm md:text-base">
-                          Bio
-                        </Label>
-                        <Textarea
-                          id="bio"
-                          placeholder="Erzähle etwas über dich..."
-                          value={profileData.bio}
-                          onChange={(e) => setProfileData((prev) => ({ ...prev, bio: e.target.value }))}
-                          className="font-body text-sm md:text-base min-h-[80px] md:min-h-[100px]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Spiel-Informationen */}
-                  <div className="border-t pt-4 md:pt-6">
-                    <h3 className="font-handwritten text-base md:text-lg font-semibold mb-4 text-purple-600">
-                      Spiel-Informationen
-                    </h3>
-                    <div className="grid grid-cols-1 gap-4 md:gap-6">
+                      {/* Lieblingsspiele */}
                       <div className="space-y-2">
                         <Label htmlFor="favoriteGames" className="text-sm md:text-base">
                           Lieblingsspiele
                         </Label>
                         <Input
                           id="favoriteGames"
-                          placeholder="z.B. Catan, Azul, Wingspan, Gloomhaven"
                           value={profileData.favoriteGames}
-                          onChange={(e) => setProfileData((prev) => ({ ...prev, favoriteGames: e.target.value }))}
-                          className="font-body text-sm md:text-base"
+                          onChange={(e) => handleInputChange("favoriteGames", e.target.value)}
+                          placeholder="z.B. Catan, Azul, Wingspan"
+                          className="text-sm md:text-base"
                         />
                       </div>
 
+                      {/* Bio */}
                       <div className="space-y-2">
-                        <Label htmlFor="preferredGameTypes" className="text-sm md:text-base">
-                          Bevorzugte Spielarten
+                        <Label htmlFor="bio" className="text-sm md:text-base">
+                          Bio
                         </Label>
-                        <Input
-                          id="preferredGameTypes"
-                          placeholder="z.B. Strategiespiele, Kooperative Spiele, Partyspiele"
-                          value={profileData.preferredGameTypes}
-                          onChange={(e) => setProfileData((prev) => ({ ...prev, preferredGameTypes: e.target.value }))}
-                          className="font-body text-sm md:text-base"
+                        <Textarea
+                          id="bio"
+                          value={profileData.bio}
+                          onChange={(e) => handleInputChange("bio", e.target.value)}
+                          placeholder="Erzähle etwas über dich..."
+                          className="text-sm md:text-base"
+                          rows={3}
                         />
+                      </div>
+
+                      {/* Social Media */}
+                      <div className="space-y-2">
+                        <Label className="text-sm md:text-base font-medium">Social Media</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="website" className="text-sm md:text-base flex items-center gap-2">
+                              <Globe className="w-4 h-4" />
+                              Website
+                            </Label>
+                            <Input
+                              id="website"
+                              value={profileData.website}
+                              onChange={(e) => handleInputChange("website", e.target.value)}
+                              placeholder="https://..."
+                              className="text-sm md:text-base"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="twitter" className="text-sm md:text-base flex items-center gap-2">
+                              <Twitter className="w-4 h-4" />
+                              Twitter/X
+                            </Label>
+                            <Input
+                              id="twitter"
+                              value={profileData.twitter}
+                              onChange={(e) => handleInputChange("twitter", e.target.value)}
+                              placeholder="@username"
+                              className="text-sm md:text-base"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="instagram" className="text-sm md:text-base flex items-center gap-2">
+                              <Instagram className="w-4 h-4" />
+                              Instagram
+                            </Label>
+                            <Input
+                              id="instagram"
+                              value={profileData.instagram}
+                              onChange={(e) => handleInputChange("instagram", e.target.value)}
+                              placeholder="@username"
+                              className="text-sm md:text-base"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Social Media & Website */}
-                  <div className="border-t pt-4 md:pt-6">
-                    <h3 className="font-handwritten text-base md:text-lg font-semibold mb-4 text-indigo-600">
-                      Social Media & Website
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="website" className="text-sm md:text-base">
-                          Website
-                        </Label>
-                        <Input
-                          id="website"
-                          placeholder="https://deine-website.de"
-                          value={profileData.website}
-                          onChange={(e) => setProfileData((prev) => ({ ...prev, website: e.target.value }))}
-                          className="font-body text-sm md:text-base"
-                        />
+                    {/* Address Information */}
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-base md:text-lg">Adresse</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2 md:col-span-2">
+                          <Label htmlFor="street" className="text-sm md:text-base">
+                            Strasse
+                          </Label>
+                          <Input
+                            id="street"
+                            value={profileData.street}
+                            onChange={(e) => handleInputChange("street", e.target.value)}
+                            className="text-sm md:text-base"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="houseNumber" className="text-sm md:text-base">
+                            Hausnummer
+                          </Label>
+                          <Input
+                            id="houseNumber"
+                            value={profileData.houseNumber}
+                            onChange={(e) => handleInputChange("houseNumber", e.target.value)}
+                            className="text-sm md:text-base"
+                          />
+                        </div>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="twitter" className="text-sm md:text-base">
-                          Twitter
-                        </Label>
-                        <Input
-                          id="twitter"
-                          placeholder="@deinusername"
-                          value={profileData.twitter}
-                          onChange={(e) => setProfileData((prev) => ({ ...prev, twitter: e.target.value }))}
-                          className="font-body text-sm md:text-base"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="instagram" className="text-sm md:text-base">
-                          Instagram
-                        </Label>
-                        <Input
-                          id="instagram"
-                          placeholder="@deinusername"
-                          value={profileData.instagram}
-                          onChange={(e) => setProfileData((prev) => ({ ...prev, instagram: e.target.value }))}
-                          className="font-body text-sm md:text-base"
-                        />
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="zipCode" className="text-sm md:text-base">
+                            PLZ
+                          </Label>
+                          <Input
+                            id="zipCode"
+                            value={profileData.zipCode}
+                            onChange={(e) => handleInputChange("zipCode", e.target.value)}
+                            className="text-sm md:text-base"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="city" className="text-sm md:text-base">
+                            Stadt
+                          </Label>
+                          <Input
+                            id="city"
+                            value={profileData.city}
+                            onChange={(e) => handleInputChange("city", e.target.value)}
+                            className="text-sm md:text-base"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="country" className="text-sm md:text-base">
+                            Land
+                          </Label>
+                          <Input
+                            id="country"
+                            value={profileData.country}
+                            onChange={(e) => handleInputChange("country", e.target.value)}
+                            className="text-sm md:text-base"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
+
+                    {/* Submit Button */}
+                    <div className="flex justify-end">
+                      <Button type="submit" disabled={isLoading} className="min-w-32">
+                        {isLoading ? "Speichern..." : "Profil speichern"}
+                      </Button>
+                    </div>
+
+                    {message && (
+                      <div
+                        className={`text-center p-3 rounded-md ${
+                          message.includes("erfolgreich") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {message}
+                      </div>
+                    )}
+                  </form>
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            <TabsContent value="listings">
-              <div className="space-y-6">
-                {/* Marketplace Offers */}
-                <Card>
-                  <CardHeader className="p-4 md:p-6">
-                    <CardTitle className="font-handwritten text-lg md:text-xl flex items-center gap-2">
-                      <Store className="w-5 h-5" />
-                      Meine Marktplatz-Angebote
-                    </CardTitle>
-                    <CardDescription className="text-sm md:text-base">
-                      Verwalte deine Verkaufs-, Verleih- und Tauschangebote
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-4 md:p-6">
-                    {userOffers.length > 0 ? (
-                      <div className="grid gap-4">
-                        {userOffers.map((offer) => (
-                          <div key={offer.id} className="border rounded-lg p-4 bg-white">
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex-1">
-                                <h3 className="font-semibold text-gray-900">{offer.title}</h3>
-                                <p className="text-sm text-gray-600">{offer.publisher}</p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    {offer.type === "lend"
-                                      ? "Verleihen"
-                                      : offer.type === "trade"
-                                        ? "Tauschen"
-                                        : "Verkaufen"}
-                                  </Badge>
-                                  <Badge variant="outline" className="text-xs">
-                                    {offer.condition}
-                                  </Badge>
-                                  <span className="text-sm font-medium text-orange-600">{offer.price}</span>
-                                </div>
-                              </div>
-                              <div className="flex gap-2 ml-4">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditOffer(offer)}
-                                  className="text-xs"
-                                >
-                                  <Edit className="w-3 h-3 mr-1" />
-                                  Bearbeiten
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setDeleteConfirm({ type: "offer", id: offer.id })}
-                                  className="text-xs text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="w-3 h-3 mr-1" />
-                                  Löschen
-                                </Button>
-                              </div>
-                            </div>
-                            {offer.description && <p className="text-sm text-gray-600 mt-2">{offer.description}</p>}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-gray-500 text-center py-8">Du hast noch keine Marktplatz-Angebote erstellt.</p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Search Ads */}
-                <Card>
-                  <CardHeader className="p-4 md:p-6">
-                    <CardTitle className="font-handwritten text-lg md:text-xl flex items-center gap-2">
-                      <SearchIcon className="w-5 h-5" />
-                      Meine Suchanzeigen
-                    </CardTitle>
-                    <CardDescription className="text-sm md:text-base">
-                      Verwalte deine Suchanzeigen für gewünschte Spiele
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-4 md:p-6">
-                    {userSearchAds.length > 0 ? (
-                      <div className="grid gap-4">
-                        {userSearchAds.map((searchAd) => (
-                          <div key={searchAd.id} className="border rounded-lg p-4 bg-white">
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex-1">
-                                <h3 className="font-semibold text-gray-900">{searchAd.title}</h3>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Badge className="bg-purple-500 text-white text-xs">
-                                    {searchAd.type === "buy" ? "Suche zum Kaufen" : "Suche zum Ausleihen"}
-                                  </Badge>
-                                  <Badge
-                                    variant="outline"
-                                    className={`text-xs ${searchAd.active ? "text-green-600" : "text-gray-500"}`}
-                                  >
-                                    {searchAd.active ? "Aktiv" : "Inaktiv"}
-                                  </Badge>
-                                </div>
-                              </div>
-                              <div className="flex gap-2 ml-4">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditSearchAd(searchAd)}
-                                  className="text-xs"
-                                >
-                                  <Edit className="w-3 h-3 mr-1" />
-                                  Bearbeiten
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setDeleteConfirm({ type: "searchAd", id: searchAd.id })}
-                                  className="text-xs text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="w-3 h-3 mr-1" />
-                                  Löschen
-                                </Button>
-                              </div>
-                            </div>
-                            {searchAd.description && (
-                              <p className="text-sm text-gray-600 mt-2">{searchAd.description}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-gray-500 text-center py-8">Du hast noch keine Suchanzeigen erstellt.</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
             </TabsContent>
 
             <TabsContent value="notifications">
               <Card>
                 <CardHeader className="p-4 md:p-6">
-                  <CardTitle className="font-handwritten text-lg md:text-xl">Benachrichtigungseinstellungen</CardTitle>
+                  <CardTitle className="font-handwritten text-lg md:text-xl">Benachrichtigungen</CardTitle>
                   <CardDescription className="text-sm md:text-base">
-                    Verwalte, wie und wann du benachrichtigt werden möchtest
+                    Verwalte deine Benachrichtigungseinstellungen
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6">
+                <CardContent className="space-y-6 p-4 md:p-6">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 pr-4">
-                        <Label className="font-handwritten text-sm md:text-base">E-Mail-Benachrichtigungen</Label>
-                        <p className="text-xs md:text-sm text-gray-600">Erhalte Updates per E-Mail</p>
+                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-medium">Freundschaftsanfragen</Label>
+                          <p className="text-xs text-gray-600">Benachrichtigung bei neuen Freundschaftsanfragen</p>
+                        </div>
+                        <div className="flex items-center gap-6 ml-4">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.friend_requests?.platform ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("friend_requests", "platform", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.friend_requests?.email ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("friend_requests", "email", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">per E-Mail</span>
+                          </div>
+                        </div>
                       </div>
-                      <Switch
-                        checked={settings.notifications.email}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            notifications: { ...prev.notifications, email: checked },
-                          }))
-                        }
-                      />
-                    </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 pr-4">
-                        <Label className="font-handwritten text-sm md:text-base">Push-Benachrichtigungen</Label>
-                        <p className="text-xs md:text-sm text-gray-600">Sofortige Benachrichtigungen im Browser</p>
-                      </div>
-                      <Switch
-                        checked={settings.notifications.push}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            notifications: { ...prev.notifications, push: checked },
-                          }))
-                        }
-                      />
-                    </div>
+                      <div className="border-t border-gray-200"></div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 pr-4">
-                        <Label className="font-handwritten text-sm md:text-base">Marketing-E-Mails</Label>
-                        <p className="text-xs md:text-sm text-gray-600">Neuigkeiten und Angebote</p>
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-medium">Freundschaftsannahmen</Label>
+                          <p className="text-xs text-gray-600">Benachrichtigung, wenn jemand deine Anfrage annimmt</p>
+                        </div>
+                        <div className="flex items-center gap-6 ml-4">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.friend_accepts?.platform ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("friend_accepts", "platform", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.friend_accepts?.email ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("friend_accepts", "email", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">E-Mail</span>
+                          </div>
+                        </div>
                       </div>
-                      <Switch
-                        checked={settings.notifications.marketing}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            notifications: { ...prev.notifications, marketing: checked },
-                          }))
-                        }
-                      />
-                    </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 pr-4">
-                        <Label className="font-handwritten text-sm md:text-base">Sicherheitsbenachrichtigungen</Label>
-                        <p className="text-xs md:text-sm text-gray-600">Wichtige Sicherheitsupdates</p>
+                      <div className="border-t border-gray-200"></div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-medium">Freundschaftsablehnungen</Label>
+                          <p className="text-xs text-gray-600">Benachrichtigung, wenn jemand deine Anfrage ablehnt</p>
+                        </div>
+                        <div className="flex items-center gap-6 ml-4">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.friend_declines?.platform ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("friend_declines", "platform", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.friend_declines?.email ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("friend_declines", "email", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">per E-Mail</span>
+                          </div>
+                        </div>
                       </div>
-                      <Switch
-                        checked={settings.notifications.security}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            notifications: { ...prev.notifications, security: checked },
-                          }))
-                        }
-                      />
+
+                      <div className="border-t border-gray-200"></div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-medium">Forum-Antworten</Label>
+                          <p className="text-xs text-gray-600">Benachrichtigung bei Antworten auf deine Beiträge</p>
+                        </div>
+                        <div className="flex items-center gap-6 ml-4">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.forum_replies?.platform ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("forum_replies", "platform", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.forum_replies?.email ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("forum_replies", "email", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">per E-Mail</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-gray-200"></div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-medium">Kommentar-Antworten</Label>
+                          <p className="text-xs text-gray-600">
+                            Benachrichtigung bei Antworten auf Kommentare, auf die du geantwortet hast
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-6 ml-4">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.forum_comment_replies?.platform ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("forum_comment_replies", "platform", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.forum_comment_replies?.email ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("forum_comment_replies", "email", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">per E-Mail</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-gray-200"></div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-medium">Spielregal-Anfragen</Label>
+                          <p className="text-xs text-gray-600">
+                            Benachrichtigung bei Zugangsanfragen zu deinem Spielregal
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-6 ml-4">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.shelf_access_requests?.platform ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("shelf_access_requests", "platform", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.shelf_access_requests?.email ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("shelf_access_requests", "email", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">per E-Mail</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-gray-200"></div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-medium">Nachrichten von Nutzern</Label>
+                          <p className="text-xs text-gray-600">Benachrichtigung bei neuen Nachrichten</p>
+                        </div>
+                        <div className="flex items-center gap-6 ml-4">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.message_notifications?.platform ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("message_notifications", "platform", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.message_notifications?.email ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("message_notifications", "email", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">per E-Mail</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-gray-200"></div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-medium">Event-Einladungen</Label>
+                          <p className="text-xs text-gray-600">
+                            Benachrichtigung, wenn du zu einem Event eingeladen wirst
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-6 ml-4">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.event_invitations?.platform ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("event_invitations", "platform", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.social.event_invitations?.email ?? true}
+                              onChange={(e) =>
+                                handleSocialNotificationChange("event_invitations", "email", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">per E-Mail</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -830,316 +1352,391 @@ export default function ProfilePage() {
             <TabsContent value="privacy">
               <Card>
                 <CardHeader className="p-4 md:p-6">
-                  <CardTitle className="font-handwritten text-lg md:text-xl">Datenschutz-Einstellungen</CardTitle>
+                  <CardTitle className="font-handwritten text-lg md:text-xl">Privatsphäre</CardTitle>
                   <CardDescription className="text-sm md:text-base">
-                    Kontrolliere, wer deine Informationen sehen kann
+                    Kontrolliere deine Privatsphäre-Einstellungen
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 pr-4">
-                        <Label className="font-handwritten text-sm md:text-base">Profil öffentlich sichtbar</Label>
-                        <p className="text-xs md:text-sm text-gray-600">Andere Nutzer können dein Profil sehen</p>
+                <CardContent className="space-y-6 p-4 md:p-6">
+                  <div className="space-y-6">
+                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                      <div>
+                        <Label className="text-sm font-medium">Wer kann dein Profil sehen?</Label>
+                        <div className="mt-2 space-y-2">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              name="profileVisibility"
+                              value="public"
+                              checked={comprehensivePrefs.privacy.profile_visibility === "public"}
+                              onChange={(e) => handlePrivacySettingChange("profile_visibility", e.target.value)}
+                              className="rounded border-gray-300"
+                            />
+                            <div>
+                              <span className="text-sm font-medium">Öffentlich</span>
+                              <p className="text-xs text-gray-600">Jeder kann dein Profil sehen</p>
+                            </div>
+                          </label>
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              name="profileVisibility"
+                              value="friends"
+                              checked={comprehensivePrefs.privacy.profile_visibility === "friends"}
+                              onChange={(e) => handlePrivacySettingChange("profile_visibility", e.target.value)}
+                              className="rounded border-gray-300"
+                            />
+                            <div>
+                              <span className="text-sm font-medium">Nur Freunde</span>
+                              <p className="text-xs text-gray-600">Nur deine Freunde können dein Profil sehen</p>
+                            </div>
+                          </label>
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              name="profileVisibility"
+                              value="private"
+                              checked={comprehensivePrefs.privacy.profile_visibility === "private"}
+                              onChange={(e) => handlePrivacySettingChange("profile_visibility", e.target.value)}
+                              className="rounded border-gray-300"
+                            />
+                            <div>
+                              <span className="text-sm font-medium">Privat</span>
+                              <p className="text-xs text-gray-600">Nur du kannst dein Profil sehen</p>
+                            </div>
+                          </label>
+                        </div>
                       </div>
-                      <Switch
-                        checked={settings.privacy.profileVisible}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            privacy: { ...prev.privacy, profileVisible: checked },
-                          }))
-                        }
-                      />
+
+                      <div className="flex items-center justify-between pt-4 border-t">
+                        <div>
+                          <Label className="text-sm font-medium">Freundschaftsanfragen erlauben</Label>
+                          <p className="text-xs text-gray-600">Andere können dir Freundschaftsanfragen senden</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={comprehensivePrefs.privacy.allow_friend_requests ?? true}
+                          onChange={(e) => handlePrivacySettingChange("allow_friend_requests", e.target.checked)}
+                          className="rounded border-gray-300"
+                        />
+                      </div>
+
+                      <div className="pt-4 border-t">
+                        <Label className="text-sm font-medium">Wer kann dir Nachrichten senden?</Label>
+                        <div className="mt-2 space-y-2">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              name="allowMessagesFrom"
+                              value="everyone"
+                              checked={comprehensivePrefs.privacy.allow_messages_from === "everyone"}
+                              onChange={(e) => handlePrivacySettingChange("allow_messages_from", e.target.value)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm">Jeder</span>
+                          </label>
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              name="allowMessagesFrom"
+                              value="friends"
+                              checked={comprehensivePrefs.privacy.allow_messages_from === "friends"}
+                              onChange={(e) => handlePrivacySettingChange("allow_messages_from", e.target.value)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm">Nur Freunde</span>
+                          </label>
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              name="allowMessagesFrom"
+                              value="nobody"
+                              checked={comprehensivePrefs.privacy.allow_messages_from === "nobody"}
+                              onChange={(e) => handlePrivacySettingChange("allow_messages_from", e.target.value)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm">Niemand</span>
+                          </label>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 pr-4">
-                        <Label className="font-handwritten text-sm md:text-base">E-Mail-Adresse anzeigen</Label>
-                        <p className="text-xs md:text-sm text-gray-600">E-Mail in deinem Profil sichtbar</p>
-                      </div>
-                      <Switch
-                        checked={settings.privacy.emailVisible}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            privacy: { ...prev.privacy, emailVisible: checked },
-                          }))
-                        }
-                      />
+                    <div className="flex justify-end pt-4 border-t">
+                      <Button onClick={handleSubmit} disabled={isLoading} className="min-w-32">
+                        {isLoading ? "Speichern..." : "Einstellungen speichern"}
+                      </Button>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 pr-4">
-                        <Label className="font-handwritten text-sm md:text-base">Telefonnummer anzeigen</Label>
-                        <p className="text-xs md:text-sm text-gray-600">Telefonnummer in deinem Profil sichtbar</p>
-                      </div>
-                      <Switch
-                        checked={settings.privacy.phoneVisible}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            privacy: { ...prev.privacy, phoneVisible: checked },
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 pr-4">
-                        <Label className="font-handwritten text-sm md:text-base">Standort anzeigen</Label>
-                        <p className="text-xs md:text-sm text-gray-600">Standort in deinem Profil sichtbar</p>
-                      </div>
-                      <Switch
-                        checked={settings.privacy.locationVisible}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            privacy: { ...prev.privacy, locationVisible: checked },
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 pr-4">
-                        <Label className="font-handwritten text-sm md:text-base">Geburtsdatum anzeigen</Label>
-                        <p className="text-xs md:text-sm text-gray-600">Geburtsdatum in deinem Profil sichtbar</p>
-                      </div>
-                      <Switch
-                        checked={settings.privacy.birthDateVisible}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            privacy: { ...prev.privacy, birthDateVisible: checked },
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="font-handwritten text-sm md:text-base">Spielregal-Sichtbarkeit</Label>
-                      <p className="text-xs md:text-sm text-gray-600 mb-2">Wer kann dein Spielregal sehen?</p>
-                      <Select
-                        value={settings.privacy.libraryVisibility}
-                        onValueChange={(value) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            privacy: { ...prev.privacy, libraryVisibility: value },
-                          }))
-                        }
+                    {message && (
+                      <div
+                        className={`text-center p-3 rounded-md ${
+                          message.includes("erfolgreich") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                        }`}
                       >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="private">Nur ich</SelectItem>
-                          <SelectItem value="friends">Nur Freunde</SelectItem>
-                          <SelectItem value="public">Öffentlich</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 pr-4">
-                        <Label className="font-handwritten text-sm md:text-base">Online-Status anzeigen</Label>
-                        <p className="text-xs md:text-sm text-gray-600">Anderen zeigen, wann du online bist</p>
+                        {message}
                       </div>
-                      <Switch
-                        checked={settings.privacy.onlineStatus}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            privacy: { ...prev.privacy, onlineStatus: checked },
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 pr-4">
-                        <Label className="font-handwritten text-sm md:text-base">Nachrichten erlauben</Label>
-                        <p className="text-xs md:text-sm text-gray-600">Andere können dir Nachrichten senden</p>
-                      </div>
-                      <Switch
-                        checked={settings.privacy.allowMessages}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            privacy: { ...prev.privacy, allowMessages: checked },
-                          }))
-                        }
-                      />
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="security">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader className="p-4 md:p-6">
+                    <CardTitle className="font-handwritten text-lg md:text-xl">Sicherheit</CardTitle>
+                    <CardDescription className="text-sm md:text-base">
+                      Verwalte deine Sicherheitseinstellungen
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6 p-4 md:p-6">
+                    <div className="space-y-6">
+                      <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                        {/* Email Change Section */}
+                        <div className="space-y-4">
+                          <h5 className="font-medium text-sm">E-Mail-Adresse ändern</h5>
+                          <form onSubmit={handleEmailChange} className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="newEmail" className="text-sm md:text-base">
+                                Neue E-Mail-Adresse
+                              </Label>
+                              <Input
+                                id="newEmail"
+                                type="email"
+                                value={emailChangeData.newEmail}
+                                onChange={(e) => setEmailChangeData((prev) => ({ ...prev, newEmail: e.target.value }))}
+                                placeholder="neue@email.com"
+                                className="text-sm md:text-base"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="currentPassword" className="text-sm md:text-base">
+                                Aktuelles Passwort bestätigen
+                              </Label>
+                              <Input
+                                id="currentPassword"
+                                type="password"
+                                value={emailChangeData.currentPassword}
+                                onChange={(e) =>
+                                  setEmailChangeData((prev) => ({ ...prev, currentPassword: e.target.value }))
+                                }
+                                className="text-sm md:text-base"
+                              />
+                            </div>
+                            <Button type="submit" disabled={isEmailChanging} className="w-full">
+                              {isEmailChanging ? "Wird geändert..." : "E-Mail ändern"}
+                            </Button>
+                            {emailChangeMessage && (
+                              <div
+                                className={`text-center p-3 rounded-md ${
+                                  emailChangeMessage.includes("gesendet")
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                              >
+                                {emailChangeMessage}
+                              </div>
+                            )}
+                          </form>
+                        </div>
+
+                        {/* Security Events */}
+                        <div className="pt-4 border-t">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm font-medium">Sicherheitsereignisse</Label>
+                              <p className="text-xs text-gray-600">
+                                Benachrichtigungen über wichtige Sicherheitsereignisse
+                              </p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={comprehensivePrefs.security.security_events_notifications ?? true}
+                              onChange={(e) =>
+                                handleSecuritySettingChange("security_events_notifications", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4 border-t">
+                      <Button onClick={handleSubmit} disabled={isLoading} className="min-w-32">
+                        {isLoading ? "Speichern..." : "Einstellungen speichern"}
+                      </Button>
+                    </div>
+
+                    {message && (
+                      <div
+                        className={`text-center p-3 rounded-md ${
+                          message.includes("erfolgreich") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {message}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <SecurityEventsDashboard />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="listings">
               <Card>
                 <CardHeader className="p-4 md:p-6">
-                  <CardTitle className="font-handwritten text-lg md:text-xl">Sicherheitseinstellungen</CardTitle>
+                  <CardTitle className="font-handwritten text-lg md:text-xl">Meine Anzeigen</CardTitle>
                   <CardDescription className="text-sm md:text-base">
-                    Schütze dein Konto mit erweiterten Sicherheitsoptionen
+                    Verwalte deine Marktplatz-Angebote und Suchanzeigen
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 pr-4">
-                        <Label className="font-handwritten text-sm md:text-base">Zwei-Faktor-Authentifizierung</Label>
-                        <p className="text-xs md:text-sm text-gray-600">Zusätzliche Sicherheit für dein Konto</p>
-                      </div>
-                      <Switch
-                        checked={settings.security.twoFactor}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            security: { ...prev.security, twoFactor: checked },
-                          }))
-                        }
-                      />
+                <CardContent className="space-y-6 p-4 md:p-6">
+                  <div className="space-y-6">
+                    {/* Marketplace Offers */}
+                    <div>
+                      <h3 className="font-semibold text-base md:text-lg mb-4">
+                        Marktplatz-Angebote ({userOffers.length})
+                      </h3>
+                      {userOffers.length === 0 ? (
+                        <p className="text-gray-600 text-sm md:text-base">Du hast noch keine Angebote erstellt.</p>
+                      ) : (
+                        <div className="grid gap-4">
+                          {userOffers.map((offer) => (
+                            <div key={offer.id} className="border rounded-lg p-4 space-y-2">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-semibold text-sm md:text-base">{offer.title}</h4>
+                                  <p className="text-gray-600 text-xs md:text-sm">{offer.description}</p>
+                                  <p className="text-teal-600 font-semibold text-sm md:text-base">{offer.price}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingOffer(offer)
+                                      setIsEditOfferOpen(true)
+                                    }}
+                                  >
+                                    Bearbeiten
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setDeleteConfirm({ type: "offer", id: offer.id })}
+                                  >
+                                    Löschen
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 pr-4">
-                        <Label className="font-handwritten text-sm md:text-base">Login-Benachrichtigungen</Label>
-                        <p className="text-xs md:text-sm text-gray-600">Benachrichtigung bei neuen Anmeldungen</p>
-                      </div>
-                      <Switch
-                        checked={settings.security.loginNotifications}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            security: { ...prev.security, loginNotifications: checked },
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="font-handwritten text-sm md:text-base">Session-Timeout</Label>
-                      <Select
-                        value={settings.security.sessionTimeout.toString()}
-                        onValueChange={(value) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            security: { ...prev.security, sessionTimeout: Number.parseInt(value) },
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="15">15 Minuten</SelectItem>
-                          <SelectItem value="30">30 Minuten</SelectItem>
-                          <SelectItem value="60">1 Stunde</SelectItem>
-                          <SelectItem value="240">4 Stunden</SelectItem>
-                          <SelectItem value="1440">24 Stunden</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-4 md:pt-6">
-                    <h3 className="font-handwritten text-base md:text-lg font-semibold mb-4">Daten & Konto</h3>
-                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-                      <Button
-                        variant="outline"
-                        onClick={handleExportData}
-                        className="font-handwritten bg-transparent text-sm md:text-base"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        <span className="hidden sm:inline">Daten exportieren</span>
-                        <span className="sm:hidden">Export</span>
-                      </Button>
-                      <Button variant="destructive" className="font-handwritten text-sm md:text-base">
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        <span className="hidden sm:inline">Konto löschen</span>
-                        <span className="sm:hidden">Löschen</span>
-                      </Button>
+                    {/* Search Ads */}
+                    <div>
+                      <h3 className="font-semibold text-base md:text-lg mb-4">Suchanzeigen ({userSearchAds.length})</h3>
+                      {userSearchAds.length === 0 ? (
+                        <p className="text-gray-600 text-sm md:text-base">Du hast noch keine Suchanzeigen erstellt.</p>
+                      ) : (
+                        <div className="grid gap-4">
+                          {userSearchAds.map((searchAd) => (
+                            <div key={searchAd.id} className="border rounded-lg p-4 space-y-2">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-semibold text-sm md:text-base">{searchAd.title}</h4>
+                                  <p className="text-gray-600 text-xs md:text-sm">{searchAd.description}</p>
+                                  <p className="text-purple-600 font-semibold text-sm md:text-base">
+                                    Bis {searchAd.max_price}
+                                  </p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingSearchAd(searchAd)
+                                      setIsEditSearchAdOpen(true)
+                                    }}
+                                  >
+                                    Bearbeiten
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setDeleteConfirm({ type: "searchAd", id: searchAd.id })}
+                                  >
+                                    Löschen
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="events">
+              <Card>
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="font-handwritten text-lg md:text-xl">Meine Events</CardTitle>
+                  <CardDescription className="text-sm md:text-base">Verwalte deine erstellten Events</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6 p-4 md:p-6">
+                  {loadingEvents ? (
+                    <p className="text-gray-600 text-sm md:text-base">Lade Events...</p>
+                  ) : userEvents.length === 0 ? (
+                    <p className="text-gray-600 text-sm md:text-base">Du hast noch keine Events erstellt.</p>
+                  ) : (
+                    <div className="grid gap-4">
+                      {userEvents.map((event) => (
+                        <div key={event.id} className="border rounded-lg p-4 space-y-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-semibold text-sm md:text-base">{event.title}</h4>
+                              <p className="text-gray-600 text-xs md:text-sm">{event.description}</p>
+                              <div className="flex gap-4 text-xs md:text-sm text-gray-500 mt-2">
+                                <span>{formatEventDate(event.date)}</span>
+                                <span>{event.time}</span>
+                                <span>
+                                  {event.participants_count || 0}/{event.max_participants} Teilnehmer
+                                </span>
+                                {event.frequency && event.frequency !== "once" && (
+                                  <span>{getFrequencyText(event.frequency, event.interval_type)}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={() => router.push(`/events/${event.id}`)}>
+                                Anzeigen
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => setDeleteConfirm({ type: "event", id: event.id })}
+                              >
+                                Löschen
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
-
-          <div className="mt-6 md:mt-8 flex justify-center md:justify-end">
-            <Button
-              onClick={handleSaveProfile}
-              disabled={isLoading}
-              className="font-handwritten px-6 md:px-8 w-full sm:w-auto"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {isLoading ? "Speichern..." : "Änderungen speichern"}
-            </Button>
-          </div>
-
-          {message && (
-            <div
-              className={`mt-4 p-3 md:p-4 rounded-lg ${
-                message.includes("erfolgreich")
-                  ? "bg-green-50 text-green-700 border border-green-200"
-                  : "bg-red-50 text-red-700 border border-red-200"
-              }`}
-            >
-              <p className="font-body text-xs md:text-sm">{message}</p>
-            </div>
-          )}
         </div>
-
-        <EditMarketplaceOfferForm
-          isOpen={isEditOfferOpen}
-          onClose={() => setIsEditOfferOpen(false)}
-          onSuccess={handleEditSuccess}
-          offer={editingOffer}
-        />
-
-        <EditSearchAdForm
-          isOpen={isEditSearchAdOpen}
-          onClose={() => setIsEditSearchAdOpen(false)}
-          onSuccess={handleEditSuccess}
-          searchAd={editingSearchAd}
-        />
-
-        {/* Delete Confirmation Dialog */}
-        {deleteConfirm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-              <div className="flex items-center gap-3 mb-4">
-                <AlertTriangle className="w-6 h-6 text-red-500" />
-                <h3 className="font-handwritten text-lg font-semibold">
-                  {deleteConfirm.type === "offer" ? "Angebot löschen" : "Suchanzeige löschen"}
-                </h3>
-              </div>
-              <p className="text-gray-600 mb-6">
-                Bist du sicher, dass du diese {deleteConfirm.type === "offer" ? "Angebot" : "Suchanzeige"} löschen
-                möchtest? Diese Aktion kann nicht rückgängig gemacht werden.
-              </p>
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="flex-1">
-                  Abbrechen
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    if (deleteConfirm.type === "offer") {
-                      handleDeleteOffer(deleteConfirm.id)
-                    } else {
-                      handleDeleteSearchAd(deleteConfirm.id)
-                    }
-                  }}
-                  className="flex-1"
-                >
-                  Löschen
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

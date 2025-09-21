@@ -19,16 +19,17 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined)
 
 export function UserProvider({ children }: { children: ReactNode }) {
+  const auth = useAuth()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const { user: authUser } = useAuth()
 
+  const authUser = auth?.user
   useEffect(() => {
     if (authUser) {
       // Map auth user to user context format
       setUser({
         id: authUser.id,
-        name: authUser.name || authUser.username || "Unknown User",
+        name: authUser.username || authUser.name || "Unknown User",
         email: authUser.email,
         username: authUser.username,
         avatar: authUser.avatar,

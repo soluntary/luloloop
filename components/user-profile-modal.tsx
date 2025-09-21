@@ -17,15 +17,19 @@ import {
   Eye,
   Send,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 import { useFriends } from "@/contexts/friends-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequests } from "@/contexts/requests-context"
+import { useUserData, useUserDisplayName, useUserAvatar } from "@/hooks/use-user-data"
 import { GameShelfViewer } from "./game-shelf-viewer"
+import { useMessages } from "@/contexts/messages-context"
+import { MessageComposerModal } from "./message-composer-modal"
 
 interface UserProfile {
   id: string
   name: string
+  username?: string
   email?: string
   bio?: string
   avatar?: string
@@ -50,11 +54,14 @@ interface UserProfileModalProps {
 }
 
 export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalProps) {
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(false)
+  const { user: profile, isLoading: loading } = useUserData(userId)
+  const displayName = useUserDisplayName(userId)
+  const avatarUrl = useUserAvatar(userId, profile?.email)
+
   const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null)
   const [shelfRequestStatus, setShelfRequestStatus] = useState<string | null>(null)
   const [showShelfViewer, setShowShelfViewer] = useState(false)
+  const [isMessageModalOpen, setIsMessageModalOpen] = useState(false)
   const {
     sendFriendRequest,
     acceptFriendRequest,
@@ -65,8 +72,11 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
   } = useFriends()
   const { user: currentUser } = useAuth()
   const { sendShelfAccessRequest, getShelfAccessStatus, canViewShelf } = useRequests()
+  const { sendMessage } = useMessages()
 
   const [friendshipStatus, setFriendshipStatus] = useState<"friends" | "pending" | "received" | "none">("none")
+
+  const supabase = createClient()
 
   useEffect(() => {
     if (profile) {
@@ -83,30 +93,6 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
       }
     }
   }, [profile, getFriendshipStatus, sentRequests, optimisticStatus])
-
-  useEffect(() => {
-    if (userId && isOpen) {
-      fetchUserProfile(userId)
-    }
-  }, [userId, isOpen])
-
-  const fetchUserProfile = async (id: string) => {
-    setLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, name, email, bio, avatar, website, instagram, twitter, created_at, settings")
-        .eq("id", id)
-        .single()
-
-      if (error) throw error
-      setProfile(data)
-    } catch (error) {
-      console.error("Error fetching user profile:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSendFriendRequest = async () => {
     if (!profile || !currentUser) return
@@ -163,6 +149,11 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
     setShowShelfViewer(true)
   }
 
+  const handleSendMessage = async () => {
+    if (!profile || !currentUser) return
+    setIsMessageModalOpen(true)
+  }
+
   const formatMemberSince = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString("de-DE", {
@@ -181,7 +172,7 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
 
   return (
     <>
-      <Dialog open={isOpen && !showShelfViewer} onOpenChange={onClose}>
+      <Dialog open={isOpen && !showShelfViewer && !isMessageModalOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Benutzerprofil</DialogTitle>
@@ -196,13 +187,13 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
               {/* Avatar and Name */}
               <div className="flex items-center space-x-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={profile.avatar || "/placeholder.svg"} alt={profile.name} />
+                  <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={profile.name} />
                   <AvatarFallback className="bg-teal-100 text-teal-700 text-lg">
-                    {profile.name?.charAt(0)?.toUpperCase() || "U"}
+                    {displayName?.charAt(0)?.toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="text-xl text-gray-900 font-thin">{profile.name}</h3>
+                  <h3 className="text-xl text-gray-900 font-thin">{displayName}</h3>
                   <div className="flex items-center text-sm text-gray-500 mt-1">
                     <CalendarDays className="h-4 w-4 mr-1" />
                     Mitglied seit {formatMemberSince(profile.created_at)}
@@ -318,15 +309,7 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
               {/* Action Buttons */}
               {!isCurrentUser && currentUser && (
                 <div className="flex space-x-2 pt-4 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 bg-transparent"
-                    onClick={() => {
-                      // TODO: Open message dialog
-                      console.log("Open message dialog for user:", profile.id)
-                    }}
-                  >
+                  <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={handleSendMessage}>
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Nachricht
                   </Button>
@@ -388,43 +371,27 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
       {showShelfViewer && profile && (
         <GameShelfViewer
           userId={profile.id}
-          userName={profile.name}
+          userName={displayName}
           isOpen={showShelfViewer}
           onClose={() => setShowShelfViewer(false)}
           onBack={() => setShowShelfViewer(false)}
         />
       )}
+
+      {profile && (
+        <MessageComposerModal
+          isOpen={isMessageModalOpen}
+          onClose={() => setIsMessageModalOpen(false)}
+          recipientId={profile.id}
+          recipientName={displayName}
+          recipientAvatar={avatarUrl || "/placeholder.svg"}
+          context={{
+            title: displayName,
+            image: avatarUrl || "/placeholder.svg",
+            type: "member",
+          }}
+        />
+      )}
     </>
   )
 }
-
-// function GameShelfViewer({
-//   userId,
-//   userName,
-//   isOpen,
-//   onClose,
-//   onBack,
-// }: {
-//   userId: string
-//   userName: string
-//   isOpen: boolean
-//   onClose: () => void
-//   onBack: () => void
-// }) {
-//   return (
-//     <Dialog open={isOpen} onOpenChange={onClose}>
-//       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-//         <DialogHeader>
-//           <DialogTitle className="flex items-center">
-//             <Button variant="ghost" size="sm" onClick={onBack} className="mr-2">
-//               ←
-//             </Button>
-//             <Library className="h-5 w-5 mr-2" />
-//             {userName}'s Spielregal
-//           </DialogTitle>
-//         </DialogHeader>
-//         <div className="text-center py-8 text-gray-500">Spielregal-Viewer wird implementiert...</div>
-//       </DialogContent>
-//     </Dialog>
-//   )
-// }

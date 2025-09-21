@@ -13,17 +13,21 @@ import {
   Users,
   Store,
   MessageCircle,
-  User,
   LogOut,
   Menu,
+  Settings,
   X,
   Info,
+  Star,
   ChevronDown,
   Calendar,
   UserCheck,
+  MessagesSquare,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useMessages } from "@/contexts/messages-context"
+import { useAvatar } from "@/contexts/avatar-context"
+import NotificationDropdown from "@/components/notification-dropdown"
 
 interface NavigationProps {
   currentPage?: string
@@ -44,9 +48,10 @@ interface NavItem {
   }
 }
 
-export function Navigation({ currentPage }: NavigationProps) {
+function Navigation({ currentPage }: NavigationProps) {
   const pathname = usePathname()
   const { user, signOut } = useAuth() || { user: null, signOut: null }
+  const { getAvatar } = useAvatar()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { getUnreadCount } = useMessages()
 
@@ -55,13 +60,14 @@ export function Navigation({ currentPage }: NavigationProps) {
     { href: "/library", label: "Ludothek", icon: LibraryBig, key: "library" },
     {
       label: "Community",
-      icon: Users,
+      icon: Star,
       key: "community",
       dropdown: {
         items: [
-          { href: "/groups?tab=communities", label: "Gruppen", icon: Users, key: "groups" },
-          { href: "/groups?tab=events", label: "Events", icon: Calendar, key: "events" },
-          { href: "/groups?tab=users", label: "Mitglieder", icon: UserCheck, key: "members" },
+          { href: "/ludo-gruppen", label: "Spielgruppen", icon: Users, key: "ludo-gruppen" },
+          { href: "/ludo-mitglieder", label: "Mitglieder", icon: UserCheck, key: "ludo-mitglieder" },
+          { href: "/ludo-events", label: "Events", icon: Calendar, key: "ludo-events" },
+          { href: "/ludo-forum", label: "Forum", icon: MessagesSquare, key: "ludo-forum" },
         ],
       },
     },
@@ -72,19 +78,20 @@ export function Navigation({ currentPage }: NavigationProps) {
 
   const publicNavItems: NavItem[] = [
     { href: "/", label: "Home", icon: Home, key: "home" },
-    { href: "/marketplace", label: "Spielemarkt", icon: Store, key: "spielemarkt" },
     {
       label: "Community",
-      icon: Users,
+      icon: Star,
       key: "community",
       dropdown: {
         items: [
-          { href: "/groups?tab=communities", label: "Gruppen", icon: Users, key: "groups" },
-          { href: "/groups?tab=events", label: "Events", icon: Calendar, key: "events" },
-          { href: "/groups?tab=users", label: "Mitglieder", icon: UserCheck, key: "members" },
+          { href: "/ludo-gruppen", label: "Spielgruppen", icon: Users, key: "ludo-gruppen" },
+          { href: "/ludo-mitglieder", label: "Mitglieder", icon: UserCheck, key: "ludo-mitglieder" },
+          { href: "/ludo-events", label: "Events", icon: Calendar, key: "ludo-events" },
+          { href: "/ludo-forum", label: "Forum", icon: MessagesSquare, key: "ludo-forum" },
         ],
       },
     },
+    { href: "/marketplace", label: "Spielemarkt", icon: Store, key: "spielemarkt" },
     { href: "/about", label: "Über uns", icon: Info, key: "about" },
   ]
 
@@ -101,7 +108,12 @@ export function Navigation({ currentPage }: NavigationProps) {
     if (!item.dropdown) return false
     return item.dropdown.items.some(
       (dropdownItem) =>
-        isActive(dropdownItem.href, dropdownItem.key) || (item.key === "community" && pathname.startsWith("/groups")),
+        isActive(dropdownItem.href, dropdownItem.key) ||
+        (item.key === "community" &&
+          (pathname.startsWith("/ludo-gruppen") ||
+            pathname.startsWith("/ludo-mitglieder") ||
+            pathname.startsWith("/ludo-events") ||
+            pathname.startsWith("/ludo-forum"))),
     )
   }
 
@@ -199,31 +211,34 @@ export function Navigation({ currentPage }: NavigationProps) {
 
           {/* User Menu / Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
+            {user && (
+              <>
+                <NotificationDropdown />
+              </>
+            )}
+
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 font-handwritten text-base transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent flex items-center space-x-2"
+                    className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 font-handwritten text-base transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent"
                   >
                     <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-teal-400">
                       <img
-                        src={
-                          user.avatar ||
-                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.email) || "/placeholder.svg"}`
-                        }
+                        src={getAvatar(user.id, user.email) || "/placeholder.svg"}
                         alt={user.username || user.name}
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <span className="text-gray-700">{user.username || user.name}</span>
+                    <span className="text-gray-700 font-medium">{user.username || user.name || "Benutzer"}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 font-body">
                   <DropdownMenuItem asChild>
                     <Link href="/profile" className="flex items-center space-x-2 cursor-pointer">
-                      <User className="w-4 h-4" />
-                      <span>Profil</span>
+                      <Settings className="w-4 h-4" />
+                      <span>Profileinstellungen</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center space-x-2 cursor-pointer">
@@ -237,7 +252,7 @@ export function Navigation({ currentPage }: NavigationProps) {
                 <Button
                   asChild
                   variant="outline"
-                  className="border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent flex items-center space-x-2"
+                  className="border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all bg-white flex items-center space-x-2"
                 >
                   <Link href="/login">
                     <LogIn className="w-4 h-4" />
@@ -258,7 +273,12 @@ export function Navigation({ currentPage }: NavigationProps) {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center space-x-2">
+            {user && (
+              <>
+                <NotificationDropdown className="p-1" />
+              </>
+            )}
             <Button variant="ghost" size="sm" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2">
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </Button>
@@ -344,15 +364,12 @@ export function Navigation({ currentPage }: NavigationProps) {
                       >
                         <div className="w-5 h-5 rounded-full overflow-hidden border border-teal-400">
                           <img
-                            src={
-                              user.avatar ||
-                              `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.email) || "/placeholder.svg"}`
-                            }
+                            src={getAvatar(user.id, user.email) || "/placeholder.svg"}
                             alt={user.username || user.name}
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        <span>Profil ({user.username || user.name})</span>
+                        <span>Profil ({user.username || user.name || "Benutzer"})</span>
                       </Button>
                     </Link>
                     <Button
@@ -372,7 +389,7 @@ export function Navigation({ currentPage }: NavigationProps) {
                     <Button
                       asChild
                       variant="outline"
-                      className="w-full border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent"
+                      className="w-full border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten bg-white"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <Link href="/login">
@@ -400,3 +417,6 @@ export function Navigation({ currentPage }: NavigationProps) {
     </nav>
   )
 }
+
+export { Navigation }
+export default Navigation

@@ -1,8 +1,9 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "./auth-context"
+import { withRateLimit, checkGlobalRateLimit } from "@/lib/supabase/rate-limit"
 
 interface ShelfAccessRequest {
   id: string
@@ -90,70 +91,119 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const supabase = createClient()
+
   // Load shelf access requests
   const loadShelfAccessRequests = useCallback(async () => {
     if (!user) return
 
-    try {
-      const { data, error } = await supabase
-        .from("shelf_access_requests")
-        .select(`
-          *,
-          requester:users!shelf_access_requests_requester_id_fkey(id, name, avatar),
-          owner:users!shelf_access_requests_owner_id_fkey(id, name, avatar)
-        `)
-        .or(`requester_id.eq.${user.id},owner_id.eq.${user.id}`)
-        .order("created_at", { ascending: false })
+    if (checkGlobalRateLimit()) {
+      console.log("[v0] Requests: Skipping shelf access requests load due to rate limiting")
+      return
+    }
 
-      if (error) throw error
-      setShelfAccessRequests(data || [])
-    } catch (err) {
+    try {
+      const data = await withRateLimit(async () => {
+        const { data, error } = await supabase
+          .from("shelf_access_requests")
+          .select(`
+            *,
+            requester:users!shelf_access_requests_requester_id_fkey(id, name, avatar),
+            owner:users!shelf_access_requests_owner_id_fkey(id, name, avatar)
+          `)
+          .or(`requester_id.eq.${user.id},owner_id.eq.${user.id}`)
+          .order("created_at", { ascending: false })
+
+        if (error) throw error
+        return data || []
+      }, [])
+
+      setShelfAccessRequests(data)
+    } catch (err: any) {
+      if (
+        err.message?.includes("Rate limited") ||
+        err.message?.includes("Too Many R") ||
+        err.message?.includes("Unexpected token") ||
+        err.name === "SyntaxError"
+      ) {
+        console.log("[v0] Shelf access requests loading rate limited, using empty fallback")
+        return
+      }
       console.error("Error loading shelf access requests:", err)
       setError("Fehler beim Laden der Spielregal-Anfragen")
     }
-  }, [user])
+  }, [user, supabase])
 
   // Load game interaction requests
   const loadGameInteractionRequests = useCallback(async () => {
     if (!user) return
 
-    try {
-      const { data, error } = await supabase
-        .from("game_interaction_requests")
-        .select(`
-          *,
-          requester:users!game_interaction_requests_requester_id_fkey(id, name, avatar),
-          owner:users!game_interaction_requests_owner_id_fkey(id, name, avatar),
-          game:games!game_interaction_requests_game_id_fkey(id, title, image),
-          offered_game:games!game_interaction_requests_offered_game_id_fkey(id, title, image)
-        `)
-        .or(`requester_id.eq.${user.id},owner_id.eq.${user.id}`)
-        .order("created_at", { ascending: false })
+    if (checkGlobalRateLimit()) {
+      console.log("[v0] Requests: Skipping game interaction requests load due to rate limiting")
+      return
+    }
 
-      if (error) throw error
-      setGameInteractionRequests(data || [])
-    } catch (err) {
+    try {
+      const data = await withRateLimit(async () => {
+        const { data, error } = await supabase
+          .from("game_interaction_requests")
+          .select(`
+            *,
+            requester:users!game_interaction_requests_requester_id_fkey(id, name, avatar),
+            owner:users!game_interaction_requests_owner_id_fkey(id, name, avatar),
+            game:games!game_interaction_requests_game_id_fkey(id, title, image),
+            offered_game:games!game_interaction_requests_offered_game_id_fkey(id, title, image)
+          `)
+          .or(`requester_id.eq.${user.id},owner_id.eq.${user.id}`)
+          .order("created_at", { ascending: false })
+
+        if (error) throw error
+        return data || []
+      }, [])
+
+      setGameInteractionRequests(data)
+    } catch (err: any) {
+      if (
+        err.message?.includes("Rate limited") ||
+        err.message?.includes("Too Many R") ||
+        err.message?.includes("Unexpected token") ||
+        err.name === "SyntaxError"
+      ) {
+        console.log("[v0] Game interaction requests loading rate limited, using empty fallback")
+        return
+      }
       console.error("Error loading game interaction requests:", err)
       setError("Fehler beim Laden der Spiel-Anfragen")
     }
-  }, [user])
+  }, [user, supabase])
 
   // Send shelf access request
   const sendShelfAccessRequest = async (ownerId: string, message?: string) => {
     if (!user) throw new Error("User not authenticated")
 
     try {
-      const { error } = await supabase.from("shelf_access_requests").insert([
-        {
-          requester_id: user.id,
-          owner_id: ownerId,
-          message: message || null,
-        },
-      ])
+      await withRateLimit(async () => {
+        const { error } = await supabase.from("shelf_access_requests").insert([
+          {
+            requester_id: user.id,
+            owner_id: ownerId,
+            message: message || null,
+          },
+        ])
 
-      if (error) throw error
+        if (error) throw error
+      })
+
       await loadShelfAccessRequests()
-    } catch (err) {
+    } catch (err: any) {
+      if (
+        err.message?.includes("Rate limited") ||
+        err.message?.includes("Too Many R") ||
+        err.message?.includes("Unexpected token") ||
+        err.name === "SyntaxError"
+      ) {
+        throw new Error("Zu viele Anfragen. Bitte versuchen Sie es später erneut.")
+      }
       console.error("Error sending shelf access request:", err)
       throw new Error("Fehler beim Senden der Spielregal-Anfrage")
     }
@@ -164,18 +214,24 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
     if (!user) throw new Error("User not authenticated")
 
     try {
-      const { error } = await supabase
-        .from("shelf_access_requests")
-        .update({
-          status,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", requestId)
-        .eq("owner_id", user.id)
+      await withRateLimit(async () => {
+        const { error } = await supabase
+          .from("shelf_access_requests")
+          .update({
+            status,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", requestId)
+          .eq("owner_id", user.id)
 
-      if (error) throw error
+        if (error) throw error
+      })
+
       await loadShelfAccessRequests()
-    } catch (err) {
+    } catch (err: any) {
+      if (err.message?.includes("Rate limited")) {
+        throw new Error("Zu viele Anfragen. Bitte versuchen Sie es später erneut.")
+      }
       console.error("Error responding to shelf access request:", err)
       throw new Error("Fehler beim Antworten auf die Spielregal-Anfrage")
     }
@@ -194,22 +250,33 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
     if (!user) throw new Error("User not authenticated")
 
     try {
-      const { error } = await supabase.from("game_interaction_requests").insert([
-        {
-          requester_id: user.id,
-          owner_id: data.ownerId,
-          game_id: data.gameId,
-          request_type: data.requestType,
-          message: data.message || null,
-          offered_game_id: data.offeredGameId || null,
-          offered_price: data.offeredPrice || null,
-          rental_duration_days: data.rentalDurationDays || null,
-        },
-      ])
+      await withRateLimit(async () => {
+        const { error } = await supabase.from("game_interaction_requests").insert([
+          {
+            requester_id: user.id,
+            owner_id: data.ownerId,
+            game_id: data.gameId,
+            request_type: data.requestType,
+            message: data.message || null,
+            offered_game_id: data.offeredGameId || null,
+            offered_price: data.offeredPrice || null,
+            rental_duration_days: data.rentalDurationDays || null,
+          },
+        ])
 
-      if (error) throw error
+        if (error) throw error
+      })
+
       await loadGameInteractionRequests()
-    } catch (err) {
+    } catch (err: any) {
+      if (
+        err.message?.includes("Rate limited") ||
+        err.message?.includes("Too Many R") ||
+        err.message?.includes("Unexpected token") ||
+        err.name === "SyntaxError"
+      ) {
+        throw new Error("Zu viele Anfragen. Bitte versuchen Sie es später erneut.")
+      }
       console.error("Error sending game interaction request:", err)
       throw new Error("Fehler beim Senden der Spiel-Anfrage")
     }
@@ -220,18 +287,24 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
     if (!user) throw new Error("User not authenticated")
 
     try {
-      const { error } = await supabase
-        .from("game_interaction_requests")
-        .update({
-          status,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", requestId)
-        .eq("owner_id", user.id)
+      await withRateLimit(async () => {
+        const { error } = await supabase
+          .from("game_interaction_requests")
+          .update({
+            status,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", requestId)
+          .eq("owner_id", user.id)
 
-      if (error) throw error
+        if (error) throw error
+      })
+
       await loadGameInteractionRequests()
-    } catch (err) {
+    } catch (err: any) {
+      if (err.message?.includes("Rate limited")) {
+        throw new Error("Zu viele Anfragen. Bitte versuchen Sie es später erneut.")
+      }
       console.error("Error responding to game interaction request:", err)
       throw new Error("Fehler beim Antworten auf die Spiel-Anfrage")
     }
@@ -271,12 +344,26 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
 
   // Refresh all requests
   const refreshRequests = useCallback(async () => {
+    if (checkGlobalRateLimit()) {
+      console.log("[v0] Requests: Skipping refresh due to rate limiting")
+      return
+    }
+
     setLoading(true)
     setError(null)
 
     try {
       await Promise.all([loadShelfAccessRequests(), loadGameInteractionRequests()])
-    } catch (err) {
+    } catch (err: any) {
+      if (
+        err.message?.includes("Rate limited") ||
+        err.message?.includes("Too Many R") ||
+        err.message?.includes("Unexpected token") ||
+        err.name === "SyntaxError"
+      ) {
+        console.log("[v0] Requests refresh rate limited")
+        return
+      }
       console.error("Error refreshing requests:", err)
       setError("Fehler beim Laden der Anfragen")
     } finally {

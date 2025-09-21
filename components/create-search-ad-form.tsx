@@ -1,17 +1,16 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Search, X, Upload, ImageIcon } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 
 interface CreateSearchAdFormProps {
   isOpen: boolean
@@ -28,6 +27,8 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
+
+  const supabase = createClient()
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -127,7 +128,9 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
           <DialogTitle className="font-handwritten text-3xl text-orange-800 font-bold">
             Suchanzeige erstellen
           </DialogTitle>
-          <p className="font-body text-orange-600/80 text-sm mt-2">Teile der Community mit, welches Spiel du suchst</p>
+          <p className="font-body text-orange-600/80 text-sm mt-2 text-center">
+            Teile der Community mit, welches Spiel du suchst
+          </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 px-2">
@@ -173,9 +176,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
               ) : (
                 <div className="border-2 border-dashed border-orange-200 rounded-xl p-6 text-center bg-white/50">
                   <ImageIcon className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-                  <p className="text-orange-600 text-sm mb-3">
-                    Lade ein Bild hoch
-                  </p>
+                  <p className="text-orange-600 text-sm mb-3">Lade ein Bild hoch</p>
                   <label className="cursor-pointer">
                     <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                     <Button
@@ -226,12 +227,11 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
           {/* Description Field */}
           <div className="space-y-2">
             <Label className="font-body text-orange-800 font-semibold text-base">Beschreibung</Label>
-            <Textarea
+            <RichTextEditor
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={setDescription}
               placeholder="Beschreibe genauer, was du suchst..."
-              className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/90 rounded-xl text-base shadow-sm transition-all duration-200 hover:shadow-md focus:shadow-md resize-none"
-              rows={4}
+              className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/90 rounded-xl text-base shadow-sm transition-all duration-200 hover:shadow-md focus:shadow-md"
             />
           </div>
 
@@ -240,7 +240,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
               type="button"
               variant="outline"
               onClick={handleClose}
-              className="flex-1 font-handwritten text-base h-12 border-2 border-orange-300 bg-white/80 text-orange-700 hover:bg-orange-50 hover:border-orange-400 rounded-xl shadow-sm transition-all duration-200 hover:shadow-md"
+              className="flex-1 font-handwritten text-base h-12 border-2 border-orange-300 bg-white/80 text-orange-700 hover:bg-orange-50 hover:border-orange-400 rounded-xl shadow-sm hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
               disabled={isSubmitting}
             >
               <X className="w-4 h-4 mr-2" />

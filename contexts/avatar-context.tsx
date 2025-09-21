@@ -1,0 +1,85 @@
+"use client"
+
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/contexts/auth-context"
+
+interface AvatarContextType {
+  avatarCache: Map<string, string>
+  updateAvatar: (userId: string, avatarUrl: string) => void
+  getAvatar: (userId: string, fallbackEmail?: string) => string
+}
+
+const AvatarContext = createContext<AvatarContextType | undefined>(undefined)
+
+export function AvatarProvider({ children }: { children: ReactNode }) {
+  const [avatarCache, setAvatarCache] = useState<Map<string, string>>(new Map())
+  const { user } = useAuth()
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
+
+  useEffect(() => {
+    try {
+      const client = createClient()
+      setSupabase(client)
+    } catch (error) {
+      console.error("[v0] Failed to initialize Supabase client in AvatarProvider:", error)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!user || !supabase) return
+
+    const subscription = supabase
+      .channel("avatar-updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "users",
+          filter: `avatar=not.is.null`,
+        },
+        (payload) => {
+          console.log("[v0] Avatar update received:", payload)
+          const { id, avatar } = payload.new as { id: string; avatar: string }
+          if (avatar) {
+            setAvatarCache((prev) => new Map(prev.set(id, avatar)))
+          }
+        },
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [user, supabase])
+
+  const updateAvatar = (userId: string, avatarUrl: string) => {
+    setAvatarCache((prev) => new Map(prev.set(userId, avatarUrl)))
+  }
+
+  const getAvatar = (userId: string, fallbackEmail?: string) => {
+    const cachedAvatar = avatarCache.get(userId)
+    if (cachedAvatar) return cachedAvatar
+
+    // Generate fallback avatar
+    const seed = fallbackEmail || userId
+    return `https://api.dicebear.com/7.x/croodles/svg?seed=${encodeURIComponent(seed)}`
+  }
+
+  const value = {
+    avatarCache,
+    updateAvatar,
+    getAvatar,
+  }
+
+  return <AvatarContext.Provider value={value}>{children}</AvatarContext.Provider>
+}
+
+export function useAvatar() {
+  const context = useContext(AvatarContext)
+  if (context === undefined) {
+    throw new Error("useAvatar must be used within an AvatarProvider")
+  }
+  return context
+}

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Edit, X, Save } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 
 interface SearchAd {
   id: string
@@ -34,6 +34,8 @@ export function EditSearchAdForm({ isOpen, onClose, onSuccess, searchAd }: EditS
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
+
+  const supabase = createClient()
 
   useEffect(() => {
     if (searchAd) {

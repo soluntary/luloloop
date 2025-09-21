@@ -58,15 +58,30 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
+      console.log("[v0] Starting registration process...")
       await signUp(email, password, fullName, username)
-      setSuccess("Registrierung erfolgreich! Bitte überprüfen Sie Ihre E-Mails zur Bestätigung.")
+      console.log("[v0] Registration completed successfully")
+
+      setSuccess(
+        "Registrierung erfolgreich! Bitte überprüfen Sie Ihre E-Mails zur Bestätigung. Falls Sie keine E-Mail erhalten, prüfen Sie Ihren Spam-Ordner.",
+      )
 
       // Redirect to login after successful registration
       setTimeout(() => {
         router.push("/login")
-      }, 2000)
+      }, 3000) // Increased timeout to give user time to read message
     } catch (error: any) {
-      setError(error.message || "Ein Fehler ist aufgetreten.")
+      console.error("[v0] Registration failed:", error)
+
+      if (error.message?.includes("E-Mail-Bestätigung")) {
+        setError(error.message)
+      } else if (error.message?.includes("bereits")) {
+        setError(
+          "Ein Benutzer mit dieser E-Mail-Adresse existiert bereits. Bitte verwenden Sie eine andere E-Mail-Adresse oder melden Sie sich an.",
+        )
+      } else {
+        setError(error.message || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.")
+      }
     } finally {
       setLoading(false)
     }

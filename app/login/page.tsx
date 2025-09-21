@@ -21,33 +21,48 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const { signIn, user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, signIn } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (user) {
+    if (user && !authLoading) {
       console.log("[v0] User authenticated, redirecting to home")
-      router.push("/")
+      router.replace("/")
     }
-  }, [user, router])
+  }, [user, authLoading, router])
 
-  useEffect(() => {
-    if (!authLoading && loading) {
-      setLoading(false)
-    }
-  }, [authLoading, loading])
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-body">Lade Anwendung...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (user) {
+    return null
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (loading) return
+
     setError("")
     setLoading(true)
 
     try {
+      console.log("[v0] Using auth context signIn for:", email)
       await signIn(email, password)
-      console.log("[v0] SignIn API call completed, waiting for auth state update...")
+      console.log("[v0] SignIn completed, redirecting...")
+      router.replace("/")
     } catch (error: any) {
       console.log("[v0] SignIn failed:", error.message)
       setError(error.message || "Anmeldung fehlgeschlagen.")
+    } finally {
       setLoading(false)
     }
   }
@@ -77,6 +92,7 @@ export default function LoginPage() {
                     required
                     className="font-body"
                     placeholder="deine@email.com"
+                    disabled={loading}
                   />
                 </div>
 
@@ -93,6 +109,7 @@ export default function LoginPage() {
                       required
                       className="font-body pr-10"
                       placeholder="Dein Passwort"
+                      disabled={loading}
                     />
                     <button
                       type="button"
@@ -116,7 +133,7 @@ export default function LoginPage() {
                   className="w-full bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
                   disabled={loading}
                 >
-                  {loading ? "Anmelden..." : "Anmelden"}
+                  {loading ? "Anmeldung läuft..." : "Anmelden"}
                 </Button>
               </form>
 

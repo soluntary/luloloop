@@ -58,9 +58,12 @@ function MessagesContent() {
     const conversationKey = `${conversationPartnerId}-${message.game_id || "no-game"}-${message.offer_type}`
 
     if (!acc[conversationKey]) {
+      const partnerUserData = isFromCurrentUser ? message.to_user : message.from_user
+      const partnerName = partnerUserData?.username || partnerUserData?.name || "Unbekannter Benutzer"
+
       acc[conversationKey] = {
         messages: [],
-        partnerName: isFromCurrentUser ? "Unknown User" : "Unknown User", // Will be populated from actual user data
+        partnerName: partnerName,
         latestMessage: null,
         partnerId: conversationPartnerId, // Store actual partner ID for messaging
         gameTitle: message.game_title,
@@ -120,6 +123,10 @@ function MessagesContent() {
         return "Suche Leihe"
       case "search_trade":
         return "Suche Tausch"
+      case "event_inquiry":
+        return "Event-Anfrage"
+      case "group_inquiry":
+        return "Gruppen-Anfrage"
       default:
         return type
     }
@@ -137,6 +144,10 @@ function MessagesContent() {
       case "search_rent":
       case "search_trade":
         return "bg-purple-400"
+      case "event_inquiry":
+        return "bg-blue-400"
+      case "group_inquiry":
+        return "bg-green-400"
       default:
         return "bg-gray-400"
     }
@@ -290,7 +301,7 @@ function MessagesContent() {
                                 {getOfferTypeText(latestMessage.offer_type)}
                               </Badge>
                               <span className="text-xs md:text-sm text-gray-600 font-body truncate">
-                                mit{" "}
+                                von{" "}
                                 <UserLink userId={data.partnerId} className="text-teal-600 hover:text-teal-700">
                                   {data.partnerName}
                                 </UserLink>

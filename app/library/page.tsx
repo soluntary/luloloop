@@ -16,6 +16,7 @@ import {
   ShoppingCart,
   Upload,
   Repeat,
+  Dices,
   Camera,
   Info,
   ArrowRightFromLine,
@@ -343,17 +344,13 @@ function LibraryContent() {
       // Spieldauer Filter
       const matchesDuration = !filters.duration || game.duration === filters.duration
 
-      // Altersempfehlung Filter
-      const matchesAge = !filters.age || game.age === game.age
+      const matchesAge = !filters.age || game.age === filters.age
 
-      // Sprache Filter
-      const matchesLanguage = !filters.language || game.language === game.language
+      const matchesLanguage = !filters.language || game.language === filters.language
 
-      // Kategorie Filter (falls vorhanden)
-      const matchesCategory = !filters.category || game.category === game.category
+      const matchesCategory = !filters.category || game.category === filters.category
 
-      // Typus Filter
-      const matchesType = !filters.type || game.type === game.type
+      const matchesType = !filters.type || game.type === filters.type
 
       return (
         matchesSearch &&
@@ -1058,9 +1055,7 @@ function LibraryContent() {
               </div>
             )}
           </h1>
-          <p className="text-xl text-gray-600 transform rotate-1 font-body">
-            Verwalte deine Spiele und biete sie anderen an!
-          </p>
+          <p className="text-xl text-gray-600 transform rotate-1 font-body">Verwalte deine Spielesammlung</p>
         </div>
 
         {/* Add Game Dialog */}
@@ -1072,7 +1067,7 @@ function LibraryContent() {
                 Neues Spiel hinzufügen
               </DialogTitle>
               <p className="text-sm text-gray-500 text-center font-body">
-                Füge ein neues Spiel zu deiner Bibliothek hinzu
+                Füge ein neues Spiel zu deinem Spieleregal hinzu
               </p>
             </DialogHeader>
             <form onSubmit={handleAddGameSubmit} className="space-y-6">
@@ -2153,7 +2148,7 @@ function LibraryContent() {
                     <PictureInPicture className="w-10 h-10 text-gray-500 mx-auto mb-4" />
                     <h3 className="text-xl font-bold text-gray-700 mb-2 font-handwritten">Spiel auswählen</h3>
                     <p className="text-gray-500 font-body">
-                      Wähle ein Spiel aus deiner Bibliothek, um Details anzuzeigen
+                      Wähle ein Spiel aus deinem Spieleregal, um Details anzuzeigen
                     </p>
                   </div>
                 </CardContent>
@@ -2550,7 +2545,7 @@ function LibraryContent() {
               {/* Spieldetails Sektion */}
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-xl border border-orange-200">
                 <h3 className="font-handwritten text-lg text-orange-700 mb-4 flex items-center gap-2">
-                  <Users className="w-5 h-5" />
+                  <Dices className="w-5 h-5" />
                   Spieldetails
                 </h3>
                 <div className="grid grid-cols-1 gap-4">
@@ -2632,7 +2627,7 @@ function LibraryContent() {
             <DialogTitle className="font-handwritten text-2xl text-center">Spiel löschen?</DialogTitle>
             <DialogDescription className="text-center font-body">
               Bist du sicher, dass du diese <span className="font-bold">{gameToDelete?.title}</span> aus deiner
-              Bibliothek entfernen möchtest?
+              Bibliothek entfernen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end space-x-2">

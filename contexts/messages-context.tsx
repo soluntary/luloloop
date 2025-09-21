@@ -1,8 +1,9 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
+import { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react"
+import { createClient } from "@/lib/supabase/client"
 import { useUser } from "@/contexts/user-context"
+import { withRateLimit, checkGlobalRateLimit } from "@/lib/supabase/rate-limit"
 
 interface Message {
   id: string
@@ -16,6 +17,8 @@ interface Message {
   read: boolean
   game_image: string
   delivery_preference?: string
+  from_user?: { id: string; name: string; username: string }
+  to_user?: { id: string; name: string; username: string }
 }
 
 interface MessagesContextType {
@@ -34,6 +37,8 @@ interface MessagesContextType {
   getUnreadCount: () => number
   getUserMessages: () => Message[]
   refreshMessages: () => Promise<void>
+  getOfferTypeText: (type: string) => string
+  getOfferTypeColor: (type: string) => string
 }
 
 const MessagesContext = createContext<MessagesContextType | undefined>(undefined)
@@ -43,6 +48,70 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false)
   const { user } = useUser()
 
+  const supabase = createClient()
+
+  const refreshMessages = useCallback(async () => {
+    if (!user) return
+
+    if (checkGlobalRateLimit()) {
+      console.log("[v0] Messages: Skipping refresh due to rate limiting")
+      setMessages([])
+      setIsLoaded(true)
+      return
+    }
+
+    try {
+      const result = await new Promise((resolve) => {
+        withRateLimit(
+          async () => {
+            try {
+              const { data, error } = await supabase
+                .from("messages")
+                .select(`
+                  *,
+                  from_user:users!messages_from_user_id_fkey(id, name, username),
+                  to_user:users!messages_to_user_id_fkey(id, name, username)
+                `)
+                .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
+                .order("created_at", { ascending: false })
+
+              if (error) {
+                console.error("Error loading messages:", error)
+                return []
+              }
+
+              return data || []
+            } catch (innerError) {
+              const errorMessage = innerError instanceof Error ? innerError.message : String(innerError)
+              if (
+                innerError instanceof SyntaxError ||
+                errorMessage.includes("JSON") ||
+                errorMessage.includes("Too Many R") ||
+                errorMessage.includes("Unexpected token") ||
+                errorMessage.includes("rate limit") ||
+                errorMessage.includes("429")
+              ) {
+                console.log("[v0] Messages: JSON/Rate limit error caught, returning empty array")
+                return []
+              }
+              throw innerError
+            }
+          },
+          [], // Fallback to empty array when rate limited
+        )
+          .then(resolve)
+          .catch(() => resolve([]))
+      })
+
+      setMessages(Array.isArray(result) ? result : [])
+      setIsLoaded(true)
+    } catch (error) {
+      console.log("[v0] Messages: Final error handler activated, using empty fallback")
+      setMessages([])
+      setIsLoaded(true)
+    }
+  }, [user, supabase])
+
   // Load messages from database on mount and when user changes
   useEffect(() => {
     if (user) {
@@ -51,39 +120,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       setMessages([])
       setIsLoaded(true)
     }
-  }, [user])
-
-  const refreshMessages = async () => {
-    if (!user) return
-
-    try {
-      const { data, error } = await supabase
-        .from("messages")
-        .select("*")
-        .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.error("Error loading messages:", error)
-        setIsLoaded(true)
-        return
-      }
-
-      setMessages(data || [])
-      setIsLoaded(true)
-    } catch (error) {
-      if (error instanceof SyntaxError && error.message.includes("JSON")) {
-        console.error("JSON parsing error in messages - likely API rate limit or server error:", error.message)
-        // Set a user-friendly error state instead of crashing
-        setMessages([])
-        setIsLoaded(true)
-      } else {
-        console.error("Error loading messages:", error)
-        setMessages([])
-        setIsLoaded(true)
-      }
-    }
-  }
+  }, [user, refreshMessages])
 
   const sendMessage = async (messageData: {
     to_user_id: string
@@ -96,39 +133,67 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
   }) => {
     if (!user) throw new Error("User not authenticated")
 
-    try {
-      const { data, error } = await supabase
-        .from("messages")
-        .insert({
-          from_user_id: user.id,
-          to_user_id: messageData.to_user_id,
-          message: messageData.message,
-          game_id: messageData.game_id,
-          game_title: messageData.game_title,
-          game_image: messageData.game_image,
-          offer_type: messageData.offer_type,
-          read: false,
-          delivery_preference: messageData.delivery_preference,
-        })
-        .select()
-        .single()
+    if (checkGlobalRateLimit()) {
+      throw new Error("Service temporarily unavailable. Please try again in a moment.")
+    }
 
-      if (error) {
-        console.error("Error sending message:", error)
-        throw error
-      }
+    try {
+      const result = await new Promise((resolve, reject) => {
+        withRateLimit(async () => {
+          try {
+            const { data, error } = await supabase
+              .from("messages")
+              .insert({
+                from_user_id: user.id,
+                to_user_id: messageData.to_user_id,
+                message: messageData.message,
+                game_id: messageData.game_id,
+                game_title: messageData.game_title,
+                game_image: messageData.game_image,
+                offer_type: messageData.offer_type,
+                read: false,
+                delivery_preference: messageData.delivery_preference,
+              })
+              .select()
+              .single()
+
+            if (error) {
+              console.error("Error sending message:", error)
+              throw error
+            }
+
+            return data
+          } catch (innerError) {
+            const errorMessage = innerError instanceof Error ? innerError.message : String(innerError)
+            if (
+              innerError instanceof SyntaxError ||
+              errorMessage.includes("JSON") ||
+              errorMessage.includes("Too Many R") ||
+              errorMessage.includes("Unexpected token") ||
+              errorMessage.includes("rate limit") ||
+              errorMessage.includes("429")
+            ) {
+              console.log("[v0] Messages: Send blocked due to rate limiting")
+              throw new Error("Service temporarily unavailable. Please try again in a moment.")
+            }
+            throw innerError
+          }
+        })
+          .then(resolve)
+          .catch(reject)
+      })
 
       // Add the new message to local state
-      if (data) {
-        setMessages((prev) => [data, ...prev])
+      if (result) {
+        setMessages((prev) => [result, ...prev])
       }
     } catch (error) {
-      if (error instanceof SyntaxError && error.message.includes("JSON")) {
-        console.error("JSON parsing error when sending message - likely API rate limit:", error.message)
-        throw new Error("Unable to send message due to server error. Please try again later.")
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      if (errorMessage.includes("Service temporarily unavailable")) {
+        throw error
       } else {
         console.error("Error sending message:", error)
-        throw error
+        throw new Error("Failed to send message. Please try again.")
       }
     }
   }
@@ -136,20 +201,27 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
   const markAsRead = async (messageId: string) => {
     if (!user) return
 
+    if (checkGlobalRateLimit()) {
+      console.log("[v0] Messages: Skipping mark as read due to rate limiting")
+      return
+    }
+
     try {
-      const { error } = await supabase
-        .from("messages")
-        .update({ read: true })
-        .eq("id", messageId)
-        .eq("to_user_id", user.id) // Only allow marking own messages as read
+      await withRateLimit(async () => {
+        const { error } = await supabase
+          .from("messages")
+          .update({ read: true })
+          .eq("id", messageId)
+          .eq("to_user_id", user.id)
 
-      if (error) {
-        console.error("Error marking message as read:", error)
-        return
-      }
+        if (error) {
+          console.error("Error marking message as read:", error)
+          return
+        }
 
-      // Update local state
-      setMessages((prev) => prev.map((msg) => (msg.id === messageId ? { ...msg, read: true } : msg)))
+        // Update local state
+        setMessages((prev) => prev.map((msg) => (msg.id === messageId ? { ...msg, read: true } : msg)))
+      })
     } catch (error) {
       console.error("Error marking message as read:", error)
     }
@@ -158,20 +230,27 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
   const deleteMessage = async (messageId: string) => {
     if (!user) return
 
+    if (checkGlobalRateLimit()) {
+      console.log("[v0] Messages: Skipping delete due to rate limiting")
+      return
+    }
+
     try {
-      const { error } = await supabase
-        .from("messages")
-        .delete()
-        .eq("id", messageId)
-        .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`) // Only allow deleting own messages
+      await withRateLimit(async () => {
+        const { error } = await supabase
+          .from("messages")
+          .delete()
+          .eq("id", messageId)
+          .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
 
-      if (error) {
-        console.error("Error deleting message:", error)
-        return
-      }
+        if (error) {
+          console.error("Error deleting message:", error)
+          return
+        }
 
-      // Update local state
-      setMessages((prev) => prev.filter((msg) => msg.id !== messageId))
+        // Update local state
+        setMessages((prev) => prev.filter((msg) => msg.id !== messageId))
+      })
     } catch (error) {
       console.error("Error deleting message:", error)
     }
@@ -189,6 +268,50 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
   }
 
+  const getOfferTypeText = (type: string) => {
+    switch (type) {
+      case "lend":
+        return "Verleihen"
+      case "trade":
+        return "Tauschen"
+      case "sell":
+        return "Verkaufen"
+      case "search_buy":
+        return "Suche Kauf"
+      case "search_rent":
+        return "Suche Leihe"
+      case "search_trade":
+        return "Suche Tausch"
+      case "event_inquiry":
+        return "Event-Anfrage"
+      case "group_inquiry":
+        return "Gruppen-Anfrage"
+      default:
+        return type
+    }
+  }
+
+  const getOfferTypeColor = (type: string) => {
+    switch (type) {
+      case "lend":
+        return "bg-teal-400"
+      case "trade":
+        return "bg-orange-400"
+      case "sell":
+        return "bg-pink-400"
+      case "search_buy":
+      case "search_rent":
+      case "search_trade":
+        return "bg-purple-400"
+      case "event_inquiry":
+        return "bg-blue-400"
+      case "group_inquiry":
+        return "bg-green-400"
+      default:
+        return "bg-gray-400"
+    }
+  }
+
   return (
     <MessagesContext.Provider
       value={{
@@ -199,6 +322,8 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         getUnreadCount,
         getUserMessages,
         refreshMessages,
+        getOfferTypeText,
+        getOfferTypeColor,
       }}
     >
       {children}

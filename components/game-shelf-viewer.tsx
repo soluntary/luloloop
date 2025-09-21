@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Library, Repeat, ShoppingCart, MapPin, Calendar, Gamepad2 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { ArrowLeft, Library, Repeat, ShoppingCart, Calendar, Gamepad2 } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequests } from "@/contexts/requests-context"
 
@@ -48,6 +48,8 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
   const { sendGameInteractionRequest } = useRequests()
 
   const FALLBACK_IMAGE = "/images/ludoloop-game-placeholder.png"
+
+  const supabase = createClient()
 
   useEffect(() => {
     if (userId && isOpen) {
@@ -277,8 +279,8 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
                 {selectedGame.style && (
                   <div className="flex items-center text-sm text-gray-600">
                     <div className="flex items-start">
-                    <span className="text-sm text-gray-900 font-semibold mr-1">Typus:</span>
-                    <span>{selectedGame.style}</span>
+                      <span className="text-sm text-gray-900 font-semibold mr-1">Typus:</span>
+                      <span>{selectedGame.style}</span>
                     </div>
                   </div>
                 )}
