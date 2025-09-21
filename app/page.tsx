@@ -20,14 +20,12 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
-import { LeaderboardAd, MediumRectangleAd } from "@/components/advertising/ad-placements"
 import "@/styles/font-handwritten.css"
 import "@/styles/font-body.css"
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
-    
       {/* Navigation */}
       <Navigation currentPage="home" />
       {/* Hero Section */}
@@ -230,8 +228,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex items-start space-x-4 p-6 bg-white rounded-2xl shadow-sm transform -rotate-1 hover:rotate-0 transition-all hover:shadow-md">
-            <div className="w-12 h-12 bg-green-400 rounded-full flex items-center justify-center flex-shrink-0 transform rotate-12">
+          <div className="flex items-start space-x-4 p-6 bg-white rounded-2xl shadow-sm transform rotate-1 hover:rotate-0 transition-all hover:shadow-md">
+            <div className="w-12 h-12 bg-green-400 rounded-full flex items-center justify-center flex-shrink-0 transform -rotate-12">
               <Leaf className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -255,7 +253,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex items-start space-x-4 p-6 bg-white rounded-2xl shadow-sm transform -rotate-1 hover:rotate-0 transition-all hover:shadow-md">
+          <div className="flex items-start space-x-4 p-6 bg-white rounded-2xl shadow-sm transform rotate-1 hover:rotate-0 transition-all hover:shadow-md">
             <div className="w-12 h-12 bg-blue-400 rounded-full flex items-center justify-center flex-shrink-0 transform rotate-12">
               <Coins className="w-6 h-6 text-white" />
             </div>
@@ -289,10 +287,6 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
-
-      <div className="container mx-auto px-4 py-4">
-        <LeaderboardAd />
-      </div>
     </div>
   )
 }

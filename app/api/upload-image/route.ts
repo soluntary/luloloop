@@ -3,9 +3,9 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
   try {
-    const token = process.env.BLOB_READ_WRITE_TOKEN="vercel_blob_rw_v5YQMbzAWvoV5oVq_h6l3nwq4BXZuN1fm6HlG1Ufpkcm1U9" || process.env.ludoloop_READ_WRITE_TOKEN
+    const token = process.env.BLOB_READ_WRITE_TOKEN || process.env.ludoloop_READ_WRITE_TOKEN
     console.log("[v0] Token available:", !!token)
-    console.log("[v0] Checking BLOB_READ_WRITE_TOKEN:", !!process.env.BLOB_READ_WRITE_TOKEN="vercel_blob_rw_v5YQMbzAWvoV5oVq_h6l3nwq4BXZuN1fm6HlG1Ufpkcm1U9")
+    console.log("[v0] Checking BLOB_READ_WRITE_TOKEN:", !!process.env.BLOB_READ_WRITE_TOKEN)
     console.log("[v0] Checking ludoloop_READ_WRITE_TOKEN:", !!process.env.ludoloop_READ_WRITE_TOKEN)
 
     if (!token) {
