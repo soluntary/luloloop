@@ -27,7 +27,6 @@
     "postgres": "^3.4.3"
   },
   "devDependencies": {
-    "@types/postgres": "^3.0.4",
     "drizzle-kit": "^0.20.9",
     "eslint": "^8.57.1",
     "tsup": "^8.0.2",
