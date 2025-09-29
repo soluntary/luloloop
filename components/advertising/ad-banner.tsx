@@ -57,7 +57,7 @@ export function AdBanner({ format, ads, rotationInterval = 8000, className }: Ad
   return (
     <div
       className={cn(
-        "relative overflow-hidden bg-muted/30 border border-border/50 rounded-lg",
+        "relative overflow-hidden bg-muted/30 border border/50 rounded-lg",
         "hover:shadow-md transition-shadow duration-200",
         className,
       )}

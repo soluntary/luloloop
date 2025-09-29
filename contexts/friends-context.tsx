@@ -427,6 +427,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
   const getFriendshipStatus = (userId: string): "friends" | "pending" | "received" | "none" => {
     if (!user?.id || userId === user.id) {
+      console.log(`[v0] FRIENDS: Status check for ${userId} - no user or same user, returning none`)
       return "none"
     }
 
@@ -440,20 +441,27 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
       hasReceivedRequest: !!receivedRequest,
       sentRequestsTotal: sentRequests.length,
       receivedRequestsTotal: pendingRequests.length,
+      friendsData: friends.map((f) => ({ id: f.id, name: f.name })),
+      sentRequestsData: sentRequests.map((r) => ({ id: r.id, to: r.to_user_id, status: r.status })),
+      receivedRequestsData: pendingRequests.map((r) => ({ id: r.id, from: r.from_user_id, status: r.status })),
     })
 
     if (isFriend) {
+      console.log(`[v0] FRIENDS: User ${userId} is a friend - returning "friends"`)
       return "friends"
     }
 
     if (sentRequest) {
+      console.log(`[v0] FRIENDS: Found sent request to ${userId} - returning "pending"`)
       return "pending"
     }
 
     if (receivedRequest) {
+      console.log(`[v0] FRIENDS: Found received request from ${userId} - returning "received"`)
       return "received"
     }
 
+    console.log(`[v0] FRIENDS: No relationship found with ${userId} - returning "none"`)
     return "none"
   }
 

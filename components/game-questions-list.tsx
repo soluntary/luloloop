@@ -210,7 +210,7 @@ export function GameQuestionsList({ gameId, gameTitle, limit }: GameQuestionsLis
 
   if (loading) {
     return (
-      <Card className="bg-card border-border">
+      <Card className="bg-card border">
         <CardContent className="flex items-center justify-center py-8">
           <div className="text-muted-foreground">Fragen werden geladen...</div>
         </CardContent>
@@ -245,7 +245,7 @@ export function GameQuestionsList({ gameId, gameTitle, limit }: GameQuestionsLis
 
       {/* Questions List */}
       {questions.length === 0 ? (
-        <Card className="bg-card border-border">
+        <Card className="bg-card border">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <HelpCircle className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">Noch keine Fragen</h3>
@@ -262,7 +262,7 @@ export function GameQuestionsList({ gameId, gameTitle, limit }: GameQuestionsLis
             const isExpanded = expandedQuestion === question.id
 
             return (
-              <Card key={question.id} className="bg-card border-border hover:shadow-md transition-shadow">
+              <Card key={question.id} className="bg-card border hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
                     <Avatar className="h-10 w-10">

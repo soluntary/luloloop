@@ -79,7 +79,7 @@ export default function GameForumPage() {
       <div className="min-h-screen bg-background">
         <Navigation currentPage="forum" />
         <div className="container mx-auto px-4 py-8">
-          <Card className="bg-card border-border">
+          <Card className="bg-card border">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <h3 className="text-lg font-medium text-foreground mb-2">Spiel nicht gefunden</h3>
               <p className="text-muted-foreground mb-4">Das angeforderte Spiel konnte nicht gefunden werden.</p>
@@ -107,7 +107,7 @@ export default function GameForumPage() {
         </Button>
 
         {/* Game Header */}
-        <Card className="bg-card border-border mb-8">
+        <Card className="bg-card border mb-8">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-6">
               <div className="w-full md:w-48 h-48 bg-muted rounded-lg overflow-hidden">

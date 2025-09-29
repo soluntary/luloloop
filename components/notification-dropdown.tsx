@@ -9,15 +9,23 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { Bell, MessageCircle, Users, MessageSquare, BookOpen } from "lucide-react"
+import { Bell, MessageCircle, Users, MessageSquare, BookOpen, Calendar } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import { formatDistanceToNow } from "date-fns"
 import { de } from "date-fns/locale"
+import EventInvitationsDialog from "./event-invitations-dialog"
 
 interface Notification {
   id: string
-  type: "friend_request" | "friend_accepted" | "forum_reply" | "comment_reply" | "game_shelf_request" | "message"
+  type:
+    | "friend_request"
+    | "friend_accepted"
+    | "forum_reply"
+    | "comment_reply"
+    | "game_shelf_request"
+    | "message"
+    | "event_invitation"
   title: string
   message: string
   created_at: string
@@ -34,11 +42,11 @@ export default function NotificationDropdown({ className }: NotificationDropdown
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
+  const [showEventInvitations, setShowEventInvitations] = useState(false)
 
   useEffect(() => {
     if (user) {
       loadNotifications()
-      // Poll for new notifications every 30 seconds
       const interval = setInterval(loadNotifications, 30000)
       return () => clearInterval(interval)
     }
@@ -62,6 +70,7 @@ export default function NotificationDropdown({ className }: NotificationDropdown
           data
         `)
         .eq("user_id", user.id)
+        .eq("read", false)
         .order("created_at", { ascending: false })
         .limit(20)
 
@@ -73,12 +82,11 @@ export default function NotificationDropdown({ className }: NotificationDropdown
       const processedNotifications =
         data?.map((notification) => ({
           ...notification,
-          // Extract any additional data from the jsonb data field if needed
           related_id: notification.data?.related_id || null,
         })) || []
 
       setNotifications(processedNotifications)
-      setUnreadCount(processedNotifications.filter((n) => !n.read).length || 0)
+      setUnreadCount(processedNotifications.length || 0)
     } catch (error) {
       console.error("Error loading notifications:", error)
     }
@@ -91,8 +99,7 @@ export default function NotificationDropdown({ className }: NotificationDropdown
       const supabase = await createClient()
       await supabase.from("notifications").update({ read: true }).eq("id", notificationId).eq("user_id", user.id)
 
-      // Update local state
-      setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)))
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId))
       setUnreadCount((prev) => Math.max(0, prev - 1))
     } catch (error) {
       console.error("Error marking notification as read:", error)
@@ -106,8 +113,7 @@ export default function NotificationDropdown({ className }: NotificationDropdown
       const supabase = await createClient()
       await supabase.from("notifications").update({ read: true }).eq("user_id", user.id).eq("read", false)
 
-      // Update local state
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+      setNotifications([])
       setUnreadCount(0)
     } catch (error) {
       console.error("Error marking all notifications as read:", error)
@@ -126,6 +132,8 @@ export default function NotificationDropdown({ className }: NotificationDropdown
         return <BookOpen className="w-4 h-4 text-purple-500" />
       case "message":
         return <MessageCircle className="w-4 h-4 text-orange-500" />
+      case "event_invitation":
+        return <Calendar className="w-4 h-4 text-teal-500" />
       default:
         return <Bell className="w-4 h-4 text-gray-500" />
     }
@@ -134,7 +142,6 @@ export default function NotificationDropdown({ className }: NotificationDropdown
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id)
 
-    // Navigate to relevant page based on notification type
     switch (notification.type) {
       case "friend_request":
         window.location.href = "/ludo-mitglieder"
@@ -153,81 +160,95 @@ export default function NotificationDropdown({ className }: NotificationDropdown
       case "message":
         window.location.href = "/messages"
         break
+      case "event_invitation":
+        setShowEventInvitations(true)
+        break
       default:
         break
     }
     setIsOpen(false)
   }
 
+  const handleInvitationUpdate = () => {
+    loadNotifications()
+  }
+
   if (!user) return null
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className={`relative p-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 transform hover:scale-105 hover:-rotate-1 transition-all ${className}`}
-        >
-          <Bell className="w-5 h-5" />
-          {unreadCount > 0 && (
-            <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
-              {unreadCount > 99 ? "99+" : unreadCount}
+    <>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className={`relative p-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 transform hover:scale-105 hover:-rotate-1 transition-all ${className}`}
+          >
+            <Bell className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </div>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+          <div className="flex items-center justify-between p-3 border-b">
+            <h3 className="font-semibold text-sm">Benachrichtigungen</h3>
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={markAllAsRead}
+                className="text-xs text-teal-600 hover:text-teal-700"
+              >
+                Alle als gelesen markieren
+              </Button>
+            )}
+          </div>
+
+          {notifications.length === 0 ? (
+            <div className="p-4 text-center text-gray-500 text-sm">Zurzeit keine Benachrichtigung</div>
+          ) : (
+            <div className="max-h-80 overflow-y-auto">
+              {notifications.map((notification, index) => (
+                <div key={notification.id}>
+                  <DropdownMenuItem
+                    className="p-3 cursor-pointer hover:bg-gray-50 bg-blue-50 border-l-4 border-l-blue-500"
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    <div className="flex items-start space-x-3 w-full">
+                      <div className="flex-shrink-0 mt-1">{getNotificationIcon(notification.type)}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-900 truncate">{notification.title}</p>
+                          <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2"></div>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {formatDistanceToNow(new Date(notification.created_at), {
+                            addSuffix: true,
+                            locale: de,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                  {index < notifications.length - 1 && <DropdownMenuSeparator />}
+                </div>
+              ))}
             </div>
           )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
-        <div className="flex items-center justify-between p-3 border-b">
-          <h3 className="font-semibold text-sm">Benachrichtigungen</h3>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={markAllAsRead}
-              className="text-xs text-teal-600 hover:text-teal-700"
-            >
-              Alle als gelesen markieren
-            </Button>
-          )}
-        </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-        {notifications.length === 0 ? (
-          <div className="p-4 text-center text-gray-500 text-sm">Keine Benachrichtigungen vorhanden</div>
-        ) : (
-          <div className="max-h-80 overflow-y-auto">
-            {notifications.map((notification, index) => (
-              <div key={notification.id}>
-                <DropdownMenuItem
-                  className={`p-3 cursor-pointer hover:bg-gray-50 ${
-                    !notification.read ? "bg-blue-50 border-l-4 border-l-blue-500" : ""
-                  }`}
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <div className="flex items-start space-x-3 w-full">
-                    <div className="flex-shrink-0 mt-1">{getNotificationIcon(notification.type)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-900 truncate">{notification.title}</p>
-                        {!notification.read && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2"></div>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {formatDistanceToNow(new Date(notification.created_at), {
-                          addSuffix: true,
-                          locale: de,
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                </DropdownMenuItem>
-                {index < notifications.length - 1 && <DropdownMenuSeparator />}
-              </div>
-            ))}
-          </div>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      {user && (
+        <EventInvitationsDialog
+          userId={user.id}
+          isOpen={showEventInvitations}
+          onClose={() => setShowEventInvitations(false)}
+          onUpdate={handleInvitationUpdate}
+        />
+      )}
+    </>
   )
 }

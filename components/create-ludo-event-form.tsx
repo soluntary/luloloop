@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, MapPin, Users, Trophy, Settings, Upload, X } from "lucide-react"
+import { Calendar, MapPin, Trophy, Settings, Upload, X } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
@@ -159,18 +159,6 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Beschreibung</Label>
-              <RichTextEditor
-                value={formData.description}
-                onChange={(value) => {
-                  console.log("[v0] Description field updated:", value)
-                  handleInputChange("description", value)
-                }}
-                placeholder="Beschreibe dein Event..."
-              />
-            </div>
-
             {/* Image Upload */}
             <div className="space-y-2">
               <Label>Event-Bild</Label>
@@ -208,19 +196,20 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Game Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
-              Spiel-Einstellungen
-            </CardTitle>
-            <CardDescription>Ludo-spezifische Konfiguration</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="description">Beschreibung</Label>
+              <RichTextEditor
+                value={formData.description}
+                onChange={(value) => {
+                  console.log("[v0] Description field updated:", value)
+                  handleInputChange("description", value)
+                }}
+                placeholder="Beschreibe dein Event..."
+              />
+            </div>
+
+            {/* Game Settings */}
             <div className="space-y-2">
               <Label htmlFor="max_players">Maximale Spieleranzahl *</Label>
               <Input

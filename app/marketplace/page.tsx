@@ -23,6 +23,8 @@ import {
   AlertCircle,
   Calendar,
   MapPin,
+  Filter,
+  ChevronDown,
 } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { useGames } from "@/contexts/games-context"
@@ -37,7 +39,7 @@ import { SimpleLocationSearch } from "@/components/simple-location-search"
 import { LocationPermissionBanner } from "@/components/location-permission-banner"
 import { DistanceBadge } from "@/components/distance-badge"
 import { useLocationSearch } from "@/contexts/location-search-context"
-import { LeaderboardAd, MediumRectangleAd, WideSkyscraperAd } from "@/components/advertising/ad-placements"
+import { WideSkyscraperAd } from "@/components/advertising/ad-placements"
 
 export default function MarketplacePage() {
   const { sendMessage } = useMessages()
@@ -84,6 +86,8 @@ export default function MarketplacePage() {
   const [rentalStartDate, setRentalStartDate] = useState("")
   const [rentalEndDate, setRentalEndDate] = useState("")
   const [calculatedPrice, setCalculatedPrice] = useState<string>("")
+
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
   const { searchByAddress } = useLocationSearch()
 
@@ -256,6 +260,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
     }
 
     setContactMessage(baseMessage)
+    setIsContactDialogOpen(true)
   }
 
   const updateMessageWithDeliveryOption = (deliveryOption: "pickup" | "shipping") => {
@@ -586,7 +591,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                 className="bg-orange-400 hover:bg-orange-500 text-white font-handwritten text-lg px-8 py-3 transform hover:scale-105 hover:rotate-1 transition-all"
               >
                 <Store className="w-5 h-5 mr-2" />
-                Neues Angebot erstellen
+                Angebot erstellen
               </Button>
               <Button
                 onClick={() => setIsCreateSearchAdOpen(true)}
@@ -648,36 +653,36 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
               </div>
             )}
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="flex flex-wrap gap-3 items-center">
               {/* Sortierung */}
-              <div>
+              <div className="flex-1 min-w-[200px]">
                 <Label className="text-xs text-gray-600 mb-1 block">Sortieren nach</Label>
                 <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-10 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {showLocationResults && (
-                      <SelectItem value="distance" className="text-xs">
+                      <SelectItem value="distance" className="text-sm">
                         Nach Entfernung
                       </SelectItem>
                     )}
-                    <SelectItem value="newest" className="text-xs">
+                    <SelectItem value="newest" className="text-sm">
                       Neueste zuerst
                     </SelectItem>
-                    <SelectItem value="oldest" className="text-xs">
+                    <SelectItem value="oldest" className="text-sm">
                       Älteste zuerst
                     </SelectItem>
-                    <SelectItem value="title" className="text-xs">
+                    <SelectItem value="title" className="text-sm">
                       Spielname A-Z
                     </SelectItem>
-                    <SelectItem value="title-desc" className="text-xs">
+                    <SelectItem value="title-desc" className="text-sm">
                       Spielname Z-A
                     </SelectItem>
-                    <SelectItem value="price-low" className="text-xs">
+                    <SelectItem value="price-low" className="text-sm">
                       Preis aufsteigend
                     </SelectItem>
-                    <SelectItem value="price-high" className="text-xs">
+                    <SelectItem value="price-high" className="text-sm">
                       Preis absteigend
                     </SelectItem>
                   </SelectContent>
@@ -685,162 +690,28 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
               </div>
 
               {/* Anzeigeart */}
-              <div>
+              <div className="flex-1 min-w-[150px]">
                 <Label className="text-xs text-gray-600 mb-1 block">Anzeigeart</Label>
                 <Select value={selectedType} onValueChange={setSelectedType} disabled={!databaseConnected}>
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-10 text-sm">
                     <SelectValue placeholder="Alle" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all" className="text-xs">
+                    <SelectItem value="all" className="text-sm">
                       Alle Anzeigen
                     </SelectItem>
-                    <SelectItem value="lend" className="text-xs">
+                    <SelectItem value="lend" className="text-sm">
                       Leihangebote
                     </SelectItem>
-                    <SelectItem value="trade" className="text-xs">
+                    <SelectItem value="trade" className="text-sm">
                       Tauschangebote
                     </SelectItem>
-                    <SelectItem value="sell" className="text-xs">
+                    <SelectItem value="sell" className="text-sm">
                       Verkaufsangebote
                     </SelectItem>
-                    <SelectItem value="search" className="text-xs">
+                    <SelectItem value="search" className="text-sm">
                       Suchanzeigen
                     </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Spieleranzahl Filter */}
-              <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Spieleranzahl</Label>
-                <Select
-                  value={filters.playerCount}
-                  onValueChange={(value) =>
-                    setFilters((prev) => ({ ...prev, playerCount: value === "all" ? "" : value }))
-                  }
-                  disabled={!databaseConnected}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Alle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle</SelectItem>
-                    {dynamicFilterOptions.playerCounts.map((count) => (
-                      <SelectItem key={count} value={count}>
-                        {count}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Spieldauer Filter */}
-              <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Spieldauer</Label>
-                <Select
-                  value={filters.duration}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, duration: value === "all" ? "" : value }))}
-                  disabled={!databaseConnected}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Alle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle</SelectItem>
-                    {dynamicFilterOptions.durations.map((duration) => (
-                      <SelectItem key={duration} value={duration}>
-                        {duration}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Altersempfehlung Filter */}
-              <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Alter</Label>
-                <Select
-                  value={filters.age}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, age: value === "all" ? "" : value }))}
-                  disabled={!databaseConnected}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Alle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle</SelectItem>
-                    {dynamicFilterOptions.ages.map((age) => (
-                      <SelectItem key={age} value={age}>
-                        {age}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Sprache Filter */}
-              <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Sprache</Label>
-                <Select
-                  value={filters.language}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, language: value === "all" ? "" : value }))}
-                  disabled={!databaseConnected}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Alle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle</SelectItem>
-                    {dynamicFilterOptions.languages.map((language) => (
-                      <SelectItem key={language} value={language}>
-                        {language}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Kategorie Filter */}
-              <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Kategorie</Label>
-                <Select
-                  value={filters.category}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, category: value === "all" ? "" : value }))}
-                  disabled={!databaseConnected}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Alle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle</SelectItem>
-                    {dynamicFilterOptions.categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Typus Filter */}
-              <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Typus</Label>
-                <Select
-                  value={filters.style}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, style: value === "all" ? "" : value }))}
-                  disabled={!databaseConnected}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Alle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle</SelectItem>
-                    {dynamicFilterOptions.styles.map((style) => (
-                      <SelectItem key={style} value={style}>
-                        {style}
-                      </SelectItem>
-                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -848,25 +719,190 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
               <div className="flex items-end">
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    setSearchTerm("")
-                    setSelectedType("all")
-                    setSortBy("newest")
-                    setFilters({
-                      playerCount: "",
-                      duration: "",
-                      age: "",
-                      language: "",
-                      category: "",
-                      style: "",
-                    })
-                  }}
-                  className="h-8 text-xs border-2 border-gray-400 text-gray-600 hover:bg-gray-400 hover:text-white font-handwritten"
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className="h-10 border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent"
                   disabled={!databaseConnected}
                 >
-                  Filter zurücksetzen
+                  <Filter className="w-4 h-4 mr-2" />
+                  Erweiterte Filter
+                  <ChevronDown
+                    className={`w-4 h-4 ml-2 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
+                  />
                 </Button>
               </div>
+            </div>
+
+            {showAdvancedFilters && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {/* Spieleranzahl Filter */}
+                <div className="flex-1 min-w-[150px]">
+                  <Label className="text-xs text-gray-600 mb-1 block">Spieleranzahl</Label>
+                  <Select
+                    value={filters.playerCount}
+                    onValueChange={(value) =>
+                      setFilters((prev) => ({ ...prev, playerCount: value === "all" ? "" : value }))
+                    }
+                    disabled={!databaseConnected}
+                  >
+                    <SelectTrigger className="h-10 text-sm">
+                      <SelectValue placeholder="Alle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle</SelectItem>
+                      {dynamicFilterOptions.playerCounts.map((count) => (
+                        <SelectItem key={count} value={count}>
+                          {count}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Spieldauer Filter */}
+                <div className="flex-1 min-w-[150px]">
+                  <Label className="text-xs text-gray-600 mb-1 block">Spieldauer</Label>
+                  <Select
+                    value={filters.duration}
+                    onValueChange={(value) =>
+                      setFilters((prev) => ({ ...prev, duration: value === "all" ? "" : value }))
+                    }
+                    disabled={!databaseConnected}
+                  >
+                    <SelectTrigger className="h-10 text-sm">
+                      <SelectValue placeholder="Alle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle</SelectItem>
+                      {dynamicFilterOptions.durations.map((duration) => (
+                        <SelectItem key={duration} value={duration}>
+                          {duration}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Altersempfehlung Filter */}
+                <div className="flex-1 min-w-[150px]">
+                  <Label className="text-xs text-gray-600 mb-1 block">Altersempfehlung</Label>
+                  <Select
+                    value={filters.age}
+                    onValueChange={(value) => setFilters((prev) => ({ ...prev, age: value === "all" ? "" : value }))}
+                    disabled={!databaseConnected}
+                  >
+                    <SelectTrigger className="h-10 text-sm">
+                      <SelectValue placeholder="Alle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle</SelectItem>
+                      {dynamicFilterOptions.ages.map((age) => (
+                        <SelectItem key={age} value={age}>
+                          {age}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Sprache Filter */}
+                <div className="flex-1 min-w-[150px]">
+                  <Label className="text-xs text-gray-600 mb-1 block">Sprache</Label>
+                  <Select
+                    value={filters.language}
+                    onValueChange={(value) =>
+                      setFilters((prev) => ({ ...prev, language: value === "all" ? "" : value }))
+                    }
+                    disabled={!databaseConnected}
+                  >
+                    <SelectTrigger className="h-10 text-sm">
+                      <SelectValue placeholder="Alle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle</SelectItem>
+                      {dynamicFilterOptions.languages.map((language) => (
+                        <SelectItem key={language} value={language}>
+                          {language}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Kategorie Filter */}
+                <div className="flex-1 min-w-[150px]">
+                  <Label className="text-xs text-gray-600 mb-1 block">Kategorie</Label>
+                  <Select
+                    value={filters.category}
+                    onValueChange={(value) =>
+                      setFilters((prev) => ({ ...prev, category: value === "all" ? "" : value }))
+                    }
+                    disabled={!databaseConnected}
+                  >
+                    <SelectTrigger className="h-10 text-sm">
+                      <SelectValue placeholder="Alle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle</SelectItem>
+                      {dynamicFilterOptions.categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Typus Filter */}
+                <div className="flex-1 min-w-[150px]">
+                  <Label className="text-xs text-gray-600 mb-1 block">Typus</Label>
+                  <Select
+                    value={filters.style}
+                    onValueChange={(value) => setFilters((prev) => ({ ...prev, style: value === "all" ? "" : value }))}
+                    disabled={!databaseConnected}
+                  >
+                    <SelectTrigger className="h-10 text-sm">
+                      <SelectValue placeholder="Alle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle</SelectItem>
+                      {dynamicFilterOptions.styles.map((style) => (
+                        <SelectItem key={style} value={style}>
+                          {style}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm("")
+                  setSelectedType("all")
+                  setSortBy("newest")
+                  setFilters({
+                    playerCount: "",
+                    duration: "",
+                    age: "",
+                    language: "",
+                    category: "",
+                    style: "",
+                  })
+                }}
+                className="border-2 border-gray-400 text-gray-600 hover:bg-gray-400 hover:text-white font-handwritten"
+                disabled={!databaseConnected}
+              >
+                Alle Filter zurücksetzen
+              </Button>
+              <Button
+                onClick={() => setShowAdvancedFilters(false)}
+                className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
+              >
+                Filter anwenden
+              </Button>
             </div>
           </div>
         </div>

@@ -177,7 +177,7 @@ export default function HomePage() {
                 variant="outline"
                 className="border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent"
               >
-                <Link href="/groups?tab=communities">Zu Events</Link>
+                <Link href="/ludo-events">Zu Events</Link>
               </Button>
             </CardContent>
           </Card>

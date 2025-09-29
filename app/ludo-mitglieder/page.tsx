@@ -281,13 +281,25 @@ export default function LudoMitgliederPage() {
       localState,
       sentRequestsCount: sentRequests?.length || 0,
       hasSentRequest: sentRequests?.some((r) => r.to_user_id === member.id),
+      userAuthenticated: !!user?.id,
+      friendsCount: friends?.length || 0,
+      friendsLoading,
+      isFriend: friends?.some((friend) => friend.id === member.id),
+      friendsList: friends?.map((f) => ({ id: f.id, name: f.name })) || [],
     })
 
     if (status === "friends") {
       console.log(`[v0] MEMBERS: Showing "befreundet" badge for ${member.username || member.name}`)
     }
 
-    // Show local loading states first
+    if (!user?.id || friendsLoading) {
+      return (
+        <Button size="sm" disabled className="px-3 py-1 h-7 text-xs">
+          Lade...
+        </Button>
+      )
+    }
+
     if (localState === "sending") {
       return (
         <Button size="sm" disabled className="px-3 py-1 h-7 text-xs">
@@ -312,7 +324,6 @@ export default function LudoMitgliederPage() {
       )
     }
 
-    // Show persistent status states
     switch (status) {
       case "friends":
         return (
@@ -645,18 +656,14 @@ export default function LudoMitgliederPage() {
                       </UserLink>
                       {member.name && member.username && <p className="text-sm text-gray-500">@{member.username}</p>}
                     </div>
-                    <Badge variant="secondary" className="bg-teal-100 text-teal-700">
-                      <Star className="h-3 w-3 mr-1" />
-                      Ludo
-                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {member.bio && <p className="text-sm text-gray-600 line-clamp-2">{member.bio}</p>}
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      {renderFriendButton(member)}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">{renderFriendButton(member)}</div>
                       <Button
                         size="sm"
                         variant="outline"

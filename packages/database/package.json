@@ -1,0 +1,36 @@
+{
+  "name": "@ludoloop/database",
+  "version": "0.1.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint \"src/**/*.ts*\"",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "type-check": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "latest",
+    "drizzle-orm": "^0.29.3",
+    "postgres": "^3.4.3"
+  },
+  "devDependencies": {
+    "@types/postgres": "^3.0.4",
+    "drizzle-kit": "^0.20.9",
+    "eslint": "^8.57.1",
+    "tsup": "^8.0.2",
+    "typescript": "^5"
+  }
+}

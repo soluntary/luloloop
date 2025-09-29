@@ -85,7 +85,7 @@ export function GameReviewForm({ gameId, gameTitle, onReviewSubmitted }: GameRev
   }
 
   return (
-    <Card className="bg-card border-border">
+    <Card className="bg-card border">
       <CardHeader>
         <CardTitle>Bewertung schreiben</CardTitle>
         <CardDescription>Teile deine Erfahrung mit {gameTitle}</CardDescription>

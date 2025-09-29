@@ -26,7 +26,7 @@ export interface LudoEventData {
   selectedGames?: any[]
   customGames?: string[]
   selectedFriends?: string[]
-  frequency?: "single" | "regular" | "recurring"
+  frequency?: "single" | "regular" | "recurring" | "casual"
   interval?: "weekly" | "biweekly" | "monthly" | "other"
   customInterval?: string
   visibility?: "public" | "friends_only"
@@ -105,11 +105,17 @@ export async function createLudoEvent(eventData: LudoEventData, creatorId: strin
     console.log("[v0] Event created successfully:", data.id)
 
     if (eventData.visibility === "friends_only" && eventData.selectedFriends && eventData.selectedFriends.length > 0) {
+      // Get creator's username for notifications
+      const { data: creatorData } = await supabase.from("users").select("username, name").eq("id", creatorId).single()
+
+      const creatorName = creatorData?.name || creatorData?.username || "Ein Freund"
+
       const invitations = eventData.selectedFriends.map((friendId) => ({
         event_id: data.id,
         inviter_id: creatorId,
         invitee_id: friendId,
         status: "pending",
+        message: `Du wurdest zu "${eventData.title}" eingeladen!`,
         created_at: new Date().toISOString(),
       }))
 
@@ -119,6 +125,60 @@ export async function createLudoEvent(eventData: LudoEventData, creatorId: strin
         console.error("[v0] Error creating invitations:", invitationError)
       } else {
         console.log("[v0] Created invitations for", invitations.length, "friends")
+
+        // Create notifications for each invited friend
+        const notifications = eventData.selectedFriends.map((friendId) => ({
+          user_id: friendId,
+          type: "event_invitation",
+          title: "Event-Einladung erhalten",
+          message: `${creatorName} hat dich zu "${eventData.title}" eingeladen`,
+          data: {
+            event_id: data.id,
+            event_title: eventData.title,
+            event_date: eventData.eventDate,
+            event_time: eventData.startTime,
+            inviter_name: creatorName,
+            inviter_id: creatorId,
+          },
+          read: false,
+          created_at: new Date().toISOString(),
+        }))
+
+        const { error: notificationError } = await supabase.from("notifications").insert(notifications)
+
+        if (notificationError) {
+          console.error("[v0] Error creating notifications:", notificationError)
+        } else {
+          console.log("[v0] Created notifications for", notifications.length, "friends")
+        }
+
+        // Also add to notification queue for push/email notifications
+        const queueNotifications = eventData.selectedFriends.map((friendId) => ({
+          user_id: friendId,
+          notification_type: "event_invitation",
+          title: "Event-Einladung erhalten",
+          message: `${creatorName} hat dich zu "${eventData.title}" eingeladen`,
+          data: {
+            event_id: data.id,
+            event_title: eventData.title,
+            event_date: eventData.eventDate,
+            event_time: eventData.startTime,
+            inviter_name: creatorName,
+            inviter_id: creatorId,
+          },
+          priority: 2, // Medium priority
+          scheduled_for: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Expire in 7 days
+          created_at: new Date().toISOString(),
+        }))
+
+        const { error: queueError } = await supabase.from("notification_queue").insert(queueNotifications)
+
+        if (queueError) {
+          console.error("[v0] Error adding notifications to queue:", queueError)
+        } else {
+          console.log("[v0] Added notifications to queue for", queueNotifications.length, "friends")
+        }
       }
     }
 
@@ -141,8 +201,62 @@ export async function createLudoEvent(eventData: LudoEventData, creatorId: strin
       console.log("[v0] Creator set as organizer only, not added as participant")
     }
 
-    if (eventData.additionalDates && eventData.additionalDates.length > 0) {
-      console.log("[v0] Creating event instances for additional dates")
+    if (
+      eventData.frequency === "regular" ||
+      eventData.frequency === "recurring" ||
+      eventData.frequency === "regelmässig" ||
+      eventData.frequency === "wiederholend"
+    ) {
+      console.log("[v0] Creating event instances for regular/recurring event including first date")
+
+      const instances = []
+
+      // Always include the first date as an instance for regular/recurring events
+      instances.push({
+        instance_date: eventData.eventDate,
+        start_time: eventData.startTime,
+        end_time: eventData.endTime,
+        max_participants: eventData.maxPlayers,
+        status: "active",
+        notes: "First date (main event date)",
+      })
+
+      // Add additional dates if provided
+      if (eventData.additionalDates && eventData.additionalDates.length > 0) {
+        const additionalInstances = eventData.additionalDates
+          .filter((date) => date.trim() !== "") // Filter out empty dates
+          .map((date, index) => ({
+            instance_date: date,
+            start_time: eventData.additionalStartTimes?.[index] || eventData.startTime,
+            end_time: eventData.additionalEndTimes?.[index] || eventData.endTime,
+            max_participants: eventData.maxPlayers,
+            status: "active",
+            notes: `Additional date ${index + 1}`,
+          }))
+
+        instances.push(...additionalInstances)
+      }
+
+      if (instances.length > 0) {
+        const instancesWithEventId = instances.map((instance) => ({
+          ...instance,
+          event_id: data.id,
+        }))
+
+        console.log("[v0] Inserting event instances:", instancesWithEventId)
+
+        const { error: instanceError } = await supabase.from("ludo_event_instances").insert(instancesWithEventId)
+
+        if (instanceError) {
+          console.error("[v0] Error creating event instances:", instanceError)
+          // Don't fail the entire event creation if instances fail
+        } else {
+          console.log("[v0] Successfully created", instances.length, "event instances")
+        }
+      }
+    } else if (eventData.additionalDates && eventData.additionalDates.length > 0) {
+      // For single events with additional dates (legacy support)
+      console.log("[v0] Creating event instances for additional dates on single event")
 
       const instances = eventData.additionalDates
         .filter((date) => date.trim() !== "") // Filter out empty dates
@@ -373,7 +487,7 @@ export async function approveParticipant(eventId: string, participantId: string,
 
     const { error } = await supabase
       .from("ludo_event_participants")
-      .update({ status: "approved", approved_at: new Date().toISOString(), approved_by: creatorId })
+      .update({ status: "approved", joined_at: new Date().toISOString(), approved_by: creatorId })
       .eq("id", participantId)
       .eq("event_id", eventId)
 
@@ -429,7 +543,7 @@ export async function getEventParticipants(eventId: string) {
         user_id,
         status,
         registered_at,
-        approved_at,
+        joined_at,
         approved_by,
         user:user_id (
           id,
@@ -553,7 +667,29 @@ export async function respondToEventInvitation(
   try {
     const supabase = await createClient()
 
-    const { data: invitation, error: updateError } = await supabase
+    const { data: invitation, error: fetchError } = await supabase
+      .from("ludo_event_invitations")
+      .select(`
+        event_id,
+        inviter_id,
+        ludo_events!inner (
+          title,
+          event_date,
+          start_time
+        )
+      `)
+      .eq("id", invitationId)
+      .eq("invitee_id", userId)
+      .single()
+
+    if (fetchError) throw fetchError
+
+    // Get user info for notification
+    const { data: userData } = await supabase.from("users").select("username, name").eq("id", userId).single()
+
+    const userName = userData?.name || userData?.username || "Ein Freund"
+
+    const { data: updatedInvitation, error: updateError } = await supabase
       .from("ludo_event_invitations")
       .update({
         status: response,
@@ -568,17 +704,43 @@ export async function respondToEventInvitation(
 
     if (response === "accepted") {
       const { error: participantError } = await supabase.from("ludo_event_participants").insert({
-        event_id: invitation.event_id,
+        event_id: updatedInvitation.event_id,
         user_id: userId,
         status: "approved",
-        approved_at: new Date().toISOString(),
-        requested_at: new Date().toISOString(),
+        joined_at: new Date().toISOString(),
       })
 
       if (participantError) {
         console.error("Error adding participant:", participantError)
         throw participantError
       }
+    }
+
+    const notificationMessage =
+      response === "accepted"
+        ? `${userName} hat die Einladung zu "${invitation.ludo_events.title}" angenommen`
+        : `${userName} hat die Einladung zu "${invitation.ludo_events.title}" abgelehnt`
+
+    const { error: notificationError } = await supabase.from("notifications").insert({
+      user_id: invitation.inviter_id,
+      type: "event_invitation",
+      title: response === "accepted" ? "Einladung angenommen" : "Einladung abgelehnt",
+      message: notificationMessage,
+      data: {
+        event_id: invitation.event_id,
+        event_title: invitation.ludo_events.title,
+        event_date: invitation.ludo_events.event_date,
+        event_time: invitation.ludo_events.start_time,
+        responder_name: userName,
+        responder_id: userId,
+        response: response,
+      },
+      read: false,
+      created_at: new Date().toISOString(),
+    })
+
+    if (notificationError) {
+      console.error("Error creating organizer notification:", notificationError)
     }
 
     revalidatePath("/ludo-events")

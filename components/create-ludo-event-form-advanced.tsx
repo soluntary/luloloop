@@ -2,18 +2,16 @@
 
 import type React from "react"
 import { useEffect } from "react"
-import { Search, Gamepad2, X, Library, Upload, AlertCircle, Loader2, Plus } from "lucide-react"
+import { Search, Gamepad2, X, Library, Upload, AlertCircle, Loader2, Plus, Trash2, Dice6, Users } from "lucide-react"
 
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, Dice6, Trash2 } from "lucide-react"
 import { createLudoEvent, type LudoEventData } from "@/app/actions/ludo-events"
 import { useAuth } from "@/contexts/auth-context"
 import { useGames } from "@/contexts/games-context"
@@ -56,8 +54,226 @@ interface TimeSlot {
   timeTo: string
 }
 
+const generateSeriesDates = (
+  startDate: string,
+  frequency: string,
+  customIntervalNumber: string,
+  customIntervalUnit: string,
+  weeklyDays: string[],
+  monthlyType: string,
+  monthlyDay: string,
+  monthlyWeekday: string,
+  monthlyWeekdayPosition: string,
+  seriesEndType: string,
+  seriesEndDate: string,
+  seriesEndCount: string,
+): string[] => {
+  if (!startDate) return []
+
+  const dates: string[] = []
+  const start = new Date(startDate)
+  let current = new Date(start)
+  const endDate = seriesEndDate ? new Date(seriesEndDate) : null
+  const maxCount = seriesEndCount ? Number.parseInt(seriesEndCount) : 100 // Default to a large number if not specified
+
+  // Helper function to get next date based on frequency
+  const getNextDate = (currentDate: Date): Date => {
+    const next = new Date(currentDate)
+
+    switch (frequency) {
+      case "täglich":
+        if (frequency === "andere" && customIntervalNumber) {
+          const interval = Number.parseInt(customIntervalNumber)
+          if (customIntervalUnit === "tage") {
+            next.setDate(next.getDate() + interval)
+          } else {
+            // If unit is not days for daily, default to 1 day
+            next.setDate(next.getDate() + 1)
+          }
+        } else {
+          next.setDate(next.getDate() + 1)
+        }
+        break
+
+      case "wöchentlich":
+        if (frequency === "andere" && customIntervalNumber) {
+          const interval = Number.parseInt(customIntervalNumber)
+          if (customIntervalUnit === "wochen") {
+            next.setDate(next.getDate() + interval * 7)
+          } else {
+            // If unit is not weeks for weekly, default to 1 week
+            next.setDate(next.getDate() + 7)
+          }
+        } else {
+          next.setDate(next.getDate() + 7)
+        }
+        break
+
+      case "monatlich":
+        if (frequency === "andere" && customIntervalNumber) {
+          const interval = Number.parseInt(customIntervalNumber)
+          if (customIntervalUnit === "monate") {
+            next.setMonth(next.getMonth() + interval)
+          } else {
+            // If unit is not months for monthly, default to 1 month
+            next.setMonth(next.getMonth() + 1)
+          }
+        } else {
+          next.setMonth(next.getMonth() + 1)
+        }
+        break
+
+      case "jährlich":
+        if (frequency === "andere" && customIntervalNumber) {
+          const interval = Number.parseInt(customIntervalNumber)
+          if (customIntervalUnit === "jahre") {
+            next.setFullYear(next.getFullYear() + interval)
+          } else {
+            // If unit is not years for yearly, default to 1 year
+            next.setFullYear(next.getFullYear() + 1)
+          }
+        } else {
+          next.setFullYear(next.getFullYear() + 1)
+        }
+        break
+
+      case "andere":
+        const interval = Number.parseInt(customIntervalNumber) || 1
+        switch (customIntervalUnit) {
+          case "tage":
+            next.setDate(next.getDate() + interval)
+            break
+          case "wochen":
+            next.setDate(next.getDate() + interval * 7)
+            break
+          case "monate":
+            next.setMonth(next.getMonth() + interval)
+            break
+          case "jahre":
+            next.setFullYear(next.getFullYear() + interval)
+            break
+          default: // Default to 1 day if unit is unknown
+            next.setDate(next.getDate() + 1)
+            break
+        }
+        break
+      default: // Default to 1 day if frequency is unknown
+        next.setDate(next.getDate() + 1)
+        break
+    }
+
+    // Handle specific day of week logic for weekly recurrence
+    if (frequency === "wöchentlich" && weeklyDays.length > 0) {
+      let daysToAdd = 0
+      let foundNextDay = false
+      while (daysToAdd < 7) {
+        const tempDate = new Date(current)
+        tempDate.setDate(tempDate.getDate() + daysToAdd)
+        const dayOfWeek = tempDate.toLocaleDateString("en-US", { weekday: "long" })
+        if (weeklyDays.includes(dayOfWeek)) {
+          current = tempDate
+          foundNextDay = true
+          break
+        }
+        daysToAdd++
+      }
+      if (!foundNextDay) {
+        // If no matching day found in the next 7 days, advance by a week and try again
+        current.setDate(current.getDate() + 7)
+      }
+    }
+
+    // Handle specific day/weekday logic for monthly recurrence
+    if (frequency === "monatlich") {
+      if (monthlyType === "day" && monthlyDay) {
+        const dayOfMonth = Number.parseInt(monthlyDay)
+        if (dayOfMonth) {
+          const tempDate = new Date(current.getFullYear(), current.getMonth(), dayOfMonth)
+          // Ensure the date is valid and in the future
+          if (tempDate.getMonth() !== current.getMonth()) {
+            // Rolled over to next month
+            current.setMonth(current.getMonth() + 1)
+            current.setDate(1) // Start from the first of the next month
+          } else {
+            current = tempDate
+          }
+        }
+      } else if (monthlyType === "weekday" && monthlyWeekday && monthlyWeekdayPosition) {
+        const targetWeekday = monthlyWeekday.toLowerCase()
+        const targetPosition = monthlyWeekdayPosition.toLowerCase()
+        let count = 0
+        let dayOffset = 0
+        const daysInMonth = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate()
+
+        while (dayOffset < daysInMonth) {
+          const tempDate = new Date(current.getFullYear(), current.getMonth(), current.getDate() + dayOffset)
+          const currentWeekday = tempDate.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
+
+          if (currentWeekday === targetWeekday) {
+            count++
+            if (
+              (targetPosition === "first" && count === 1) ||
+              (targetPosition === "second" && count === 2) ||
+              (targetPosition === "third" && count === 3) ||
+              (targetPosition === "fourth" && count === 4) ||
+              (targetPosition === "last" && tempDate.getMonth() !== current.getMonth()) // Check if it's the last occurrence in the month
+            ) {
+              current = tempDate
+              break
+            }
+          }
+          dayOffset++
+        }
+        // If the target day wasn't found or it's not the last occurrence, advance to the next month
+        if (
+          current.getMonth() !== new Date(startDate).getMonth() &&
+          current.getDate() !== Number.parseInt(monthlyDay || "1")
+        ) {
+          // Basic check to avoid infinite loops
+          current.setMonth(current.getMonth() + 1)
+          current.setDate(1)
+        }
+      }
+    }
+
+    return current
+  }
+
+  // Generate dates
+  let count = 0
+  while (true) {
+    // Loop indefinitely until break conditions are met
+    // Check end conditions
+    if (seriesEndType === "date" && endDate && current > endDate) {
+      break
+    }
+    if (seriesEndType === "count" && count >= maxCount) {
+      break
+    }
+
+    // Add current date if it's valid and not already added
+    const isoDate = current.toISOString().split("T")[0]
+    if (!dates.includes(isoDate)) {
+      dates.push(isoDate)
+      count++
+    }
+
+    // Get next date
+    current = getNextDate(current)
+
+    // Safety break to prevent infinite loops in case of logic errors
+    if (dates.length > 365 * 5) {
+      // Limit to 5 years of dates
+      console.warn("generateSeriesDates: Exceeded maximum date generation limit.")
+      break
+    }
+  }
+
+  return dates
+}
+
 export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoEventFormProps) {
-  const { user } = useAuth()
+  const { user: authUser } = useAuth() // Renamed to avoid conflict with Supabase user
   const { games: userGames } = useGames()
   const { friends } = useFriends()
   const [currentStep, setCurrentStep] = useState(1)
@@ -75,15 +291,26 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
     startTime: "",
     endTime: "",
     maxPlayers: "",
+    customIntervalNumber: "", // Added for custom interval validation
+    additionalDates: "", // Added for manual dates validation
   })
 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     maxPlayers: "4",
-    frequency: "single" as "single" | "regular" | "recurring",
-    interval: "weekly" as "weekly" | "biweekly" | "monthly" | "other",
-    customInterval: "",
+    frequency: "einmalig" as "einmalig" | "täglich" | "wöchentlich" | "monatlich" | "jährlich" | "andere",
+    seriesMode: "manual" as "manual" | "series", // For recurring events: manual entry or series creation
+    customIntervalNumber: "",
+    customIntervalUnit: "wochen" as "tage" | "wochen" | "monate" | "jahre",
+    weeklyDays: [] as string[], // For weekly: which days of the week
+    monthlyType: "day" as "day" | "weekday", // For monthly: specific day or weekday pattern
+    monthlyDay: "", // For monthly: specific day of month
+    monthlyWeekday: "", // For monthly: which weekday (first Monday, last Friday, etc.)
+    monthlyWeekdayPosition: "first" as "first" | "second" | "third" | "fourth" | "last",
+    seriesEndType: "date" as "date" | "count", // How series should end
+    seriesEndDate: "",
+    seriesEndCount: "",
     eventDate: "",
     additionalDates: [] as string[],
     startTime: "",
@@ -91,7 +318,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
     location: "",
     isOnline: false,
     onlinePlatform: "",
-    visibility: "public" as "public" | "friends",
+    visibility: "public" as "public" | "friends_only",
     requiresApproval: false,
     organizerOnly: false,
     prizeInfo: "",
@@ -103,6 +330,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
     selectedGames: [] as string[],
     additionalStartTimes: [] as string[],
     additionalEndTimes: [] as string[],
+    // Added for Supabase submission
+    date: "", // Assuming this maps to event_date
+    maxParticipants: "", // Assuming this maps to max_participants
+    gameType: "", // Not directly used in Supabase submission but kept for form state
+    difficultyLevel: "", // Not directly used in Supabase submission but kept for form state
+    isPublic: true, // Assuming this maps to visibility
+    otherGames: "", // Not directly used in Supabase submission but kept for form state
   })
 
   const [selectedGames, setSelectedGames] = useState<Game[]>([])
@@ -130,13 +364,19 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
     if (formData.frequency === "einmalig") {
       setUseTimeSlots(false)
       setTimeSlots([])
-    } else if (formData.frequency === "regelmäßig" || formData.frequency === "wiederholend") {
-      setUseTimeSlots(true)
-      if (timeSlots.length === 0) {
-        handleAddTimeSlot()
+    } else if (["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency)) {
+      // For recurring events, we'll handle time slots differently based on series mode
+      if (formData.seriesMode === "series") {
+        setUseTimeSlots(false)
+        setTimeSlots([])
+      } else {
+        setUseTimeSlots(true)
+        if (timeSlots.length === 0) {
+          handleAddTimeSlot()
+        }
       }
     }
-  }, [formData.frequency])
+  }, [formData.frequency, formData.seriesMode])
 
   const handleInputChange = (field: string, value: any) => {
     console.log(`[v0] Input change - Field: ${field}, Value: ${value}`)
@@ -308,7 +548,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
     }
 
     if (currentStep === 2) {
-      // Step 2: Validate date, time, and location
+      // Step 2: Validate date, time, location, and interval settings
       if (!formData.eventDate) {
         stepErrors.eventDate = "Bitte wähle ein Datum für das Event."
         isValid = false
@@ -333,6 +573,23 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
       if (formData.maxPlayers !== "" && Number.parseInt(formData.maxPlayers) < 2) {
         stepErrors.maxPlayers =
           "Bitte gib eine gültige Spielerzahl an (mindestens 2) oder lasse das Feld leer für unbegrenzte Teilnehmerzahl."
+        isValid = false
+      }
+
+      if (formData.frequency === "andere" && formData.seriesMode === "series") {
+        if (!formData.customIntervalNumber || Number.parseInt(formData.customIntervalNumber) <= 1) {
+          stepErrors.customIntervalNumber = "Das Intervall muss größer als 1 sein."
+          isValid = false
+        }
+      }
+
+      if (
+        ["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) &&
+        formData.seriesMode === "manual" &&
+        formData.additionalDates.length === 0
+      ) {
+        stepErrors.additionalDates =
+          "Bitte füge mindestens einen weiteren Termin hinzu oder wähle 'Serientermine erstellen'."
         isValid = false
       }
     }
@@ -376,12 +633,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
       startTime: "",
       endTime: "",
       maxPlayers: "",
+      customIntervalNumber: "",
+      additionalDates: "",
     })
 
     try {
       console.log("[v0] === STARTING FORM SUBMISSION ===")
-      console.log("[v0] Current user:", user?.id, user?.username)
-      console.log("[v0] User object:", JSON.stringify(user, null, 2))
+      console.log("[v0] Current user:", authUser?.id, authUser?.username)
       console.log("[v0] Form data before validation:", JSON.stringify(formData, null, 2))
       console.log("[v0] Selected games:", selectedGames)
       console.log("[v0] Selected friends:", selectedFriends)
@@ -440,6 +698,23 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
         hasErrors = true
       }
 
+      if (formData.frequency === "andere" && formData.seriesMode === "series") {
+        if (!formData.customIntervalNumber || Number.parseInt(formData.customIntervalNumber) <= 1) {
+          newFieldErrors.customIntervalNumber = "Das Intervall muss größer als 1 sein."
+          hasErrors = true
+        }
+      }
+
+      if (
+        ["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) &&
+        formData.seriesMode === "manual" &&
+        formData.additionalDates.length === 0
+      ) {
+        newFieldErrors.additionalDates =
+          "Bitte füge mindestens einen weiteren Termin hinzu oder wähle 'Serientermine erstellen'."
+        hasErrors = true
+      }
+
       if (hasErrors) {
         setFieldErrors(newFieldErrors)
         setIsSubmitting(false)
@@ -448,7 +723,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
 
       const imageUrl = formData.selectedImage
 
-      if (!user) {
+      if (!authUser) {
         setSubmitError("Du musst angemeldet sein, um ein Event zu erstellen.")
         return
       }
@@ -517,18 +792,27 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
         selectedGames,
         customGames: [...customGames, ...otherGamesList],
         selectedFriends: selectedFriends.map((f) => f.id),
-        frequency:
-          formData.frequency === "regular"
-            ? formData.interval === "other"
-              ? formData.customInterval
-              : formData.interval
-            : formData.frequency,
-        interval: formData.frequency === "regular" ? formData.interval : undefined,
-        customInterval:
-          formData.frequency === "regular" && formData.interval === "other" ? formData.customInterval : undefined,
+        // Updated frequency and series data
+        frequency: formData.frequency,
+        seriesMode: formData.seriesMode,
+        customIntervalNumber: formData.customIntervalNumber ? Number.parseInt(formData.customIntervalNumber) : null,
+        customIntervalUnit: formData.customIntervalUnit,
+        weeklyDays: formData.weeklyDays,
+        monthlyType: formData.monthlyType,
+        monthlyDay: formData.monthlyDay ? Number.parseInt(formData.monthlyDay) : null,
+        monthlyWeekday: formData.monthlyWeekday,
+        monthlyWeekdayPosition: formData.monthlyWeekdayPosition,
+        seriesEndType: formData.seriesEndType,
+        seriesEndDate: formData.seriesEndDate,
+        seriesEndCount: formData.seriesEndCount ? Number.parseInt(formData.seriesEndCount) : null,
+        // </CHANGE>
+
         additionalDates: formData.additionalDates,
         additionalStartTimes: formData.additionalStartTimes,
         additionalEndTimes: formData.additionalEndTimes,
+
+        visibility: formData.visibility,
+        selected_friends: formData.visibility === "friends_only" ? selectedFriends.map((f) => f.id) : [],
       }
 
       console.log("[v0] About to call createLudoEvent with data:", JSON.stringify(eventData, null, 2))
@@ -536,10 +820,10 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
       console.log("[v0] Additional start times:", formData.additionalStartTimes)
       console.log("[v0] Additional end times:", formData.additionalEndTimes)
 
-      console.log("[v0] Creator ID:", user.id)
+      console.log("[v0] Creator ID:", authUser.id)
       console.log("[v0] === CALLING createLudoEvent FUNCTION ===")
 
-      const result = await createLudoEvent(eventData, user.id)
+      const result = await createLudoEvent(eventData, authUser.id)
 
       console.log("[v0] === createLudoEvent RETURNED ===")
       console.log("[v0] createLudoEvent result:", JSON.stringify(result, null, 2))
@@ -547,7 +831,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
       if (result.success) {
         console.log("[v0] Event created successfully!")
         console.log("[v0] Created event data:", JSON.stringify(result.data, null, 2))
-        toast.success("Event erfolgreich erstellt!")
+
+        if (formData.visibility === "friends_only" && selectedFriends.length > 0) {
+          toast.success("Event erfolgreich erstellt und an die ausgewählten Freunde gesendet.")
+        } else {
+          toast.success("Event erfolgreich erstellt.")
+        }
+
         console.log("[v0] Event created successfully, calling onSuccess callback")
         onSuccess(result.data)
 
@@ -560,9 +850,18 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
           title: "",
           description: "",
           maxPlayers: "4",
-          frequency: "single" as "single" | "regular" | "recurring",
-          interval: "weekly" as "weekly" | "biweekly" | "monthly" | "other",
-          customInterval: "",
+          frequency: "einmalig" as "einmalig" | "täglich" | "wöchentlich" | "monatlich" | "jährlich" | "andere",
+          seriesMode: "manual" as "manual" | "series",
+          customIntervalNumber: "",
+          customIntervalUnit: "wochen" as "tage" | "wochen" | "monate" | "jahre",
+          weeklyDays: [],
+          monthlyType: "day" as "day" | "weekday",
+          monthlyDay: "",
+          monthlyWeekday: "",
+          monthlyWeekdayPosition: "first" as "first" | "second" | "third" | "fourth" | "last",
+          seriesEndType: "date" as "date" | "count",
+          seriesEndDate: "",
+          seriesEndCount: "",
           eventDate: "",
           additionalDates: [] as string[],
           startTime: "",
@@ -570,7 +869,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
           location: "",
           isOnline: false,
           onlinePlatform: "",
-          visibility: "public" as "public" | "friends",
+          visibility: "public" as "public" | "friends_only",
           requiresApproval: false,
           organizerOnly: false,
           prizeInfo: "",
@@ -582,6 +881,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
           selectedGames: [] as string[],
           additionalStartTimes: [] as string[],
           additionalEndTimes: [] as string[],
+          // Reset for Supabase submission
+          date: "",
+          maxParticipants: "",
+          gameType: "",
+          difficultyLevel: "",
+          isPublic: true,
+          otherGames: "",
         })
         setSelectedFriends([])
         setSelectedGames([])
@@ -589,7 +895,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
         setIsSubmitting(false)
       } else {
         console.error("[v0] Event creation failed:", result.error)
-        console.error("[v0] Full error result:", JSON.stringify(result, null, 2))
+        console.log("[v0] Full error result:", JSON.stringify(result, null, 2))
         setSubmitError(result.error || "Fehler beim Erstellen des Events")
       }
     } catch (error) {
@@ -823,22 +1129,6 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
           </div>
 
           <div>
-            <Label htmlFor="description" className="font-body text-gray-700">
-              Beschreibung
-            </Label>
-            <RichTextEditor
-              value={formData.description}
-              onChange={(value) => handleInputChange("description", value)}
-              placeholder="Beschreibe dein Event: was möchtest du veranstalten?"
-              className="mt-1"
-              rows={4}
-              maxLength={1000}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-
-          <div>
             <Label className="font-body text-gray-700">Event-Bild</Label>
             <p className="text-sm text-gray-500 mt-1 mb-3">
               Lade ein Bild hoch, um dein Event attraktiver zu gestalten (optional)
@@ -893,6 +1183,22 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               </p>
             )}
           </div>
+
+          <div>
+            <Label htmlFor="description" className="font-body text-gray-700">
+              Beschreibung
+            </Label>
+            <RichTextEditor
+              value={formData.description}
+              onChange={(value) => handleInputChange("description", value)}
+              placeholder="Beschreibe dein Event: was möchtest du veranstalten?"
+              className="mt-1"
+              rows={4}
+              maxLength={1000}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </div>
       )}
 
@@ -902,8 +1208,8 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
           <div>
             <div className="flex items-center space-x-2">
               <input
-                type="checkbox"
                 id="organizerOnly"
+                type="checkbox"
                 checked={formData.organizerOnly}
                 onChange={(e) => handleInputChange("organizerOnly", e.target.checked)}
                 className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
@@ -925,11 +1231,12 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               id="maxPlayers"
               type="number"
               min="2"
-              placeholder="Leer lassen für unbegrenzte Teilnehmerzahl"
               value={formData.maxPlayers || ""}
               onChange={(e) => {
                 const value = e.target.value
                 handleInputChange("maxPlayers", value)
+                // Also update formData.maxParticipants for Supabase submission
+                handleInputChange("maxParticipants", value)
               }}
               className="mt-1 border-2 border-orange-200 focus:border-orange-400 font-body"
             />
@@ -952,56 +1259,285 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             <Label htmlFor="frequency" className="font-body text-gray-700">
               Häufigkeit *
             </Label>
-            <Select value={formData.frequency} onValueChange={(value) => handleInputChange("frequency", value)}>
+            <Select
+              value={formData.frequency}
+              onValueChange={(value) => {
+                handleInputChange("frequency", value)
+                if (value !== formData.frequency) {
+                  handleInputChange("eventDate", "")
+                  handleInputChange("additionalDates", [])
+                  handleInputChange("seriesMode", "manual")
+                  handleInputChange("customIntervalNumber", "")
+                }
+              }}
+            >
               <SelectTrigger className="mt-1 border-2 border-orange-200 focus:border-orange-400">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="single">Einmalig</SelectItem>
-                <SelectItem value="regular">Regelmässig</SelectItem>
-                <SelectItem value="recurring">Wiederholend</SelectItem>
+                <SelectItem value="einmalig">Einmalig</SelectItem>
+                <SelectItem value="täglich">Täglich</SelectItem>
+                <SelectItem value="wöchentlich">Wöchentlich</SelectItem>
+                <SelectItem value="monatlich">Monatlich</SelectItem>
+                <SelectItem value="jährlich">Jährlich</SelectItem>
+                <SelectItem value="andere">Andere</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {formData.frequency === "regular" && (
+          {formData.frequency === "andere" && (
+            <div className="space-y-4">
+              <Label className="font-body text-gray-700">Intervall-Einstellungen</Label>
+              <div className="flex gap-2 items-center">
+                <span className="text-sm text-gray-600">Alle</span>
+                <Input
+                  type="number"
+                  min="2"
+                  placeholder="2"
+                  value={formData.customIntervalNumber}
+                  onChange={(e) => handleInputChange("customIntervalNumber", e.target.value)}
+                  className={`w-20 border-2 ${errors.customIntervalNumber ? "border-red-300 focus:border-red-400" : "border-orange-200 focus:border-orange-400"}`}
+                />
+                <Select
+                  value={formData.customIntervalUnit}
+                  onValueChange={(value) => handleInputChange("customIntervalUnit", value)}
+                >
+                  <SelectTrigger className="w-32 border-2 border-orange-200 focus:border-orange-400">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tage">Tage</SelectItem>
+                    <SelectItem value="wochen">Wochen</SelectItem>
+                    <SelectItem value="monate">Monate</SelectItem>
+                    <SelectItem value="jahre">Jahre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-sm text-gray-500">
+                Beispiel: "Alle 3 Wochen" bedeutet das Event findet alle 3 Wochen statt (Zahl muss größer als 1 sein)
+              </p>
+              {errors.customIntervalNumber && <p className="text-red-600 text-sm">{errors.customIntervalNumber}</p>}
+            </div>
+          )}
+
+          {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) && (
             <div>
-              <Label htmlFor="interval" className="font-body text-gray-700">
-                Turnus *
-              </Label>
-              <Select value={formData.interval} onValueChange={(value) => handleInputChange("interval", value)}>
+              <Label className="font-body text-gray-700">Terminplanung *</Label>
+              <Select
+                value={formData.seriesMode}
+                onValueChange={(value) => {
+                  handleInputChange("seriesMode", value)
+                  if (value !== formData.seriesMode) {
+                    handleInputChange("eventDate", "")
+                    handleInputChange("additionalDates", [])
+                  }
+                }}
+              >
                 <SelectTrigger className="mt-1 border-2 border-orange-200 focus:border-orange-400">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="weekly">Wöchentlich</SelectItem>
-                  <SelectItem value="biweekly">Zweiwöchentlich</SelectItem>
-                  <SelectItem value="monthly">Monatlich</SelectItem>
-                  <SelectItem value="other">Andere</SelectItem>
+                  <SelectItem value="manual">Termin(e) manuell eingeben</SelectItem>
+                  <SelectItem value="series">Serientermine erstellen</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {formData.frequency === "wöchentlich" && formData.seriesMode === "series" && (
+            <div className="space-y-4">
+              <Label className="font-body text-gray-700">Wochentage auswählen</Label>
+              <div className="grid grid-cols-7 gap-2">
+                {["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"].map((day) => (
+                  <div key={day} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={day}
+                      checked={formData.weeklyDays.includes(day)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          handleInputChange("weeklyDays", [...formData.weeklyDays, day])
+                        } else {
+                          handleInputChange(
+                            "weeklyDays",
+                            formData.weeklyDays.filter((d) => d !== day),
+                          )
+                        }
+                      }}
+                    />
+                    <Label htmlFor={day} className="text-sm cursor-pointer">
+                      {day.slice(0, 2)}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-gray-500">Wähle die Wochentage aus, an denen das Event stattfinden soll</p>
+            </div>
+          )}
+
+          {formData.frequency === "monatlich" && formData.seriesMode === "series" && (
+            <div className="space-y-4">
+              <Label className="font-body text-gray-700">Monatliches Muster</Label>
+              <Select value={formData.monthlyType} onValueChange={(value) => handleInputChange("monthlyType", value)}>
+                <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="day">An einem bestimmten Tag im Monats</SelectItem>
+                  <SelectItem value="weekday">An einem bestimmten Wochentag</SelectItem>
                 </SelectContent>
               </Select>
 
-              {formData.interval === "other" && (
-                <Input
-                  className="mt-2 border-2 border-orange-200 focus:border-orange-400"
-                  placeholder="z.B. alle 3 Wochen, jeden ersten Montag im Monat"
-                  value={formData.customInterval}
-                  onChange={(e) => handleInputChange("customInterval", e.target.value)}
-                />
+              {formData.monthlyType === "day" && (
+                <div>
+                  <Label className="font-body text-gray-700">Tag des Monats</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="31"
+                    placeholder="z.B. 7 für jeden 7. des Monats"
+                    value={formData.monthlyDay}
+                    onChange={(e) => handleInputChange("monthlyDay", e.target.value)}
+                    className="mt-1 border-2 border-orange-200 focus:border-orange-400"
+                  />
+                </div>
+              )}
+
+              {formData.monthlyType === "weekday" && (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Select
+                      value={formData.monthlyWeekdayPosition}
+                      onValueChange={(value) => handleInputChange("monthlyWeekdayPosition", value)}
+                    >
+                      <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="first">Ersten</SelectItem>
+                        <SelectItem value="second">Zweiten</SelectItem>
+                        <SelectItem value="third">Dritten</SelectItem>
+                        <SelectItem value="fourth">Vierten</SelectItem>
+                        <SelectItem value="last">Letzten</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={formData.monthlyWeekday}
+                      onValueChange={(value) => handleInputChange("monthlyWeekday", value)}
+                    >
+                      <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="montag">Montag</SelectItem>
+                        <SelectItem value="dienstag">Dienstag</SelectItem>
+                        <SelectItem value="mittwoch">Mittwoch</SelectItem>
+                        <SelectItem value="donnerstag">Donnerstag</SelectItem>
+                        <SelectItem value="freitag">Freitag</SelectItem>
+                        <SelectItem value="samstag">Samstag</SelectItem>
+                        <SelectItem value="sonntag">Sonntag</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-sm text-gray-500">z.B. "Ersten Freitag" = jeden ersten Freitag im Monat</p>
+                </div>
               )}
             </div>
           )}
 
+          {/* Updated series end UI to use radio buttons with inline layout */}
+          {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) &&
+            formData.seriesMode === "series" && (
+              <div className="space-y-4">
+                <Label className="font-body text-gray-700">Wann soll die Serie enden?</Label>
+
+                {/* Radio button option 1: Endet nach X Terminen */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="endByCount"
+                    name="seriesEndType"
+                    value="count"
+                    checked={formData.seriesEndType === "count"}
+                    onChange={(e) => {
+                      handleInputChange("seriesEndType", e.target.value)
+                      if (e.target.checked) {
+                        handleInputChange("seriesEndDate", "") // Clear end date if count is selected
+                      }
+                    }}
+                    className="w-4 h-4 text-orange-600 border-gray-300 focus:ring-orange-500"
+                  />
+                  <Label htmlFor="endByCount" className="font-body text-gray-700">
+                    Endet nach
+                  </Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="5"
+                    value={formData.seriesEndCount}
+                    onChange={(e) => {
+                      handleInputChange("seriesEndCount", e.target.value)
+                      if (e.target.value) {
+                        handleInputChange("seriesEndType", "count")
+                      }
+                    }}
+                    className={`w-20 border-2 ${formData.seriesEndType !== "count" ? "opacity-50 cursor-not-allowed" : "border-orange-200 focus:border-orange-400"}`}
+                    disabled={formData.seriesEndType !== "count"}
+                  />
+                  <Label className="font-body text-gray-700">Terminen</Label>
+                </div>
+
+                {/* Radio button option 2: Endet am Datum */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="endByDate"
+                    name="seriesEndType"
+                    value="date"
+                    checked={formData.seriesEndType === "date"}
+                    onChange={(e) => {
+                      handleInputChange("seriesEndType", e.target.value)
+                      if (e.target.checked) {
+                        handleInputChange("seriesEndCount", "") // Clear count if date is selected
+                      }
+                    }}
+                    className="w-4 h-4 text-orange-600 border-gray-300 focus:ring-orange-500"
+                  />
+                  <Label htmlFor="endByDate" className="font-body text-gray-700">
+                    Endet am
+                  </Label>
+                  <Input
+                    type="date"
+                    value={formData.seriesEndDate}
+                    onChange={(e) => {
+                      handleInputChange("seriesEndDate", e.target.value)
+                      if (e.target.value) {
+                        handleInputChange("seriesEndType", "date")
+                      }
+                    }}
+                    className={`border-2 ${formData.seriesEndType !== "date" ? "opacity-50 cursor-not-allowed" : "border-orange-200 focus:border-orange-400"}`}
+                    disabled={formData.seriesEndType !== "date"}
+                  />
+                </div>
+              </div>
+            )}
+
           <div>
             <Label htmlFor="eventDate" className="font-body text-gray-700">
-              {formData.frequency === "single" ? "Event-Datum *" : "Erstes Event-Datum *"}
+              {formData.frequency === "einmalig"
+                ? "Event-Datum *"
+                : formData.seriesMode === "series"
+                  ? "Start-Datum *"
+                  : "Datum *"}
             </Label>
             <Input
               id="eventDate"
               type="date"
               className="mt-1 border-2 border-orange-200 focus:border-orange-400"
               value={formData.eventDate}
-              onChange={(e) => handleInputChange("eventDate", e.target.value)}
+              onChange={(e) => {
+                handleInputChange("eventDate", e.target.value)
+                handleInputChange("date", e.target.value) // Update for Supabase
+              }}
               required
             />
             {fieldErrors.eventDate ? (
@@ -1010,7 +1546,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 {fieldErrors.eventDate}
               </p>
             ) : (
-              <p className="text-sm text-gray-600 mt-1">Das Event-Datum muss in der Zukunft liegen</p>
+              <p className="text-sm text-gray-600 mt-1">Das Datum muss in der Zukunft liegen</p>
             )}
             {errors.eventDate && (
               <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
@@ -1020,161 +1556,288 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             )}
           </div>
 
-          {formData.eventDate && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="startTime" className="font-body text-gray-700">
-                  Startzeit *
-                </Label>
-                <Input
-                  id="startTime"
-                  type="time"
-                  className="mt-1 border-2 border-orange-200 focus:border-orange-400"
-                  value={formData.startTime}
-                  onChange={(e) => handleInputChange("startTime", e.target.value)}
-                  required
-                />
-                {fieldErrors.startTime && (
-                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4" />
-                    {fieldErrors.startTime}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="startTime" className="font-body text-gray-700">
+                Startzeit *
+              </Label>
+              <Input
+                id="startTime"
+                type="time"
+                className="mt-1 border-2 border-orange-200 focus:border-orange-400"
+                value={formData.startTime}
+                onChange={(e) => handleInputChange("startTime", e.target.value)}
+                required
+              />
+              {fieldErrors.startTime && (
+                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {fieldErrors.startTime}
+                </p>
+              )}
+              {errors.startTime && (
+                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.startTime}
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="endTime" className="font-body text-gray-700">
+                Endzeit *
+              </Label>
+              <Input
+                id="endTime"
+                type="time"
+                className="mt-1 border-2 border-orange-200 focus:border-orange-400"
+                value={formData.endTime}
+                onChange={(e) => handleInputChange("endTime", e.target.value)}
+                required
+              />
+              {fieldErrors.endTime && (
+                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {fieldErrors.endTime}
+                </p>
+              )}
+              {errors.endTime && (
+                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.endTime}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) &&
+            formData.seriesMode === "manual" && (
+              <div className="space-y-4">
+                <div>
+                  <Label className="font-body text-gray-700">Weitere Termine *</Label>
+                  <p className="text-sm text-gray-500 mt-1 mb-2">
+                    Füge alle Termine hinzu, an denen das Event stattfinden soll. Jeder Termin muss in der Zukunft und
+                    nach dem vorherigen Termin liegen.
                   </p>
-                )}
-                {errors.startTime && (
-                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.startTime}
-                  </p>
-                )}
+                  {errors.additionalDates && <p className="text-red-600 text-sm mb-2">{errors.additionalDates}</p>}
+                  <div className="space-y-2 mt-2">
+                    {formData.additionalDates.map((date, index) => {
+                      const previousDate = index === 0 ? formData.eventDate : formData.additionalDates[index - 1]
+                      const isDateValid = !date || !previousDate || new Date(date) > new Date(previousDate)
+                      const isFutureDate = !date || new Date(date) > new Date()
+
+                      return (
+                        <div key={index} className="space-y-2">
+                          <div className="flex gap-2">
+                            <div className="flex-1">
+                              <Input
+                                type="date"
+                                className={`border-2 ${!isDateValid || !isFutureDate ? "border-red-300 focus:border-red-400" : "border-orange-200 focus:border-orange-400"}`}
+                                value={date}
+                                onChange={(e) => {
+                                  const newDates = [...formData.additionalDates]
+                                  newDates[index] = e.target.value
+                                  handleInputChange("additionalDates", newDates)
+                                }}
+                              />
+                              {date && !isFutureDate && (
+                                <p className="text-red-600 text-xs mt-1">Datum muss in der Zukunft liegen</p>
+                              )}
+                              {date && isFutureDate && !isDateValid && (
+                                <p className="text-red-600 text-xs mt-1">
+                                  Datum muss nach dem {index === 0 ? "Start-Event" : "vorherigen Termin"} liegen
+                                </p>
+                              )}
+                            </div>
+                            {date && (
+                              <>
+                                <Input
+                                  type="time"
+                                  className="border-2 border-orange-200 focus:border-orange-400"
+                                  placeholder="Startzeit"
+                                  value={formData.additionalStartTimes?.[index] || formData.startTime}
+                                  onChange={(e) => {
+                                    const newTimes = [...(formData.additionalStartTimes || [])]
+                                    newTimes[index] = e.target.value
+                                    handleInputChange("additionalStartTimes", newTimes)
+                                  }}
+                                />
+                                <Input
+                                  type="time"
+                                  className="border-2 border-orange-200 focus:border-orange-400"
+                                  placeholder="Endzeit"
+                                  value={formData.additionalEndTimes?.[index] || formData.endTime}
+                                  onChange={(e) => {
+                                    const newTimes = [...(formData.additionalEndTimes || [])]
+                                    newTimes[index] = e.target.value
+                                    handleInputChange("additionalEndTimes", newTimes)
+                                  }}
+                                />
+                              </>
+                            )}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newDates = formData.additionalDates.filter((_, i) => i !== index)
+                                const newStartTimes = (formData.additionalStartTimes || []).filter(
+                                  (_, i) => i !== index,
+                                )
+                                const newEndTimes = (formData.additionalEndTimes || []).filter((_, i) => i !== index)
+                                handleInputChange("additionalDates", newDates)
+                                handleInputChange("additionalStartTimes", newStartTimes)
+                                handleInputChange("additionalEndTimes", newEndTimes)
+                              }}
+                            >
+                              Entfernen
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        handleInputChange("additionalDates", [...formData.additionalDates, ""])
+                      }}
+                    >
+                      + Weiteren Termin hinzufügen
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="endTime" className="font-body text-gray-700">
-                  Endzeit *
-                </Label>
-                <Input
-                  id="endTime"
-                  type="time"
-                  className="mt-1 border-2 border-orange-200 focus:border-orange-400"
-                  value={formData.endTime}
-                  onChange={(e) => handleInputChange("endTime", e.target.value)}
-                  required
-                />
-                {fieldErrors.endTime ? (
-                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4" />
-                    {fieldErrors.endTime}
-                  </p>
+            )}
+
+          {/* Updated preview logic to show generated series dates */}
+          {((formData.frequency === "einmalig" && formData.eventDate && formData.startTime && formData.endTime) ||
+            (formData.frequency !== "einmalig" &&
+              formData.seriesMode === "manual" &&
+              formData.additionalDates.some((date) => date)) ||
+            (formData.frequency !== "einmalig" &&
+              formData.seriesMode === "series" &&
+              formData.eventDate &&
+              formData.startTime &&
+              formData.endTime &&
+              (formData.seriesEndType === "count" ? formData.seriesEndCount : formData.seriesEndDate))) && (
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+              <h3 className="font-semibold text-blue-800 mb-3">📅 Terminvorschau</h3>
+              <div className="space-y-2">
+                {formData.frequency === "einmalig" ? (
+                  <div className="flex justify-between items-center bg-white rounded p-2 border border-blue-200">
+                    <span className="font-medium text-blue-700">
+                      {new Date(formData.eventDate).toLocaleDateString("de-DE", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </span>
+                    <span className="text-blue-600">
+                      {formData.startTime} - {formData.endTime}
+                    </span>
+                  </div>
+                ) : formData.seriesMode === "manual" ? (
+                  <>
+                    {formData.eventDate && (
+                      <div className="flex justify-between items-center bg-white rounded p-2 border border-blue-200">
+                        <span className="font-medium text-blue-700">
+                          {new Date(formData.eventDate).toLocaleDateString("de-DE", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                        <span className="text-blue-600">
+                          {formData.startTime} - {formData.endTime}
+                        </span>
+                      </div>
+                    )}
+                    {formData.additionalDates.map((date, index) => {
+                      if (!date) return null
+                      return (
+                        <div
+                          key={index}
+                          className="flex justify-between items-center bg-white rounded p-2 border border-blue-200"
+                        >
+                          <span className="font-medium text-blue-700">
+                            {new Date(date).toLocaleDateString("de-DE", {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </span>
+                          <span className="text-blue-600">
+                            {formData.additionalStartTimes?.[index] || formData.startTime} -{" "}
+                            {formData.additionalEndTimes?.[index] || formData.endTime}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </>
                 ) : (
-                  formData.startTime &&
-                  formData.endTime &&
+                  // Series mode preview
                   (() => {
-                    const startTime = new Date(`2000-01-01T${formData.startTime}:00`)
-                    const endTime = new Date(`2000-01-01T${formData.endTime}:00`)
-                    return endTime <= startTime ? (
-                      <p className="text-sm text-red-600 mt-1">Die Endzeit muss nach der Startzeit liegen.</p>
-                    ) : null
+                    const seriesDates = generateSeriesDates(
+                      formData.eventDate,
+                      formData.frequency,
+                      formData.customIntervalNumber,
+                      formData.customIntervalUnit,
+                      formData.weeklyDays,
+                      formData.monthlyType,
+                      formData.monthlyDay,
+                      formData.monthlyWeekday,
+                      formData.monthlyWeekdayPosition,
+                      formData.seriesEndType,
+                      formData.seriesEndDate,
+                      formData.seriesEndCount,
+                    )
+
+                    return seriesDates.map((date, index) => (
+                      <div
+                        key={index}
+                        className="flex justify-between items-center bg-white rounded p-2 border border-blue-200"
+                      >
+                        <span className="font-medium text-blue-700">
+                          {new Date(date).toLocaleDateString("de-DE", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                        <span className="text-blue-600">
+                          {formData.startTime} - {formData.endTime}
+                        </span>
+                      </div>
+                    ))
                   })()
                 )}
-                {errors.endTime && (
-                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.endTime}
-                  </p>
-                )}
               </div>
-            </div>
-          )}
-
-          {(formData.frequency === "regular" || formData.frequency === "recurring") && (
-            <div>
-              <Label className="font-body text-gray-700">Weitere Termine (optional)</Label>
-              <p className="text-sm text-gray-500 mt-1 mb-2">
-                Jeder weitere Termin muss in der Zukunft und nach dem vorherigen Termin liegen.
-              </p>
-              <div className="space-y-2 mt-2">
-                {formData.additionalDates.map((date, index) => {
-                  const previousDate = index === 0 ? formData.eventDate : formData.additionalDates[index - 1]
-                  const isDateValid = !date || !previousDate || new Date(date) > new Date(previousDate)
-                  const isFutureDate = !date || new Date(date) > new Date()
-
-                  return (
-                    <div key={index} className="space-y-2">
-                      <div className="flex gap-2">
-                        <div className="flex-1">
-                          <Input
-                            type="date"
-                            className={`border-2 ${!isDateValid || !isFutureDate ? "border-red-300 focus:border-red-400" : "border-orange-200 focus:border-orange-400"}`}
-                            value={date}
-                            onChange={(e) => {
-                              const newDates = [...formData.additionalDates]
-                              newDates[index] = e.target.value
-                              handleInputChange("additionalDates", newDates)
-                            }}
-                          />
-                          {date && !isFutureDate && (
-                            <p className="text-red-600 text-xs mt-1">Datum muss in der Zukunft liegen</p>
-                          )}
-                          {date && isFutureDate && !isDateValid && (
-                            <p className="text-red-600 text-xs mt-1">
-                              Datum muss nach dem {index === 0 ? "Start-Event" : "vorherigen Termin"} liegen
-                            </p>
-                          )}
-                        </div>
-                        {date && (
-                          <>
-                            <Input
-                              type="time"
-                              className="border-2 border-orange-200 focus:border-orange-400"
-                              placeholder="Startzeit"
-                              value={formData.additionalStartTimes?.[index] || ""}
-                              onChange={(e) => {
-                                const newTimes = [...(formData.additionalStartTimes || [])]
-                                newTimes[index] = e.target.value
-                                handleInputChange("additionalStartTimes", newTimes)
-                              }}
-                            />
-                            <Input
-                              type="time"
-                              className="border-2 border-orange-200 focus:border-orange-400"
-                              placeholder="Endzeit"
-                              value={formData.additionalEndTimes?.[index] || ""}
-                              onChange={(e) => {
-                                const newTimes = [...(formData.additionalEndTimes || [])]
-                                newTimes[index] = e.target.value
-                                handleInputChange("additionalEndTimes", newTimes)
-                              }}
-                            />
-                          </>
-                        )}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const newDates = formData.additionalDates.filter((_, i) => i !== index)
-                            const newStartTimes = (formData.additionalStartTimes || []).filter((_, i) => i !== index)
-                            const newEndTimes = (formData.additionalEndTimes || []).filter((_, i) => i !== index)
-                            handleInputChange("additionalDates", newDates)
-                            handleInputChange("additionalStartTimes", newStartTimes)
-                            handleInputChange("additionalEndTimes", newEndTimes)
-                          }}
-                        >
-                          Entfernen
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                })}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    handleInputChange("additionalDates", [...formData.additionalDates, ""])
-                  }}
-                >
-                  + Weiteren Termin hinzufügen
-                </Button>
+              <div className="mt-3 text-sm text-blue-600 font-medium">
+                Gesamt:{" "}
+                {formData.frequency === "einmalig"
+                  ? 1
+                  : formData.seriesMode === "manual"
+                    ? (formData.eventDate ? 1 : 0) + formData.additionalDates.filter((date) => date).length
+                    : generateSeriesDates(
+                        formData.eventDate,
+                        formData.frequency,
+                        formData.customIntervalNumber,
+                        formData.customIntervalUnit,
+                        formData.weeklyDays,
+                        formData.monthlyType,
+                        formData.monthlyDay,
+                        formData.monthlyWeekday,
+                        formData.monthlyWeekdayPosition,
+                        formData.seriesEndType,
+                        formData.seriesEndDate,
+                        formData.seriesEndCount,
+                      ).length}{" "}
+                Termine geplant
               </div>
             </div>
           )}
@@ -1308,18 +1971,16 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                             />
                           </div>
                           <h4 className="font-medium text-sm text-gray-900 line-clamp-2">{game.title}</h4>
-                          <div className="space-y-1 mt-2">
-                            {game.year && <p className="text-xs text-gray-500">({game.year})</p>}
-                            {game.publisher && <p className="text-xs text-gray-600">{game.publisher}</p>}
-                            <div className="flex flex-wrap gap-1">
-                              <Badge className="bg-blue-100 text-blue-800 text-xs">BGG</Badge>
-                              {game.players !== "Unbekannt" && (
-                                <Badge variant="outline" className="text-xs">
-                                  {game.players}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
+                          {game.year && <p className="text-xs text-gray-500">({game.year})</p>}
+                          {game.publisher && <p className="text-xs text-gray-600">{game.publisher}</p>}
+                          {/* <div className="flex flex-wrap gap-1">
+                            <Badge className="bg-blue-100 text-blue-800 text-xs">BGG</Badge>
+                            {game.players !== "Unbekannt" && (
+                              <Badge variant="outline" className="text-xs">
+                                {game.players}
+                              </Badge>
+                            )}
+                          </div> */}
                         </div>
                       )
                     })}
@@ -1356,13 +2017,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                           />
                         </div>
                         <h4 className="font-medium text-sm text-gray-900 line-clamp-2">{game.title}</h4>
-                        <div className="flex flex-wrap gap-1 mt-1">
+                        {/* <div className="flex flex-wrap gap-1 mt-1">
                           {game.isBggGame ? (
-                            <Badge className="bg-blue-100 text-blue-800 text-xs">BGG</Badge>
+                            <Badge className="bg-blue-100 text-orange-800 text-xs">BGG</Badge>
                           ) : (
                             <Badge className="bg-orange-100 text-orange-800 text-xs">Bibliothek</Badge>
                           )}
-                        </div>
+                        </div> */}
                       </div>
                     ))}
                   </div>
@@ -1385,13 +2046,20 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="public">Für alle sichtbar (Jeder kann das Event sehen und beitreten)</SelectItem>
-                <SelectItem value="friends">Nur Freunde (Nur deine Freunde können das Event sehen)</SelectItem>
+                <SelectItem value="public">
+                  Für alle sichtbar (Jeder kann das Event sehen und sich hierfür anmelden)
+                </SelectItem>
+                {/* <SelectItem value="friends">Nur Freunde (Nur deine Freunde können das Event sehen)</SelectItem> */}
+                {/* Update visibility select options */}
+                <SelectItem value="friends_only">
+                  Mit Einladung (Nur ausgewählte Freunde können das Event sehen)
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {formData.visibility === "friends" && (
+          {/* Update condition to check for friends_only */}
+          {formData.visibility === "friends_only" && (
             <div className="space-y-4">
               <div>
                 <Label className="font-body text-gray-700">Freunde einladen</Label>
@@ -1465,10 +2133,11 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             </div>
           )}
 
-          {formData.visibility !== "friends" && (
+          {/* Update condition to exclude friends_only from approval settings */}
+          {formData.visibility !== "friends_only" && (
             <div>
               <Label htmlFor="requiresApproval" className="font-body text-gray-700">
-                Teilnahme-Genehmigung *
+                Teilnahmemodalitäten *
               </Label>
               <Select
                 value={formData.requiresApproval ? "manual" : "automatic"}
@@ -1478,8 +2147,12 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="automatic">Automatisch (Teilnehmer können direkt beitreten)</SelectItem>
-                  <SelectItem value="manual">Manuell (Du genehmigst jede Teilnahme-Anfrage)</SelectItem>
+                  <SelectItem value="automatic">
+                    Direkte Teilnahme (Mitglieder können sich direkt für das Event anmelden)
+                  </SelectItem>
+                  <SelectItem value="manual">
+                    Teilnahme erst nach Genehmigung (Du genehmigst jede Teilnahme-Anfrage)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1684,9 +2357,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                   return (
                     <div
                       key={game.id}
-                      className={`border rounded-lg p-3 transition-colors relative ${"hover:bg-gray-50"} ${isSelected ? "border-teal-500 bg-teal-50" : "border-gray-200"} ${
-                        !isAvailable ? "opacity-75" : ""
-                      }`}
+                      className={`border rounded-lg p-3 transition-colors ${"hover:bg-gray-50"} ${isSelected ? "border-teal-500 bg-teal-50" : "border-gray-200"}`}
                       onClick={() => handleGameShelfSelection(game)} // removed availability check to allow selecting unavailable games
                     >
                       <div className="absolute top-2 left-2 z-10">

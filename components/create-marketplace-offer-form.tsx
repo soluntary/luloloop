@@ -828,7 +828,7 @@ export function CreateMarketplaceOfferForm({
       case "lend":
         return "Bedingungen"
       case "trade":
-        return "Tauschbedingungen"
+        return "oder Wunschspiel eingeben"
       case "sell":
         return "Verkaufspreis (CHF)"
       default:
@@ -841,7 +841,7 @@ export function CreateMarketplaceOfferForm({
       case "lend":
         return "z.B. Kostenlose Ausleihe gegen Pfand"
       case "trade":
-        return "z.B. Gegen ähnliches Strategiespiel"
+        return "z.B. Die Siedler von Catan "
       case "sell":
         return "z.B. 25.00"
       default:
@@ -1636,7 +1636,7 @@ export function CreateMarketplaceOfferForm({
                   {/* Selling specific fields */}
                   {offerType === "sell" && (
                     <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl p-6 border border-pink-200 shadow-sm">
-                      <h4 className="text-lg font-bold text-pink-800 mb-4 flex items-center gap-2">Verkaufs Details</h4>
+                      <h4 className="text-lg font-bold text-pink-800 mb-4 flex items-center gap-2">Verkaufsbedingungen</h4>
 
                       <div>
                         <Label className="text-sm font-semibold text-gray-700 mb-2 block">Verkaufspreis (CHF) *</Label>
@@ -1662,7 +1662,7 @@ export function CreateMarketplaceOfferForm({
                   {/* Trading specific fields */}
                   {offerType === "trade" && (
                     <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
-                      <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">Tausch Details</h4>
+                      <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">Tauschbedingungen</h4>
 
                       <div className="mb-4">
                         <div className="flex items-center space-x-3">

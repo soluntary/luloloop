@@ -4,9 +4,8 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Check, X, Calendar, Clock, MapPin, Mail, Users } from "lucide-react"
+import { Check, X, Calendar, Clock, MapPin, Mail } from "lucide-react"
 import { toast } from "sonner"
 import { getUserEventInvitations, respondToEventInvitation } from "@/app/actions/ludo-events"
 
@@ -15,6 +14,8 @@ interface EventInvitation {
   status: "pending" | "accepted" | "declined"
   message?: string
   created_at: string
+  event_id: string
+  inviter_id: string
   ludo_events: {
     id: string
     title: string
@@ -56,7 +57,56 @@ export default function EventInvitationsDialog({ userId, isOpen, onClose, onUpda
     try {
       const result = await getUserEventInvitations(userId)
       if (result.success) {
-        setInvitations(result.data || [])
+        const invitationsWithDetails = await Promise.all(
+          (result.data || []).map(async (invitation: any) => {
+            try {
+              const { createClient } = await import("@/lib/supabase/client")
+              const supabase = await createClient()
+
+              const { data: fullData, error } = await supabase
+                .from("ludo_event_invitations")
+                .select(`
+                  id,
+                  status,
+                  message,
+                  created_at,
+                  event_id,
+                  inviter_id,
+                  ludo_events!inner (
+                    id,
+                    title,
+                    description,
+                    event_date,
+                    start_time,
+                    end_time,
+                    location,
+                    image_url
+                  ),
+                  inviter:inviter_id (
+                    id,
+                    username,
+                    name,
+                    avatar
+                  )
+                `)
+                .eq("id", invitation.id)
+                .single()
+
+              if (error) {
+                console.error("Error loading invitation details:", error)
+                return null
+              }
+
+              return fullData
+            } catch (error) {
+              console.error("Error loading invitation:", error)
+              return null
+            }
+          }),
+        )
+
+        const validInvitations = invitationsWithDetails.filter(Boolean)
+        setInvitations(validInvitations)
       } else {
         toast.error(result.error || "Fehler beim Laden der Einladungen")
       }
@@ -151,10 +201,6 @@ export default function EventInvitationsDialog({ userId, isOpen, onClose, onUpda
                         </span>
                       </div>
                     </div>
-                    <Badge variant="outline" className="text-blue-600 border-blue-300">
-                      <Users className="h-3 w-3 mr-1" />
-                      Nur Freunde
-                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">

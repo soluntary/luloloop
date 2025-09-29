@@ -96,9 +96,8 @@ export default function AboutPage() {
           </h2>
           <div className="max-w-2xl mx-auto text-center">
             <p className="text-lg text-gray-600 mb-8 font-body">
-              Ludoloop wurde von leidenschaftlichen Brettspielfans gegründet, die ihre Liebe zum Spielen mit der ganzen
-              Welt teilen möchten. Unser Team arbeitet täglich daran, die beste Plattform für Spieleliebhaber zu
-              schaffen.
+              Unser kleines, aber feines Team arbeitet täglich daran, die beste Plattform für Spieleliebhaber zu schaffen. Wir sind selbst begeisterte Brettspieler und verstehen die Bedürfnisse unserer Community aus eigener Erfahrung.
+
             </p>
           </div>
         </div>

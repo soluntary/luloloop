@@ -135,10 +135,9 @@ function Navigation({ currentPage }: NavigationProps) {
     <nav className="bg-white shadow-lg border-b-4 border-teal-400 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
           <Link
             href="/"
-            className="flex items-center space-x-2 transform hover:scale-105 hover:rotate-1 transition-all hover:text-teal-600"
+            className="flex items-center space-x-2 transform hover:scale-105 hover:rotate-1 transition-all hover:text-teal-600 -ml-2"
           >
             <img src="/images/ludoloop-new-logo.png" alt="LudoLoop Logo" className="h-16 w-auto" />
           </Link>

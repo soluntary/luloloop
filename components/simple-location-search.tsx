@@ -152,13 +152,13 @@ export function SimpleLocationSearch({ onLocationSearch, className }: SimpleLoca
 
   return (
     <div className={`relative ${className}`}>
-      <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-white rounded-lg border border-gray-200">
         <div className="flex items-center gap-2 text-gray-700 min-w-fit">
-          <MapPin className="h-4 w-4 text-orange-500" />
+          <MapPin className="h-5 w-5 text-orange-500" />
           <span className="text-sm font-medium">Standort:</span>
         </div>
 
-        <div className="flex-1 min-w-0 relative">
+        <div className="flex-1 w-full sm:min-w-0 relative">
           <Input
             ref={inputRef}
             type="text"
@@ -168,18 +168,18 @@ export function SimpleLocationSearch({ onLocationSearch, className }: SimpleLoca
             onKeyDown={handleKeyPress}
             onBlur={handleBlur}
             onFocus={() => address.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
-            className="border-orange-200 focus:border-orange-400 text-sm pr-8"
+            className="border-orange-200 focus:border-orange-400 text-base h-10 pr-8"
           />
           {isLoadingSuggestions && (
-            <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-              <Loader2 className="w-3 h-3 animate-spin text-gray-400" />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2 min-w-fit">
+        <div className="flex items-center gap-3 min-w-fit">
           <Select value={radius} onValueChange={setRadius}>
-            <SelectTrigger className="w-20 h-8 border-orange-200 text-xs">
+            <SelectTrigger className="w-24 h-10 border-orange-200 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -194,13 +194,13 @@ export function SimpleLocationSearch({ onLocationSearch, className }: SimpleLoca
           <Button
             onClick={handleSearch}
             disabled={!address.trim() || isSearching}
-            size="sm"
-            className="bg-orange-500 hover:bg-orange-600 text-white h-8 px-3"
+            size="default"
+            className="bg-orange-500 hover:bg-orange-600 text-white h-10 px-4"
           >
             {isSearching ? (
-              <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
-              <Search className="h-3 w-3" />
+              <Search className="h-4 w-4" />
             )}
           </Button>
         </div>

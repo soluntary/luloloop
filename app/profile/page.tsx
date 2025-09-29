@@ -220,16 +220,11 @@ export default function ProfilePage() {
 
     try {
       setLoadingEvents(true)
+      console.log("[v0] Fetching user events for user:", user.id)
+
       const { data: events, error } = await supabase
         .from("ludo_events")
-        .select(`
-          *,
-          creator:users!creator_id (
-            username,
-            name,
-            avatar
-          )
-        `)
+        .select("*")
         .eq("creator_id", user.id)
         .order("created_at", { ascending: false })
 
@@ -238,6 +233,7 @@ export default function ProfilePage() {
         return
       }
 
+      console.log("[v0] User events loaded successfully:", events?.length || 0)
       setUserEvents(events || [])
     } catch (error) {
       console.error("Error fetching user events:", error)
@@ -702,17 +698,12 @@ export default function ProfilePage() {
           </div>
 
           <Tabs defaultValue="profile" className="space-y-4 md:space-y-6">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 h-auto">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
               <TabsTrigger value="profile" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
                 Profil
               </TabsTrigger>
-              <TabsTrigger value="listings" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
-                <span className="hidden sm:inline">Meine Anzeigen</span>
-                <span className="sm:hidden">Anzeigen</span>
-              </TabsTrigger>
-              <TabsTrigger value="events" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
-                <span className="hidden sm:inline">Meine Events</span>
-                <span className="sm:hidden">Events</span>
+              <TabsTrigger value="dashboard" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
+                Dashboard
               </TabsTrigger>
               <TabsTrigger value="notifications" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
                 <span className="hidden sm:inline">Benachrichtigungen</span>
@@ -1585,48 +1576,80 @@ export default function ProfilePage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="listings">
+            <TabsContent value="dashboard">
               <Card>
                 <CardHeader className="p-4 md:p-6">
-                  <CardTitle className="font-handwritten text-lg md:text-xl">Meine Anzeigen</CardTitle>
+                  <CardTitle className="font-handwritten text-lg md:text-xl">Dashboard</CardTitle>
                   <CardDescription className="text-sm md:text-base">
-                    Verwalte deine Marktplatz-Angebote und Suchanzeigen
+                    Verwalte alle deine Anzeigen, Events und Spielgruppen an einem Ort
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 p-4 md:p-6">
-                  <div className="space-y-6">
-                    {/* Marketplace Offers */}
+                  <div className="space-y-8">
+                    {/* Events Section */}
                     <div>
-                      <h3 className="font-semibold text-base md:text-lg mb-4">
-                        Marktplatz-Angebote ({userOffers.length})
-                      </h3>
-                      {userOffers.length === 0 ? (
-                        <p className="text-gray-600 text-sm md:text-base">Du hast noch keine Angebote erstellt.</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <h3 className="font-semibold text-base md:text-lg">Meine Events ({userEvents.length})</h3>
+                        <Button
+                          size="sm"
+                          onClick={() => router.push("/ludo-events")}
+                          className="text-xs w-full sm:w-auto"
+                        >
+                          Neues Event erstellen
+                        </Button>
+                      </div>
+                      {loadingEvents ? (
+                        <p className="text-gray-600 text-sm md:text-base">Lade Events...</p>
+                      ) : userEvents.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <p className="text-gray-600 text-sm md:text-base mb-2">Du hast noch keine Events erstellt.</p>
+                          <Button size="sm" onClick={() => router.push("/ludo-events")}>
+                            Erstes Event erstellen
+                          </Button>
+                        </div>
                       ) : (
-                        <div className="grid gap-4">
-                          {userOffers.map((offer) => (
-                            <div key={offer.id} className="border rounded-lg p-4 space-y-2">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h4 className="font-semibold text-sm md:text-base">{offer.title}</h4>
-                                  <p className="text-gray-600 text-xs md:text-sm">{offer.description}</p>
-                                  <p className="text-teal-600 font-semibold text-sm md:text-base">{offer.price}</p>
+                        <div className="space-y-3">
+                          {userEvents.map((event) => (
+                            <div key={event.id} className="border rounded-lg p-3 md:p-4 bg-blue-50/50 w-full">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm md:text-base text-blue-900 truncate">
+                                    {event.title}
+                                  </h4>
+                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                    {event.description}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      📅 {formatEventDate(event.event_date || event.date)}
+                                    </span>
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      🕐 {event.start_time || event.time}
+                                    </span>
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      👥 {event.participants_count || 0}/{event.max_participants}
+                                    </span>
+                                    {event.frequency && event.frequency !== "once" && event.frequency !== "single" && (
+                                      <span className="flex items-center gap-1 whitespace-nowrap">
+                                        🔄 {getFrequencyText(event.frequency, event.interval_type)}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 justify-end">
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => {
-                                      setEditingOffer(offer)
-                                      setIsEditOfferOpen(true)
-                                    }}
+                                    onClick={() => router.push(`/ludo-events/${event.id}`)}
+                                    className="text-xs"
                                   >
-                                    Bearbeiten
+                                    Anzeigen
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="destructive"
-                                    onClick={() => setDeleteConfirm({ type: "offer", id: offer.id })}
+                                    onClick={() => setDeleteConfirm({ type: "event", id: event.id })}
+                                    className="text-xs"
                                   >
                                     Löschen
                                   </Button>
@@ -1638,24 +1661,156 @@ export default function ProfilePage() {
                       )}
                     </div>
 
-                    {/* Search Ads */}
+                    {/* Spielgruppen Section */}
                     <div>
-                      <h3 className="font-semibold text-base md:text-lg mb-4">Suchanzeigen ({userSearchAds.length})</h3>
-                      {userSearchAds.length === 0 ? (
-                        <p className="text-gray-600 text-sm md:text-base">Du hast noch keine Suchanzeigen erstellt.</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <h3 className="font-semibold text-base md:text-lg">Meine Spielgruppen</h3>
+                        <Button
+                          size="sm"
+                          onClick={() => router.push("/ludo-gruppen")}
+                          className="text-xs w-full sm:w-auto"
+                        >
+                          Neue Gruppe erstellen
+                        </Button>
+                      </div>
+                      <div className="text-center py-8 bg-gray-50 rounded-lg">
+                        <p className="text-gray-600 text-sm md:text-base mb-2">
+                          Spielgruppen-Verwaltung wird hier bald verfügbar sein.
+                        </p>
+                        <Button size="sm" onClick={() => router.push("/ludo-gruppen")}>
+                          Zu Spielgruppen
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Marketplace Offers Section */}
+                    <div>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <h3 className="font-semibold text-base md:text-lg">
+                          Marktplatz-Angebote ({userOffers.length})
+                        </h3>
+                        <Button
+                          size="sm"
+                          onClick={() => router.push("/marketplace")}
+                          className="text-xs w-full sm:w-auto"
+                        >
+                          Neues Angebot erstellen
+                        </Button>
+                      </div>
+                      {userOffers.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <p className="text-gray-600 text-sm md:text-base mb-2">
+                            Du hast noch keine Angebote erstellt.
+                          </p>
+                          <Button size="sm" onClick={() => router.push("/marketplace")}>
+                            Erstes Angebot erstellen
+                          </Button>
+                        </div>
                       ) : (
-                        <div className="grid gap-4">
-                          {userSearchAds.map((searchAd) => (
-                            <div key={searchAd.id} className="border rounded-lg p-4 space-y-2">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h4 className="font-semibold text-sm md:text-base">{searchAd.title}</h4>
-                                  <p className="text-gray-600 text-xs md:text-sm">{searchAd.description}</p>
-                                  <p className="text-purple-600 font-semibold text-sm md:text-base">
-                                    Bis {searchAd.max_price}
+                        <div className="space-y-3">
+                          {userOffers.map((offer) => (
+                            <div key={offer.id} className="border rounded-lg p-3 md:p-4 bg-teal-50/50 w-full">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm md:text-base text-teal-900 truncate">
+                                    {offer.title}
+                                  </h4>
+                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                    {offer.description}
                                   </p>
+                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                    <span className="flex items-center gap-1 whitespace-nowrap">💰 {offer.price}</span>
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      📍 {offer.location}
+                                    </span>
+                                    <span
+                                      className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                                        offer.type === "sell"
+                                          ? "bg-green-100 text-green-800"
+                                          : offer.type === "lend"
+                                            ? "bg-blue-100 text-blue-800"
+                                            : "bg-purple-100 text-purple-800"
+                                      }`}
+                                    >
+                                      {offer.type === "sell"
+                                        ? "Verkaufen"
+                                        : offer.type === "lend"
+                                          ? "Verleihen"
+                                          : "Tauschen"}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingOffer(offer)
+                                      setIsEditOfferOpen(true)
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    Bearbeiten
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setDeleteConfirm({ type: "offer", id: offer.id })}
+                                    className="text-xs"
+                                  >
+                                    Löschen
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Search Ads Section */}
+                    <div>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <h3 className="font-semibold text-base md:text-lg">Suchanzeigen ({userSearchAds.length})</h3>
+                        <Button
+                          size="sm"
+                          onClick={() => router.push("/marketplace")}
+                          className="text-xs w-full sm:w-auto"
+                        >
+                          Neue Suchanzeige erstellen
+                        </Button>
+                      </div>
+                      {userSearchAds.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <p className="text-gray-600 text-sm md:text-base mb-2">
+                            Du hast noch keine Suchanzeigen erstellt.
+                          </p>
+                          <Button size="sm" onClick={() => router.push("/marketplace")}>
+                            Erste Suchanzeige erstellen
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {userSearchAds.map((searchAd) => (
+                            <div key={searchAd.id} className="border rounded-lg p-3 md:p-4 bg-purple-50/50 w-full">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm md:text-base text-purple-900 truncate">
+                                    {searchAd.title}
+                                  </h4>
+                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                    {searchAd.description}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      💰 Bis {searchAd.max_price}
+                                    </span>
+                                    <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 whitespace-nowrap">
+                                      Suche
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 justify-end">
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -1663,6 +1818,7 @@ export default function ProfilePage() {
                                       setEditingSearchAd(searchAd)
                                       setIsEditSearchAdOpen(true)
                                     }}
+                                    className="text-xs"
                                   >
                                     Bearbeiten
                                   </Button>
@@ -1670,6 +1826,7 @@ export default function ProfilePage() {
                                     size="sm"
                                     variant="destructive"
                                     onClick={() => setDeleteConfirm({ type: "searchAd", id: searchAd.id })}
+                                    className="text-xs"
                                   >
                                     Löschen
                                   </Button>
@@ -1681,57 +1838,6 @@ export default function ProfilePage() {
                       )}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="events">
-              <Card>
-                <CardHeader className="p-4 md:p-6">
-                  <CardTitle className="font-handwritten text-lg md:text-xl">Meine Events</CardTitle>
-                  <CardDescription className="text-sm md:text-base">Verwalte deine erstellten Events</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6 p-4 md:p-6">
-                  {loadingEvents ? (
-                    <p className="text-gray-600 text-sm md:text-base">Lade Events...</p>
-                  ) : userEvents.length === 0 ? (
-                    <p className="text-gray-600 text-sm md:text-base">Du hast noch keine Events erstellt.</p>
-                  ) : (
-                    <div className="grid gap-4">
-                      {userEvents.map((event) => (
-                        <div key={event.id} className="border rounded-lg p-4 space-y-2">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-semibold text-sm md:text-base">{event.title}</h4>
-                              <p className="text-gray-600 text-xs md:text-sm">{event.description}</p>
-                              <div className="flex gap-4 text-xs md:text-sm text-gray-500 mt-2">
-                                <span>{formatEventDate(event.date)}</span>
-                                <span>{event.time}</span>
-                                <span>
-                                  {event.participants_count || 0}/{event.max_participants} Teilnehmer
-                                </span>
-                                {event.frequency && event.frequency !== "once" && (
-                                  <span>{getFrequencyText(event.frequency, event.interval_type)}</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button size="sm" variant="outline" onClick={() => router.push(`/events/${event.id}`)}>
-                                Anzeigen
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => setDeleteConfirm({ type: "event", id: event.id })}
-                              >
-                                Löschen
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </TabsContent>

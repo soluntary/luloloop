@@ -58,14 +58,15 @@ export default function JoinEventDialog({
           {approvalMode === "automatic" ? (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <div className="text-sm text-green-800">
-                <strong>Sofortige Teilnahme:</strong> Du nimmst direkt zum Event teil.
+                <strong>Sofortige Teilnahme:</strong> Du nimmst direkt am Event teil.
               </div>
             </div>
           ) : (
             <div className="space-y-3">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <div className="text-sm text-blue-800">
-                  <strong>Teilnahme erst nach Genehmigung:</strong> Der Organisator muss deine Anfrage genehmigen.
+                  <strong>Teilnahme mit Genehmigung:</strong> Der Organisator muss deine Anfrage genehmigen. Du erhältst
+                  eine Benachrichtigung, sobald über deine Anfrage entschieden wurde.
                 </div>
               </div>
 
@@ -82,6 +83,9 @@ export default function JoinEventDialog({
                   maxLength={500}
                   rows={3}
                 />
+                <div className="text-xs text-gray-500">
+                  Nach dem Senden wird dein Status auf "Warte auf Bestätigung" gesetzt.
+                </div>
               </div>
             </div>
           )}
