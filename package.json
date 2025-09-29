@@ -83,6 +83,7 @@
     "mysql2": "latest",
     "next": "15.2.4",
     "next-themes": "latest",
+    "path": "latest",
     "pg": "latest",
     "postgres": "latest",
     "react": "^19",
@@ -95,6 +96,7 @@
     "swr": "latest",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "url": "latest",
     "vaul": "1.1.1",
     "zod": "4.1.11"
   },
