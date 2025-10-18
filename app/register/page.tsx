@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from "@/contexts/auth-context"
 import { Navigation } from "@/components/navigation"
 import { Eye, EyeOff } from "lucide-react"
+import { checkUsernameAvailability } from "@/app/actions/check-username"
 import "@/styles/font-handwritten.css"
 import "@/styles/font-body.css"
 
@@ -26,9 +27,32 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [usernameError, setUsernameError] = useState("")
+  const [checkingUsername, setCheckingUsername] = useState(false)
 
   const { signUp } = useAuth()
   const router = useRouter()
+
+  const handleUsernameChange = async (value: string) => {
+    setUsername(value)
+    setUsernameError("")
+
+    if (value.length < 3) {
+      return
+    }
+
+    setCheckingUsername(true)
+    try {
+      const result = await checkUsernameAvailability(value)
+      if (!result.available) {
+        setUsernameError("Dieser Benutzername ist bereits vergeben")
+      }
+    } catch (error) {
+      console.error("[v0] Error checking username:", error)
+    } finally {
+      setCheckingUsername(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,9 +79,21 @@ export default function RegisterPage() {
       return
     }
 
+    if (usernameError) {
+      setError("Bitte wählen Sie einen anderen Benutzernamen.")
+      return
+    }
+
     setLoading(true)
 
     try {
+      const usernameCheck = await checkUsernameAvailability(username)
+      if (!usernameCheck.available) {
+        setError("Dieser Benutzername ist bereits vergeben. Bitte wählen Sie einen anderen.")
+        setLoading(false)
+        return
+      }
+
       console.log("[v0] Starting registration process...")
       await signUp(email, password, fullName, username)
       console.log("[v0] Registration completed successfully")
@@ -66,10 +102,9 @@ export default function RegisterPage() {
         "Registrierung erfolgreich! Bitte überprüfen Sie Ihre E-Mails zur Bestätigung. Falls Sie keine E-Mail erhalten, prüfen Sie Ihren Spam-Ordner.",
       )
 
-      // Redirect to login after successful registration
       setTimeout(() => {
         router.push("/login")
-      }, 3000) // Increased timeout to give user time to read message
+      }, 3000)
     } catch (error: any) {
       console.error("[v0] Registration failed:", error)
 
@@ -94,9 +129,9 @@ export default function RegisterPage() {
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-md mx-auto">
           <Card className="transform rotate-1 hover:rotate-0 transition-all shadow-xl border-2 border-teal-200">
-            <CardHeader className="text-center">
+            <CardHeader className="text-center flex-col items-center space-y-2">
               <CardTitle className="text-2xl font-bold text-gray-800 font-handwritten">Registrierung</CardTitle>
-              <CardDescription className="font-body">Erstelle dein Ludoloop-Konto</CardDescription>
+              <CardDescription className="font-body text-center">Erstelle dein Ludoloop-Konto</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -123,11 +158,16 @@ export default function RegisterPage() {
                     id="username"
                     type="text"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => handleUsernameChange(e.target.value)}
                     required
                     className="font-body"
                     placeholder="maxmustermann"
                   />
+                  {checkingUsername && <p className="text-sm text-gray-500">Überprüfe Verfügbarkeit...</p>}
+                  {usernameError && <p className="text-sm text-red-600">{usernameError}</p>}
+                  {username.length >= 3 && !usernameError && !checkingUsername && (
+                    <p className="text-sm text-green-600">Benutzername verfügbar</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

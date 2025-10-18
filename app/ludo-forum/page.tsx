@@ -14,7 +14,8 @@ import { toast } from "sonner"
 import Navigation from "@/components/navigation"
 import UserLink from "@/components/user-link"
 import CreateForumPostForm from "@/components/create-forum-post-form"
-import { LeaderboardAd, MediumRectangleAd, SkyscraperAd } from "@/components/advertising/ad-placements"
+import { SkyscraperAd } from "@/components/advertising/ad-placements"
+import { ForumPostReactions } from "@/components/forum-post-reactions"
 
 interface ForumPost {
   id: string
@@ -146,7 +147,6 @@ export default function LudoForumPage() {
       <Navigation currentPage="ludo-forum" />
 
       <div className="container mx-auto px-4 py-8">
-
         <div className="text-center mb-8">
           <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Forum</h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -169,17 +169,19 @@ export default function LudoForumPage() {
               </div>
 
               <div className="flex justify-center md:justify-end">
-                <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                  <DialogTrigger asChild>
-                    <Button className="playful-button">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Neue Diskussion
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                    <CreateForumPostForm onSuccess={handlePostCreated} onCancel={() => setShowCreateDialog(false)} />
-                  </DialogContent>
-                </Dialog>
+                {user && (
+                  <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                    <DialogTrigger asChild>
+                      <Button className="playful-button">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Neue Diskussion
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                      <CreateForumPostForm onSuccess={handlePostCreated} onCancel={() => setShowCreateDialog(false)} />
+                    </DialogContent>
+                  </Dialog>
+                )}
               </div>
             </div>
 
@@ -337,11 +339,20 @@ export default function LudoForumPage() {
                               className="bg-transparent hover:bg-teal-50 hover:border-teal-300"
                               onClick={(e) => {
                                 e.stopPropagation()
+                                if (!user) {
+                                  toast.info("Bitte melde dich an, um zu antworten")
+                                  window.location.href = "/login"
+                                  return
+                                }
                                 handlePostClick(post.id)
                               }}
                             >
                               Antworten
                             </Button>
+                          </div>
+
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <ForumPostReactions postId={post.id} />
                           </div>
                         </div>
                       </div>

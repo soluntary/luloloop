@@ -38,6 +38,7 @@ export function AddressAutocomplete({
   const [isLoading, setIsLoading] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [isFocused, setIsFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
 
@@ -53,7 +54,7 @@ export function AddressAutocomplete({
       try {
         const addressSuggestions = await getAddressSuggestions(value)
         setSuggestions(addressSuggestions)
-        setShowSuggestions(addressSuggestions.length > 0)
+        setShowSuggestions(addressSuggestions.length > 0 && isFocused)
         setSelectedIndex(-1)
       } catch (error) {
         console.error("Address autocomplete error:", error)
@@ -64,10 +65,11 @@ export function AddressAutocomplete({
     }, 300)
 
     return () => clearTimeout(timeoutId)
-  }, [value])
+  }, [value, isFocused])
 
   const handleSuggestionClick = (suggestion: AddressSuggestion) => {
     onChange(suggestion.description)
+    setIsFocused(false)
     setShowSuggestions(false)
     setSuggestions([])
   }
@@ -99,9 +101,17 @@ export function AddressAutocomplete({
 
   const handleBlur = () => {
     setTimeout(() => {
+      setIsFocused(false)
       setShowSuggestions(false)
       setSelectedIndex(-1)
     }, 200)
+  }
+
+  const handleFocus = () => {
+    setIsFocused(true)
+    if (value.length >= 3 && suggestions.length > 0) {
+      setShowSuggestions(true)
+    }
   }
 
   return (
@@ -115,7 +125,7 @@ export function AddressAutocomplete({
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          onFocus={() => value.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
+          onFocus={handleFocus}
           className={`h-10 border-2 border-indigo-200 focus:border-indigo-500 rounded-lg pr-10 ${className}`}
         />
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">

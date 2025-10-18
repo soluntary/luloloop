@@ -14,6 +14,84 @@ interface AddressSuggestion {
   }
 }
 
+function formatAddressClean(displayName: string, addressDetails?: any, name?: string): string {
+  // For OpenStreetMap results, parse and format cleanly
+  if (addressDetails) {
+    // Check if this is a named location (POI) like "Gameorama"
+    // Named locations have a name that's different from the road name
+    const isNamedLocation =
+      name &&
+      name !== addressDetails.road &&
+      name !== addressDetails.city &&
+      name !== addressDetails.town &&
+      name !== addressDetails.village
+
+    if (isNamedLocation) {
+      // For named locations, show: "Name, Postal Code City"
+      const parts: string[] = [name]
+
+      const cityParts: string[] = []
+      if (addressDetails.postcode) {
+        cityParts.push(addressDetails.postcode)
+      }
+      if (addressDetails.city || addressDetails.town || addressDetails.village) {
+        cityParts.push(addressDetails.city || addressDetails.town || addressDetails.village)
+      }
+
+      if (cityParts.length > 0) {
+        parts.push(cityParts.join(" "))
+      }
+
+      return parts.join(", ")
+    }
+
+    // For regular addresses, show: "Street House Number, Postal Code City"
+    const parts: string[] = []
+
+    // Add street and house number
+    if (addressDetails.road) {
+      if (addressDetails.house_number) {
+        parts.push(`${addressDetails.road} ${addressDetails.house_number}`)
+      } else {
+        parts.push(addressDetails.road)
+      }
+    }
+
+    // Add postal code and city
+    const cityParts: string[] = []
+    if (addressDetails.postcode) {
+      cityParts.push(addressDetails.postcode)
+    }
+    if (addressDetails.city || addressDetails.town || addressDetails.village) {
+      cityParts.push(addressDetails.city || addressDetails.town || addressDetails.village)
+    }
+
+    if (cityParts.length > 0) {
+      parts.push(cityParts.join(" "))
+    }
+
+    return parts.length > 0 ? parts.join(", ") : displayName
+  }
+
+  // Fallback: parse display_name and extract essential parts
+  const parts = displayName.split(",").map((p) => p.trim())
+
+  // Try to find postal code pattern (e.g., "5621")
+  const postalCodeIndex = parts.findIndex((p) => /^\d{4,5}$/.test(p))
+
+  if (postalCodeIndex !== -1 && postalCodeIndex > 0) {
+    // Get street (first part), postal code, and city (part before postal code)
+    const street = parts[0]
+    const postalCode = parts[postalCodeIndex]
+    const city = parts[postalCodeIndex - 1]
+
+    return `${street}, ${postalCode} ${city}`
+  }
+
+  // If no postal code found, just return first 2-3 parts
+  return parts.slice(0, Math.min(3, parts.length)).join(", ")
+}
+
 export async function geocodeAddress(address: string): Promise<GeocodeResult | null> {
   try {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY
@@ -94,14 +172,17 @@ export async function getAddressSuggestions(input: string): Promise<AddressSugge
       const data = await response.json()
 
       if (data && data.length > 0) {
-        return data.map((item: any, index: number) => ({
-          place_id: `osm_${item.place_id || index}`,
-          description: item.display_name,
-          structured_formatting: {
-            main_text: item.name || item.display_name.split(",")[0],
-            secondary_text: item.display_name,
-          },
-        }))
+        return data.map((item: any, index: number) => {
+          const cleanAddress = formatAddressClean(item.display_name, item.address, item.name)
+          return {
+            place_id: `osm_${item.place_id || index}`,
+            description: cleanAddress,
+            structured_formatting: {
+              main_text: item.name || item.address?.road || cleanAddress.split(",")[0],
+              secondary_text: cleanAddress,
+            },
+          }
+        })
       }
       return []
     }
@@ -113,7 +194,37 @@ export async function getAddressSuggestions(input: string): Promise<AddressSugge
     const data = await response.json()
 
     if (data.status === "OK" && data.predictions) {
-      return data.predictions
+      return data.predictions.map((prediction: any) => {
+        // Google already provides structured formatting, but we can clean the description
+        const parts = prediction.description.split(",").map((p: string) => p.trim())
+
+        // Remove country name if it's the last part
+        if (
+          parts.length > 0 &&
+          /schweiz|suisse|svizzera|svizra|deutschland|germany|österreich|austria/i.test(parts[parts.length - 1])
+        ) {
+          parts.pop()
+        }
+
+        // Remove canton/state if it's the second to last part
+        if (parts.length > 2) {
+          const secondLast = parts[parts.length - 1]
+          if (/aargau|zürich|bern|basel|luzern|st\. gallen|thurgau|bayern|baden-württemberg/i.test(secondLast)) {
+            parts.pop()
+          }
+        }
+
+        const cleanDescription = parts.slice(0, Math.min(3, parts.length)).join(", ")
+
+        return {
+          ...prediction,
+          description: cleanDescription,
+          structured_formatting: {
+            ...prediction.structured_formatting,
+            secondary_text: cleanDescription,
+          },
+        }
+      })
     }
     return []
   } catch (error) {

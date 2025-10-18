@@ -73,7 +73,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
           created_at,
           users:friend_id (
             id,
-            name,
+            username,
             email,
             avatar
           )
@@ -95,7 +95,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
           created_at,
           users:to_user_id (
             id,
-            name,
+            username,
             email,
             avatar
           )
@@ -116,7 +116,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
           created_at,
           users:from_user_id (
             id,
-            name,
+            username,
             email,
             avatar
           )
@@ -128,7 +128,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
       const transformedFriends: Friend[] = (friendsData || []).map((f: any) => ({
         id: f.friend_id,
-        name: f.users?.name || "Unknown User",
+        name: f.users?.username || "Unknown User",
         email: f.users?.email || "",
         avatar: f.users?.avatar || null,
         status: "active" as const,
@@ -140,8 +140,8 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         id: r.id,
         from_user_id: r.from_user_id,
         to_user_id: r.to_user_id,
-        from_user_name: user.name || "",
-        to_user_name: r.users?.name || "Unknown User",
+        from_user_name: user.username || user.name || "",
+        to_user_name: r.users?.username || "Unknown User",
         message: r.message,
         status: r.status,
         created_at: r.created_at,
@@ -151,8 +151,8 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         id: r.id,
         from_user_id: r.from_user_id,
         to_user_id: r.to_user_id,
-        from_user_name: r.users?.name || "Unknown User",
-        to_user_name: user.name || "",
+        from_user_name: r.users?.username || "Unknown User",
+        to_user_name: user.username || user.name || "",
         message: r.message,
         status: r.status,
         created_at: r.created_at,
@@ -173,7 +173,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [user?.id, user?.name, supabase])
+  }, [user?.id, user?.username, user?.name, supabase])
 
   useEffect(() => {
     refreshFriends()

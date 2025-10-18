@@ -211,7 +211,7 @@ export default function EventInvitationsDialog({ userId, isOpen, onClose, onUpda
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-gray-500" />
-                      <span>{formatDate(invitation.ludo_events.event_date)}</span>
+                      <span>Siehe Event-Details für Termine</span>
                     </div>
 
                     {formatTime(invitation.ludo_events.start_time, invitation.ludo_events.end_time) && (

@@ -1,99 +1,31 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useRef } from "react"
-import { MapPin, Search, Loader2 } from "lucide-react"
+import { useState } from "react"
+import { MapPin, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useLocationSearch } from "@/contexts/location-search-context"
-
-interface AddressSuggestion {
-  display_name: string
-  lat: string
-  lon: string
-  place_id: string
-}
+import { AddressAutocomplete } from "@/components/address-autocomplete"
+import { geocodeAddress } from "@/lib/actions/geocoding"
 
 interface SimpleLocationSearchProps {
   onLocationSearch?: (location: string, radius: number) => void
   className?: string
+  onNearbySearch?: () => void
 }
 
-export function SimpleLocationSearch({ onLocationSearch, className }: SimpleLocationSearchProps) {
+export function SimpleLocationSearch({ onLocationSearch, className, onNearbySearch }: SimpleLocationSearchProps) {
   const [address, setAddress] = useState("")
   const [radius, setRadius] = useState("10")
   const [isSearching, setIsSearching] = useState(false)
-  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([])
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [selectedIndex, setSelectedIndex] = useState(-1)
-  const inputRef = useRef<HTMLInputElement>(null)
   const { searchByAddress } = useLocationSearch()
-
-  useEffect(() => {
-    if (address.length < 3) {
-      setSuggestions([])
-      setShowSuggestions(false)
-      return
-    }
-
-    const timeoutId = setTimeout(async () => {
-      setIsLoadingSuggestions(true)
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(address)}&countrycodes=de,at,ch`,
-        )
-        const data = await response.json()
-        setSuggestions(data)
-        setShowSuggestions(true)
-        setSelectedIndex(-1)
-      } catch (error) {
-        console.error("Autocomplete error:", error)
-        setSuggestions([])
-      } finally {
-        setIsLoadingSuggestions(false)
-      }
-    }, 300)
-
-    return () => clearTimeout(timeoutId)
-  }, [address])
-
-  // Simple geocoding function using a free service
-  const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
-    try {
-      // Using Nominatim (OpenStreetMap) for free geocoding
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
-      )
-      const data = await response.json()
-
-      if (data && data.length > 0) {
-        return {
-          lat: Number.parseFloat(data[0].lat),
-          lng: Number.parseFloat(data[0].lon),
-        }
-      }
-      return null
-    } catch (error) {
-      console.error("Geocoding error:", error)
-      return null
-    }
-  }
-
-  const handleSuggestionClick = (suggestion: AddressSuggestion) => {
-    setAddress(suggestion.display_name)
-    setShowSuggestions(false)
-    setSuggestions([])
-    setSelectedIndex(-1)
-  }
 
   const handleSearch = async () => {
     if (!address.trim()) return
 
     setIsSearching(true)
     try {
-      // Convert address to coordinates
       const coordinates = await geocodeAddress(address.trim())
 
       if (coordinates) {
@@ -112,42 +44,9 @@ export function SimpleLocationSearch({ onLocationSearch, className }: SimpleLoca
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (!showSuggestions || suggestions.length === 0) {
-      if (e.key === "Enter") {
-        handleSearch()
-      }
-      return
+    if (e.key === "Enter") {
+      handleSearch()
     }
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault()
-        setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev))
-        break
-      case "ArrowUp":
-        e.preventDefault()
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1))
-        break
-      case "Enter":
-        e.preventDefault()
-        if (selectedIndex >= 0) {
-          handleSuggestionClick(suggestions[selectedIndex])
-        } else {
-          handleSearch()
-        }
-        break
-      case "Escape":
-        setShowSuggestions(false)
-        setSelectedIndex(-1)
-        break
-    }
-  }
-
-  const handleBlur = () => {
-    setTimeout(() => {
-      setShowSuggestions(false)
-      setSelectedIndex(-1)
-    }, 200)
   }
 
   return (
@@ -158,23 +57,15 @@ export function SimpleLocationSearch({ onLocationSearch, className }: SimpleLoca
           <span className="text-sm font-medium">Standort:</span>
         </div>
 
-        <div className="flex-1 w-full sm:min-w-0 relative">
-          <Input
-            ref={inputRef}
-            type="text"
+        <div className="flex-1 w-full sm:min-w-0">
+          <AddressAutocomplete
+            label=""
             placeholder="Stadt oder Adresse eingeben..."
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            onChange={setAddress}
             onKeyDown={handleKeyPress}
-            onBlur={handleBlur}
-            onFocus={() => address.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
-            className="border-orange-200 focus:border-orange-400 text-base h-10 pr-8"
+            className="border-orange-200 focus:border-orange-400 text-base h-10"
           />
-          {isLoadingSuggestions && (
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-            </div>
-          )}
         </div>
 
         <div className="flex items-center gap-3 min-w-fit">
@@ -203,30 +94,20 @@ export function SimpleLocationSearch({ onLocationSearch, className }: SimpleLoca
               <Search className="h-4 w-4" />
             )}
           </Button>
+
+          {onNearbySearch && (
+            <Button
+              onClick={onNearbySearch}
+              variant="outline"
+              size="default"
+              className="h-10 px-4 bg-white border-teal-500 text-teal-600 hover:bg-teal-50 whitespace-nowrap"
+            >
+              <MapPin className="h-4 w-4 mr-2" />
+              In meiner Nähe
+            </Button>
+          )}
         </div>
       </div>
-
-      {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-          {suggestions.map((suggestion, index) => (
-            <div
-              key={suggestion.place_id}
-              className={`px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${
-                index === selectedIndex ? "bg-orange-50 border-orange-200" : ""
-              }`}
-              onClick={() => handleSuggestionClick(suggestion)}
-            >
-              <div className="flex items-start space-x-3">
-                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{suggestion.display_name.split(",")[0]}</p>
-                  <p className="text-xs text-gray-500 truncate">{suggestion.display_name}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

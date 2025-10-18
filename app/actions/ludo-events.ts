@@ -9,7 +9,7 @@ export interface LudoEventData {
   description?: string
   gameType: "classic" | "team" | "tournament" | "casual"
   difficultyLevel: "beginner" | "intermediate" | "advanced" | "expert"
-  maxPlayers: number
+  maxPlayers: number | null
   eventDate: string
   startTime: string
   endTime?: string
@@ -26,21 +26,214 @@ export interface LudoEventData {
   selectedGames?: any[]
   customGames?: string[]
   selectedFriends?: string[]
-  frequency?: "single" | "regular" | "recurring" | "casual"
+  // Updated frequency fields
+  frequency?: "einmalig" | "täglich" | "wöchentlich" | "zweiwöchentlich" | "monatlich" | "jährlich" | "andere"
+  seriesMode?: "manual" | "series"
+  customIntervalNumber?: number | null
+  customIntervalUnit?: "tage" | "wochen" | "monate" | "jahre"
+  weeklyDays?: string[]
+  monthlyType?: "day" | "weekday"
+  monthlyDay?: number | null
+  monthlyWeekday?: string
+  monthlyWeekdayPosition?: "first" | "second" | "third" | "fourth" | "last"
+  seriesEndType?: "date" | "count"
+  seriesEndDate?: string
+  seriesEndCount?: number | null
+  // Legacy fields for backward compatibility
   interval?: "weekly" | "biweekly" | "monthly" | "other"
   customInterval?: string
   visibility?: "public" | "friends_only"
+  selected_friends?: string[]
   additionalDates?: string[]
   additionalStartTimes?: string[]
   additionalEndTimes?: string[]
 }
 
+function parseLocalDate(dateString: string): Date {
+  // Parse date string as local date, not UTC
+  // "2025-10-05" should be October 5 in local timezone, not UTC
+  const [year, month, day] = dateString.split("-").map(Number)
+  return new Date(year, month - 1, day, 0, 0, 0, 0)
+}
+
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+function generateRecurringDates(eventData: any): string[] {
+  const dates: string[] = []
+
+  const startDate = parseLocalDate(eventData.eventDate)
+  if (isNaN(startDate.getTime())) {
+    console.error("[v0] Invalid start date:", eventData.eventDate)
+    return dates
+  }
+
+  console.log("[v0] Start date parsed:", formatLocalDate(startDate))
+
+  // Determine end date or count
+  let endDate: Date | null = null
+  let maxCount = 52 // Default max 52 occurrences (1 year of weekly events)
+
+  if (eventData.seriesEndType === "date" && eventData.seriesEndDate) {
+    endDate = parseLocalDate(eventData.seriesEndDate)
+    if (isNaN(endDate.getTime())) {
+      console.error("[v0] Invalid end date:", eventData.seriesEndDate)
+      endDate = null
+    } else {
+      console.log("[v0] End date parsed:", formatLocalDate(endDate))
+    }
+  } else if (eventData.seriesEndType === "count" && eventData.seriesEndCount) {
+    maxCount = eventData.seriesEndCount
+    console.log("[v0] Using count-based end:", maxCount)
+  }
+
+  const currentDate = new Date(startDate)
+  let count = 0
+
+  console.log("[v0] Starting date generation loop")
+
+  while (count < maxCount) {
+    console.log("[v0] Loop iteration:", {
+      count,
+      currentDate: formatLocalDate(currentDate),
+      endDate: endDate ? formatLocalDate(endDate) : "no end date",
+      comparison: endDate ? currentDate.getTime() > endDate.getTime() : "no end date",
+    })
+
+    if (endDate && currentDate.getTime() > endDate.getTime()) {
+      console.log("[v0] Current date exceeds end date, stopping generation")
+      break
+    }
+
+    const dateStr = formatLocalDate(currentDate)
+    console.log("[v0] Adding date:", dateStr)
+    dates.push(dateStr)
+
+    count++
+
+    // Calculate next date based on frequency
+    switch (eventData.frequency) {
+      case "täglich":
+        currentDate.setDate(currentDate.getDate() + 1)
+        break
+
+      case "wöchentlich":
+        currentDate.setDate(currentDate.getDate() + 7)
+        break
+
+      case "zweiwöchentlich":
+        currentDate.setDate(currentDate.getDate() + 14)
+        break
+
+      case "monatlich":
+        if (eventData.monthlyType === "day" && eventData.monthlyDay) {
+          const year = currentDate.getFullYear()
+          const month = currentDate.getMonth()
+
+          // Get the last day of the next month
+          const lastDayOfNextMonth = new Date(year, month + 2, 0).getDate()
+
+          // Use the specified day, or the last day of the month if the specified day doesn't exist
+          const targetDay = Math.min(eventData.monthlyDay, lastDayOfNextMonth)
+
+          // Set to next month with the target day
+          currentDate.setMonth(month + 1)
+          currentDate.setDate(targetDay)
+
+          console.log("[v0] Monthly calculation:", {
+            originalDate: formatLocalDate(new Date(year, month, currentDate.getDate())),
+            targetDay: eventData.monthlyDay,
+            lastDayOfNextMonth,
+            actualDay: targetDay,
+            newDate: formatLocalDate(currentDate),
+          })
+        } else if (
+          eventData.monthlyType === "weekday" &&
+          eventData.monthlyWeekday &&
+          eventData.monthlyWeekdayPosition
+        ) {
+          // Specific weekday position (e.g., "first Monday")
+          const year = currentDate.getFullYear()
+          const month = currentDate.getMonth()
+
+          // Move to next month
+          currentDate.setMonth(month + 1)
+          currentDate.setDate(1)
+
+          // TODO: Implement proper weekday position calculation
+        } else {
+          // Default: same day next month
+          const year = currentDate.getFullYear()
+          const month = currentDate.getMonth()
+          const day = currentDate.getDate()
+
+          // Get the last day of the next month
+          const lastDayOfNextMonth = new Date(year, month + 2, 0).getDate()
+
+          // Use the same day, or the last day of the month if it doesn't exist
+          const targetDay = Math.min(day, lastDayOfNextMonth)
+
+          // Set to next month with the target day
+          currentDate.setMonth(month + 1)
+          currentDate.setDate(targetDay)
+        }
+        break
+
+      case "jährlich":
+        currentDate.setFullYear(currentDate.getFullYear() + 1)
+        break
+
+      case "andere":
+        // Custom interval
+        if (eventData.customIntervalNumber && eventData.customIntervalUnit) {
+          const num = eventData.customIntervalNumber
+          switch (eventData.customIntervalUnit) {
+            case "tage":
+              currentDate.setDate(currentDate.getDate() + num)
+              break
+            case "wochen":
+              currentDate.setDate(currentDate.getDate() + num * 7)
+              break
+            case "monate":
+              currentDate.setMonth(currentDate.getMonth() + num)
+              break
+            case "jahre":
+              currentDate.setFullYear(currentDate.getFullYear() + num)
+              break
+          }
+        } else {
+          // No valid custom interval, break
+          break
+        }
+        break
+
+      default:
+        // Unknown frequency, break
+        console.error("[v0] Unknown frequency:", eventData.frequency)
+        break
+    }
+
+    // Safety check: don't generate more than 2 years in the future
+    const twoYearsFromNow = new Date()
+    twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2)
+    if (currentDate > twoYearsFromNow) {
+      console.warn("[v0] Stopping date generation: exceeded 2 years")
+      break
+    }
+  }
+
+  console.log("[v0] Generated dates:", dates)
+  return dates
+}
+
 export async function createLudoEvent(eventData: LudoEventData, creatorId: string) {
   try {
     console.log("[v0] Starting createLudoEvent with creatorId:", creatorId)
-    console.log("[v0] Additional dates received:", eventData.additionalDates)
-    console.log("[v0] Additional start times received:", eventData.additionalStartTimes)
-    console.log("[v0] Additional end times received:", eventData.additionalEndTimes)
+    console.log("[v0] Event data received:", JSON.stringify(eventData, null, 2))
 
     const supabase = await createClient()
 
@@ -67,22 +260,25 @@ export async function createLudoEvent(eventData: LudoEventData, creatorId: strin
     const dbEventData = {
       title: eventData.title,
       description: eventData.description || eventData.additionalInfo,
+      additional_notes: eventData.rules || eventData.additionalInfo || null,
       max_participants: eventData.maxPlayers,
-      event_date: eventData.eventDate,
       start_time: eventData.startTime,
       end_time: eventData.endTime,
       location: eventData.location,
       creator_id: creatorId,
       selected_games: eventData.selectedGames || [],
-      frequency: eventData.frequency || "single",
-      interval_type: eventData.frequency === "regular" ? eventData.interval : null,
+      frequency: eventData.frequency || "einmalig",
+      interval_type: eventData.frequency === "andere" ? "custom" : eventData.frequency,
       custom_interval:
-        eventData.frequency === "regular" && eventData.interval === "other" ? eventData.customInterval : null,
+        eventData.frequency === "andere" && eventData.customIntervalNumber && eventData.customIntervalUnit
+          ? `${eventData.customIntervalNumber} ${eventData.customIntervalUnit}`
+          : null,
       image_url: eventData.imageUrl || null,
-      is_public: eventData.isPublic !== false, // Default to true
+      is_public: eventData.isPublic !== false,
       visibility: eventData.visibility === "friends_only" ? "friends_only" : "public",
       approval_mode: eventData.requiresApproval ? "manual" : "automatic",
       organizer_only: eventData.organizerOnly || false,
+      selected_friends: eventData.visibility === "friends_only" ? eventData.selectedFriends || [] : [],
     }
 
     console.log("[v0] Database insert data:", JSON.stringify(dbEventData, null, 2))
@@ -104,8 +300,8 @@ export async function createLudoEvent(eventData: LudoEventData, creatorId: strin
 
     console.log("[v0] Event created successfully:", data.id)
 
+    // Handle friend invitations
     if (eventData.visibility === "friends_only" && eventData.selectedFriends && eventData.selectedFriends.length > 0) {
-      // Get creator's username for notifications
       const { data: creatorData } = await supabase.from("users").select("username, name").eq("id", creatorId).single()
 
       const creatorName = creatorData?.name || creatorData?.username || "Ein Freund"
@@ -126,7 +322,6 @@ export async function createLudoEvent(eventData: LudoEventData, creatorId: strin
       } else {
         console.log("[v0] Created invitations for", invitations.length, "friends")
 
-        // Create notifications for each invited friend
         const notifications = eventData.selectedFriends.map((friendId) => ({
           user_id: friendId,
           type: "event_invitation",
@@ -144,15 +339,8 @@ export async function createLudoEvent(eventData: LudoEventData, creatorId: strin
           created_at: new Date().toISOString(),
         }))
 
-        const { error: notificationError } = await supabase.from("notifications").insert(notifications)
+        await supabase.from("notifications").insert(notifications)
 
-        if (notificationError) {
-          console.error("[v0] Error creating notifications:", notificationError)
-        } else {
-          console.log("[v0] Created notifications for", notifications.length, "friends")
-        }
-
-        // Also add to notification queue for push/email notifications
         const queueNotifications = eventData.selectedFriends.map((friendId) => ({
           user_id: friendId,
           notification_type: "event_invitation",
@@ -166,22 +354,17 @@ export async function createLudoEvent(eventData: LudoEventData, creatorId: strin
             inviter_name: creatorName,
             inviter_id: creatorId,
           },
-          priority: 2, // Medium priority
+          priority: 2,
           scheduled_for: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Expire in 7 days
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           created_at: new Date().toISOString(),
         }))
 
-        const { error: queueError } = await supabase.from("notification_queue").insert(queueNotifications)
-
-        if (queueError) {
-          console.error("[v0] Error adding notifications to queue:", queueError)
-        } else {
-          console.log("[v0] Added notifications to queue for", queueNotifications.length, "friends")
-        }
+        await supabase.from("notification_queue").insert(queueNotifications)
       }
     }
 
+    // Add creator as participant if not organizer-only
     if (!eventData.organizerOnly) {
       const { error: participantError } = await supabase.from("ludo_event_participants").insert([
         {
@@ -201,90 +384,73 @@ export async function createLudoEvent(eventData: LudoEventData, creatorId: strin
       console.log("[v0] Creator set as organizer only, not added as participant")
     }
 
-    if (
-      eventData.frequency === "regular" ||
-      eventData.frequency === "recurring" ||
-      eventData.frequency === "regelmässig" ||
-      eventData.frequency === "wiederholend"
-    ) {
-      console.log("[v0] Creating event instances for regular/recurring event including first date")
+    console.log("[v0] Creating event instances for all dates")
 
-      const instances = []
+    const instances = []
 
-      // Always include the first date as an instance for regular/recurring events
+    if (eventData.seriesMode === "series" && eventData.frequency !== "einmalig") {
+      console.log("[v0] Generating recurring dates for series mode (including first date)")
+      const recurringDates = generateRecurringDates(eventData)
+
+      const recurringInstances = recurringDates.map((date) => ({
+        instance_date: date,
+        start_time: eventData.startTime,
+        end_time: eventData.endTime,
+        max_participants: eventData.maxPlayers,
+        status: "active",
+      }))
+
+      instances.push(...recurringInstances)
+      console.log("[v0] Added", recurringInstances.length, "recurring instances (including first date)")
+    } else {
       instances.push({
         instance_date: eventData.eventDate,
         start_time: eventData.startTime,
         end_time: eventData.endTime,
         max_participants: eventData.maxPlayers,
         status: "active",
-        notes: "First date (main event date)",
       })
+      console.log("[v0] Added main event date as single instance:", eventData.eventDate)
+    }
 
-      // Add additional dates if provided
-      if (eventData.additionalDates && eventData.additionalDates.length > 0) {
-        const additionalInstances = eventData.additionalDates
-          .filter((date) => date.trim() !== "") // Filter out empty dates
-          .map((date, index) => ({
-            instance_date: date,
-            start_time: eventData.additionalStartTimes?.[index] || eventData.startTime,
-            end_time: eventData.additionalEndTimes?.[index] || eventData.endTime,
-            max_participants: eventData.maxPlayers,
-            status: "active",
-            notes: `Additional date ${index + 1}`,
-          }))
+    // Add manually entered additional dates
+    if (eventData.additionalDates && eventData.additionalDates.length > 0) {
+      console.log("[v0] Adding", eventData.additionalDates.length, "manual additional dates")
 
-        instances.push(...additionalInstances)
-      }
-
-      if (instances.length > 0) {
-        const instancesWithEventId = instances.map((instance) => ({
-          ...instance,
-          event_id: data.id,
-        }))
-
-        console.log("[v0] Inserting event instances:", instancesWithEventId)
-
-        const { error: instanceError } = await supabase.from("ludo_event_instances").insert(instancesWithEventId)
-
-        if (instanceError) {
-          console.error("[v0] Error creating event instances:", instanceError)
-          // Don't fail the entire event creation if instances fail
-        } else {
-          console.log("[v0] Successfully created", instances.length, "event instances")
-        }
-      }
-    } else if (eventData.additionalDates && eventData.additionalDates.length > 0) {
-      // For single events with additional dates (legacy support)
-      console.log("[v0] Creating event instances for additional dates on single event")
-
-      const instances = eventData.additionalDates
-        .filter((date) => date.trim() !== "") // Filter out empty dates
+      const additionalInstances = eventData.additionalDates
+        .filter((date) => date.trim() !== "")
         .map((date, index) => ({
           instance_date: date,
           start_time: eventData.additionalStartTimes?.[index] || eventData.startTime,
           end_time: eventData.additionalEndTimes?.[index] || eventData.endTime,
           max_participants: eventData.maxPlayers,
           status: "active",
-          notes: `Additional date ${index + 1}`,
         }))
 
-      if (instances.length > 0) {
-        const instancesWithEventId = instances.map((instance) => ({
-          ...instance,
-          event_id: data.id,
-        }))
+      instances.push(...additionalInstances)
+      console.log("[v0] Added", additionalInstances.length, "manual instances")
+    }
 
-        console.log("[v0] Inserting event instances:", instancesWithEventId)
+    const uniqueInstances = instances.filter(
+      (instance, index, self) => index === self.findIndex((t) => t.instance_date === instance.instance_date),
+    )
 
-        const { error: instanceError } = await supabase.from("ludo_event_instances").insert(instancesWithEventId)
+    console.log("[v0] After deduplication:", uniqueInstances.length, "unique instances")
 
-        if (instanceError) {
-          console.error("[v0] Error creating event instances:", instanceError)
-          // Don't fail the entire event creation if instances fail
-        } else {
-          console.log("[v0] Successfully created", instances.length, "event instances")
-        }
+    if (uniqueInstances.length > 0) {
+      const instancesWithEventId = uniqueInstances.map((instance) => ({
+        ...instance,
+        event_id: data.id,
+      }))
+
+      console.log("[v0] Inserting total of", uniqueInstances.length, "event instances into database")
+
+      const { error: instanceError } = await supabase.from("ludo_event_instances").insert(instancesWithEventId)
+
+      if (instanceError) {
+        console.error("[v0] Error creating event instances:", instanceError)
+      } else {
+        console.log("[v0] Successfully created", uniqueInstances.length, "event instances")
       }
     }
 
@@ -341,6 +507,8 @@ export async function updateLudoEvent(eventId: string, eventData: Partial<LudoEv
     if (eventData.requiresApproval !== undefined)
       dbEventData.approval_mode = eventData.requiresApproval ? "manual" : "automatic"
     if (eventData.organizerOnly !== undefined) dbEventData.organizer_only = eventData.organizerOnly
+    if (eventData.rules !== undefined || eventData.additionalInfo !== undefined)
+      dbEventData.additional_notes = eventData.rules || eventData.additionalInfo || null
 
     const { data, error } = await supabase.from("ludo_events").update(dbEventData).eq("id", eventId).select().single()
 

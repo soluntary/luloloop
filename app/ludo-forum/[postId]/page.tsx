@@ -362,6 +362,11 @@ export default function ForumThreadPage() {
                         variant="ghost"
                         className="text-xs h-7 px-2"
                         onClick={() => {
+                          if (!user) {
+                            toast.info("Bitte melde dich an, um zu antworten")
+                            window.location.href = "/login"
+                            return
+                          }
                           setReplyingTo(reply.id)
                           setShowReplyForm(true)
                         }}
@@ -494,9 +499,14 @@ export default function ForumThreadPage() {
                 </div>
               </div>
 
-              {!post.is_locked && user && (
+              {!post.is_locked && (
                 <Button
                   onClick={() => {
+                    if (!user) {
+                      toast.info("Bitte melde dich an, um zu antworten")
+                      window.location.href = "/login"
+                      return
+                    }
                     setReplyingTo(null)
                     setShowReplyForm(true)
                   }}
@@ -544,9 +554,14 @@ export default function ForumThreadPage() {
             <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-600 mb-2">Noch keine Antworten</h3>
             <p className="text-gray-500 mb-4">Sei der Erste und starte die Diskussion!</p>
-            {!post.is_locked && user && (
+            {!post.is_locked && (
               <Button
                 onClick={() => {
+                  if (!user) {
+                    toast.info("Bitte melde dich an, um zu antworten")
+                    window.location.href = "/login"
+                    return
+                  }
                   setReplyingTo(null)
                   setShowReplyForm(true)
                 }}

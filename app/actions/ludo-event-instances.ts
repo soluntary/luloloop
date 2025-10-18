@@ -17,7 +17,7 @@ export interface LudoEventInstance {
 }
 
 export async function getEventInstances(eventId: string): Promise<LudoEventInstance[]> {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
 
   const {
     data: { user },
@@ -68,31 +68,100 @@ export async function getEventInstances(eventId: string): Promise<LudoEventInsta
   return instancesWithRegistration
 }
 
-export async function registerForInstance(instanceId: string) {
-  const supabase = createServerClient()
+export async function registerForInstance(instanceId: string, message?: string) {
+  const supabase = await createServerClient()
 
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    throw new Error("User not authenticated")
+    return { success: false, error: "User not authenticated" }
   }
 
-  const { error } = await supabase.from("ludo_event_instance_participants").insert({
-    instance_id: instanceId,
-    user_id: user.id,
-    status: "registered",
-  })
+  try {
+    const { data: instance, error: instanceError } = await supabase
+      .from("ludo_event_instances")
+      .select("event_id")
+      .eq("id", instanceId)
+      .single()
 
-  if (error) {
-    throw new Error(`Error registering for instance: ${error.message}`)
+    if (instanceError || !instance) {
+      console.error("Error fetching instance:", instanceError)
+      return { success: false, error: "Instance not found" }
+    }
+
+    const { data: event, error: eventError } = await supabase
+      .from("ludo_events")
+      .select("approval_mode")
+      .eq("id", instance.event_id)
+      .single()
+
+    if (eventError || !event) {
+      console.error("Error fetching event:", eventError)
+      return { success: false, error: "Event not found" }
+    }
+
+    const approvalMode = event.approval_mode || "automatic"
+
+    if (approvalMode === "manual") {
+      // Check if join request already exists for this event
+      const { data: existingRequest } = await supabase
+        .from("ludo_event_join_requests")
+        .select("id")
+        .eq("event_id", instance.event_id)
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+        .single()
+
+      // Only create join request if one doesn't exist
+      if (!existingRequest) {
+        const { error: requestError } = await supabase.from("ludo_event_join_requests").insert({
+          event_id: instance.event_id,
+          user_id: user.id,
+          message: message || null,
+          status: "pending",
+        })
+
+        if (requestError) {
+          console.error("Error creating join request:", requestError)
+          return { success: false, error: requestError.message }
+        }
+      }
+
+      // Add to participants with pending status
+      const { error } = await supabase.from("ludo_event_instance_participants").insert({
+        instance_id: instanceId,
+        user_id: user.id,
+        status: "pending",
+      })
+
+      if (error) {
+        console.error("Error registering for instance:", error)
+        return { success: false, error: error.message }
+      }
+    } else {
+      const { error } = await supabase.from("ludo_event_instance_participants").insert({
+        instance_id: instanceId,
+        user_id: user.id,
+        status: "registered",
+      })
+
+      if (error) {
+        console.error("Error registering for instance:", error)
+        return { success: false, error: error.message }
+      }
+    }
+
+    revalidatePath("/ludo-events")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error in registerForInstance:", error)
+    return { success: false, error: error.message }
   }
-
-  revalidatePath("/ludo-events")
 }
 
 export async function unregisterFromInstance(instanceId: string) {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
 
   const {
     data: { user },
@@ -115,7 +184,7 @@ export async function unregisterFromInstance(instanceId: string) {
 }
 
 export async function createEventInstances(eventId: string, instances: Omit<LudoEventInstance, "id" | "event_id">[]) {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
 
   const {
     data: { user },

@@ -7,6 +7,7 @@ import { useAvatar } from "@/contexts/avatar-context"
 import { useGames } from "@/contexts/games-context"
 import { useProfileSync } from "@/contexts/profile-sync-context"
 import { updateUserProfile } from "@/app/actions/profile-sync"
+import { deleteAccountAction } from "@/app/actions/delete-account"
 
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
@@ -15,11 +16,32 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Globe, Twitter, Instagram, Upload, Shuffle, RefreshCw, Check, X } from "lucide-react"
+import {
+  Globe,
+  Twitter,
+  Instagram,
+  Upload,
+  Shuffle,
+  RefreshCw,
+  Check,
+  X,
+  Calendar,
+  Users,
+  Clock,
+  Trash2,
+} from "lucide-react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/components/ui/use-toast" // Assuming useToast is available
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 import {
   getSecurityNotificationPreferences,
@@ -40,9 +62,13 @@ import {
   updateSecuritySettings,
   getAllNotificationPreferences,
 } from "@/app/actions/comprehensive-notifications"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
+
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Mail, Bell, Shield, TrendingUp, SettingsIcon } from "lucide-react"
 
 export default function ProfilePage() {
-  const { user, updateProfile } = useAuth()
+  const { user, updateProfile, signOut } = useAuth()
   const { updateAvatar } = useAvatar()
   const { marketplaceOffers, deleteMarketplaceOffer, refreshData } = useGames()
   const { syncProfile, invalidateUserData } = useProfileSync()
@@ -60,8 +86,16 @@ export default function ProfilePage() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: "offer" | "searchAd" | "event"; id: string } | null>(null)
   const [loadingEvents, setLoadingEvents] = useState(true)
 
+  const [participatingEvents, setParticipatingEvents] = useState<any[]>([])
+  const [pendingJoinRequests, setPendingJoinRequests] = useState<any[]>([])
+  const [joinedCommunities, setJoinedCommunities] = useState<any[]>([])
+  const [loadingActivities, setLoadingActivities] = useState(true)
+
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState("")
+  const [isEditingAddress, setIsEditingAddress] = useState(false)
+  const [tempAddress, setTempAddress] = useState("")
+
   const [profileData, setProfileData] = useState({
     name: user?.name || "",
     username: user?.username || "",
@@ -70,11 +104,6 @@ export default function ProfilePage() {
     showBirthDate: user?.showBirthDate || false,
     phone: user?.phone || "",
     address: user?.address || "",
-    street: user?.street || "",
-    houseNumber: user?.house_number || user?.houseNumber || "",
-    zipCode: user?.zip_code || user?.zipCode || "",
-    city: user?.city || "",
-    country: user?.country || "Schweiz",
     bio: user?.bio || "",
     favoriteGames: user?.favoriteGames || "",
     website: user?.website || "",
@@ -165,6 +194,9 @@ export default function ProfilePage() {
     security: {
       security_events_notifications: true,
     },
+    // marketing and delivery are missing from existing state, assuming they should be added if used
+    marketing: {},
+    delivery: {},
   })
 
   const [emailChangeData, setEmailChangeData] = useState({
@@ -173,6 +205,11 @@ export default function ProfilePage() {
   })
   const [isEmailChanging, setIsEmailChanging] = useState(false)
   const [emailChangeMessage, setEmailChangeMessage] = useState("")
+
+  // Added state for account deletion
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const supabase = createClient()
 
@@ -242,10 +279,76 @@ export default function ProfilePage() {
     }
   }
 
+  const fetchUserActivities = async () => {
+    if (!user?.id) return
+
+    try {
+      setLoadingActivities(true)
+      console.log("[v0] Fetching user activities for user:", user.id)
+
+      // Fetch events user is participating in
+      const { data: participations, error: participationsError } = await supabase
+        .from("ludo_event_participants")
+        .select(`
+          *,
+          event:ludo_events(*)
+        `)
+        .eq("user_id", user.id)
+        .order("joined_at", { ascending: false })
+
+      if (participationsError) {
+        console.error("Error fetching participations:", participationsError)
+      } else {
+        console.log("[v0] Participations loaded:", participations?.length || 0)
+        setParticipatingEvents(participations || [])
+      }
+
+      // Fetch pending join requests
+      const { data: requests, error: requestsError } = await supabase
+        .from("ludo_event_join_requests")
+        .select(`
+          *,
+          event:ludo_events(*)
+        `)
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+
+      if (requestsError) {
+        console.error("Error fetching join requests:", requestsError)
+      } else {
+        console.log("[v0] Join requests loaded:", requests?.length || 0)
+        setPendingJoinRequests(requests || [])
+      }
+
+      // Fetch communities user is a member of
+      const { data: communities, error: communitiesError } = await supabase
+        .from("community_members")
+        .select(`
+          *,
+          community:communities(*)
+        `)
+        .eq("user_id", user.id)
+        .order("joined_at", { ascending: false })
+
+      if (communitiesError) {
+        console.error("Error fetching communities:", communitiesError)
+      } else {
+        console.log("[v0] Communities loaded:", communities?.length || 0)
+        setJoinedCommunities(communities || [])
+      }
+    } catch (error) {
+      console.error("Error fetching user activities:", error)
+    } finally {
+      setLoadingActivities(false)
+    }
+  }
+
   useEffect(() => {
     if (user?.id) {
       loadUserListings()
       fetchUserEvents()
+      fetchUserActivities() // Added call to fetch activities
     }
   }, [user?.id])
 
@@ -293,11 +396,6 @@ export default function ProfilePage() {
         showBirthDate: user.showBirthDate || false,
         phone: user.phone || "",
         address: user.address || "",
-        street: user.street || "",
-        houseNumber: user.house_number || user.houseNumber || "",
-        zipCode: user.zip_code || user.zipCode || "",
-        city: user.city || "",
-        country: user.country || "Schweiz",
         bio: user.bio || "",
         favoriteGames: user.favoriteGames || "",
         website: user.website || "",
@@ -532,12 +630,7 @@ export default function ProfilePage() {
         // anzeigename: profileData.anzeigename, // This field seems to be missing in profileData state
         birth_date: profileData.birthDate,
         phone: profileData.phone,
-        street: profileData.street,
-        house_number: profileData.houseNumber,
-        zip_code: profileData.zipCode,
-        city: profileData.city,
-        country: profileData.country,
-        // location: profileData.location, // This field seems to be missing in profileData state
+        address: profileData.address,
         bio: profileData.bio,
         favorite_games: profileData.favoriteGames,
         // preferred_game_types: profileData.preferredGameTypes, // This field seems to be missing in profileData state
@@ -669,6 +762,123 @@ export default function ProfilePage() {
     return frequency
   }
 
+  // Added handlers for activities
+  const handleCancelJoinRequest = async (requestId: string) => {
+    try {
+      const { error } = await supabase
+        .from("ludo_event_join_requests")
+        .delete()
+        .eq("id", requestId)
+        .eq("user_id", user?.id)
+
+      if (error) {
+        console.error("Error canceling join request:", error)
+        toast({
+          title: "Fehler",
+          description: "Die Anfrage konnte nicht storniert werden.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: "Erfolg",
+        description: "Teilnahmeanfrage wurde storniert.",
+      })
+      fetchUserActivities()
+    } catch (error) {
+      console.error("Error canceling join request:", error)
+    }
+  }
+
+  const handleLeaveEvent = async (participationId: string) => {
+    try {
+      const { error } = await supabase
+        .from("ludo_event_participants")
+        .delete()
+        .eq("id", participationId)
+        .eq("user_id", user?.id)
+
+      if (error) {
+        console.error("Error leaving event:", error)
+        toast({
+          title: "Fehler",
+          description: "Event konnte nicht verlassen werden.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: "Erfolg",
+        description: "Du hast das Event verlassen.",
+      })
+      fetchUserActivities()
+    } catch (error) {
+      console.error("Error leaving event:", error)
+    }
+  }
+
+  const handleLeaveCommunity = async (membershipId: string) => {
+    try {
+      const { error } = await supabase.from("community_members").delete().eq("id", membershipId).eq("user_id", user?.id)
+
+      if (error) {
+        console.error("Error leaving community:", error)
+        toast({
+          title: "Fehler",
+          description: "Spielgruppe konnte nicht verlassen werden.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: "Erfolg",
+        description: "Du hast die Spielgruppe verlassen.",
+      })
+      fetchUserActivities()
+    } catch (error) {
+      console.error("Error leaving community:", error)
+    }
+  }
+
+  // Added handler for account deletion
+  const handleDeleteAccount = async () => {
+    if (!user?.id) return
+    if (deleteConfirmation !== "LÖSCHEN") {
+      toast({ title: "Fehler", description: "Bitte gib 'LÖSCHEN' ein, um fortzufahren", variant: "destructive" })
+      return
+    }
+
+    try {
+      setIsDeleting(true)
+      const result = await deleteAccountAction(user.id)
+
+      if (result.success) {
+        toast({ title: "Erfolg", description: "Dein Konto wurde erfolgreich gelöscht" })
+        // Sign out and redirect
+        if (signOut) {
+          await signOut()
+        }
+        window.location.href = "/"
+      } else {
+        toast({
+          title: "Fehler",
+          description: result.error || "Fehler beim Löschen des Kontos",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error)
+      toast({ title: "Fehler", description: "Ein unerwarteter Fehler ist aufgetreten", variant: "destructive" })
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteDialog(false)
+      setDeleteConfirmation("")
+    }
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-purple-50">
@@ -685,7 +895,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-teal-50">
       <Navigation currentPage="profile" />
 
       <div className="container mx-auto px-4 py-8">
@@ -698,9 +908,13 @@ export default function ProfilePage() {
           </div>
 
           <Tabs defaultValue="profile" className="space-y-4 md:space-y-6">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 h-auto">
               <TabsTrigger value="profile" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
                 Profil
+              </TabsTrigger>
+              <TabsTrigger value="activities" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
+                <span className="hidden sm:inline">Meine Aktivitäten</span>
+                <span className="sm:hidden">Aktivitäten</span>
               </TabsTrigger>
               <TabsTrigger value="dashboard" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
                 Dashboard
@@ -971,68 +1185,62 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
-                    {/* Address Information */}
+                    {/* Address Section */}
                     <div className="space-y-4">
-                      <h3 className="font-semibold text-base md:text-lg">Adresse</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2 md:col-span-2">
-                          <Label htmlFor="street" className="text-sm md:text-base">
-                            Strasse
-                          </Label>
-                          <Input
-                            id="street"
-                            value={profileData.street}
-                            onChange={(e) => handleInputChange("street", e.target.value)}
-                            className="text-sm md:text-base"
-                          />
+                      <Label className="text-sm md:text-base font-medium">Adresse</Label>
+                      {!isEditingAddress ? (
+                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                          <span className="text-sm md:text-base text-slate-700">
+                            {profileData.address || "Keine Adresse angegeben"}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setTempAddress(profileData.address || "")
+                              setIsEditingAddress(true)
+                            }}
+                          >
+                            Bearbeiten
+                          </Button>
                         </div>
+                      ) : (
                         <div className="space-y-2">
-                          <Label htmlFor="houseNumber" className="text-sm md:text-base">
-                            Hausnummer
-                          </Label>
-                          <Input
-                            id="houseNumber"
-                            value={profileData.houseNumber}
-                            onChange={(e) => handleInputChange("houseNumber", e.target.value)}
+                          <AddressAutocomplete
+                            label=""
+                            placeholder="Adresse eingeben..."
+                            value={tempAddress}
+                            onChange={(value) => setTempAddress(value)}
                             className="text-sm md:text-base"
                           />
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => {
+                                handleInputChange("address", tempAddress)
+                                setIsEditingAddress(false)
+                              }}
+                            >
+                              <Check className="w-4 h-4 mr-1" />
+                              Speichern
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setTempAddress(profileData.address || "")
+                                setIsEditingAddress(false)
+                              }}
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Abbrechen
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="zipCode" className="text-sm md:text-base">
-                            PLZ
-                          </Label>
-                          <Input
-                            id="zipCode"
-                            value={profileData.zipCode}
-                            onChange={(e) => handleInputChange("zipCode", e.target.value)}
-                            className="text-sm md:text-base"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="city" className="text-sm md:text-base">
-                            Stadt
-                          </Label>
-                          <Input
-                            id="city"
-                            value={profileData.city}
-                            onChange={(e) => handleInputChange("city", e.target.value)}
-                            className="text-sm md:text-base"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="country" className="text-sm md:text-base">
-                            Land
-                          </Label>
-                          <Input
-                            id="country"
-                            value={profileData.country}
-                            onChange={(e) => handleInputChange("country", e.target.value)}
-                            className="text-sm md:text-base"
-                          />
-                        </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Submit Button */}
@@ -1056,286 +1264,995 @@ export default function ProfilePage() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="activities">
+              <Card>
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="font-handwritten text-lg md:text-xl">Meine Aktivitäten</CardTitle>
+                  <CardDescription className="text-sm md:text-base">
+                    Übersicht über deine Event-Teilnahmen, Anfragen und Spielgruppen
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6 p-4 md:p-6">
+                  <div className="space-y-8">
+                    {/* Participating Events Section */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Calendar className="w-5 h-5 text-blue-600" />
+                        <h3 className="font-semibold text-base md:text-lg">
+                          Events, an denen ich teilnehme ({participatingEvents.length})
+                        </h3>
+                      </div>
+                      {loadingActivities ? (
+                        <p className="text-gray-600 text-sm md:text-base">Lade Events...</p>
+                      ) : participatingEvents.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <p className="text-gray-600 text-sm md:text-base mb-2">
+                            Du nimmst derzeit an keinen Events teil.
+                          </p>
+                          <Button size="sm" onClick={() => router.push("/ludo-events")}>
+                            Events entdecken
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {participatingEvents.map((participation) => (
+                            <div key={participation.id} className="border rounded-lg p-3 md:p-4 bg-blue-50/50 w-full">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm md:text-base text-blue-900 truncate">
+                                    {participation.event?.title || "Event"}
+                                  </h4>
+                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                    {participation.event?.description}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      📍 {participation.event?.location || "Kein Ort angegeben"}
+                                    </span>
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      🕐 {participation.event?.start_time || "Zeit nicht angegeben"}
+                                    </span>
+                                    <span
+                                      className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                                        participation.status === "confirmed"
+                                          ? "bg-green-100 text-green-800"
+                                          : "bg-yellow-100 text-yellow-800"
+                                      }`}
+                                    >
+                                      {participation.status === "confirmed" ? "Bestätigt" : participation.status}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => router.push(`/ludo-events/${participation.event?.id}`)}
+                                    className="text-xs"
+                                  >
+                                    Details
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleLeaveEvent(participation.id)}
+                                    className="text-xs"
+                                  >
+                                    Verlassen
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Pending Join Requests Section */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Clock className="w-5 h-5 text-orange-600" />
+                        <h3 className="font-semibold text-base md:text-lg">
+                          Ausstehende Teilnahmeanfragen ({pendingJoinRequests.length})
+                        </h3>
+                      </div>
+                      {loadingActivities ? (
+                        <p className="text-gray-600 text-sm md:text-base">Lade Anfragen...</p>
+                      ) : pendingJoinRequests.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <p className="text-gray-600 text-sm md:text-base">Keine ausstehenden Anfragen.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {pendingJoinRequests.map((request) => (
+                            <div key={request.id} className="border rounded-lg p-3 md:p-4 bg-orange-50/50 w-full">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm md:text-base text-orange-900 truncate">
+                                    {request.event?.title || "Event"}
+                                  </h4>
+                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                    {request.event?.description}
+                                  </p>
+                                  {request.message && (
+                                    <p className="text-gray-500 text-xs italic mt-1">
+                                      Deine Nachricht: "{request.message}"
+                                    </p>
+                                  )}
+                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      📅 Angefragt am{" "}
+                                      {new Date(request.created_at).toLocaleDateString("de-DE", {
+                                        day: "2-digit",
+                                        month: "2-digit",
+                                        year: "numeric",
+                                      })}
+                                    </span>
+                                    <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 whitespace-nowrap">
+                                      Ausstehend
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => router.push(`/ludo-events/${request.event?.id}`)}
+                                    className="text-xs"
+                                  >
+                                    Details
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleCancelJoinRequest(request.id)}
+                                    className="text-xs"
+                                  >
+                                    Stornieren
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Joined Communities Section */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Users className="w-5 h-5 text-purple-600" />
+                        <h3 className="font-semibold text-base md:text-lg">
+                          Meine Spielgruppen ({joinedCommunities.length})
+                        </h3>
+                      </div>
+                      {loadingActivities ? (
+                        <p className="text-gray-600 text-sm md:text-base">Lade Spielgruppen...</p>
+                      ) : joinedCommunities.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <p className="text-gray-600 text-sm md:text-base mb-2">
+                            Du bist noch keiner Spielgruppe beigetreten.
+                          </p>
+                          <Button size="sm" onClick={() => router.push("/ludo-gruppen")}>
+                            Spielgruppen entdecken
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {joinedCommunities.map((membership) => (
+                            <div key={membership.id} className="border rounded-lg p-3 md:p-4 bg-purple-50/50 w-full">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm md:text-base text-purple-900 truncate">
+                                    {membership.community?.name || "Spielgruppe"}
+                                  </h4>
+                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                    {membership.community?.description}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      📍 {membership.community?.location || "Kein Ort angegeben"}
+                                    </span>
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      📅 Beigetreten am{" "}
+                                      {new Date(membership.joined_at).toLocaleDateString("de-DE", {
+                                        day: "2-digit",
+                                        month: "2-digit",
+                                        year: "numeric",
+                                      })}
+                                    </span>
+                                    {membership.role && (
+                                      <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 whitespace-nowrap">
+                                        {membership.role === "admin" ? "Admin" : "Mitglied"}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => router.push(`/ludo-gruppen/${membership.community?.id}`)}
+                                    className="text-xs"
+                                  >
+                                    Anzeigen
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleLeaveCommunity(membership.id)}
+                                    className="text-xs"
+                                  >
+                                    Verlassen
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="notifications">
               <Card>
                 <CardHeader className="p-4 md:p-6">
                   <CardTitle className="font-handwritten text-lg md:text-xl">Benachrichtigungen</CardTitle>
                   <CardDescription className="text-sm md:text-base">
-                    Verwalte deine Benachrichtigungseinstellungen
+                    Verwalte deine Benachrichtigungseinstellungen nach Kategorien
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 p-4 md:p-6">
-                  <div className="space-y-4">
-                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">Freundschaftsanfragen</Label>
-                          <p className="text-xs text-gray-600">Benachrichtigung bei neuen Freundschaftsanfragen</p>
-                        </div>
-                        <div className="flex items-center gap-6 ml-4">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={comprehensivePrefs.social.friend_requests?.platform ?? true}
-                              onChange={(e) =>
-                                handleSocialNotificationChange("friend_requests", "platform", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
+                  <Accordion
+                    type="multiple"
+                    defaultValue={["social", "messages", "events", "security", "marketing", "advanced"]}
+                    className="w-full"
+                  >
+                    {/* Soziale Benachrichtigungen */}
+                    <AccordionItem value="social" className="border rounded-lg mb-4 px-4">
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-teal-100 rounded-lg">
+                            <Bell className="h-5 w-5 text-teal-600" />
                           </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={comprehensivePrefs.social.friend_requests?.email ?? true}
-                              onChange={(e) =>
-                                handleSocialNotificationChange("friend_requests", "email", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">per E-Mail</span>
+                          <div className="text-left">
+                            <h3 className="font-semibold text-base">Soziale Benachrichtigungen</h3>
+                            <p className="text-xs text-gray-600">Freunde, Forum, Community</p>
                           </div>
                         </div>
-                      </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-4 pt-4">
+                        {/* Friend Requests */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Freundschaftsanfragen</Label>
+                            <p className="text-xs text-gray-600">Benachrichtigung bei neuen Freundschaftsanfragen</p>
+                          </div>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.friend_requests?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("friend_requests", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.friend_requests?.email ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("friend_requests", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
+                          </div>
+                        </div>
 
-                      <div className="border-t border-gray-200"></div>
+                        {/* Friend Accepts */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Freundschaftsannahmen</Label>
+                            <p className="text-xs text-gray-600">Wenn jemand deine Anfrage annimmt</p>
+                          </div>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.friend_accepts?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("friend_accepts", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.friend_accepts?.email ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("friend_accepts", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
+                          </div>
+                        </div>
 
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">Freundschaftsannahmen</Label>
-                          <p className="text-xs text-gray-600">Benachrichtigung, wenn jemand deine Anfrage annimmt</p>
-                        </div>
-                        <div className="flex items-center gap-6 ml-4">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={comprehensivePrefs.social.friend_accepts?.platform ?? true}
-                              onChange={(e) =>
-                                handleSocialNotificationChange("friend_accepts", "platform", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
+                        {/* Friend Declines */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Freundschaftsablehnungen</Label>
+                            <p className="text-xs text-gray-600">Wenn jemand deine Anfrage ablehnt</p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={comprehensivePrefs.social.friend_accepts?.email ?? true}
-                              onChange={(e) =>
-                                handleSocialNotificationChange("friend_accepts", "email", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">E-Mail</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.friend_declines?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("friend_declines", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.friend_declines?.email ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("friend_declines", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="border-t border-gray-200"></div>
+                        {/* Forum Replies */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Forum-Antworten</Label>
+                            <p className="text-xs text-gray-600">Antworten auf deine Beiträge</p>
+                          </div>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.forum_replies?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("forum_replies", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.forum_replies?.email ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("forum_replies", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
+                          </div>
+                        </div>
 
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">Freundschaftsablehnungen</Label>
-                          <p className="text-xs text-gray-600">Benachrichtigung, wenn jemand deine Anfrage ablehnt</p>
-                        </div>
-                        <div className="flex items-center gap-6 ml-4">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={comprehensivePrefs.social.friend_declines?.platform ?? true}
-                              onChange={(e) =>
-                                handleSocialNotificationChange("friend_declines", "platform", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
+                        {/* Forum Comment Replies */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Kommentar-Antworten</Label>
+                            <p className="text-xs text-gray-600">
+                              Benachrichtigung bei Antworten auf Kommentare, auf die du geantwortet hast
+                            </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={comprehensivePrefs.social.friend_declines?.email ?? true}
-                              onChange={(e) =>
-                                handleSocialNotificationChange("friend_declines", "email", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">per E-Mail</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.forum_comment_replies?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("forum_comment_replies", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.forum_comment_replies?.email ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("forum_comment_replies", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="border-t border-gray-200"></div>
+                        {/* Shelf Access Requests */}
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-sm font-medium">Spielregal-Anfragen</Label>
+                            <p className="text-xs text-gray-600">Zugangsanfragen zu deinem Spielregal</p>
+                          </div>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.shelf_access_requests?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("shelf_access_requests", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.shelf_access_requests?.email ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("shelf_access_requests", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">Forum-Antworten</Label>
-                          <p className="text-xs text-gray-600">Benachrichtigung bei Antworten auf deine Beiträge</p>
-                        </div>
-                        <div className="flex items-center gap-6 ml-4">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={comprehensivePrefs.social.forum_replies?.platform ?? true}
-                              onChange={(e) =>
-                                handleSocialNotificationChange("forum_replies", "platform", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
+                    {/* Nachrichten-Benachrichtigungen */}
+                    <AccordionItem value="messages" className="border rounded-lg mb-4 px-4">
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <Mail className="h-5 w-5 text-blue-600" />
                           </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={comprehensivePrefs.social.forum_replies?.email ?? true}
-                              onChange={(e) =>
-                                handleSocialNotificationChange("forum_replies", "email", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">per E-Mail</span>
+                          <div className="text-left">
+                            <h3 className="font-semibold text-base">Nachrichten</h3>
+                            <p className="text-xs text-gray-600">Direktnachrichten, Anfragen</p>
                           </div>
                         </div>
-                      </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-4 pt-4">
+                        {/* Direct Messages */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Direktnachrichten</Label>
+                            <p className="text-xs text-gray-600">Private Nachrichten von anderen Nutzern</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={messageNotificationPrefs.direct_messages}
+                              onChange={(e) => handleMessageNotificationChange("direct_messages", e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          </div>
+                        </div>
 
-                      <div className="border-t border-gray-200"></div>
+                        {/* Game Inquiries */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Spielanfragen</Label>
+                            <p className="text-xs text-gray-600">Anfragen zu deinen Spielen</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={messageNotificationPrefs.game_inquiries}
+                              onChange={(e) => handleMessageNotificationChange("game_inquiries", e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          </div>
+                        </div>
 
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">Kommentar-Antworten</Label>
-                          <p className="text-xs text-gray-600">
-                            Benachrichtigung bei Antworten auf Kommentare, auf die du geantwortet hast
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-6 ml-4">
-                          <div className="flex items-center gap-2">
+                        {/* Event Inquiries */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Event-Anfragen</Label>
+                            <p className="text-xs text-gray-600">Anfragen zu deinen Events</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
                             <input
                               type="checkbox"
-                              checked={comprehensivePrefs.social.forum_comment_replies?.platform ?? true}
-                              onChange={(e) =>
-                                handleSocialNotificationChange("forum_comment_replies", "platform", e.target.checked)
-                              }
+                              checked={messageNotificationPrefs.event_inquiries}
+                              onChange={(e) => handleMessageNotificationChange("event_inquiries", e.target.checked)}
                               className="rounded border-gray-300"
                             />
-                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={comprehensivePrefs.social.forum_comment_replies?.email ?? true}
-                              onChange={(e) =>
-                                handleSocialNotificationChange("forum_comment_replies", "email", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">per E-Mail</span>
+                            <span className="text-xs text-gray-600">Aktiviert</span>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="border-t border-gray-200"></div>
+                        {/* Group Inquiries */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Spielgruppen-Anfragen</Label>
+                            <p className="text-xs text-gray-600">Anfragen zu deinen Spielgruppen</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={messageNotificationPrefs.group_inquiries}
+                              onChange={(e) => handleMessageNotificationChange("group_inquiries", e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          </div>
+                        </div>
 
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">Spielregal-Anfragen</Label>
-                          <p className="text-xs text-gray-600">
-                            Benachrichtigung bei Zugangsanfragen zu deinem Spielregal
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-6 ml-4">
-                          <div className="flex items-center gap-2">
+                        {/* Marketplace Messages */}
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-sm font-medium">Marktplatz-Nachrichten</Label>
+                            <p className="text-xs text-gray-600">Nachrichten zu Marktplatz-Angeboten</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
                             <input
                               type="checkbox"
-                              checked={comprehensivePrefs.social.shelf_access_requests?.platform ?? true}
+                              checked={messageNotificationPrefs.marketplace_messages}
                               onChange={(e) =>
-                                handleSocialNotificationChange("shelf_access_requests", "platform", e.target.checked)
+                                handleMessageNotificationChange("marketplace_messages", e.target.checked)
                               }
                               className="rounded border-gray-300"
                             />
-                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={comprehensivePrefs.social.shelf_access_requests?.email ?? true}
-                              onChange={(e) =>
-                                handleSocialNotificationChange("shelf_access_requests", "email", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">per E-Mail</span>
+                            <span className="text-xs text-gray-600">Aktiviert</span>
                           </div>
                         </div>
-                      </div>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                      <div className="border-t border-gray-200"></div>
+                    {/* Event-Benachrichtigungen */}
+                    <AccordionItem value="events" className="border rounded-lg mb-4 px-4">
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-purple-100 rounded-lg">
+                            <Bell className="h-5 w-5 text-purple-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="font-semibold text-base">Events</h3>
+                            <p className="text-xs text-gray-600">Einladungen, Updates, Erinnerungen</p>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-4 pt-4">
+                        {/* Event Invitations */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Event-Einladungen</Label>
+                            <p className="text-xs text-gray-600">Wenn du zu einem Event eingeladen wirst</p>
+                          </div>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.event_invitations?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("event_invitations", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.event_invitations?.email ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("event_invitations", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
+                          </div>
+                        </div>
 
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">Nachrichten von Nutzern</Label>
-                          <p className="text-xs text-gray-600">Benachrichtigung bei neuen Nachrichten</p>
-                        </div>
-                        <div className="flex items-center gap-6 ml-4">
-                          <div className="flex items-center gap-2">
+                        {/* Event Reminders */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Event-Erinnerungen</Label>
+                            <p className="text-xs text-gray-600">Erinnerungen vor Events</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
                             <input
                               type="checkbox"
-                              checked={comprehensivePrefs.social.message_notifications?.platform ?? true}
+                              checked={settings.notifications.eventReminders}
                               onChange={(e) =>
-                                handleSocialNotificationChange("message_notifications", "platform", e.target.checked)
+                                handleSettingsChange("notifications", "eventReminders", e.target.checked)
                               }
                               className="rounded border-gray-300"
                             />
-                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={comprehensivePrefs.social.message_notifications?.email ?? true}
-                              onChange={(e) =>
-                                handleSocialNotificationChange("message_notifications", "email", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">per E-Mail</span>
+                            <span className="text-xs text-gray-600">Aktiviert</span>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="border-t border-gray-200"></div>
+                        {/* Group Invites */}
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-sm font-medium">Spielgruppen-Einladungen</Label>
+                            <p className="text-xs text-gray-600">Einladungen zu Spielgruppen</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={settings.notifications.groupInvites}
+                              onChange={(e) => handleSettingsChange("notifications", "groupInvites", e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">Event-Einladungen</Label>
-                          <p className="text-xs text-gray-600">
-                            Benachrichtigung, wenn du zu einem Event eingeladen wirst
-                          </p>
+                    {/* Sicherheits-Benachrichtigungen */}
+                    <AccordionItem value="security" className="border rounded-lg mb-4 px-4">
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-red-100 rounded-lg">
+                            <Shield className="h-5 w-5 text-red-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="font-semibold text-base">Sicherheit</h3>
+                            <p className="text-xs text-gray-600">Login, Passwort, verdächtige Aktivitäten</p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-6 ml-4">
-                          <div className="flex items-center gap-2">
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-4 pt-4">
+                        {/* Login Attempts */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Anmeldeversuche</Label>
+                            <p className="text-xs text-gray-600">Benachrichtigung bei Anmeldeversuchen</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
                             <input
                               type="checkbox"
-                              checked={comprehensivePrefs.social.event_invitations?.platform ?? true}
+                              checked={securityNotificationPrefs.login_attempts}
+                              onChange={(e) => handleSecurityNotificationChange("login_attempts", e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          </div>
+                        </div>
+
+                        {/* Password Changes */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Passwortänderungen</Label>
+                            <p className="text-xs text-gray-600">Benachrichtigung bei Passwortänderungen</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={securityNotificationPrefs.password_changes}
+                              onChange={(e) => handleSecurityNotificationChange("password_changes", e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          </div>
+                        </div>
+
+                        {/* Email Changes */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">E-Mail-Änderungen</Label>
+                            <p className="text-xs text-gray-600">Benachrichtigung bei E-Mail-Änderungen</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={securityNotificationPrefs.email_changes}
+                              onChange={(e) => handleSecurityNotificationChange("email_changes", e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          </div>
+                        </div>
+
+                        {/* Suspicious Activity */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Verdächtige Aktivitäten</Label>
+                            <p className="text-xs text-gray-600">Warnung bei verdächtigen Aktivitäten</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={securityNotificationPrefs.suspicious_activity}
                               onChange={(e) =>
-                                handleSocialNotificationChange("event_invitations", "platform", e.target.checked)
+                                handleSecurityNotificationChange("suspicious_activity", e.target.checked)
                               }
                               className="rounded border-gray-300"
                             />
-                            <span className="text-xs text-gray-600">In-App-Benachrichtigung</span>
+                            <span className="text-xs text-gray-600">Aktiviert</span>
                           </div>
-                          <div className="flex items-center gap-2">
+                        </div>
+
+                        {/* New Device Login */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Neue Geräteanmeldungen</Label>
+                            <p className="text-xs text-gray-600">Anmeldung von neuen Geräten</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
                             <input
                               type="checkbox"
-                              checked={comprehensivePrefs.social.event_invitations?.email ?? true}
+                              checked={securityNotificationPrefs.new_device_login}
+                              onChange={(e) => handleSecurityNotificationChange("new_device_login", e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          </div>
+                        </div>
+
+                        {/* Account Recovery */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Kontowiederherstellung</Label>
+                            <p className="text-xs text-gray-600">Informationen zur Kontowiederherstellung</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={securityNotificationPrefs.account_recovery}
+                              onChange={(e) => handleSecurityNotificationChange("account_recovery", e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          </div>
+                        </div>
+
+                        {/* Security Settings Changes */}
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-sm font-medium">Änderungen an Sicherheitseinstellungen</Label>
+                            <p className="text-xs text-gray-600">
+                              Benachrichtigung bei Änderungen an Sicherheitseinstellungen
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={securityNotificationPrefs.security_settings_changes}
                               onChange={(e) =>
-                                handleSocialNotificationChange("event_invitations", "email", e.target.checked)
+                                handleSecurityNotificationChange("security_settings_changes", e.target.checked)
                               }
                               className="rounded border-gray-300"
                             />
-                            <span className="text-xs text-gray-600">per E-Mail</span>
+                            <span className="text-xs text-gray-600">Aktiviert</span>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Marketing-Benachrichtigungen */}
+                    <AccordionItem value="marketing" className="border rounded-lg mb-4 px-4">
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-orange-100 rounded-lg">
+                            <TrendingUp className="h-5 w-5 text-orange-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="font-semibold text-base">Marketing & Updates</h3>
+                            <p className="text-xs text-gray-600">Features, Empfehlungen, Newsletter</p>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-4 pt-4">
+                        {/* Feature Announcements */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Feature-Ankündigungen</Label>
+                            <p className="text-xs text-gray-600">Neue Features und Updates</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={settings.notifications.marketing}
+                              onChange={(e) => handleSettingsChange("notifications", "marketing", e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          </div>
+                        </div>
+
+                        {/* Game Recommendations */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Spielempfehlungen</Label>
+                            <p className="text-xs text-gray-600">Personalisierte Spielempfehlungen</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={settings.notifications.gameUpdates}
+                              onChange={(e) => handleSettingsChange("notifications", "gameUpdates", e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          </div>
+                        </div>
+
+                        {/* Weekly Digest */}
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-sm font-medium">Wöchentlicher Newsletter</Label>
+                            <p className="text-xs text-gray-600">Zusammenfassung der Woche</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={settings.notifications.weeklyDigest}
+                              onChange={(e) => handleSettingsChange("notifications", "weeklyDigest", e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Erweiterte Einstellungen */}
+                    <AccordionItem value="advanced" className="border rounded-lg mb-4 px-4">
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-gray-100 rounded-lg">
+                            <SettingsIcon className="h-5 w-5 text-gray-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="font-semibold text-base">Erweiterte Einstellungen</h3>
+                            <p className="text-xs text-gray-600">Ruhezeiten, Digest-Modus, Zustellungsmethoden</p>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-6 pt-4">
+                        {/* Quiet Hours */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-gray-600" />
+                            <Label className="text-sm font-medium">Ruhezeiten</Label>
+                          </div>
+                          <p className="text-xs text-gray-600">Keine Benachrichtigungen während dieser Zeiten</p>
+
+                          <div className="ml-4 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={messageNotificationPrefs.quiet_hours_enabled}
+                                onChange={(e) =>
+                                  handleMessageNotificationChange("quiet_hours_enabled", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">Ruhezeiten aktivieren</span>
+                            </div>
+
+                            {messageNotificationPrefs.quiet_hours_enabled && (
+                              <div className="flex items-center gap-4 ml-6">
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-xs text-gray-600">Von:</Label>
+                                  <Input
+                                    type="time"
+                                    value={messageNotificationPrefs.quiet_hours_start}
+                                    onChange={(e) =>
+                                      handleMessageNotificationChange("quiet_hours_start", e.target.value)
+                                    }
+                                    className="w-32 h-8 text-xs"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-xs text-gray-600">Bis:</Label>
+                                  <Input
+                                    type="time"
+                                    value={messageNotificationPrefs.quiet_hours_end}
+                                    onChange={(e) => handleMessageNotificationChange("quiet_hours_end", e.target.value)}
+                                    className="w-32 h-8 text-xs"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Weekend Notifications */}
+                        <div className="space-y-3 pb-4 border-b">
+                          <div>
+                            <Label className="text-sm font-medium">Wochenend-Benachrichtigungen</Label>
+                            <p className="text-xs text-gray-600">Benachrichtigungen am Wochenende erhalten</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={messageNotificationPrefs.weekend_notifications}
+                              onChange={(e) =>
+                                handleMessageNotificationChange("weekend_notifications", e.target.checked)
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          </div>
+                        </div>
+
+                        {/* Digest Mode */}
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-sm font-medium">Digest-Modus</Label>
+                            <p className="text-xs text-gray-600">Zusammengefasste Benachrichtigungen</p>
+                          </div>
+                          <div className="ml-4 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name="digest_mode"
+                                checked={messageNotificationPrefs.instant_notifications}
+                                onChange={() => {
+                                  handleMessageNotificationChange("instant_notifications", true)
+                                  handleMessageNotificationChange("daily_digest", false)
+                                  handleMessageNotificationChange("weekly_digest", false)
+                                }}
+                                className="rounded-full border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">Sofort (jede Benachrichtigung einzeln)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name="digest_mode"
+                                checked={messageNotificationPrefs.daily_digest}
+                                onChange={() => {
+                                  handleMessageNotificationChange("instant_notifications", false)
+                                  handleMessageNotificationChange("daily_digest", true)
+                                  handleMessageNotificationChange("weekly_digest", false)
+                                }}
+                                className="rounded-full border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">Täglich (einmal pro Tag zusammengefasst)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name="digest_mode"
+                                checked={messageNotificationPrefs.weekly_digest}
+                                onChange={() => {
+                                  handleMessageNotificationChange("instant_notifications", false)
+                                  handleMessageNotificationChange("daily_digest", false)
+                                  handleMessageNotificationChange("weekly_digest", true)
+                                }}
+                                className="rounded-full border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">
+                                Wöchentlich (einmal pro Woche zusammengefasst)
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1476,9 +2393,9 @@ export default function ProfilePage() {
               <div className="space-y-6">
                 <Card>
                   <CardHeader className="p-4 md:p-6">
-                    <CardTitle className="font-handwritten text-lg md:text-xl">Sicherheit</CardTitle>
+                    <CardTitle className="font-handwritten text-lg md:text-xl">Sicherheitseinstellungen</CardTitle>
                     <CardDescription className="text-sm md:text-base">
-                      Verwalte deine Sicherheitseinstellungen
+                      Verwalte deine Sicherheits- und Datenschutzeinstellungen
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6 p-4 md:p-6">
@@ -1554,6 +2471,77 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
+                    {/* Add account deletion section here */}
+                    <div className="border-t pt-6">
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">Konto löschen</h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Das Löschen deines Kontos ist dauerhaft und kann nicht rückgängig gemacht werden. Alle deine
+                            Daten, einschliesslich Profil, Spielesammlung, Nachrichten und Aktivitäten werden permanent
+                            gelöscht.
+                          </p>
+                        </div>
+
+                        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                          <DialogTrigger asChild>
+                            <Button variant="destructive" className="w-full md:w-auto text-white">
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Konto löschen
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                              <DialogTitle className="text-red-600">Konto wirklich löschen?</DialogTitle>
+                              <DialogDescription className="space-y-3 pt-2">
+                                <p className="font-semibold">Diese Aktion kann nicht rückgängig gemacht werden!</p>
+                                <p>Folgende Daten werden permanent gelöscht:</p>
+                                <ul className="list-disc list-inside space-y-1 text-sm">
+                                  <li>Dein Profil und alle persönlichen Informationen</li>
+                                  <li>Deine Spielesammlung</li>
+                                  <li>Alle Nachrichten und Konversationen</li>
+                                  <li>Deine Spielgruppen und Events</li>
+                                  <li>Alle Aktivitäten und Beiträge</li>
+                                </ul>
+                                <p className="pt-2">
+                                  Bitte gib <span className="font-bold">"LÖSCHEN"</span> ein, um fortzufahren:
+                                </p>
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 pt-4">
+                              <Input
+                                placeholder="LÖSCHEN eingeben"
+                                value={deleteConfirmation}
+                                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                                className="text-center font-semibold"
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setShowDeleteDialog(false)
+                                    setDeleteConfirmation("")
+                                  }}
+                                  className="flex-1"
+                                  disabled={isDeleting}
+                                >
+                                  Abbrechen
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  onClick={handleDeleteAccount}
+                                  disabled={deleteConfirmation !== "LÖSCHEN" || isDeleting}
+                                  className="flex-1"
+                                >
+                                  {isDeleting ? "Wird gelöscht..." : "Konto löschen"}
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </div>
+
                     <div className="flex justify-end pt-4 border-t">
                       <Button onClick={handleSubmit} disabled={isLoading} className="min-w-32">
                         {isLoading ? "Speichern..." : "Einstellungen speichern"}
@@ -1621,7 +2609,7 @@ export default function ProfilePage() {
                                   </p>
                                   <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
                                     <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📅 {formatEventDate(event.event_date || event.date)}
+                                      📅 Siehe Event-Details
                                     </span>
                                     <span className="flex items-center gap-1 whitespace-nowrap">
                                       🕐 {event.start_time || event.time}

@@ -6,14 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -25,11 +18,14 @@ import {
   UserPlus,
   MessageCircle,
   Settings,
+  Filter,
   Users,
-  Repeat,
   UserCog,
   Dices,
+  UserCheck,
   Spade,
+  CalendarSearch as CalendarSync,
+  ChevronDown,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
@@ -37,6 +33,14 @@ import { toast } from "sonner"
 import Navigation from "@/components/navigation"
 import UserLink from "@/components/user-link"
 import { SkyscraperAd } from "@/components/advertising/ad-placements"
+import DateSelectionDialog from "@/components/date-selection-dialog"
+import { MessageComposerModal } from "@/components/message-composer-modal"
+import { LudoEventManagementDialog } from "@/components/ludo-event-management-dialog"
+import { ShareButton } from "@/components/share-button"
+import { SimpleLocationSearch } from "@/components/simple-location-search"
+import { useLocationSearch } from "@/contexts/location-search-context"
+import { DistanceBadge } from "@/components/distance-badge"
+import { LocationMap } from "@/components/location-map"
 import CreateLudoEventForm from "@/components/create-ludo-event-form-advanced"
 
 interface LudoEvent {
@@ -45,13 +49,12 @@ interface LudoEvent {
   description: string
   creator_id: string
   max_participants: number | null
-  event_date: string
   start_time: string
   end_time: string
   location: string
   location_type: "local" | "virtual"
   virtual_link: string | null
-  frequency: "single" | "regular" | "recurring"
+  frequency: "single" | "regular" | "recurring" | "täglich" | "wöchentlich" | "zweiwöchentlich" | "monatlich" | "andere"
   interval_type: string | null
   custom_interval: string | null
   visibility: "public" | "friends_only" | "private"
@@ -64,12 +67,15 @@ interface LudoEvent {
   participant_count: number
   user_participation_status: string | null
   has_additional_dates: boolean
+  first_instance_date?: string
   creator: {
     id: string
     username: string
     name: string | null
     avatar: string | null
   }
+  // Add distance property for location-based filtering
+  distance?: number
 }
 
 export default function LudoEventsPage() {
@@ -80,7 +86,10 @@ export default function LudoEventsPage() {
   const [sortBy, setSortBy] = useState("all")
   const [locationFilter, setLocationFilter] = useState("all")
   const [frequencyFilter, setFrequencyFilter] = useState("all")
+  const [timePeriodFilter, setTimePeriodFilter] = useState("all")
   const [availabilityFilter, setAvailabilityFilter] = useState("all")
+  const [approvalModeFilter, setApprovalModeFilter] = useState("all")
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<LudoEvent | null>(null)
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
@@ -94,8 +103,22 @@ export default function LudoEventsPage() {
   const [isDateSelectionOpen, setIsDateSelectionOpen] = useState(false)
   const [dateSelectionEvent, setDateSelectionEvent] = useState<LudoEvent | null>(null)
   const [detailViewTab, setDetailViewTab] = useState<"info" | "schedule">("info")
-  const [selectedDates, setSelectedDates] = useState<string[]>([])
+  // const [selectedDates, setSelectedDates] = useState<string[]>([])
   const [additionalDates, setAdditionalDates] = useState<any[]>([])
+  const [isMessageComposerOpen, setIsMessageComposerOpen] = useState(false)
+  const [messageRecipient, setMessageRecipient] = useState<{
+    id: string
+    name: string
+    avatar: string | null
+  } | null>(null)
+  const [messageContext, setMessageContext] = useState<{
+    title: string
+    image?: string
+    type: "event"
+  } | null>(null)
+  const [locationSearchResults, setLocationSearchResults] = useState<any[]>([])
+  const [showLocationResults, setShowLocationResults] = useState(false)
+  const { searchByAddress, searchEventsNearby } = useLocationSearch()
 
   const supabase = createClient()
 
@@ -107,67 +130,125 @@ export default function LudoEventsPage() {
     try {
       console.log("[v0] Loading ludo events...")
 
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
       const { data, error } = await supabase
         .from("ludo_events")
         .select(`
           *,
-          creator:users!creator_id(id, username, name, avatar)
+          creator:users!creator_id(id, username, name, avatar),
+          ludo_event_instances!inner(instance_date)
         `)
         .eq("visibility", "public")
+        .gte("ludo_event_instances.instance_date", today.toISOString().split("T")[0])
         .order("created_at", { ascending: false })
 
       if (error) {
         console.error("[v0] Error loading events:", error)
-        throw error
+        toast.error("Fehler beim Laden der Events")
+        return
       }
 
-      console.log("[v0] Loaded events:", data?.length || 0)
-
-      // Get participant counts and user participation status
-      const eventsWithCounts = await Promise.all(
-        (data || []).map(async (event) => {
-          // Get participant count
-          const { count } = await supabase
-            .from("ludo_event_participants")
-            .select("*", { count: "exact", head: true })
+      const processedEvents = await Promise.all(
+        (data || []).map(async (event: any) => {
+          // Get the earliest instance date for this event
+          const { data: instances } = await supabase
+            .from("ludo_event_instances")
+            .select("instance_date")
             .eq("event_id", event.id)
-            .eq("status", "approved")
-
-          // Get user participation status if user is logged in
-          let userParticipationStatus = null
-          if (user) {
-            const { data: participation } = await supabase
-              .from("ludo_event_participants")
-              .select("status")
-              .eq("event_id", event.id)
-              .eq("user_id", user.id)
-              .single()
-
-            userParticipationStatus = participation?.status || null
-          }
-
-          let hasAdditionalDates = false
-          if (event.frequency === "regular" || event.frequency === "recurring") {
-            const { count: instancesCount } = await supabase
-              .from("ludo_event_instances")
-              .select("*", { count: "exact", head: true })
-              .eq("event_id", event.id)
-
-            hasAdditionalDates = (instancesCount || 0) > 0
-          }
+            .gte("instance_date", today.toISOString().split("T")[0])
+            .order("instance_date", { ascending: true })
+            .limit(1)
 
           return {
             ...event,
-            participant_count: count || 0,
-            user_participation_status: userParticipationStatus,
-            has_additional_dates: hasAdditionalDates,
+            first_instance_date: instances?.[0]?.instance_date || null,
           }
         }),
       )
 
-      setEvents(eventsWithCounts)
+      if (user) {
+        const eventsWithStatus = await Promise.all(
+          processedEvents.map(async (event) => {
+            // Check if user is registered for any instances of this event
+            const { data: instanceRegistrations } = await supabase
+              .from("ludo_event_instance_participants")
+              .select("instance_id, status")
+              .eq("user_id", user.id)
+              .in(
+                "instance_id",
+                await supabase
+                  .from("ludo_event_instances")
+                  .select("id")
+                  .eq("event_id", event.id)
+                  .then((res) => (res.data || []).map((i) => i.id)),
+              )
+
+            const { count: participantCount } = await supabase
+              .from("ludo_event_participants")
+              .select("*", { count: "exact", head: true })
+              .eq("event_id", event.id)
+              .eq("status", "confirmed")
+
+            const { data: instancesData } = await supabase
+              .from("ludo_event_instances")
+              .select("id")
+              .eq("event_id", event.id)
+
+            // Determine user participation status based on instance registrations
+            let userStatus = null
+            if (instanceRegistrations && instanceRegistrations.length > 0) {
+              // If user is registered for any instance, show as "approved"
+              const hasRegistered = instanceRegistrations.some((r) => r.status === "registered")
+              const hasPending = instanceRegistrations.some((r) => r.status === "pending")
+
+              if (hasRegistered) {
+                userStatus = "approved"
+              } else if (hasPending) {
+                userStatus = "pending"
+              }
+            }
+
+            return {
+              ...event,
+              user_participation_status: userStatus,
+              participant_count: participantCount || 0,
+              has_additional_dates: (instancesData?.length || 0) > 1,
+            }
+          }),
+        )
+
+        setEvents(eventsWithStatus)
+      } else {
+        const eventsWithCounts = await Promise.all(
+          processedEvents.map(async (event) => {
+            const { count: participantCount } = await supabase
+              .from("ludo_event_participants")
+              .select("*", { count: "exact", head: true })
+              .eq("event_id", event.id)
+              .eq("status", "confirmed")
+
+            const { data: instancesData } = await supabase
+              .from("ludo_event_instances")
+              .select("id")
+              .eq("event_id", event.id)
+
+            return {
+              ...event,
+              user_participation_status: null,
+              participant_count: participantCount || 0,
+              has_additional_dates: (instancesData?.length || 0) > 1,
+            }
+          }),
+        )
+
+        setEvents(eventsWithCounts)
+      }
+
+      console.log("[v0] Events loaded successfully:", processedEvents.length)
     } catch (error) {
-      console.error("Error loading events:", error)
+      console.error("[v0] Error in loadEvents:", error)
       toast.error("Fehler beim Laden der Events")
     } finally {
       setLoading(false)
@@ -176,24 +257,47 @@ export default function LudoEventsPage() {
 
   const loadAdditionalDates = async (eventId: string) => {
     try {
+      console.log("[v0] Loading additional dates for event:", eventId)
+
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
       const { data, error } = await supabase
         .from("ludo_event_instances")
         .select("*")
         .eq("event_id", eventId)
+        .gte("instance_date", today.toISOString().split("T")[0])
         .order("instance_date", { ascending: true })
 
       if (error) throw error
-      // Transform the data to match expected format
-      const transformedData = (data || []).map((instance) => ({
-        event_date: instance.instance_date,
-        start_time: instance.start_time,
-        end_time: instance.end_time,
-        max_participants: instance.max_participants,
-        notes: instance.notes,
-      }))
-      setAdditionalDates(transformedData)
+
+      console.log("[v0] Loaded event instances from database:", data)
+      console.log("[v0] Number of instances loaded:", data?.length || 0)
+
+      // Get participant counts for each instance
+      const instancesWithCounts = await Promise.all(
+        (data || []).map(async (instance) => {
+          const { count } = await supabase
+            .from("ludo_event_instance_participants")
+            .select("*", { count: "exact", head: true })
+            .eq("instance_id", instance.id)
+            .eq("status", "registered")
+
+          return {
+            event_date: instance.instance_date,
+            start_time: instance.start_time,
+            end_time: instance.end_time,
+            max_participants: instance.max_participants,
+            notes: instance.notes,
+            participant_count: count || 0,
+          }
+        }),
+      )
+
+      console.log("[v0] All dates from ludo_event_instances (sorted):", instancesWithCounts)
+      setAdditionalDates(instancesWithCounts)
     } catch (error) {
-      console.error("Error loading additional dates:", error)
+      console.error("[v0] Error loading additional dates:", error)
       setAdditionalDates([])
     }
   }
@@ -205,10 +309,20 @@ export default function LudoEventsPage() {
       return
     }
 
-    // For regular/recurring events with additional dates, show date selection
-    if ((event.frequency === "regular" || event.frequency === "recurring") && event.has_additional_dates) {
+    const isRecurring =
+      event.frequency === "regular" ||
+      event.frequency === "recurring" ||
+      event.frequency === "täglich" ||
+      event.frequency === "wöchentlich" ||
+      event.frequency === "zweiwöchentlich" ||
+      event.frequency === "monatlich" ||
+      event.frequency === "andere"
+
+    // For recurring events with additional dates, show date selection
+    if (isRecurring && event.has_additional_dates) {
       setDateSelectionEvent(event)
-      setSelectedDates([]) // Reset selected dates
+      // Reset selectedDates state as it's handled by DateSelectionDialog component
+      // setSelectedDates([])
       setIsDateSelectionOpen(true)
       return
     }
@@ -275,7 +389,7 @@ export default function LudoEventsPage() {
             throw error
           }
 
-          toast.success(`Erfolgreich für ${selectedEventDates.length} Termine angemeldet!`)
+          toast.success(`Erfolgreich für ${selectedEventDates.length} Termin(e) angemeldet!`)
         } else {
           // Single event participation
           const { error } = await supabase.from("ludo_event_participants").insert({
@@ -329,7 +443,7 @@ export default function LudoEventsPage() {
 
   const getJoinButtonProps = (event: LudoEvent) => {
     if (!user) {
-      return { text: "Anmelden", disabled: false, variant: "default" as const }
+      return { text: "Teilnehmen", disabled: false, variant: "default" as const }
     }
 
     if (event.creator_id === user.id) {
@@ -337,7 +451,7 @@ export default function LudoEventsPage() {
     }
 
     if (event.user_participation_status === "approved") {
-      return { text: "Teilnehmend", disabled: false, variant: "outline" as const, action: "leave" }
+      return { text: "Angemeldet", disabled: false, variant: "outline" as const, action: "manage" }
     }
 
     if (event.user_participation_status === "pending") {
@@ -356,26 +470,110 @@ export default function LudoEventsPage() {
     setDetailViewTab(targetTab)
     setIsDetailsDialogOpen(true)
 
-    // Load additional dates for regular/recurring events
-    if (event.frequency === "regular" || event.frequency === "recurring") {
+    const isRecurring =
+      event.frequency === "regular" ||
+      event.frequency === "recurring" ||
+      event.frequency === "täglich" ||
+      event.frequency === "wöchentlich" ||
+      event.frequency === "zweiwöchentlich" ||
+      event.frequency === "monatlich" ||
+      event.frequency === "andere"
+
+    if (isRecurring) {
       loadAdditionalDates(event.id)
     }
   }
 
-  const openEventManagement = (event: LudoEvent, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const openEventManagement = (event: LudoEvent, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation()
+    }
+    console.log("[v0] Opening event management for event:", event.id, event.title)
     setManagementEvent(event)
     setIsManagementDialogOpen(true)
   }
 
-  const openApprovalManagement = (event: LudoEvent, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const openApprovalManagement = (event: LudoEvent, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation()
+    }
     setApprovalEvent(event)
     setIsApprovalDialogOpen(true)
   }
 
+  const openMessageComposer = (event: LudoEvent, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation()
+    }
+    setMessageRecipient({
+      id: event.creator_id,
+      name: event.creator.name || event.creator.username,
+      avatar: event.creator.avatar,
+    })
+    setMessageContext({
+      title: event.title,
+      image: event.image_url || undefined,
+      type: "event",
+    })
+    setIsMessageComposerOpen(true)
+  }
+
+  const handleLocationSearch = async (address: string, radius: number) => {
+    try {
+      const results = await searchByAddress(address, radius)
+      let searchResults: any[] = []
+      if (Array.isArray(results)) {
+        searchResults = results
+      } else if (results && typeof results === "object") {
+        searchResults = [results]
+      } else {
+        searchResults = []
+      }
+      setLocationSearchResults(searchResults)
+      setShowLocationResults(true)
+    } catch (error) {
+      console.error("Location search error:", error)
+      setLocationSearchResults([])
+      setShowLocationResults(false)
+    }
+  }
+
+  const handleNearbySearch = async () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation wird von deinem Browser nicht unterstützt")
+      return
+    }
+
+    toast.info("Standort wird ermittelt...")
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        console.log("[v0] User location:", { latitude, longitude })
+
+        try {
+          const results = await searchEventsNearby(latitude, longitude, 50) // 50km radius
+          console.log("[v0] Nearby events found:", results)
+
+          setLocationSearchResults(results || [])
+          setShowLocationResults(true)
+          toast.success(`${results?.length || 0} Events in deiner Nähe gefunden`)
+        } catch (error) {
+          console.error("[v0] Error searching nearby events:", error)
+          toast.error("Fehler bei der Standortsuche")
+        }
+      },
+      (error) => {
+        console.error("[v0] Geolocation error:", error)
+        toast.error("Standort konnte nicht ermittelt werden")
+      },
+    )
+  }
+
   const getFilteredEvents = () => {
-    let filtered = events.filter((event) => {
+    const sourceEvents = showLocationResults ? locationSearchResults : events
+
+    let filtered = sourceEvents.filter((event) => {
       // Search filter
       const searchMatch =
         event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -392,7 +590,69 @@ export default function LudoEventsPage() {
       }
 
       // Frequency filter
-      if (frequencyFilter !== "all" && event.frequency !== frequencyFilter) return false
+      if (frequencyFilter !== "all") {
+        // Map old frequency values to new ones for backwards compatibility
+        const eventFrequency = event.frequency
+
+        if (frequencyFilter === "einmalig" && eventFrequency !== "einmalig" && eventFrequency !== "single") return false
+        if (frequencyFilter === "täglich" && eventFrequency !== "täglich") return false
+        if (frequencyFilter === "wöchentlich" && eventFrequency !== "wöchentlich" && eventFrequency !== "weekly")
+          return false
+        if (frequencyFilter === "monatlich" && eventFrequency !== "monatlich" && eventFrequency !== "monthly")
+          return false
+        if (frequencyFilter === "jährlich" && eventFrequency !== "jährlich") return false
+        if (frequencyFilter === "andere" && eventFrequency !== "andere" && eventFrequency !== "custom") return false
+      }
+
+      if (approvalModeFilter !== "all") {
+        if (approvalModeFilter === "automatic" && event.approval_mode !== "automatic") return false
+        if (approvalModeFilter === "manual" && event.approval_mode !== "manual") return false
+      }
+
+      // Time period filter
+      if (timePeriodFilter !== "all") {
+        if (!event.first_instance_date) return false
+
+        const eventDate = new Date(event.first_instance_date)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        const tomorrow = new Date(today)
+        tomorrow.setDate(tomorrow.getDate() + 1)
+
+        const thisWeekEnd = new Date(today)
+        thisWeekEnd.setDate(today.getDate() + (7 - today.getDay()))
+
+        const nextWeekStart = new Date(thisWeekEnd)
+        nextWeekStart.setDate(thisWeekEnd.getDate() + 1)
+        const nextWeekEnd = new Date(nextWeekStart)
+        nextWeekEnd.setDate(nextWeekStart.getDate() + 6)
+
+        const thisMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+        const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+        const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0)
+
+        const weekendStart = new Date(today)
+        weekendStart.setDate(today.getDate() + (6 - today.getDay())) // Saturday
+        const weekendEnd = new Date(weekendStart)
+        weekendEnd.setDate(weekendStart.getDate() + 1) // Sunday
+
+        if (timePeriodFilter === "heute") {
+          if (eventDate.toDateString() !== today.toDateString()) return false
+        } else if (timePeriodFilter === "morgen") {
+          if (eventDate.toDateString() !== tomorrow.toDateString()) return false
+        } else if (timePeriodFilter === "wochenende") {
+          if (eventDate < weekendStart || eventDate > weekendEnd) return false
+        } else if (timePeriodFilter === "diese-woche") {
+          if (eventDate < today || eventDate > thisWeekEnd) return false
+        } else if (timePeriodFilter === "naechste-woche") {
+          if (eventDate < nextWeekStart || eventDate > nextWeekEnd) return false
+        } else if (timePeriodFilter === "dieser-monat") {
+          if (eventDate < today || eventDate > thisMonthEnd) return false
+        } else if (timePeriodFilter === "naechster-monat") {
+          if (eventDate < nextMonthStart || eventDate > nextMonthEnd) return false
+        }
+      }
 
       // Availability filter
       if (availabilityFilter !== "all") {
@@ -411,7 +671,8 @@ export default function LudoEventsPage() {
           case "newest":
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           case "date":
-            return new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
+            // Use first_instance_date for sorting
+            return new Date(a.first_instance_date || "").getTime() - new Date(b.first_instance_date || "").getTime()
           case "participants":
             return b.participant_count - a.participant_count
           default:
@@ -428,8 +689,8 @@ export default function LudoEventsPage() {
   const formatEventDate = (dateStr: string, timeStr: string) => {
     const date = new Date(dateStr)
     const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    const tomorrow = new Date()
+    tomorrow.setDate(today.getDate() + 1)
 
     const isToday = date.toDateString() === today.toDateString()
     const isTomorrow = date.toDateString() === tomorrow.toDateString()
@@ -452,6 +713,14 @@ export default function LudoEventsPage() {
       custom_interval: event.custom_interval,
     })
 
+    // New German frequency values
+    if (event.frequency === "täglich") return "Täglich"
+    if (event.frequency === "wöchentlich") return "Wöchentlich"
+    if (event.frequency === "zweiwöchentlich") return "Zweiwöchentlich"
+    if (event.frequency === "monatlich") return "Monatlich"
+    if (event.frequency === "andere" && event.custom_interval) return event.custom_interval
+
+    // Old frequency values with interval_type
     if (event.frequency !== "regular" && event.frequency !== "recurring") return null
     if (!event.interval_type) return null
 
@@ -469,14 +738,28 @@ export default function LudoEventsPage() {
 
   const formatParticipantCount = (event: LudoEvent) => {
     if (event.max_participants === null) {
-      return `${event.participant_count} Teilnehmer (unbegrenzt)`
+      return (
+        <>
+          {event.participant_count} Teilnehmer <span className="text-gray-500">(unbegrenzt)</span>
+        </>
+      )
     }
 
     const freeSpots = event.max_participants - event.participant_count
-    if (event.participant_count === 1) {
-      return `1 Teilnehmer (${freeSpots} Plätze frei)`
+    if (freeSpots > 0) {
+      return (
+        <>
+          {event.participant_count} Teilnehmer (
+          <span className="text-green-600 font-medium">{freeSpots} Plätze frei</span>)
+        </>
+      )
+    } else {
+      return (
+        <>
+          {event.participant_count} Teilnehmer (<span className="text-red-600 font-medium">Ausgebucht</span>)
+        </>
+      )
     }
-    return `${event.participant_count} Teilnehmer (${freeSpots} Plätze frei)`
   }
 
   const getFrequencyBadge = (frequency: string) => {
@@ -484,6 +767,11 @@ export default function LudoEventsPage() {
       single: "Einmalig",
       regular: "Regelmässig",
       recurring: "Wiederholend",
+      täglich: "Täglich",
+      wöchentlich: "Wöchentlich",
+      zweiwöchentlich: "Zweiwöchentlich",
+      monatlich: "Monatlich",
+      andere: "Andere",
     }
     return frequencyMap[frequency] || frequency
   }
@@ -494,121 +782,210 @@ export default function LudoEventsPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Ludo Events</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Entdecke spannende Ludo-Events in deiner Nähe oder erstelle dein eigenes Event! Verbinde dich mit anderen
-            Spielern und erlebe unvergessliche Spieleabende.
+          <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Spielevents</h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-6">
+            Entdecke spannende Spielevents und verbinde dich mit anderen Spielern
           </p>
+          {user && (
+            <Button
+              onClick={() => {
+                console.log("[v0] Event erstellen button clicked")
+                console.log("[v0] User:", user)
+                console.log("[v0] Opening create dialog...")
+                setIsCreateDialogOpen(true)
+                console.log("[v0] isCreateDialogOpen state set to true")
+              }}
+              className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 font-handwritten"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Event erstellen
+            </Button>
+          )}
+          {!user && console.log("[v0] Create button not shown - user not logged in")}
         </div>
 
-        {/* Search and Filter Section */}
+        {/* Updated filter section with professional, unified design */}
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-6">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Events durchsuchen..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white/80 border-gray-200 focus:border-teal-500"
-              />
+          <div className="space-y-6">
+            {/* Search Bar */}
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Events durchsuchen..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-12 bg-white/80 border-gray-200 focus:border-teal-500 text-base"
+                />
+              </div>
             </div>
 
-            <div className="flex gap-2">
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-handwritten">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Event erstellen
+            {/* Location Search */}
+            <div className="space-y-3">
+              <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
+            </div>
+
+            {showLocationResults && (
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-blue-600" />
+                  <span className="text-sm text-blue-800 font-medium">
+                    Zeige Ergebnisse in der Nähe ({locationSearchResults.length})
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowLocationResults(false)
+                    setLocationSearchResults([])
+                  }}
+                  className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                >
+                  Alle Events zeigen
+                </Button>
+              </div>
+            )}
+
+            {/* Basic Filters */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Sortieren nach</Label>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle</SelectItem>
+                      <SelectItem value="newest">Neueste</SelectItem>
+                      <SelectItem value="date">Datum</SelectItem>
+                      <SelectItem value="participants">Teilnehmer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Häufigkeit</Label>
+                  <Select value={frequencyFilter} onValueChange={setFrequencyFilter}>
+                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle</SelectItem>
+                      <SelectItem value="einmalig">Einmalig</SelectItem>
+                      <SelectItem value="täglich">Täglich</SelectItem>
+                      <SelectItem value="wöchentlich">Wöchentlich</SelectItem>
+                      <SelectItem value="monatlich">Monatlich</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Zeitpunkt</Label>
+                  <Select value={timePeriodFilter} onValueChange={setTimePeriodFilter}>
+                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle</SelectItem>
+                      <SelectItem value="heute">Heute</SelectItem>
+                      <SelectItem value="morgen">Morgen</SelectItem>
+                      <SelectItem value="wochenende">Wochenende</SelectItem>
+                      <SelectItem value="diese-woche">Diese Woche</SelectItem>
+                      <SelectItem value="naechste-woche">Nächste Woche</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                    className="h-12 w-full border-2 border-teal-500 text-teal-600 hover:bg-teal-50 font-medium"
+                  >
+                    <Filter className="w-4 h-4 mr-2" />
+                    Erweiterte Filter
+                    <ChevronDown
+                      className={`w-4 h-4 ml-2 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
+                    />
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-0">
-                  <CreateLudoEventForm
-                    onSuccess={() => {
-                      setIsCreateDialogOpen(false)
-                      loadEvents()
-                    }}
-                    onCancel={() => setIsCreateDialogOpen(false)}
-                  />
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
+                </div>
+              </div>
 
-          {/* Advanced Filters */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div className="flex-1 min-w-[150px]">
-              <Label className="text-xs text-gray-600 mb-1 block">Sortieren nach</Label>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="h-10 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  <SelectItem value="newest">Neueste</SelectItem>
-                  <SelectItem value="date">Event-Datum</SelectItem>
-                  <SelectItem value="participants">Teilnehmer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Advanced Filters */}
+              {showAdvancedFilters && (
+                <div className="pt-6 border-t border-gray-200 space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center">
+                    <Filter className="w-4 h-4 mr-2" />
+                    Erweiterte Filter
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Ort</Label>
+                      <Select value={locationFilter} onValueChange={setLocationFilter}>
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle</SelectItem>
+                          <SelectItem value="local">Vor Ort</SelectItem>
+                          <SelectItem value="virtual">Online</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-            <div className="flex-1 min-w-[150px]">
-              <Label className="text-xs text-gray-600 mb-1 block">Ort</Label>
-              <Select value={locationFilter} onValueChange={setLocationFilter}>
-                <SelectTrigger className="h-10 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle Orte</SelectItem>
-                  <SelectItem value="local">Vor Ort</SelectItem>
-                  <SelectItem value="virtual">Online</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Kapazität</Label>
+                      <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle</SelectItem>
+                          <SelectItem value="available">Freie Plätze</SelectItem>
+                          <SelectItem value="full">Ausgebucht</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-            <div className="flex-1 min-w-[150px]">
-              <Label className="text-xs text-gray-600 mb-1 block">Häufigkeit</Label>
-              <Select value={frequencyFilter} onValueChange={setFrequencyFilter}>
-                <SelectTrigger className="h-10 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  <SelectItem value="single">Einmalig</SelectItem>
-                  <SelectItem value="regular">Regelmässig</SelectItem>
-                  <SelectItem value="recurring">Wiederholend</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Teilnahme</Label>
+                      <Select value={approvalModeFilter} onValueChange={setApprovalModeFilter}>
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle</SelectItem>
+                          <SelectItem value="automatic">Direkte Teilnahme</SelectItem>
+                          <SelectItem value="manual">Teilnahme erst nach Genehmigung</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            <div className="flex-1 min-w-[150px]">
-              <Label className="text-xs text-gray-600 mb-1 block">Verfügbarkeit</Label>
-              <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
-                <SelectTrigger className="h-10 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle Events</SelectItem>
-                  <SelectItem value="available">Freie Plätze</SelectItem>
-                  <SelectItem value="full">Ausgebucht</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSearchTerm("")
-                  setSortBy("all")
-                  setLocationFilter("all")
-                  setFrequencyFilter("all")
-                  setAvailabilityFilter("all")
-                }}
-                className="h-10 text-sm border-2 border-gray-400 text-gray-600 hover:bg-gray-400 hover:text-white font-handwritten bg-transparent"
-              >
-                Filter zurücksetzen
-              </Button>
+              {/* Reset Button */}
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm("")
+                    setSortBy("all")
+                    setLocationFilter("all")
+                    setFrequencyFilter("all")
+                    setTimePeriodFilter("all")
+                    setAvailabilityFilter("all")
+                    setApprovalModeFilter("all")
+                    setShowLocationResults(false)
+                    setLocationSearchResults([])
+                  }}
+                  className="h-12 px-6 border-2 border-gray-300 text-gray-700 hover:bg-gray-100 font-medium"
+                >
+                  Filter zurücksetzen
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -652,6 +1029,15 @@ export default function LudoEventsPage() {
                   const IconComponent = buttonProps.icon
                   const intervalDisplay = getIntervalDisplay(event)
 
+                  const isRecurring =
+                    event.frequency === "regular" ||
+                    event.frequency === "recurring" ||
+                    event.frequency === "täglich" ||
+                    event.frequency === "wöchentlich" ||
+                    event.frequency === "zweiwöchentlich" ||
+                    event.frequency === "monatlich" ||
+                    event.frequency === "andere"
+
                   return (
                     <Card
                       key={event.id}
@@ -660,10 +1046,26 @@ export default function LudoEventsPage() {
                     >
                       {!event.image_url && (
                         <div className="relative h-32 w-full overflow-hidden bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
-                          <div className="absolute top-2 right-2 z-10">
-                            <span className="px-2 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium text-gray-700 rounded-full border border-gray-200">
-                              {getFrequencyBadge(event.frequency)}
-                            </span>
+                          {isRecurring && (
+                            <div className="absolute top-2 right-2 z-10">
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium text-blue-600 rounded-full border border-blue-200">
+                                <CalendarSync className="h-3.5 w-3.5" />
+                                <span>Serientermine</span>
+                              </div>
+                            </div>
+                          )}
+                          <div className="absolute top-2 left-2 z-10">
+                            {event.approval_mode === "automatic" ? (
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 backdrop-blur-sm text-xs font-medium text-green-700 rounded-full border border-green-300">
+                                <UserCheck className="h-3.5 w-3.5" />
+                                <span>Direkte Teilnahme</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-100 backdrop-blur-sm text-xs font-medium text-orange-700 rounded-full border border-orange-300">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>Genehmigung erforderlich</span>
+                              </div>
+                            )}
                           </div>
                           <div className="text-center">
                             <Spade className="h-12 w-12 text-teal-400 mx-auto mb-1" />
@@ -679,10 +1081,26 @@ export default function LudoEventsPage() {
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                          <div className="absolute top-2 right-2 z-10">
-                            <span className="px-2 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium text-gray-700 rounded-full border border-gray-200">
-                              {getFrequencyBadge(event.frequency)}
-                            </span>
+                          {isRecurring && (
+                            <div className="absolute top-2 right-2 z-10">
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium text-blue-600 rounded-full border border-blue-200">
+                                <CalendarSync className="h-3.5 w-3.5" />
+                                <span>Serientermine</span>
+                              </div>
+                            </div>
+                          )}
+                          <div className="absolute top-2 left-2 z-10">
+                            {event.approval_mode === "automatic" ? (
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 backdrop-blur-sm text-xs font-medium text-green-700 rounded-full border border-green-300">
+                                <UserPlus className="h-3.5 w-3.5" />
+                                <span>Direkte Teilnahme</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-100 backdrop-blur-sm text-xs font-medium text-orange-700 rounded-full border border-orange-300">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>Genehmigung erforderlich</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -697,6 +1115,7 @@ export default function LudoEventsPage() {
                               <p className="text-sm text-gray-600 line-clamp-2 mb-3">{event.description}</p>
                             )}
                           </div>
+                          {event.distance !== undefined && <DistanceBadge distance={event.distance} className="ml-2" />}
                         </div>
                       </CardHeader>
 
@@ -704,7 +1123,11 @@ export default function LudoEventsPage() {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Calendar className="h-4 w-4 text-teal-600" />
-                            <span>{formatEventDate(event.event_date, event.start_time)}</span>
+                            <span>
+                              {event.first_instance_date
+                                ? formatEventDate(event.first_instance_date, event.start_time)
+                                : "Keine Termine"}
+                            </span>
                           </div>
 
                           <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -716,32 +1139,29 @@ export default function LudoEventsPage() {
                           </div>
 
                           {intervalDisplay && (
-                            <div className="flex items-center gap-2 text-sm text-blue-600 ml-8">
-                              <Repeat className="h-4 w-4 text-blue-600" />
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <CalendarSync className="h-4 w-4 text-teal-600" />
                               <span>{intervalDisplay}</span>
                             </div>
                           )}
 
-                          {(event.frequency === "regular" || event.frequency === "recurring") &&
-                            event.has_additional_dates && (
-                              <div
-                                className="text-sm text-blue-600 font-medium cursor-pointer hover:text-blue-800 transition-colors"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  showEventDetails(event, "schedule")
-                                }}
-                              >
-                                (Weitere Termine verfügbar)
-                              </div>
-                            )}
-
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <MapPin className="h-4 w-4 text-teal-600" />
-                            <span className="truncate">
-                              {event.location_type === "virtual"
-                                ? "Online Event"
-                                : event.location || "Ort wird bekannt gegeben"}
-                            </span>
+                            {event.location_type === "virtual" ? (
+                              <span className="truncate">Online Event</span>
+                            ) : event.location ? (
+                              <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="truncate text-teal-600 hover:text-teal-700 hover:underline cursor-pointer transition-colors"
+                              >
+                                {event.location}
+                              </a>
+                            ) : (
+                              <span className="truncate">Ort wird bekannt gegeben</span>
+                            )}
                           </div>
 
                           {event.selected_games && event.selected_games.length > 0 && (
@@ -830,8 +1250,10 @@ export default function LudoEventsPage() {
                                 window.location.href = "/login"
                                 return
                               }
-                              if (buttonProps.action === "leave") {
-                                leaveEvent(event)
+                              if (buttonProps.action === "manage") {
+                                // Open date selection dialog to manage registrations
+                                setDateSelectionEvent(event)
+                                setIsDateSelectionOpen(true)
                               } else {
                                 handleJoinEvent(event)
                               }
@@ -839,8 +1261,8 @@ export default function LudoEventsPage() {
                             disabled={buttonProps.disabled}
                             variant={buttonProps.variant}
                             className={`flex-1 font-handwritten ${
-                              buttonProps.action === "leave"
-                                ? "bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white border-red-500"
+                              buttonProps.action === "manage"
+                                ? "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-blue-500"
                                 : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:to-gray-400"
                             }`}
                           >
@@ -858,10 +1280,15 @@ export default function LudoEventsPage() {
                             className="px-3 bg-transparent font-handwritten"
                             onClick={(e) => {
                               e.stopPropagation()
+                              if (!user) {
+                                toast.info("Bitte melde dich an, um Nachrichten zu senden")
+                                window.location.href = "/login"
+                                return
+                              }
                               if (user && event.creator_id === user.id) {
-                                openEventManagement(event, e)
+                                openEventManagement(event)
                               } else {
-                                toast.info("Nachrichtenfunktion wird bald verfügbar sein")
+                                openMessageComposer(event)
                               }
                             }}
                           >
@@ -951,7 +1378,13 @@ export default function LudoEventsPage() {
                   </div>
                 </div>
 
-                {selectedEvent.frequency === "regular" || selectedEvent.frequency === "recurring" ? (
+                {selectedEvent.frequency === "regular" ||
+                selectedEvent.frequency === "recurring" ||
+                selectedEvent.frequency === "täglich" ||
+                selectedEvent.frequency === "wöchentlich" ||
+                selectedEvent.frequency === "zweiwöchentlich" ||
+                selectedEvent.frequency === "monatlich" ||
+                selectedEvent.frequency === "andere" ? (
                   <div className="space-y-4">
                     <div className="flex border-b border-gray-200">
                       <button
@@ -983,7 +1416,9 @@ export default function LudoEventsPage() {
                             <Calendar className="h-5 w-5 text-teal-600" />
                             <div>
                               <div className="font-medium text-gray-600">
-                                {formatEventDate(selectedEvent.event_date, selectedEvent.start_time)}
+                                {selectedEvent.first_instance_date
+                                  ? formatEventDate(selectedEvent.first_instance_date, selectedEvent.start_time)
+                                  : "Keine Termine"}
                               </div>
                             </div>
                           </div>
@@ -995,14 +1430,17 @@ export default function LudoEventsPage() {
                                 {selectedEvent.start_time.slice(0, 5)}
                                 {selectedEvent.end_time && ` - ${selectedEvent.end_time.slice(0, 5)}`}
                               </div>
-                              {getIntervalDisplay(selectedEvent) && (
-                                <div className="flex items-center gap-2 text-sm text-blue-600 mt-1">
-                                  <Repeat className="h-4 w-4" />
-                                  <span>{getIntervalDisplay(selectedEvent)}</span>
-                                </div>
-                              )}
                             </div>
                           </div>
+
+                          {getIntervalDisplay(selectedEvent) && (
+                            <div className="flex items-center gap-3">
+                              <CalendarSync className="h-5 w-5 text-teal-600" />
+                              <div>
+                                <div className="text-gray-600">{getIntervalDisplay(selectedEvent)}</div>
+                              </div>
+                            </div>
+                          )}
 
                           <div className="flex items-center gap-3">
                             <MapPin className="h-5 w-5 text-teal-600" />
@@ -1074,51 +1512,117 @@ export default function LudoEventsPage() {
                             <p className="text-gray-600 leading-relaxed">{selectedEvent.description}</p>
                           </div>
                         )}
-                      </div>
-                    )}
-
-                    {detailViewTab === "schedule" && (
-                      <div className="space-y-4">
-                        <h4 className="text-gray-800 font-semibold">Alle Termine</h4>
-                        <div className="space-y-3">
-                          {/* Main event date */}
-                          <div className="p-3 bg-teal-50 rounded-lg">
-                            <div className="flex items-center gap-3 mb-2">
-                              <Calendar className="h-5 w-5 text-teal-600" />
-                              <div className="font-medium text-gray-800">
-                                {formatEventDate(selectedEvent.event_date, selectedEvent.start_time)}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <Clock className="h-5 w-5 text-teal-600" />
-                              <div className="text-sm text-gray-600">
-                                {selectedEvent.start_time.slice(0, 5)}
-                                {selectedEvent.end_time && ` - ${selectedEvent.end_time.slice(0, 5)}`}
-                              </div>
-                            </div>
+                        {selectedEvent.additional_notes && (
+                          <div>
+                            <h4 className="text-gray-800 mb-2 font-semibold">Zusatzinfos</h4>
+                            <p className="text-gray-600 leading-relaxed">{selectedEvent.additional_notes}</p>
                           </div>
+                        )}
 
-                          {/* Additional dates */}
-                          {additionalDates.map((date, index) => (
-                            <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                              <div className="flex items-center gap-3 mb-2">
-                                <Calendar className="h-5 w-5 text-gray-600" />
-                                <div className="font-medium text-gray-800">
-                                  {formatEventDate(date.event_date, date.start_time)}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <Clock className="h-5 w-5 text-gray-600" />
-                                <div className="text-sm text-gray-600">
-                                  {date.start_time.slice(0, 5)}
-                                  {date.end_time && ` - ${date.end_time.slice(0, 5)}`}
-                                </div>
-                              </div>
+                        <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                          {selectedEvent.location_type === "virtual" ? (
+                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                              <p className="text-blue-800 text-sm">
+                                Dies ist ein virtuelles Event (Online). Keine Karte verfügbar.
+                              </p>
                             </div>
-                          ))}
+                          ) : !selectedEvent.location ? (
+                            <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                              <p className="text-yellow-800 text-sm">
+                                Kein Standort angegeben. Karte kann nicht angezeigt werden.
+                              </p>
+                            </div>
+                          ) : (
+                            <>
+                              <LocationMap location={selectedEvent.location} className="h-64 w-full rounded-lg" />
+                            </>
+                          )}
                         </div>
                       </div>
                     )}
+
+                    {/* DETAIL VIEW TAB SCHEDULE START */}
+                    {detailViewTab === "schedule" && (
+                      <div className="space-y-4">
+                        <h3 className="font-semibold text-gray-800 mb-3">Alle geplanten Termine</h3>
+                        <div className="space-y-3">
+                          {console.log("[v0] Rendering schedule tab with additionalDates:", additionalDates)}
+                          {console.log("[v0] Number of dates to display:", additionalDates.length)}
+                          {additionalDates.length === 0 ? (
+                            <div className="p-4 bg-gray-50 rounded-lg text-center text-gray-600">
+                              <Calendar className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                              <p>Keine Termine verfügbar</p>
+                            </div>
+                          ) : (
+                            additionalDates.map((date, index) => (
+                              <div
+                                key={index}
+                                className={`p-3 rounded-lg border-2 ${
+                                  index === 0
+                                    ? "bg-teal-50 border-teal-200"
+                                    : index === additionalDates.length - 1
+                                      ? "bg-orange-50 border-orange-200"
+                                      : "bg-gray-50 border-gray-200"
+                                }`}
+                              >
+                                <div className="flex items-center gap-3 mb-2">
+                                  <Calendar className="h-5 w-5 text-gray-600" />
+                                  <div className="font-medium text-gray-600">
+                                    {formatEventDate(date.event_date, date.start_time)}
+                                  </div>
+                                  {index === 0 && (
+                                    <span className="ml-auto px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full">
+                                      Startdatum
+                                    </span>
+                                  )}
+                                  {index === additionalDates.length - 1 && index !== 0 && (
+                                    <span className="ml-auto px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
+                                      Enddatum
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <Clock className="h-5 w-5 text-gray-600" />
+                                  <div className="font-medium text-gray-600">
+                                    {date.start_time.slice(0, 5)}
+                                    {date.end_time && ` - ${date.end_time.slice(0, 5)}`}
+                                  </div>
+                                </div>
+                                <div
+                                  className={`flex items-center gap-3 mt-2 pt-2 border-t ${
+                                    index === 0
+                                      ? "border-teal-200"
+                                      : index === additionalDates.length - 1
+                                        ? "border-orange-200"
+                                        : "border-gray-200"
+                                  }`}
+                                >
+                                  <Users className="h-5 w-5 text-gray-600" />
+                                  <div className="font-medium text-gray-600">
+                                    {date.participant_count || 0} Teilnehmer
+                                    {date.max_participants && (
+                                      <span className="ml-1">
+                                        (
+                                        {date.max_participants - (date.participant_count || 0) > 0 ? (
+                                          <span className="text-green-600 font-medium">
+                                            {date.max_participants - (date.participant_count || 0)} Plätze frei
+                                          </span>
+                                        ) : (
+                                          <span className="text-red-600 font-medium">Ausgebucht</span>
+                                        )}
+                                        )
+                                      </span>
+                                    )}
+                                    {!date.max_participants && <span className="ml-1 text-gray-500">(unbegrenzt)</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {/* DETAIL VIEW TAB SCHEDULE END */}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1127,7 +1631,9 @@ export default function LudoEventsPage() {
                         <Calendar className="h-5 w-5 text-teal-600" />
                         <div>
                           <div className="font-medium text-gray-800">
-                            {formatEventDate(selectedEvent.event_date, selectedEvent.start_time)}
+                            {selectedEvent.first_instance_date
+                              ? formatEventDate(selectedEvent.first_instance_date, selectedEvent.start_time)
+                              : "Keine Termine"}
                           </div>
                         </div>
                       </div>
@@ -1141,6 +1647,15 @@ export default function LudoEventsPage() {
                           </div>
                         </div>
                       </div>
+
+                      {getIntervalDisplay(selectedEvent) && (
+                        <div className="flex items-center gap-3">
+                          <CalendarSync className="h-5 w-5 text-teal-600" />
+                          <div>
+                            <div className="text-gray-600">{getIntervalDisplay(selectedEvent)}</div>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="flex items-center gap-3">
                         <MapPin className="h-5 w-5 text-teal-600" />
@@ -1164,11 +1679,9 @@ export default function LudoEventsPage() {
                         <div className="flex items-start gap-3">
                           <Dices className="h-5 w-5 text-teal-600 mt-0.5" />
                           <div>
-                            <div className="font-medium text-gray-800 mb-1">Spiele</div>
                             <ul className="text-gray-600 space-y-1">
                               {selectedEvent.selected_games.map((game: any, index: number) => (
                                 <li key={index} className="flex items-center gap-2">
-                                  <span className="w-1.5 h-1.5 bg-teal-500 rounded-full"></span>
                                   {(() => {
                                     if (typeof game === "string") {
                                       // Try to parse as JSON first
@@ -1234,6 +1747,33 @@ export default function LudoEventsPage() {
                         <p className="text-gray-600 leading-relaxed">{selectedEvent.description}</p>
                       </div>
                     )}
+
+                    {selectedEvent.additional_notes && (
+                      <div>
+                        <h4 className="text-gray-800 mb-2 font-semibold">Zusatzinfos</h4>
+                        <p className="text-gray-600 leading-relaxed">{selectedEvent.additional_notes}</p>
+                      </div>
+                    )}
+
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                      {selectedEvent.location_type === "virtual" ? (
+                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <p className="text-blue-800 text-sm">
+                            Dies ist ein virtuelles Event (Online). Keine Karte verfügbar.
+                          </p>
+                        </div>
+                      ) : !selectedEvent.location ? (
+                        <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                          <p className="text-yellow-800 text-sm">
+                            Kein Standort angegeben. Karte kann nicht angezeigt werden.
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <LocationMap location={selectedEvent.location} className="h-64 w-full rounded-lg" />
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -1251,8 +1791,10 @@ export default function LudoEventsPage() {
                             window.location.href = "/login"
                             return
                           }
-                          if (buttonProps.action === "leave") {
-                            leaveEvent(selectedEvent)
+                          if (buttonProps.action === "manage") {
+                            // Open date selection dialog to manage registrations
+                            setDateSelectionEvent(selectedEvent)
+                            setIsDateSelectionOpen(true)
                           } else {
                             handleJoinEvent(selectedEvent)
                           }
@@ -1260,8 +1802,8 @@ export default function LudoEventsPage() {
                         disabled={buttonProps.disabled}
                         variant={buttonProps.variant}
                         className={`flex-1 font-handwritten ${
-                          buttonProps.action === "leave"
-                            ? "bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white border-red-500"
+                          buttonProps.action === "manage"
+                            ? "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-blue-500"
                             : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:to-gray-400"
                         }`}
                       >
@@ -1275,21 +1817,37 @@ export default function LudoEventsPage() {
                     )
                   })()}
 
+                  <ShareButton
+                    url={`${typeof window !== "undefined" ? window.location.origin : ""}/ludo-events/${selectedEvent.id}`}
+                    title={selectedEvent.title}
+                    description={selectedEvent.description || "Schau dir dieses Event an!"}
+                    variant="outline"
+                    className="px-4 bg-transparent font-handwritten"
+                  />
+
                   <Button
                     variant="outline"
                     className="px-4 bg-transparent font-handwritten"
-                    onClick={() => {
+                    onClick={(e) => {
+                      if (!user) {
+                        toast.info("Bitte melde dich an, um Nachrichten zu senden")
+                        window.location.href = "/login"
+                        return
+                      }
                       if (user && selectedEvent.creator_id === user.id) {
-                        openEventManagement(selectedEvent, {} as React.MouseEvent)
+                        openEventManagement(selectedEvent)
                       } else {
-                        toast.info("Nachrichtenfunktion wird bald verfügbar sein")
+                        openMessageComposer(selectedEvent)
                       }
                     }}
                   >
                     {user && selectedEvent.creator_id === user.id ? (
                       <Settings className="h-4 w-4" />
                     ) : (
-                      <MessageCircle className="h-4 w-4" />
+                      <>
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Nachricht
+                      </>
                     )}
                   </Button>
                 </div>
@@ -1341,116 +1899,71 @@ export default function LudoEventsPage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isDateSelectionOpen} onOpenChange={setIsDateSelectionOpen}>
-          <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+        {dateSelectionEvent && (
+          <DateSelectionDialog
+            isOpen={isDateSelectionOpen}
+            onClose={() => {
+              setIsDateSelectionOpen(false)
+              setDateSelectionEvent(null)
+            }}
+            event={{
+              id: dateSelectionEvent.id,
+              title: dateSelectionEvent.title,
+              location: dateSelectionEvent.location,
+              max_participants: dateSelectionEvent.max_participants || 0,
+              event_date: dateSelectionEvent.first_instance_date || "",
+              start_time: dateSelectionEvent.start_time,
+              end_time: dateSelectionEvent.end_time,
+            }}
+            user={user}
+            onSuccess={() => {
+              loadEvents()
+            }}
+          />
+        )}
+
+        {messageRecipient && messageContext && (
+          <MessageComposerModal
+            isOpen={isMessageComposerOpen}
+            onClose={() => {
+              setIsMessageComposerOpen(false)
+              setMessageRecipient(null)
+              setMessageContext(null)
+            }}
+            recipientId={messageRecipient.id}
+            recipientName={messageRecipient.name}
+            recipientAvatar={messageRecipient.avatar || undefined}
+            context={messageContext}
+          />
+        )}
+
+        {managementEvent && (
+          <LudoEventManagementDialog
+            isOpen={isManagementDialogOpen}
+            onClose={() => {
+              setIsManagementDialogOpen(false)
+              setManagementEvent(null)
+              loadEvents() // Refresh events after management changes
+            }}
+            event={managementEvent}
+          />
+        )}
+
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-handwritten text-xl text-gray-800">Termine auswählen</DialogTitle>
-              <DialogDescription>Wähle die Termine aus, an denen du teilnehmen möchtest.</DialogDescription>
+              <DialogTitle className="font-handwritten text-2xl text-gray-800">Neues Event erstellen</DialogTitle>
+              <DialogDescription>Erstelle ein neues Spielevent und lade andere Spieler ein</DialogDescription>
             </DialogHeader>
 
-            {dateSelectionEvent && (
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  {/* Main event date */}
-                  <div className="flex items-center gap-3 p-3 bg-teal-50 rounded-lg">
-                    <input
-                      type="checkbox"
-                      id="main-date"
-                      checked={selectedDates.includes(dateSelectionEvent.event_date)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedDates([...selectedDates, dateSelectionEvent.event_date])
-                        } else {
-                          setSelectedDates(selectedDates.filter((d) => d !== dateSelectionEvent.event_date))
-                        }
-                      }}
-                      className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                    />
-                    <Calendar className="h-5 w-5 text-teal-600" />
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-800">
-                        {formatEventDate(dateSelectionEvent.event_date, dateSelectionEvent.start_time)}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        {dateSelectionEvent.start_time.slice(0, 5)}
-                        {dateSelectionEvent.end_time && ` - ${dateSelectionEvent.end_time.slice(0, 5)}`}
-                      </div>
-                    </div>
-                    <span className="px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full">Haupttermin</span>
-                  </div>
-
-                  {/* Additional dates */}
-                  {additionalDates.map((date, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <input
-                        type="checkbox"
-                        id={`date-${index}`}
-                        checked={selectedDates.includes(date.event_date)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedDates([...selectedDates, date.event_date])
-                          } else {
-                            setSelectedDates(selectedDates.filter((d) => d !== date.event_date))
-                          }
-                        }}
-                        className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <Calendar className="h-5 w-5 text-gray-600" />
-                          <div className="font-medium text-gray-800">
-                            {formatEventDate(date.event_date, date.start_time)}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 ml-8">
-                          <Clock className="h-5 w-5 text-gray-600" />
-                          <div className="text-sm text-gray-600">
-                            {date.start_time.slice(0, 5)}
-                            {date.end_time && ` - ${date.end_time.slice(0, 5)}`}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="text-sm text-gray-600">
-                  {selectedDates.length} von {1 + additionalDates.length} Terminen ausgewählt
-                </div>
-
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsDateSelectionOpen(false)}
-                    className="flex-1 font-handwritten"
-                  >
-                    Abbrechen
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      if (selectedDates.length === 0) {
-                        toast.error("Bitte wähle mindestens einen Termin aus")
-                        return
-                      }
-
-                      if (dateSelectionEvent.approval_mode === "manual") {
-                        // Show join dialog for approval
-                        setJoinEvent(dateSelectionEvent)
-                        setIsDateSelectionOpen(false)
-                        setIsJoinDialogOpen(true)
-                      } else {
-                        // Direct registration
-                        processJoinEvent(dateSelectionEvent, "", selectedDates)
-                      }
-                    }}
-                    disabled={selectedDates.length === 0}
-                    className="flex-1 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-handwritten disabled:from-gray-400 disabled:to-gray-400"
-                  >
-                    {dateSelectionEvent.approval_mode === "manual" ? "Weiter" : "Anmelden"}
-                  </Button>
-                </div>
-              </div>
-            )}
+            <CreateLudoEventForm
+              onSuccess={() => {
+                setIsCreateDialogOpen(false)
+                loadEvents()
+                toast.success("Event erfolgreich erstellt!")
+              }}
+              onCancel={() => setIsCreateDialogOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>

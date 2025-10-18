@@ -53,7 +53,7 @@ export async function logSecurityEvent(data: SecurityEventData) {
       .from("security_notification_preferences")
       .select("*")
       .eq("user_id", user.id)
-      .single()
+      .maybeSingle()
 
     if (preferences && shouldSendNotification(data.eventType, preferences)) {
       await sendSecurityNotificationEmail(user, data, ipAddress, userAgent)

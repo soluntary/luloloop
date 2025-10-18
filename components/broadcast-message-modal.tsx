@@ -27,7 +27,11 @@ export function BroadcastMessageModal({ isOpen, onClose, groupId, groupName }: B
   const [message, setMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
+  console.log("[v0] BroadcastMessageModal render - isOpen:", isOpen, "groupId:", groupId, "groupName:", groupName)
+
   const handleSend = async () => {
+    console.log("[v0] handleSend called with message:", message)
+
     if (!message.trim()) {
       toast.error("Bitte geben Sie eine Nachricht ein.")
       return
@@ -42,7 +46,7 @@ export function BroadcastMessageModal({ isOpen, onClose, groupId, groupName }: B
         return
       }
 
-      toast.success(`Nachricht wurde erfolgreich an ${result.memberCount} Mitglieder gesendet!`)
+      toast.success("Nachricht an alle Mitglieder gesendet")
       setMessage("")
       onClose()
     } catch (error) {

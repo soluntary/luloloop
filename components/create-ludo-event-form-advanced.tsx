@@ -73,68 +73,138 @@ const generateSeriesDates = (
   const dates: string[] = []
   const start = new Date(startDate)
   let current = new Date(start)
+
+  // Normalize end date to midnight for proper comparison
   const endDate = seriesEndDate ? new Date(seriesEndDate) : null
-  const maxCount = seriesEndCount ? Number.parseInt(seriesEndCount) : 100 // Default to a large number if not specified
+  if (endDate) {
+    endDate.setHours(0, 0, 0, 0)
+  }
+
+  const maxCount = seriesEndCount ? Number.parseInt(seriesEndCount) : 100
+
+  console.log("[v0] generateSeriesDates called with:", {
+    startDate,
+    seriesEndDate,
+    frequency,
+    weeklyDays,
+    seriesEndType,
+  })
+
+  const germanToEnglishDay = (germanDay: string): string => {
+    const dayMap: Record<string, string> = {
+      Montag: "Monday",
+      Dienstag: "Tuesday",
+      Mittwoch: "Wednesday",
+      Donnerstag: "Thursday",
+      Freitag: "Friday",
+      Samstag: "Saturday",
+      Sonntag: "Sunday",
+    }
+    return dayMap[germanDay] || germanDay
+  }
 
   // Helper function to get next date based on frequency
-  const getNextDate = (currentDate: Date): Date => {
+  const getNextDate = (currentDate: Date, isFirstIteration = false): Date => {
     const next = new Date(currentDate)
 
+    if (frequency === "wöchentlich" && weeklyDays.length > 0) {
+      const englishWeeklyDays = weeklyDays.map(germanToEnglishDay)
+
+      if (isFirstIteration) {
+        // For the first iteration, check if current date matches any selected weekday
+        const currentDayOfWeek = currentDate.toLocaleDateString("en-US", { weekday: "long" })
+        if (englishWeeklyDays.includes(currentDayOfWeek)) {
+          // Current date is already a selected weekday, return it
+          return new Date(currentDate)
+        }
+      }
+
+      // Find the next occurrence of a selected weekday
+      let daysToAdd = isFirstIteration ? 0 : 1
+      const maxDaysToCheck = isFirstIteration ? 7 : 14 // Check up to 2 weeks ahead
+
+      while (daysToAdd < maxDaysToCheck) {
+        const tempDate = new Date(currentDate)
+        tempDate.setDate(tempDate.getDate() + daysToAdd)
+        const dayOfWeek = tempDate.toLocaleDateString("en-US", { weekday: "long" })
+
+        if (englishWeeklyDays.includes(dayOfWeek)) {
+          return tempDate
+        }
+        daysToAdd++
+      }
+
+      // Fallback: return next week
+      next.setDate(next.getDate() + 7)
+      return next
+    }
+
+    if (frequency === "monatlich") {
+      // First, increment to next month
+      next.setMonth(next.getMonth() + 1)
+
+      if (monthlyType === "day" && monthlyDay) {
+        const dayOfMonth = Number.parseInt(monthlyDay)
+        if (dayOfMonth) {
+          next.setDate(dayOfMonth)
+          // Check if the date rolled over (e.g., Feb 31 -> Mar 3)
+          if (next.getDate() !== dayOfMonth) {
+            // Invalid day for this month, use last day of month
+            next.setMonth(next.getMonth())
+            next.setDate(0)
+          }
+        }
+      } else if (monthlyType === "weekday" && monthlyWeekday && monthlyWeekdayPosition) {
+        // Convert German weekday to English for comparison
+        const targetWeekday = germanToEnglishDay(monthlyWeekday).toLowerCase()
+        const targetPosition = monthlyWeekdayPosition.toLowerCase()
+
+        // Start from the first day of the target month
+        const targetMonth = next.getMonth()
+        const targetYear = next.getFullYear()
+
+        let count = 0
+        let foundDate: Date | null = null
+        const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate()
+
+        for (let day = 1; day <= daysInMonth; day++) {
+          const tempDate = new Date(targetYear, targetMonth, day)
+          const currentWeekday = tempDate.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
+
+          if (currentWeekday === targetWeekday) {
+            count++
+            if (
+              (targetPosition === "first" && count === 1) ||
+              (targetPosition === "second" && count === 2) ||
+              (targetPosition === "third" && count === 3) ||
+              (targetPosition === "fourth" && count === 4)
+            ) {
+              foundDate = tempDate
+              break
+            }
+            // For "last", keep updating until we find the last occurrence
+            if (targetPosition === "last") {
+              foundDate = tempDate
+            }
+          }
+        }
+
+        if (foundDate) {
+          return foundDate
+        }
+      }
+
+      return next
+    }
+
+    // Handle other frequencies
     switch (frequency) {
       case "täglich":
-        if (frequency === "andere" && customIntervalNumber) {
-          const interval = Number.parseInt(customIntervalNumber)
-          if (customIntervalUnit === "tage") {
-            next.setDate(next.getDate() + interval)
-          } else {
-            // If unit is not days for daily, default to 1 day
-            next.setDate(next.getDate() + 1)
-          }
-        } else {
-          next.setDate(next.getDate() + 1)
-        }
-        break
-
-      case "wöchentlich":
-        if (frequency === "andere" && customIntervalNumber) {
-          const interval = Number.parseInt(customIntervalNumber)
-          if (customIntervalUnit === "wochen") {
-            next.setDate(next.getDate() + interval * 7)
-          } else {
-            // If unit is not weeks for weekly, default to 1 week
-            next.setDate(next.getDate() + 7)
-          }
-        } else {
-          next.setDate(next.getDate() + 7)
-        }
-        break
-
-      case "monatlich":
-        if (frequency === "andere" && customIntervalNumber) {
-          const interval = Number.parseInt(customIntervalNumber)
-          if (customIntervalUnit === "monate") {
-            next.setMonth(next.getMonth() + interval)
-          } else {
-            // If unit is not months for monthly, default to 1 month
-            next.setMonth(next.getMonth() + 1)
-          }
-        } else {
-          next.setMonth(next.getMonth() + 1)
-        }
+        next.setDate(next.getDate() + 1)
         break
 
       case "jährlich":
-        if (frequency === "andere" && customIntervalNumber) {
-          const interval = Number.parseInt(customIntervalNumber)
-          if (customIntervalUnit === "jahre") {
-            next.setFullYear(next.getFullYear() + interval)
-          } else {
-            // If unit is not years for yearly, default to 1 year
-            next.setFullYear(next.getFullYear() + 1)
-          }
-        } else {
-          next.setFullYear(next.getFullYear() + 1)
-        }
+        next.setFullYear(next.getFullYear() + 1)
         break
 
       case "andere":
@@ -152,123 +222,64 @@ const generateSeriesDates = (
           case "jahre":
             next.setFullYear(next.getFullYear() + interval)
             break
-          default: // Default to 1 day if unit is unknown
+          default:
             next.setDate(next.getDate() + 1)
             break
         }
         break
-      default: // Default to 1 day if frequency is unknown
+
+      default:
         next.setDate(next.getDate() + 1)
         break
     }
 
-    // Handle specific day of week logic for weekly recurrence
-    if (frequency === "wöchentlich" && weeklyDays.length > 0) {
-      let daysToAdd = 0
-      let foundNextDay = false
-      while (daysToAdd < 7) {
-        const tempDate = new Date(current)
-        tempDate.setDate(tempDate.getDate() + daysToAdd)
-        const dayOfWeek = tempDate.toLocaleDateString("en-US", { weekday: "long" })
-        if (weeklyDays.includes(dayOfWeek)) {
-          current = tempDate
-          foundNextDay = true
-          break
-        }
-        daysToAdd++
-      }
-      if (!foundNextDay) {
-        // If no matching day found in the next 7 days, advance by a week and try again
-        current.setDate(current.getDate() + 7)
-      }
-    }
-
-    // Handle specific day/weekday logic for monthly recurrence
-    if (frequency === "monatlich") {
-      if (monthlyType === "day" && monthlyDay) {
-        const dayOfMonth = Number.parseInt(monthlyDay)
-        if (dayOfMonth) {
-          const tempDate = new Date(current.getFullYear(), current.getMonth(), dayOfMonth)
-          // Ensure the date is valid and in the future
-          if (tempDate.getMonth() !== current.getMonth()) {
-            // Rolled over to next month
-            current.setMonth(current.getMonth() + 1)
-            current.setDate(1) // Start from the first of the next month
-          } else {
-            current = tempDate
-          }
-        }
-      } else if (monthlyType === "weekday" && monthlyWeekday && monthlyWeekdayPosition) {
-        const targetWeekday = monthlyWeekday.toLowerCase()
-        const targetPosition = monthlyWeekdayPosition.toLowerCase()
-        let count = 0
-        let dayOffset = 0
-        const daysInMonth = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate()
-
-        while (dayOffset < daysInMonth) {
-          const tempDate = new Date(current.getFullYear(), current.getMonth(), current.getDate() + dayOffset)
-          const currentWeekday = tempDate.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
-
-          if (currentWeekday === targetWeekday) {
-            count++
-            if (
-              (targetPosition === "first" && count === 1) ||
-              (targetPosition === "second" && count === 2) ||
-              (targetPosition === "third" && count === 3) ||
-              (targetPosition === "fourth" && count === 4) ||
-              (targetPosition === "last" && tempDate.getMonth() !== current.getMonth()) // Check if it's the last occurrence in the month
-            ) {
-              current = tempDate
-              break
-            }
-          }
-          dayOffset++
-        }
-        // If the target day wasn't found or it's not the last occurrence, advance to the next month
-        if (
-          current.getMonth() !== new Date(startDate).getMonth() &&
-          current.getDate() !== Number.parseInt(monthlyDay || "1")
-        ) {
-          // Basic check to avoid infinite loops
-          current.setMonth(current.getMonth() + 1)
-          current.setDate(1)
-        }
-      }
-    }
-
-    return current
+    return next
   }
 
-  // Generate dates
   let count = 0
+  let isFirstIteration = true
+
   while (true) {
-    // Loop indefinitely until break conditions are met
-    // Check end conditions
-    if (seriesEndType === "date" && endDate && current > endDate) {
+    // Normalize current date for comparison
+    const currentNormalized = new Date(current)
+    currentNormalized.setHours(0, 0, 0, 0)
+
+    console.log("[v0] Loop iteration:", {
+      current: current.toISOString().split("T")[0],
+      endDate: endDate?.toISOString().split("T")[0],
+      comparison: endDate ? currentNormalized.getTime() - endDate.getTime() : "no end date",
+    })
+
+    // This ensures the end date is included if it matches the recurrence pattern
+    if (seriesEndType === "date" && endDate && currentNormalized.getTime() > endDate.getTime()) {
+      console.log("[v0] Breaking because current date is after end date")
       break
     }
     if (seriesEndType === "count" && count >= maxCount) {
+      console.log("[v0] Breaking because count reached max")
       break
     }
 
     // Add current date if it's valid and not already added
     const isoDate = current.toISOString().split("T")[0]
     if (!dates.includes(isoDate)) {
+      console.log("[v0] Adding date:", isoDate)
       dates.push(isoDate)
       count++
     }
 
     // Get next date
-    current = getNextDate(current)
+    current = getNextDate(current, isFirstIteration)
+    isFirstIteration = false
 
-    // Safety break to prevent infinite loops in case of logic errors
+    // Safety break to prevent infinite loops
     if (dates.length > 365 * 5) {
-      // Limit to 5 years of dates
       console.warn("generateSeriesDates: Exceeded maximum date generation limit.")
       break
     }
   }
 
+  console.log("[v0] Generated dates:", dates)
   return dates
 }
 
@@ -933,11 +944,11 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
   const getStepTitle = (step: number) => {
     switch (step) {
       case 1:
-        return "Grundinformationen"
+        return "Details"
       case 2:
-        return "Event-Details"
+        return "Termin & Ort"
       case 3:
-        return "Spieleauswahl: Welche Spiele werden zum Event gespielt?"
+        return "Welche Spiele werden zum Event gespielt?"
       case 4:
         return "Einstellungen & Veröffentlichung"
       default:
@@ -1064,47 +1075,62 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
   }
 
   return (
-    <div className="bg-gradient-to-br from-orange-50 to-pink-50 p-6 rounded-2xl max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2 font-handwritten transform -rotate-1">
-          Neues Event erstellen
-        </h2>
-        <p className="text-gray-600 font-body">Organisiere dein eigenes Event und lade andere Spieler ein!</p>
+    <div className="bg-white p-8 rounded-xl shadow-lg max-w-5xl mx-auto">
+      <div className="mb-8 border-b border-gray-200 pb-6">
+        <h2 className="text-4xl font-bold text-gray-900 mb-3">Neues Event erstellen</h2>
+        <p className="text-lg text-gray-600">Organisiere dein eigenes Event und lade andere Spieler ein!</p>
       </div>
-
-      {/* Progress Steps */}
-      <div className="flex justify-between items-center mb-8">
-        {[1, 2, 3, 4].map((step) => (
-          <div key={step} className="flex items-center">
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                step <= currentStep
-                  ? "bg-gradient-to-r from-orange-400 to-pink-400 text-white"
-                  : "bg-gray-200 text-gray-500"
-              }`}
-            >
-              {step}
+      <div className="mb-10">
+        <div className="flex justify-between items-center">
+          {[
+            { num: 1, label: "Details" },
+            { num: 2, label: "Termin & Ort" },
+            { num: 3, label: "Spiele" },
+            { num: 4, label: "Einstellungen" },
+          ].map((step, index) => (
+            <div key={step.num} className="flex items-center flex-1">
+              <div className="flex flex-col items-center flex-1">
+                <div
+                  className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all ${
+                    step.num <= currentStep
+                      ? "bg-gradient-to-br from-orange-500 to-pink-500 text-white shadow-lg"
+                      : "bg-gray-100 text-gray-400 border-2 border-gray-200"
+                  }`}
+                >
+                  {step.num}
+                </div>
+                <span
+                  className={`text-sm mt-2 font-medium ${step.num <= currentStep ? "text-gray-900" : "text-gray-400"}`}
+                >
+                  {step.label}
+                </span>
+              </div>
+              {index < 3 && (
+                <div className="flex-1 h-1 mx-4 -mt-6">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      step.num < currentStep ? "bg-gradient-to-r from-orange-500 to-pink-500" : "bg-gray-200"
+                    }`}
+                  />
+                </div>
+              )}
             </div>
-            {step < 4 && (
-              <div
-                className={`w-16 h-1 mx-2 ${
-                  step < currentStep ? "bg-gradient-to-r from-orange-400 to-pink-400" : "bg-gray-200"
-                }`}
-              />
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-
-      <div className="mb-6">
-        <h3 className="text-xl font-handwritten text-gray-800 mb-4">{getStepTitle(currentStep)}</h3>
+      <div className="mb-8">
+        <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+          <span className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-pink-500 text-white flex items-center justify-center text-lg font-bold">
+            {currentStep}
+          </span>
+          {getStepTitle(currentStep)}
+        </h3>
       </div>
-
       {/* Step 1: Ludo Event Details */}
       {currentStep === 1 && (
-        <div className="space-y-6">
-          <div>
-            <Label htmlFor="title" className="font-body text-gray-700">
+        <div className="space-y-8">
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <Label htmlFor="title" className="text-base font-semibold text-gray-900 mb-2 block">
               Event-Titel *
             </Label>
             <Input
@@ -1112,58 +1138,62 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               placeholder="z.B. Gemütlicher CATAN Abend..."
               value={formData.title}
               onChange={(e) => handleInputChange("title", e.target.value)}
-              className="mt-1 border-2 border-orange-200 focus:border-orange-400 font-body"
+              className="text-lg h-12 border-gray-300 focus:border-orange-500 focus:ring-orange-500"
             />
             {fieldErrors.title && (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+              <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
                 {fieldErrors.title}
               </p>
             )}
             {errors.title && (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+              <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
                 {errors.title}
               </p>
             )}
           </div>
 
-          <div>
-            <Label className="font-body text-gray-700">Event-Bild</Label>
-            <p className="text-sm text-gray-500 mt-1 mb-3">
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <Label className="text-base font-semibold text-gray-900 mb-2 block">Event-Bild</Label>
+            <p className="text-sm text-gray-600 mb-4">
               Lade ein Bild hoch, um dein Event attraktiver zu gestalten (optional)
             </p>
 
             {formData.selectedImage ? (
-              <div className="relative">
+              <div className="relative rounded-xl overflow-hidden">
                 <img
                   src={formData.selectedImage || "/placeholder.svg"}
                   alt="Event Vorschau"
-                  className="w-full h-48 object-cover rounded-lg border-2 border-orange-200"
+                  className="w-full h-64 object-cover"
                 />
                 <button
                   type="button"
                   onClick={handleRemoveImage}
-                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                  className="absolute top-4 right-4 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
             ) : (
               <div
                 onClick={handleImageUpload}
-                className="border-2 border-dashed border-orange-300 rounded-lg p-8 text-center cursor-pointer hover:border-orange-400 transition-colors"
+                className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-orange-400 hover:bg-orange-50 transition-all"
               >
-                <div className="flex flex-col items-center space-y-2">
+                <div className="flex flex-col items-center space-y-3">
                   {isUploadingImage ? (
-                    <Loader2 className="h-8 w-8 text-orange-500 animate-spin" />
+                    <Loader2 className="h-12 w-12 text-orange-500 animate-spin" />
                   ) : (
-                    <Upload className="h-8 w-8 text-orange-500" />
+                    <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center">
+                      <Upload className="h-8 w-8 text-orange-600" />
+                    </div>
                   )}
-                  <p className="text-gray-600 font-body">
-                    {isUploadingImage ? "Bild wird verarbeitet..." : "Klicken zum Hochladen"}
-                  </p>
-                  <p className="text-sm text-gray-500">JPG, PNG oder WebP (max. 5MB)</p>
+                  <div>
+                    <p className="text-gray-700 font-medium text-lg">
+                      {isUploadingImage ? "Bild wird verarbeitet..." : "Klicken zum Hochladen"}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">JPG, PNG oder WebP (max. 5MB)</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -1177,15 +1207,15 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             />
 
             {imageError && (
-              <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+              <p className="text-red-500 text-sm mt-3 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
                 {imageError}
               </p>
             )}
           </div>
 
-          <div>
-            <Label htmlFor="description" className="font-body text-gray-700">
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <Label htmlFor="description" className="text-base font-semibold text-gray-900 mb-2 block">
               Beschreibung
             </Label>
             <RichTextEditor
@@ -1193,70 +1223,69 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               onChange={(value) => handleInputChange("description", value)}
               placeholder="Beschreibe dein Event: was möchtest du veranstalten?"
               className="mt-1"
-              rows={4}
+              rows={6}
               maxLength={1000}
             />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </div>
       )}
-
       {/* Step 2: Date & Location */}
       {currentStep === 2 && (
-        <div className="space-y-6">
-          <div>
-            <div className="flex items-center space-x-2">
+        <div className="space-y-8">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+            <div className="flex items-start space-x-3">
               <input
                 id="organizerOnly"
                 type="checkbox"
                 checked={formData.organizerOnly}
                 onChange={(e) => handleInputChange("organizerOnly", e.target.checked)}
-                className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
+                className="w-5 h-5 mt-1 text-orange-600 bg-white border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
               />
-              <Label htmlFor="organizerOnly" className="font-body text-gray-700 cursor-pointer">
-                Veranstalter (Ich werde nicht als Teilnehmer gezählt)
-              </Label>
+              <div className="flex-1">
+                <Label
+                  htmlFor="organizerOnly"
+                  className="text-base font-semibold text-gray-900 cursor-pointer block mb-1"
+                >
+                  Veranstalter (Ich werde nicht als Teilnehmer gezählt)
+                </Label>
+                <p className="text-sm text-gray-600">
+                  Aktiviere diese Option, wenn du das Event nur organisierst, aber nicht selbst teilnimmst.
+                </p>
+              </div>
             </div>
-            <p className="text-sm text-gray-500 ml-6">
-              Aktiviere diese Option, wenn du das Event nur organisierst, aber nicht selbst teilnimmst.
-            </p>
           </div>
-
-          <div>
-            <Label htmlFor="maxPlayers" className="font-body text-gray-700">
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <Label htmlFor="maxPlayers" className="text-base font-semibold text-gray-900 mb-2 block">
               Maximale Teilnehmeranzahl *
             </Label>
             <Input
               id="maxPlayers"
               type="number"
               min="2"
+              placeholder="z.B. 6"
               value={formData.maxPlayers || ""}
               onChange={(e) => {
-                const value = e.target.value
-                handleInputChange("maxPlayers", value)
-                // Also update formData.maxParticipants for Supabase submission
-                handleInputChange("maxParticipants", value)
+                handleInputChange("maxPlayers", e.target.value)
+                handleInputChange("maxParticipants", e.target.value)
               }}
-              className="mt-1 border-2 border-orange-200 focus:border-orange-400 font-body"
+              className="h-12 text-lg border-gray-300 focus:border-orange-500 focus:ring-orange-500"
             />
-            <p className="text-xs text-gray-500 mt-1">Leer lassen für unbegrenzte Teilnehmerzahl</p>
+            <p className="text-sm text-gray-500 mt-2">Leer lassen für unbegrenzte Teilnehmerzahl</p>
             {fieldErrors.maxPlayers && (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+              <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
                 {fieldErrors.maxPlayers}
               </p>
             )}
             {errors.maxPlayers && (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+              <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
                 {errors.maxPlayers}
               </p>
             )}
           </div>
-
-          <div>
-            <Label htmlFor="frequency" className="font-body text-gray-700">
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
+            <Label htmlFor="frequency" className="text-base font-semibold text-gray-900 mb-3 block">
               Häufigkeit *
             </Label>
             <Select
@@ -1271,7 +1300,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 }
               }}
             >
-              <SelectTrigger className="mt-1 border-2 border-orange-200 focus:border-orange-400">
+              <SelectTrigger className="h-12 text-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500 bg-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1283,246 +1312,253 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 <SelectItem value="andere">Andere</SelectItem>
               </SelectContent>
             </Select>
-          </div>
 
-          {formData.frequency === "andere" && (
-            <div className="space-y-4">
-              <Label className="font-body text-gray-700">Intervall-Einstellungen</Label>
-              <div className="flex gap-2 items-center">
-                <span className="text-sm text-gray-600">Alle</span>
-                <Input
-                  type="number"
-                  min="2"
-                  placeholder="2"
-                  value={formData.customIntervalNumber}
-                  onChange={(e) => handleInputChange("customIntervalNumber", e.target.value)}
-                  className={`w-20 border-2 ${errors.customIntervalNumber ? "border-red-300 focus:border-red-400" : "border-orange-200 focus:border-orange-400"}`}
-                />
-                <Select
-                  value={formData.customIntervalUnit}
-                  onValueChange={(value) => handleInputChange("customIntervalUnit", value)}
-                >
-                  <SelectTrigger className="w-32 border-2 border-orange-200 focus:border-orange-400">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="tage">Tage</SelectItem>
-                    <SelectItem value="wochen">Wochen</SelectItem>
-                    <SelectItem value="monate">Monate</SelectItem>
-                    <SelectItem value="jahre">Jahre</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <p className="text-sm text-gray-500">
-                Beispiel: "Alle 3 Wochen" bedeutet das Event findet alle 3 Wochen statt (Zahl muss größer als 1 sein)
-              </p>
-              {errors.customIntervalNumber && <p className="text-red-600 text-sm">{errors.customIntervalNumber}</p>}
-            </div>
-          )}
-
-          {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) && (
-            <div>
-              <Label className="font-body text-gray-700">Terminplanung *</Label>
-              <Select
-                value={formData.seriesMode}
-                onValueChange={(value) => {
-                  handleInputChange("seriesMode", value)
-                  if (value !== formData.seriesMode) {
-                    handleInputChange("eventDate", "")
-                    handleInputChange("additionalDates", [])
-                  }
-                }}
-              >
-                <SelectTrigger className="mt-1 border-2 border-orange-200 focus:border-orange-400">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="manual">Termin(e) manuell eingeben</SelectItem>
-                  <SelectItem value="series">Serientermine erstellen</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {formData.frequency === "wöchentlich" && formData.seriesMode === "series" && (
-            <div className="space-y-4">
-              <Label className="font-body text-gray-700">Wochentage auswählen</Label>
-              <div className="grid grid-cols-7 gap-2">
-                {["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"].map((day) => (
-                  <div key={day} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={day}
-                      checked={formData.weeklyDays.includes(day)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          handleInputChange("weeklyDays", [...formData.weeklyDays, day])
-                        } else {
-                          handleInputChange(
-                            "weeklyDays",
-                            formData.weeklyDays.filter((d) => d !== day),
-                          )
-                        }
-                      }}
-                    />
-                    <Label htmlFor={day} className="text-sm cursor-pointer">
-                      {day.slice(0, 2)}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-gray-500">Wähle die Wochentage aus, an denen das Event stattfinden soll</p>
-            </div>
-          )}
-
-          {formData.frequency === "monatlich" && formData.seriesMode === "series" && (
-            <div className="space-y-4">
-              <Label className="font-body text-gray-700">Monatliches Muster</Label>
-              <Select value={formData.monthlyType} onValueChange={(value) => handleInputChange("monthlyType", value)}>
-                <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="day">An einem bestimmten Tag im Monats</SelectItem>
-                  <SelectItem value="weekday">An einem bestimmten Wochentag</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {formData.monthlyType === "day" && (
-                <div>
-                  <Label className="font-body text-gray-700">Tag des Monats</Label>
+            {formData.frequency === "andere" && (
+              <div className="mt-6 space-y-4 bg-white rounded-lg p-5 border border-purple-200">
+                <Label className="text-base font-semibold text-gray-900 block">Rythmus</Label>
+                <div className="flex gap-3 items-center">
+                  <span className="text-gray-700 font-medium">Alle</span>
                   <Input
                     type="number"
-                    min="1"
-                    max="31"
-                    placeholder="z.B. 7 für jeden 7. des Monats"
-                    value={formData.monthlyDay}
-                    onChange={(e) => handleInputChange("monthlyDay", e.target.value)}
-                    className="mt-1 border-2 border-orange-200 focus:border-orange-400"
+                    min="2"
+                    placeholder="2"
+                    value={formData.customIntervalNumber}
+                    onChange={(e) => handleInputChange("customIntervalNumber", e.target.value)}
+                    className={`w-24 h-11 text-lg ${errors.customIntervalNumber ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-purple-500"}`}
                   />
+                  <Select
+                    value={formData.customIntervalUnit}
+                    onValueChange={(value) => handleInputChange("customIntervalUnit", value)}
+                  >
+                    <SelectTrigger className="w-40 h-11 border-gray-300 focus:border-purple-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tage">Tage</SelectItem>
+                      <SelectItem value="wochen">Wochen</SelectItem>
+                      <SelectItem value="monate">Monate</SelectItem>
+                      <SelectItem value="jahre">Jahre</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-
-              {formData.monthlyType === "weekday" && (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <Select
-                      value={formData.monthlyWeekdayPosition}
-                      onValueChange={(value) => handleInputChange("monthlyWeekdayPosition", value)}
-                    >
-                      <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="first">Ersten</SelectItem>
-                        <SelectItem value="second">Zweiten</SelectItem>
-                        <SelectItem value="third">Dritten</SelectItem>
-                        <SelectItem value="fourth">Vierten</SelectItem>
-                        <SelectItem value="last">Letzten</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={formData.monthlyWeekday}
-                      onValueChange={(value) => handleInputChange("monthlyWeekday", value)}
-                    >
-                      <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="montag">Montag</SelectItem>
-                        <SelectItem value="dienstag">Dienstag</SelectItem>
-                        <SelectItem value="mittwoch">Mittwoch</SelectItem>
-                        <SelectItem value="donnerstag">Donnerstag</SelectItem>
-                        <SelectItem value="freitag">Freitag</SelectItem>
-                        <SelectItem value="samstag">Samstag</SelectItem>
-                        <SelectItem value="sonntag">Sonntag</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-sm text-gray-500">z.B. "Ersten Freitag" = jeden ersten Freitag im Monat</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Updated series end UI to use radio buttons with inline layout */}
-          {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) &&
-            formData.seriesMode === "series" && (
-              <div className="space-y-4">
-                <Label className="font-body text-gray-700">Wann soll die Serie enden?</Label>
-
-                {/* Radio button option 1: Endet nach X Terminen */}
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    id="endByCount"
-                    name="seriesEndType"
-                    value="count"
-                    checked={formData.seriesEndType === "count"}
-                    onChange={(e) => {
-                      handleInputChange("seriesEndType", e.target.value)
-                      if (e.target.checked) {
-                        handleInputChange("seriesEndDate", "") // Clear end date if count is selected
-                      }
-                    }}
-                    className="w-4 h-4 text-orange-600 border-gray-300 focus:ring-orange-500"
-                  />
-                  <Label htmlFor="endByCount" className="font-body text-gray-700">
-                    Endet nach
-                  </Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="5"
-                    value={formData.seriesEndCount}
-                    onChange={(e) => {
-                      handleInputChange("seriesEndCount", e.target.value)
-                      if (e.target.value) {
-                        handleInputChange("seriesEndType", "count")
-                      }
-                    }}
-                    className={`w-20 border-2 ${formData.seriesEndType !== "count" ? "opacity-50 cursor-not-allowed" : "border-orange-200 focus:border-orange-400"}`}
-                    disabled={formData.seriesEndType !== "count"}
-                  />
-                  <Label className="font-body text-gray-700">Terminen</Label>
-                </div>
-
-                {/* Radio button option 2: Endet am Datum */}
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    id="endByDate"
-                    name="seriesEndType"
-                    value="date"
-                    checked={formData.seriesEndType === "date"}
-                    onChange={(e) => {
-                      handleInputChange("seriesEndType", e.target.value)
-                      if (e.target.checked) {
-                        handleInputChange("seriesEndCount", "") // Clear count if date is selected
-                      }
-                    }}
-                    className="w-4 h-4 text-orange-600 border-gray-300 focus:ring-orange-500"
-                  />
-                  <Label htmlFor="endByDate" className="font-body text-gray-700">
-                    Endet am
-                  </Label>
-                  <Input
-                    type="date"
-                    value={formData.seriesEndDate}
-                    onChange={(e) => {
-                      handleInputChange("seriesEndDate", e.target.value)
-                      if (e.target.value) {
-                        handleInputChange("seriesEndType", "date")
-                      }
-                    }}
-                    className={`border-2 ${formData.seriesEndType !== "date" ? "opacity-50 cursor-not-allowed" : "border-orange-200 focus:border-orange-400"}`}
-                    disabled={formData.seriesEndType !== "date"}
-                  />
-                </div>
+                <p className="text-sm text-gray-600">
+                  Beispiel: "Alle 3 Wochen" bedeutet, dass sich das Event alle 3 Wochen stattfindet.
+                </p>
+                {errors.customIntervalNumber && <p className="text-red-600 text-sm">{errors.customIntervalNumber}</p>}
               </div>
             )}
 
-          <div>
-            <Label htmlFor="eventDate" className="font-body text-gray-700">
+            {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) && (
+              <div className="mt-6">
+                <Label className="text-base font-semibold text-gray-900 mb-3 block">Terminplanung *</Label>
+                <Select
+                  value={formData.seriesMode}
+                  onValueChange={(value) => {
+                    handleInputChange("seriesMode", value)
+                    if (value !== formData.seriesMode) {
+                      handleInputChange("eventDate", "")
+                      handleInputChange("additionalDates", [])
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-12 text-lg border-gray-300 focus:border-purple-500 bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Termin(e) manuell eingeben</SelectItem>
+                    <SelectItem value="series">Serientermine erstellen</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {formData.frequency === "wöchentlich" && formData.seriesMode === "series" && (
+              <div className="mt-6 bg-white rounded-lg p-5 border border-purple-200">
+                <Label className="text-base font-semibold text-gray-900 mb-4 block">Wochentage auswählen</Label>
+                <div className="grid grid-cols-7 gap-3">
+                  {["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"].map((day) => (
+                    <div key={day} className="flex flex-col items-center">
+                      <Checkbox
+                        id={day}
+                        checked={formData.weeklyDays.includes(day)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            handleInputChange("weeklyDays", [...formData.weeklyDays, day])
+                          } else {
+                            handleInputChange(
+                              "weeklyDays",
+                              formData.weeklyDays.filter((d) => d !== day),
+                            )
+                          }
+                        }}
+                        className="w-6 h-6"
+                      />
+                      <Label htmlFor={day} className="text-sm cursor-pointer mt-2 font-medium">
+                        {day.slice(0, 2)}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-600 mt-4">
+                  Wähle die Wochentage aus, an denen das Event stattfinden soll
+                </p>
+              </div>
+            )}
+
+            {formData.frequency === "monatlich" && formData.seriesMode === "series" && (
+              <div className="mt-6 bg-white rounded-lg p-5 border border-purple-200 space-y-5">
+                <div>
+                  <Label className="text-base font-semibold text-gray-900 mb-3 block">Monatliches Muster</Label>
+                  <Select
+                    value={formData.monthlyType}
+                    onValueChange={(value) => handleInputChange("monthlyType", value)}
+                  >
+                    <SelectTrigger className="h-12 border-gray-300 focus:border-purple-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="day">An einem bestimmten Tag im Monats</SelectItem>
+                      <SelectItem value="weekday">An einem bestimmten Wochentag</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {formData.monthlyType === "day" && (
+                  <div>
+                    <Label className="text-base font-semibold text-gray-900 mb-3 block">Tag des Monats</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="31"
+                      placeholder="z.B. 7 für jeden 7. des Monats"
+                      value={formData.monthlyDay}
+                      onChange={(e) => handleInputChange("monthlyDay", e.target.value)}
+                      className="h-12 text-lg border-gray-300 focus:border-purple-500"
+                    />
+                  </div>
+                )}
+
+                {formData.monthlyType === "weekday" && (
+                  <div>
+                    <Label className="text-base font-semibold text-gray-900 mb-3 block">Wochentag auswählen</Label>
+                    <div className="flex gap-3">
+                      <Select
+                        value={formData.monthlyWeekdayPosition}
+                        onValueChange={(value) => handleInputChange("monthlyWeekdayPosition", value)}
+                      >
+                        <SelectTrigger className="h-12 border-gray-300 focus:border-purple-500">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="first">Ersten</SelectItem>
+                          <SelectItem value="second">Zweiten</SelectItem>
+                          <SelectItem value="third">Dritten</SelectItem>
+                          <SelectItem value="fourth">Vierten</SelectItem>
+                          <SelectItem value="last">Letzten</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={formData.monthlyWeekday}
+                        onValueChange={(value) => handleInputChange("monthlyWeekday", value)}
+                      >
+                        <SelectTrigger className="h-12 border-gray-300 focus:border-purple-500">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="montag">Montag</SelectItem>
+                          <SelectItem value="dienstag">Dienstag</SelectItem>
+                          <SelectItem value="mittwoch">Mittwoch</SelectItem>
+                          <SelectItem value="donnerstag">Donnerstag</SelectItem>
+                          <SelectItem value="freitag">Freitag</SelectItem>
+                          <SelectItem value="samstag">Samstag</SelectItem>
+                          <SelectItem value="sonntag">Sonntag</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-3">z.B. "Ersten Freitag" = jeden ersten Freitag im Monat</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) &&
+              formData.seriesMode === "series" && (
+                <div className="mt-6 bg-white rounded-lg p-5 border border-purple-200 space-y-5">
+                  <Label className="text-base font-semibold text-gray-900 block">Wann soll die Serie enden?</Label>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-orange-300 transition-colors">
+                      <input
+                        type="radio"
+                        id="endByCount"
+                        name="seriesEndType"
+                        value="count"
+                        checked={formData.seriesEndType === "count"}
+                        onChange={(e) => {
+                          handleInputChange("seriesEndType", e.target.value)
+                          if (e.target.checked) {
+                            handleInputChange("seriesEndDate", "")
+                          }
+                        }}
+                        className="w-5 h-5 text-orange-600 border-gray-300 focus:ring-orange-500"
+                      />
+                      <Label htmlFor="endByCount" className="text-base font-medium text-gray-900 flex-shrink-0">
+                        Endet nach
+                      </Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="5"
+                        value={formData.seriesEndCount}
+                        onChange={(e) => {
+                          handleInputChange("seriesEndCount", e.target.value)
+                          if (e.target.value) {
+                            handleInputChange("seriesEndType", "count")
+                          }
+                        }}
+                        className={`w-24 h-11 text-lg ${formData.seriesEndType !== "count" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-orange-500"}`}
+                        disabled={formData.seriesEndType !== "count"}
+                      />
+                      <Label className="text-base font-medium text-gray-900">Terminen</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-orange-300 transition-colors">
+                      <input
+                        type="radio"
+                        id="endByDate"
+                        name="seriesEndType"
+                        value="date"
+                        checked={formData.seriesEndType === "date"}
+                        onChange={(e) => {
+                          handleInputChange("seriesEndType", e.target.value)
+                          if (e.target.checked) {
+                            handleInputChange("seriesEndCount", "")
+                          }
+                        }}
+                        className="w-5 h-5 text-orange-600 border-gray-300 focus:ring-orange-500"
+                      />
+                      <Label htmlFor="endByDate" className="text-base font-medium text-gray-900 flex-shrink-0">
+                        Endet am
+                      </Label>
+                      <Input
+                        type="date"
+                        value={formData.seriesEndDate}
+                        onChange={(e) => {
+                          handleInputChange("seriesEndDate", e.target.value)
+                          if (e.target.value) {
+                            handleInputChange("seriesEndType", "date")
+                          }
+                        }}
+                        className={`h-11 ${formData.seriesEndType !== "date" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-orange-500"}`}
+                        disabled={formData.seriesEndType !== "date"}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+          </div>
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <Label htmlFor="eventDate" className="text-base font-semibold text-gray-900 mb-3 block">
               {formData.frequency === "einmalig"
                 ? "Event-Datum *"
                 : formData.seriesMode === "series"
@@ -1532,24 +1568,24 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             <Input
               id="eventDate"
               type="date"
-              className="mt-1 border-2 border-orange-200 focus:border-orange-400"
+              className="h-12 text-lg border-gray-300 focus:border-orange-500 focus:ring-orange-500"
               value={formData.eventDate}
               onChange={(e) => {
                 handleInputChange("eventDate", e.target.value)
-                handleInputChange("date", e.target.value) // Update for Supabase
+                handleInputChange("date", e.target.value)
               }}
               required
             />
             {fieldErrors.eventDate ? (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+              <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
                 {fieldErrors.eventDate}
               </p>
             ) : (
-              <p className="text-sm text-gray-600 mt-1">Das Datum muss in der Zukunft liegen</p>
+              <p className="text-sm text-gray-600 mt-2">Das Datum muss in der Zukunft liegen</p>
             )}
             {errors.eventDate && (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+              <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
                 {errors.eventDate}
               </p>
@@ -1558,50 +1594,50 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="startTime" className="font-body text-gray-700">
+              <Label htmlFor="startTime" className="text-base font-semibold text-gray-900 mb-3 block">
                 Startzeit *
               </Label>
               <Input
                 id="startTime"
                 type="time"
-                className="mt-1 border-2 border-orange-200 focus:border-orange-400"
+                className="h-12 text-lg border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                 value={formData.startTime}
                 onChange={(e) => handleInputChange("startTime", e.target.value)}
                 required
               />
               {fieldErrors.startTime && (
-                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4" />
                   {fieldErrors.startTime}
                 </p>
               )}
               {errors.startTime && (
-                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4" />
                   {errors.startTime}
                 </p>
               )}
             </div>
             <div>
-              <Label htmlFor="endTime" className="font-body text-gray-700">
+              <Label htmlFor="endTime" className="text-base font-semibold text-gray-900 mb-3 block">
                 Endzeit *
               </Label>
               <Input
                 id="endTime"
                 type="time"
-                className="mt-1 border-2 border-orange-200 focus:border-orange-400"
+                className="h-12 text-lg border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                 value={formData.endTime}
                 onChange={(e) => handleInputChange("endTime", e.target.value)}
                 required
               />
               {fieldErrors.endTime && (
-                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4" />
                   {fieldErrors.endTime}
                 </p>
               )}
               {errors.endTime && (
-                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4" />
                   {errors.endTime}
                 </p>
@@ -1611,15 +1647,15 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
 
           {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) &&
             formData.seriesMode === "manual" && (
-              <div className="space-y-4">
+              <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-300">
                 <div>
-                  <Label className="font-body text-gray-700">Weitere Termine *</Label>
-                  <p className="text-sm text-gray-500 mt-1 mb-2">
+                  <Label className="text-base font-semibold text-gray-900 mb-3 block">Weitere Termine *</Label>
+                  <p className="text-sm text-gray-600 mb-4">
                     Füge alle Termine hinzu, an denen das Event stattfinden soll. Jeder Termin muss in der Zukunft und
                     nach dem vorherigen Termin liegen.
                   </p>
-                  {errors.additionalDates && <p className="text-red-600 text-sm mb-2">{errors.additionalDates}</p>}
-                  <div className="space-y-2 mt-2">
+                  {errors.additionalDates && <p className="text-red-600 text-sm mb-3">{errors.additionalDates}</p>}
+                  <div className="space-y-3 mt-3">
                     {formData.additionalDates.map((date, index) => {
                       const previousDate = index === 0 ? formData.eventDate : formData.additionalDates[index - 1]
                       const isDateValid = !date || !previousDate || new Date(date) > new Date(previousDate)
@@ -1627,11 +1663,11 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
 
                       return (
                         <div key={index} className="space-y-2">
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 items-center">
                             <div className="flex-1">
                               <Input
                                 type="date"
-                                className={`border-2 ${!isDateValid || !isFutureDate ? "border-red-300 focus:border-red-400" : "border-orange-200 focus:border-orange-400"}`}
+                                className={`h-11 text-lg ${!isDateValid || !isFutureDate ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-orange-500"}`}
                                 value={date}
                                 onChange={(e) => {
                                   const newDates = [...formData.additionalDates]
@@ -1640,10 +1676,10 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                                 }}
                               />
                               {date && !isFutureDate && (
-                                <p className="text-red-600 text-xs mt-1">Datum muss in der Zukunft liegen</p>
+                                <p className="text-red-500 text-xs mt-1">Datum muss in der Zukunft liegen</p>
                               )}
                               {date && isFutureDate && !isDateValid && (
-                                <p className="text-red-600 text-xs mt-1">
+                                <p className="text-red-500 text-xs mt-1">
                                   Datum muss nach dem {index === 0 ? "Start-Event" : "vorherigen Termin"} liegen
                                 </p>
                               )}
@@ -1652,7 +1688,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                               <>
                                 <Input
                                   type="time"
-                                  className="border-2 border-orange-200 focus:border-orange-400"
+                                  className="h-11 text-lg border-gray-300 focus:border-orange-500 w-32"
                                   placeholder="Startzeit"
                                   value={formData.additionalStartTimes?.[index] || formData.startTime}
                                   onChange={(e) => {
@@ -1663,7 +1699,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                                 />
                                 <Input
                                   type="time"
-                                  className="border-2 border-orange-200 focus:border-orange-400"
+                                  className="h-11 text-lg border-gray-300 focus:border-orange-500 w-32"
                                   placeholder="Endzeit"
                                   value={formData.additionalEndTimes?.[index] || formData.endTime}
                                   onChange={(e) => {
@@ -1676,8 +1712,8 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                             )}
                             <Button
                               type="button"
-                              variant="outline"
-                              size="sm"
+                              variant="destructive"
+                              size="icon"
                               onClick={() => {
                                 const newDates = formData.additionalDates.filter((_, i) => i !== index)
                                 const newStartTimes = (formData.additionalStartTimes || []).filter(
@@ -1688,8 +1724,9 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                                 handleInputChange("additionalStartTimes", newStartTimes)
                                 handleInputChange("additionalEndTimes", newEndTimes)
                               }}
+                              className="bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800 border-none"
                             >
-                              Entfernen
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </div>
@@ -1698,10 +1735,10 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                     <Button
                       type="button"
                       variant="outline"
-                      size="sm"
                       onClick={() => {
                         handleInputChange("additionalDates", [...formData.additionalDates, ""])
                       }}
+                      className="h-11 px-5 text-base border-2 border-dashed border-yellow-500 text-yellow-700 hover:bg-yellow-50"
                     >
                       + Weiteren Termin hinzufügen
                     </Button>
@@ -1710,7 +1747,6 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               </div>
             )}
 
-          {/* Updated preview logic to show generated series dates */}
           {((formData.frequency === "einmalig" && formData.eventDate && formData.startTime && formData.endTime) ||
             (formData.frequency !== "einmalig" &&
               formData.seriesMode === "manual" &&
@@ -1721,12 +1757,15 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               formData.startTime &&
               formData.endTime &&
               (formData.seriesEndType === "count" ? formData.seriesEndCount : formData.seriesEndDate))) && (
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-800 mb-3">📅 Terminvorschau</h3>
-              <div className="space-y-2">
+            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-xl p-6">
+              <h3 className="font-bold text-blue-900 mb-4 text-lg flex items-center gap-2">
+                <span className="text-2xl">📅</span>
+                Terminvorschau
+              </h3>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {formData.frequency === "einmalig" ? (
-                  <div className="flex justify-between items-center bg-white rounded p-2 border border-blue-200">
-                    <span className="font-medium text-blue-700">
+                  <div className="flex justify-between items-center bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm">
+                    <span className="font-semibold text-blue-800">
                       {new Date(formData.eventDate).toLocaleDateString("de-DE", {
                         weekday: "long",
                         year: "numeric",
@@ -1734,15 +1773,15 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                         day: "numeric",
                       })}
                     </span>
-                    <span className="text-blue-600">
+                    <span className="text-blue-700 font-medium bg-blue-100 px-3 py-1 rounded-full">
                       {formData.startTime} - {formData.endTime}
                     </span>
                   </div>
                 ) : formData.seriesMode === "manual" ? (
                   <>
                     {formData.eventDate && (
-                      <div className="flex justify-between items-center bg-white rounded p-2 border border-blue-200">
-                        <span className="font-medium text-blue-700">
+                      <div className="flex justify-between items-center bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm">
+                        <span className="font-semibold text-blue-800">
                           {new Date(formData.eventDate).toLocaleDateString("de-DE", {
                             weekday: "long",
                             year: "numeric",
@@ -1750,7 +1789,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                             day: "numeric",
                           })}
                         </span>
-                        <span className="text-blue-600">
+                        <span className="text-blue-700 font-medium bg-blue-100 px-3 py-1 rounded-full">
                           {formData.startTime} - {formData.endTime}
                         </span>
                       </div>
@@ -1760,9 +1799,9 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                       return (
                         <div
                           key={index}
-                          className="flex justify-between items-center bg-white rounded p-2 border border-blue-200"
+                          className="flex justify-between items-center bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm"
                         >
-                          <span className="font-medium text-blue-700">
+                          <span className="font-semibold text-blue-800">
                             {new Date(date).toLocaleDateString("de-DE", {
                               weekday: "long",
                               year: "numeric",
@@ -1770,7 +1809,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                               day: "numeric",
                             })}
                           </span>
-                          <span className="text-blue-600">
+                          <span className="text-blue-700 font-medium bg-blue-100 px-3 py-1 rounded-full">
                             {formData.additionalStartTimes?.[index] || formData.startTime} -{" "}
                             {formData.additionalEndTimes?.[index] || formData.endTime}
                           </span>
@@ -1779,7 +1818,6 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                     })}
                   </>
                 ) : (
-                  // Series mode preview
                   (() => {
                     const seriesDates = generateSeriesDates(
                       formData.eventDate,
@@ -1799,9 +1837,9 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                     return seriesDates.map((date, index) => (
                       <div
                         key={index}
-                        className="flex justify-between items-center bg-white rounded p-2 border border-blue-200"
+                        className="flex justify-between items-center bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm"
                       >
-                        <span className="font-medium text-blue-700">
+                        <span className="font-semibold text-blue-800">
                           {new Date(date).toLocaleDateString("de-DE", {
                             weekday: "long",
                             year: "numeric",
@@ -1809,7 +1847,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                             day: "numeric",
                           })}
                         </span>
-                        <span className="text-blue-600">
+                        <span className="text-blue-700 font-medium bg-blue-100 px-3 py-1 rounded-full">
                           {formData.startTime} - {formData.endTime}
                         </span>
                       </div>
@@ -1817,33 +1855,35 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                   })()
                 )}
               </div>
-              <div className="mt-3 text-sm text-blue-600 font-medium">
-                Gesamt:{" "}
-                {formData.frequency === "einmalig"
-                  ? 1
-                  : formData.seriesMode === "manual"
-                    ? (formData.eventDate ? 1 : 0) + formData.additionalDates.filter((date) => date).length
-                    : generateSeriesDates(
-                        formData.eventDate,
-                        formData.frequency,
-                        formData.customIntervalNumber,
-                        formData.customIntervalUnit,
-                        formData.weeklyDays,
-                        formData.monthlyType,
-                        formData.monthlyDay,
-                        formData.monthlyWeekday,
-                        formData.monthlyWeekdayPosition,
-                        formData.seriesEndType,
-                        formData.seriesEndDate,
-                        formData.seriesEndCount,
-                      ).length}{" "}
-                Termine geplant
+              <div className="mt-5 pt-4 border-t-2 border-blue-200">
+                <p className="text-base text-blue-800 font-bold">
+                  {" "}
+                  {formData.frequency === "einmalig"
+                    ? 1
+                    : formData.seriesMode === "manual"
+                      ? (formData.eventDate ? 1 : 0) + formData.additionalDates.filter((date) => date).length
+                      : generateSeriesDates(
+                          formData.eventDate,
+                          formData.frequency,
+                          formData.customIntervalNumber,
+                          formData.customIntervalUnit,
+                          formData.weeklyDays,
+                          formData.monthlyType,
+                          formData.monthlyDay,
+                          formData.monthlyWeekday,
+                          formData.monthlyWeekdayPosition,
+                          formData.seriesEndType,
+                          formData.seriesEndDate,
+                          formData.seriesEndCount,
+                        ).length}{" "}
+                  Termin(e) insgesamt
+                </p>
               </div>
             </div>
           )}
 
-          <div>
-            <Label htmlFor="location" className="font-body text-gray-700">
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <Label htmlFor="location" className="text-base font-semibold text-gray-900 mb-3 block">
               Ort *
             </Label>
             <div className="space-y-4">
@@ -1854,7 +1894,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                   handleInputChange("isOnline", value === "virtual")
                 }}
               >
-                <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400">
+                <SelectTrigger className="h-12 text-lg border-gray-300 focus:border-orange-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1867,10 +1907,10 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 <div>
                   <AddressAutocomplete
                     label=""
-                    placeholder="Location, Ort oder Adresse"
+                    placeholder="Location, Adresse, PLZ oder Ort eingeben..."
                     value={formData.location}
                     onChange={(value) => handleInputChange("location", value)}
-                    className="border-2 border-orange-200 focus:border-orange-400"
+                    className="h-12 text-lg border-gray-300 focus:border-orange-500"
                     error={fieldErrors.location || errors.location}
                   />
                 </div>
@@ -1881,11 +1921,11 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                   placeholder="Einladungslink (Discord, Zoom, etc.)"
                   value={formData.onlinePlatform}
                   onChange={(e) => handleInputChange("onlinePlatform", e.target.value)}
-                  className="border-2 border-orange-200 focus:border-orange-400"
+                  className="h-12 text-lg border-gray-300 focus:border-orange-500"
                 />
               )}
               {errors.onlinePlatform && (
-                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4" />
                   {errors.onlinePlatform}
                 </p>
@@ -1894,24 +1934,22 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
           </div>
         </div>
       )}
-
       {/* Step 3: Games & Participants */}
       {currentStep === 3 && (
-        <div className="space-y-6">
-          <div>
-            <p className="text-sm text-gray-500 font-body mb-4">
+        <div className="space-y-8">
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+            <p className="text-gray-700 mb-6 text-base">
               Wähle Spiele aus deinem Spieleregal oder suche gerne andere aus der Datenbank
             </p>
 
-            <div className="space-y-4">
-              {/* Personal Library Section */}
-              <div className="border-2 border-orange-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl p-6 border-2 border-green-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-bold text-gray-900">Dein Spielregal</h4>
                   <Button
                     type="button"
                     onClick={() => setShowGameShelfModal(true)}
-                    variant="outline"
-                    className="border-2 border-dashed border-orange-200 hover:border-orange-300 text-gray-600 hover:text-gray-700"
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Aus Spielregal auswählen
@@ -1919,16 +1957,17 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 </div>
 
                 {selectedGames.filter((game) => !game.isBggGame).length === 0 && (
-                  <div className="text py-2 text-gray-500">
+                  <div className="text-center py-8 text-gray-500">
+                    <Library className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p className="text-sm">Klicke auf "Aus Spielregal auswählen", um Spiele hinzuzufügen</p>
                   </div>
                 )}
               </div>
 
-              <div className="border-2 border-orange-200 rounded-lg p-4">
-                <Label className="font-body text-gray-700 text-sm mb-2 block">Aus der Datenbank suchen</Label>
-                <div className="relative mb-3">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <div className="bg-white rounded-xl p-6 border-2 border-green-200">
+                <h4 className="text-lg font-bold text-gray-900 mb-4">Aus der Datenbank suchen</h4>
+                <div className="relative mb-5">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
                     placeholder="Beliebiges Spiel suchen ..."
@@ -1937,30 +1976,32 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                       setBggSearchTerm(e.target.value)
                       searchBoardGameGeek(e.target.value)
                     }}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full pl-12 pr-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                 </div>
 
                 {bggSearchLoading && (
-                  <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mx-auto"></div>
-                    <p className="text-sm text-gray-500 mt-2">Durchsuche Datenbank...</p>
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-green-500 mx-auto"></div>
+                    <p className="text-gray-600 mt-4 font-medium">Durchsuche Datenbank...</p>
                   </div>
                 )}
 
                 {bggSearchResults.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {bggSearchResults.map((game) => {
                       const isSelected = selectedGames.some((g) => g.id === game.id)
                       return (
                         <div
                           key={game.id}
-                          className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                            isSelected ? "border-orange-500 bg-orange-50" : "border-gray-200 hover:bg-gray-50"
+                          className={`border-2 rounded-xl p-4 cursor-pointer transition-all hover:shadow-lg ${
+                            isSelected
+                              ? "border-green-500 bg-green-50 shadow-md"
+                              : "border-gray-200 hover:border-green-300"
                           }`}
                           onClick={() => handleGameShelfSelection(game)}
                         >
-                          <div className="aspect-square bg-gray-100 rounded-md mb-2 overflow-hidden">
+                          <div className="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
                             <img
                               src={game.image || "/placeholder.svg"}
                               alt={game.title}
@@ -1970,17 +2011,9 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                               }}
                             />
                           </div>
-                          <h4 className="font-medium text-sm text-gray-900 line-clamp-2">{game.title}</h4>
+                          <h4 className="font-semibold text-sm text-gray-900 line-clamp-2 mb-1">{game.title}</h4>
                           {game.year && <p className="text-xs text-gray-500">({game.year})</p>}
-                          {game.publisher && <p className="text-xs text-gray-600">{game.publisher}</p>}
-                          {/* <div className="flex flex-wrap gap-1">
-                            <Badge className="bg-blue-100 text-blue-800 text-xs">BGG</Badge>
-                            {game.players !== "Unbekannt" && (
-                              <Badge variant="outline" className="text-xs">
-                                {game.players}
-                              </Badge>
-                            )}
-                          </div> */}
+                          {game.publisher && <p className="text-xs text-gray-600 truncate">{game.publisher}</p>}
                         </div>
                       )
                     })}
@@ -1988,42 +2021,40 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 )}
 
                 {bggSearchTerm && !bggSearchLoading && bggSearchResults.length === 0 && (
-                  <div className="text-center py-6 text-gray-500">
-                    <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Keine Spiele gefunden für "{bggSearchTerm}"</p>
-                    <p className="text-xs mt-1">Versuche einen anderen Suchbegriff</p>
+                  <div className="text-center py-12 text-gray-500">
+                    <Search className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                    <p className="font-medium">Keine Spiele gefunden für "{bggSearchTerm}"</p>
+                    <p className="text-sm mt-2">Versuche einen anderen Suchbegriff</p>
                   </div>
                 )}
               </div>
 
               {selectedGames.length > 0 && (
-                <div className="border-2 border-green-200 rounded-lg p-4 bg-green-50">
-                  <Label className="font-body text-gray-700 text-sm mb-3 block">Ausgewählte Spiele für das Event</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-6 border-2 border-teal-300">
+                  <h4 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
+                    Ausgewählte Spiele für das Event: {selectedGames.length}
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {selectedGames.map((game) => (
-                      <div key={game.id} className="border border-gray-200 rounded-lg p-3 bg-white relative">
+                      <div
+                        key={game.id}
+                        className="bg-white border-2 border-teal-200 rounded-xl p-4 relative shadow-sm"
+                      >
                         <button
                           type="button"
                           onClick={() => handleRemoveGame(game.id)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors z-10"
+                          className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg z-10 font-bold"
                         >
                           ×
                         </button>
-                        <div className="aspect-square bg-gray-100 rounded-md mb-2 overflow-hidden">
+                        <div className="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
                           <img
                             src={game.image || "/placeholder.svg"}
                             alt={game.title}
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        <h4 className="font-medium text-sm text-gray-900 line-clamp-2">{game.title}</h4>
-                        {/* <div className="flex flex-wrap gap-1 mt-1">
-                          {game.isBggGame ? (
-                            <Badge className="bg-blue-100 text-orange-800 text-xs">BGG</Badge>
-                          ) : (
-                            <Badge className="bg-orange-100 text-orange-800 text-xs">Bibliothek</Badge>
-                          )}
-                        </div> */}
+                        <h4 className="font-semibold text-sm text-gray-900 line-clamp-2">{game.title}</h4>
                       </div>
                     ))}
                   </div>
@@ -2033,24 +2064,21 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
           </div>
         </div>
       )}
-
       {/* Step 4: Settings & Publication */}
       {currentStep === 4 && (
-        <div className="space-y-6">
-          <div>
-            <Label htmlFor="visibility" className="font-body text-gray-700">
+        <div className="space-y-8">
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <Label htmlFor="visibility" className="text-base font-semibold text-gray-900 mb-3 block">
               Sichtbarkeit *
             </Label>
             <Select value={formData.visibility} onValueChange={(value) => handleInputChange("visibility", value)}>
-              <SelectTrigger className="mt-1 border-2 border-orange-200 focus:border-orange-400">
+              <SelectTrigger className="h-12 text-lg border-gray-300 focus:border-orange-500">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="public">
                   Für alle sichtbar (Jeder kann das Event sehen und sich hierfür anmelden)
                 </SelectItem>
-                {/* <SelectItem value="friends">Nur Freunde (Nur deine Freunde können das Event sehen)</SelectItem> */}
-                {/* Update visibility select options */}
                 <SelectItem value="friends_only">
                   Mit Einladung (Nur ausgewählte Freunde können das Event sehen)
                 </SelectItem>
@@ -2058,42 +2086,41 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             </Select>
           </div>
 
-          {/* Update condition to check for friends_only */}
           {formData.visibility === "friends_only" && (
-            <div className="space-y-4">
+            <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-6 border border-pink-200">
               <div>
-                <Label className="font-body text-gray-700">Freunde einladen</Label>
-                <p className="text-sm text-gray-500 mt-1">
+                <Label className="text-base font-semibold text-gray-900 mb-3 block">Freunde einladen</Label>
+                <p className="text-sm text-gray-600 mb-4">
                   Wähle Freunde aus, die du zu diesem Event einladen möchtest.
                 </p>
-                <div className="mt-2 space-y-3">
+                <div className="mt-2 space-y-4">
                   <Button
                     type="button"
                     onClick={() => setShowFriendDialog(true)}
                     variant="outline"
-                    className="w-full border-2 border-dashed border-orange-200 hover:border-orange-300 text-gray-600 hover:text-gray-700"
+                    className="h-12 w-full px-6 text-base border-2 border-dashed border-pink-300 text-pink-700 hover:bg-pink-50"
                   >
-                    <Users className="w-4 h-4 mr-2" />
+                    <Users className="w-5 h-5 mr-2" />
                     Freunde auswählen ({selectedFriends.length} ausgewählt)
                   </Button>
 
                   {selectedFriends.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-700">Ausgewählte Freunde:</p>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="space-y-4 pt-4 border-t border-pink-300">
+                      <p className="text-sm font-medium text-gray-800">Ausgewählte Freunde:</p>
+                      <div className="flex flex-wrap gap-3">
                         {selectedFriends.map((friend) => (
                           <div
                             key={friend.id}
-                            className="flex items-center gap-2 bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm"
+                            className="flex items-center gap-2 bg-pink-100 text-pink-800 px-4 py-2 rounded-full text-sm font-medium shadow-sm"
                           >
-                            <div className="w-6 h-6 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                            <div className="w-8 h-8 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center text-white text-xs font-bold">
                               {friend.name[0].toUpperCase()}
                             </div>
                             <span>{friend.name}</span>
                             <button
                               type="button"
                               onClick={() => handleRemoveSelectedFriend(friend.id)}
-                              className="text-orange-600 hover:text-orange-800"
+                              className="text-pink-600 hover:text-pink-800 ml-1 p-0.5 rounded-full hover:bg-pink-200 transition-colors"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -2102,22 +2129,22 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                       </div>
 
                       {/* Friend game requests section */}
-                      <div className="mt-4 space-y-2">
-                        <p className="text-sm font-medium text-gray-700">Spiele von Freunden anfragen:</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="mt-4 space-y-3 pt-4 border-t border-pink-300">
+                        <p className="text-sm font-medium text-gray-800">Spiele von Freunden anfragen:</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {selectedFriends.map((friend) => (
                             <Button
                               key={friend.id}
                               type="button"
                               onClick={() => setShowFriendGameDialog({ friendId: friend.id, friendName: friend.name })}
                               variant="outline"
-                              className="justify-start text-left"
+                              className="h-14 justify-start text-left text-base border-2 border-pink-300 hover:bg-pink-50"
                             >
-                              <Gamepad2 className="w-4 h-4 mr-2" />
-                              <span className="truncate">
+                              <Gamepad2 className="w-5 h-5 mr-3 text-pink-600 flex-shrink-0" />
+                              <span className="truncate font-medium text-pink-800">
                                 {friend.name}
                                 {friendGameRequests[friend.id]?.length > 0 && (
-                                  <span className="ml-1 text-xs bg-teal-100 text-teal-800 px-1 rounded">
+                                  <span className="ml-2 text-xs bg-teal-100 text-teal-800 px-1.5 py-0.5 rounded-full">
                                     {friendGameRequests[friend.id].length}
                                   </span>
                                 )}
@@ -2133,17 +2160,16 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             </div>
           )}
 
-          {/* Update condition to exclude friends_only from approval settings */}
           {formData.visibility !== "friends_only" && (
-            <div>
-              <Label htmlFor="requiresApproval" className="font-body text-gray-700">
+            <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+              <Label htmlFor="requiresApproval" className="text-base font-semibold text-gray-900 mb-3 block">
                 Teilnahmemodalitäten *
               </Label>
               <Select
                 value={formData.requiresApproval ? "manual" : "automatic"}
                 onValueChange={(value) => handleInputChange("requiresApproval", value === "manual")}
               >
-                <SelectTrigger className="mt-1 border-2 border-orange-200 focus:border-orange-400">
+                <SelectTrigger className="h-12 text-lg border-gray-300 focus:border-orange-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2158,51 +2184,52 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             </div>
           )}
 
-          <div>
-            <Label htmlFor="rules" className="font-body text-gray-700">
-              Zusatzinfos & Hinweise
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <Label htmlFor="rules" className="text-base font-semibold text-gray-900 mb-3 block">
+              Zusatzinfos
             </Label>
             <Textarea
               id="rules"
-              placeholder="z.B. Spezielle Hausregeln, was mitzubringen ist..."
+              placeholder="z.B. Spezielle Hausregeln, Hinweise ..."
               value={formData.rules}
               onChange={(e) => handleInputChange("rules", e.target.value)}
-              className="mt-1 min-h-[80px] border-2 border-orange-200 focus:border-orange-400 font-body"
+              className="min-h-[120px] text-base border-gray-300 focus:border-orange-500"
             />
           </div>
         </div>
       )}
-
-      {/* Error Display */}
       {submitError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
-          <Trash2 className="w-5 h-5 text-red-500 flex-shrink-0" />
-          <p className="text-red-700 font-body">{submitError}</p>
+        <div className="bg-red-50 border-2 border-red-300 rounded-xl p-5 flex items-start space-x-4">
+          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+            <AlertCircle className="w-6 h-6 text-red-600" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-bold text-red-900 mb-1">Fehler beim Erstellen</h4>
+            <p className="text-red-700">{submitError}</p>
+          </div>
         </div>
       )}
-
-      {/* Navigation Buttons */}
-      <div className="flex justify-between pt-6">
+      <div className="flex justify-between pt-8 border-t-2 border-gray-200">
         <div>
           {currentStep > 1 && (
             <Button
               type="button"
               variant="outline"
               onClick={prevStep}
-              className="border-2 border-gray-300 text-gray-600 hover:bg-gray-50 font-handwritten bg-transparent"
+              className="h-12 px-6 text-base border-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
               disabled={isSubmitting}
             >
-              Zurück
+              ← Zurück
             </Button>
           )}
         </div>
 
-        <div className="flex space-x-3">
+        <div className="flex space-x-4">
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
-            className="border-2 border-gray-300 text-gray-600 hover:bg-gray-50 font-handwritten bg-transparent"
+            className="h-12 px-6 text-base border-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
             disabled={isSubmitting}
           >
             Abbrechen
@@ -2212,27 +2239,26 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             <Button
               type="button"
               onClick={nextStep}
-              className="bg-gradient-to-r from-orange-400 to-pink-400 hover:from-orange-500 hover:to-pink-500 text-white font-handwritten"
+              className="h-12 px-8 text-base bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-semibold shadow-lg"
               disabled={isSubmitting}
             >
-              Weiter
+              Weiter →
             </Button>
           ) : (
-            /* Updated final submit button text */
             <Button
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="bg-gradient-to-r from-green-400 to-teal-400 hover:from-green-500 hover:to-teal-500 text-white font-handwritten"
+              className="h-12 px-8 text-base bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-semibold shadow-lg"
             >
               {isSubmitting ? (
                 <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
                   Erstelle Event...
                 </div>
               ) : (
                 <>
-                  <Dice6 className="w-4 h-4 mr-2" />
+                  <Dice6 className="w-5 h-5 mr-2" />
                   Event erstellen
                 </>
               )}
@@ -2240,8 +2266,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
           )}
         </div>
       </div>
-
-      {/* Friend Selection Dialog */}
+      {/* Friend Selection Dialog */};
       <Dialog open={showFriendDialog} onOpenChange={setShowFriendDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
           <DialogHeader>
@@ -2254,67 +2279,79 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               placeholder="Freunde suchen..."
               value={friendSearchTerm}
               onChange={(e) => setFriendSearchTerm(e.target.value)}
-              className="border-2 border-pink-200 focus:border-pink-400"
+              className="border-2 border-pink-200 focus:border-pink-400 h-12 text-lg"
             />
           </div>
 
-          <div className="overflow-y-auto max-h-96">
+          <div className="overflow-y-auto max-h-96 px-1">
             {friends.length > 0 ? (
               filteredFriends.length > 0 ? (
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 gap-3">
                   {filteredFriends.map((friend) => (
                     <div
                       key={friend.id}
-                      className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                      className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                       onClick={() => handleFriendToggle(friend)}
                     >
                       <Checkbox
                         checked={selectedFriends.some((f) => f.id === friend.id)}
                         onChange={() => handleFriendToggle(friend)}
+                        className="w-6 h-6 border-gray-300 focus:ring-pink-500"
                       />
-                      <div className="w-10 h-10 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center text-white font-bold">
+                      <div className="w-12 h-12 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center text-white font-bold text-lg">
                         {friend.name[0].toUpperCase()}
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-medium font-body">{friend.name}</h4>
+                        <h4 className="font-medium font-body text-gray-900">{friend.name}</h4>
                         {friend.email && <p className="text-sm text-gray-500">{friend.email}</p>}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 font-body">Keine Freunde gefunden für "{friendSearchTerm}"</p>
+                <div className="text-center py-12 text-gray-500">
+                  <Users className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                  <p className="font-medium">Keine Freunde gefunden für "{friendSearchTerm}"</p>
+                  <p className="text-sm mt-2">Versuche einen anderen Suchbegriff</p>
                 </div>
               )
             ) : (
-              <div className="text-center py-8">
-                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 font-body">Du hast noch keine Freunde hinzugefügt</p>
+              <div className="text-center py-12 text-gray-500">
+                <Users className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                <p className="font-medium">Du hast noch keine Freunde hinzugefügt</p>
+                <p className="text-sm mt-2">Füge zuerst Freunde hinzu, um sie einladen zu können</p>
               </div>
             )}
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-3 pt-5">
             <Button
               onClick={() => {
                 setShowFriendDialog(false)
                 setFriendSearchTerm("") // Reset search when closing
               }}
-              className="bg-pink-400 hover:bg-pink-500 text-white font-handwritten"
+              variant="outline"
+              className="h-12 px-6 text-base border-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={() => {
+                setShowFriendDialog(false)
+                setFriendSearchTerm("")
+              }}
+              className="h-12 px-8 text-base bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold shadow-lg"
             >
               Fertig ({selectedFriends.length} ausgewählt)
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-
       <Dialog open={!!showFriendGameDialog} onOpenChange={() => setShowFriendGameDialog(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <Gamepad2 className="h-5 w-5 mr-2" />
+            <DialogTitle className="flex items-center text-2xl font-bold gap-2">
+              <Gamepad2 className="h-6 w-6" />
               Spiele von {showFriendGameDialog?.friendName} anfragen
             </DialogTitle>
             <p className="text-sm text-gray-500 mt-2">
@@ -2322,31 +2359,31 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             </p>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-5 pt-4">
             {/* Search bar for friend's games */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Spiele durchsuchen..."
                 value={friendGameSearchTerm}
                 onChange={(e) => setFriendGameSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full pl-12 pr-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               />
             </div>
 
             {filteredFriendGames.length === 0 ? (
-              <div className="text-center py-8">
-                <Gamepad2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Keine Spiele gefunden</p>
-                <p className="text-sm text-gray-500 mt-2">
+              <div className="text-center py-16 text-gray-500">
+                <Gamepad2 className="w-20 h-20 mx-auto mb-5 opacity-20" />
+                <p className="font-medium text-lg">Keine Spiele gefunden</p>
+                <p className="text-sm mt-2">
                   {friendGameSearchTerm
                     ? "Versuche einen anderen Suchbegriff"
                     : `${showFriendGameDialog?.friendName} hat noch keine Spiele im Spielregal`}
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                 {filteredFriendGames.map((game) => {
                   const isRequested = friendGameRequests[showFriendGameDialog?.friendId || ""]?.some(
                     (g) => g.id === game.id,
@@ -2357,26 +2394,30 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                   return (
                     <div
                       key={game.id}
-                      className={`border rounded-lg p-3 transition-colors ${"hover:bg-gray-50"} ${isSelected ? "border-teal-500 bg-teal-50" : "border-gray-200"}`}
-                      onClick={() => handleGameShelfSelection(game)} // removed availability check to allow selecting unavailable games
+                      className={`border-2 rounded-xl p-4 relative transition-all ${
+                        isAvailable ? "hover:shadow-lg cursor-pointer" : "opacity-60 cursor-not-allowed bg-gray-50"
+                      } ${isSelected ? "border-teal-500 bg-teal-50 shadow-md" : "border-gray-200 hover:border-teal-300"}`}
+                      onClick={() => isAvailable && handleGameShelfSelection(game)}
                     >
-                      <div className="absolute top-2 left-2 z-10">
+                      <div className="absolute top-3 left-3 z-10">
                         <div
-                          className={`w-3 h-3 rounded-full border border-white shadow-sm ${
+                          className={`w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
                             isAvailable ? "bg-green-500" : "bg-red-500"
                           }`}
                           title={isAvailable ? "Verfügbar" : "Nicht verfügbar"}
                         />
                       </div>
 
-                      <div className="aspect-square bg-gray-100 rounded-md mb-2 overflow-hidden">
+                      <div className="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
                         <img
                           src={game.image || "/placeholder.svg"}
                           alt={game.title}
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <h4 className={`font-medium text-sm truncate ${isAvailable ? "text-gray-900" : "text-gray-500"}`}>
+                      <h4
+                        className={`font-semibold text-sm truncate ${isAvailable ? "text-gray-900" : "text-gray-500"}`}
+                      >
                         {game.title}
                       </h4>
                       {game.publisher && (
@@ -2394,61 +2435,62 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
           </div>
         </DialogContent>
       </Dialog>
-
       {/* Game Shelf Selection Modal */}
       <Dialog open={showGameShelfModal} onOpenChange={setShowGameShelfModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <Library className="h-5 w-5 mr-2" />
+            <DialogTitle className="flex items-center text-2xl font-bold gap-2">
+              <Library className="h-6 w-6" />
               Spiele aus deinem Spielregal auswählen
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-              <div className="flex gap-1">
+          <div className="space-y-5 pt-4">
+            <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex gap-2">
                 <button
                   onClick={() => setAvailabilityFilter("all")}
-                  className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                    availabilityFilter === "all" ? "bg-teal-500 text-white" : "bg-white text-gray-600 hover:bg-gray-100"
+                  className={`px-4 py-2 text-sm rounded-full font-medium transition-colors ${
+                    availabilityFilter === "all"
+                      ? "bg-teal-600 text-white shadow-md"
+                      : "bg-white text-gray-600 hover:bg-gray-100"
                   }`}
                 >
                   Alle
                 </button>
                 <button
                   onClick={() => setAvailabilityFilter("available")}
-                  className={`px-3 py-1 text-xs rounded-full transition-colors flex items-center gap-1 ${
+                  className={`px-4 py-2 text-sm rounded-full font-medium transition-colors flex items-center gap-1 ${
                     availabilityFilter === "available"
-                      ? "bg-green-500 text-white"
+                      ? "bg-green-500 text-white shadow-md"
                       : "bg-white text-gray-600 hover:bg-gray-100"
                   }`}
                 >
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
                   Verfügbar
                 </button>
                 <button
                   onClick={() => setAvailabilityFilter("unavailable")}
-                  className={`px-3 py-1 text-xs rounded-full transition-colors flex items-center gap-1 ${
+                  className={`px-4 py-2 text-sm rounded-full font-medium transition-colors flex items-center gap-1 ${
                     availabilityFilter === "unavailable"
-                      ? "bg-red-500 text-white"
+                      ? "bg-red-500 text-white shadow-md"
                       : "bg-white text-gray-600 hover:bg-gray-100"
                   }`}
                 >
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
                   Nicht verfügbar
                 </button>
               </div>
             </div>
 
             {userGames.length === 0 ? (
-              <div className="text-center py-8">
-                <Gamepad2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Du hast noch keine Spiele in deinem Spielregal</p>
-                <p className="text-sm text-gray-500 mt-2">Füge zuerst Spiele zu deiner Bibliothek hinzu</p>
+              <div className="text-center py-16 text-gray-500">
+                <Gamepad2 className="w-20 h-20 mx-auto mb-5 opacity-20" />
+                <p className="font-medium text-lg">Du hast noch keine Spiele in deinem Spielregal</p>
+                <p className="text-sm mt-2">Füge zuerst Spiele zu deiner Bibliothek hinzu</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                 {userGames
                   .filter((game) => {
                     const isAvailable = game.available?.includes("available")
@@ -2463,21 +2505,21 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                     return (
                       <div
                         key={game.id}
-                        className={`border rounded-lg p-3 transition-colors relative ${
-                          isAvailable ? "hover:bg-gray-50 cursor-pointer" : "opacity-60 cursor-not-allowed bg-gray-50"
-                        } ${isSelected ? "border-teal-500 bg-teal-50" : "border-gray-200"}`}
+                        className={`border-2 rounded-xl p-4 relative transition-all ${
+                          isAvailable ? "hover:shadow-lg cursor-pointer" : "opacity-60 cursor-not-allowed bg-gray-50"
+                        } ${isSelected ? "border-teal-500 bg-teal-50 shadow-md" : "border-gray-200 hover:border-teal-300"}`}
                         onClick={() => isAvailable && handleGameShelfSelection(game)}
                       >
-                        <div className="absolute top-2 left-2 z-10">
+                        <div className="absolute top-3 left-3 z-10">
                           <div
-                            className={`w-3 h-3 rounded-full border border-white shadow-sm ${
+                            className={`w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
                               isAvailable ? "bg-green-500" : "bg-red-500"
                             }`}
                             title={isAvailable ? "Verfügbar" : "Nicht verfügbar"}
                           />
                         </div>
 
-                        <div className="aspect-square bg-gray-100 rounded-md mb-2 overflow-hidden">
+                        <div className="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
                           <img
                             src={game.image || "/placeholder.svg"}
                             alt={game.title}
@@ -2485,7 +2527,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                           />
                         </div>
                         <h4
-                          className={`font-medium text-sm truncate ${isAvailable ? "text-gray-900" : "text-gray-500"}`}
+                          className={`font-semibold text-sm truncate ${isAvailable ? "text-gray-900" : "text-gray-500"}`}
                         >
                           {game.title}
                         </h4>

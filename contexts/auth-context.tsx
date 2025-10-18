@@ -15,11 +15,6 @@ interface AuthUser {
   birthDate?: string
   phone?: string
   address?: string
-  street?: string
-  houseNumber?: string
-  zipCode?: string
-  city?: string
-  country?: string
   location?: string
   favoriteGames?: string[]
   preferredGameTypes?: string[]
@@ -115,11 +110,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               birthDate: null,
               phone: null,
               address: null,
-              street: null,
-              houseNumber: null,
-              zipCode: null,
-              city: null,
-              country: null,
               location: null,
               favoriteGames: [],
               preferredGameTypes: [],
@@ -404,11 +394,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             birth_date: data.birthDate !== undefined ? data.birthDate || null : user.birthDate || null,
             phone: data.phone !== undefined ? data.phone : user.phone,
             address: data.address !== undefined ? data.address : user.address,
-            street: data.street !== undefined ? data.street : user.street,
-            house_number: data.houseNumber !== undefined ? data.houseNumber : user.houseNumber,
-            zip_code: data.zipCode !== undefined ? data.zipCode : user.zipCode,
-            city: data.city !== undefined ? data.city : user.city,
-            country: data.country !== undefined ? data.country : user.country,
             location: data.location !== undefined ? data.location : user.location,
             favorite_games: data.favoriteGames !== undefined ? data.favoriteGames : user.favoriteGames,
             preferred_game_types:
@@ -448,9 +433,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const updatedUser = {
           ...user,
           ...data,
-          // Map database field names back to user object field names
-          houseNumber: data.houseNumber !== undefined ? data.houseNumber : user.houseNumber,
-          zipCode: data.zipCode !== undefined ? data.zipCode : user.zipCode,
         }
 
         console.log("[v0] Profile updated successfully, new user state:", updatedUser)

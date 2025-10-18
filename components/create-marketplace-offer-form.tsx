@@ -188,7 +188,7 @@ export function CreateMarketplaceOfferForm({
   const [salePrice, setSalePrice] = useState("")
   const [deliveryPickup, setDeliveryPickup] = useState(false)
   const [deliveryShipping, setDeliveryShipping] = useState(false)
-  const [shippingOption, setShippingOption] = useState("")
+  // REMOVED: const [shippingOption, setShippingOption] = useState("")
   const [pickupAddress, setPickupAddress] = useState("")
   const [condition, setCondition] = useState("")
   const [price, setPrice] = useState("")
@@ -215,64 +215,30 @@ export function CreateMarketplaceOfferForm({
   useEffect(() => {
     if (deliveryPickup && user) {
       console.log("[v0] User profile data:", {
-        street: user.street,
-        houseNumber: user.houseNumber,
-        house_number: user.house_number,
-        zipCode: user.zipCode,
-        zip_code: user.zip_code,
-        city: user.city,
-        country: user.country,
+        address: user.address,
       })
 
-      // Check if all required address components are present
-      const hasStreet = user.street && user.street.trim() !== ""
-      const hasHouseNumber =
-        (user.houseNumber && user.houseNumber.trim() !== "") || (user.house_number && user.house_number.trim() !== "")
-      const hasZip = (user.zipCode && user.zipCode.trim() !== "") || (user.zip_code && user.zip_code.trim() !== "")
-      const hasCity = user.city && user.city.trim() !== ""
-      const hasCountry = user.country && user.country.trim() !== ""
-
-      console.log("[v0] Address completeness check:", {
-        hasStreet,
-        hasHouseNumber,
-        hasZip,
-        hasCity,
-        hasCountry,
-      })
-
-      if (hasStreet && hasHouseNumber && hasZip && hasCity && hasCountry) {
-        // All components available - construct complete address
-        const houseNumber = user.houseNumber || user.house_number
-        const zipCode = user.zipCode || user.zip_code
-        const fullAddress = `${user.street} ${houseNumber}, ${zipCode} ${user.city}, ${user.country}`
-        setPickupAddress(fullAddress)
-        console.log("[v0] Complete pickup address:", fullAddress)
+      if (user.address && user.address.trim() !== "") {
+        setPickupAddress(user.address)
+        console.log("[v0] Pickup address from profile:", user.address)
       } else {
-        // Missing components - show helpful message
-        const missing = []
-        if (!hasStreet) missing.push("Strasse")
-        if (!hasHouseNumber) missing.push("Hausnummer")
-        if (!hasZip) missing.push("PLZ")
-        if (!hasCity) missing.push("Ort")
-        if (!hasCountry) missing.push("Land")
-
-        const message = `Bitte Adresse im Profil vervollständigen (fehlt: ${missing.join(", ")})`
+        const message = "Bitte Adresse im Profil vervollständigen"
         setPickupAddress(message)
-        console.log("[v0] Incomplete address - missing:", missing)
+        console.log("[v0] No address in profile")
       }
     } else if (!deliveryPickup) {
       setPickupAddress("")
     }
   }, [deliveryPickup, user])
 
-  const shippingOptions = [
-    { value: "postpac-a-2kg", label: "PostPac Economy (A-Post) bis 2 kg: CHF 10.50" },
-    { value: "postpac-b-2kg", label: "PostPac Economy (B-Post) bis 2 kg: CHF 8.50" },
-    { value: "postpac-a-10kg", label: "PostPac Economy (A-Post) bis 10 kg: CHF 13.50" },
-    { value: "postpac-b-10kg", label: "PostPac Economy (B-Post) bis 10 kg: CHF 11.50" },
-    { value: "postpac-a-30kg", label: "PostPac Economy (A-Post) bis 30 kg: CHF 22.50" },
-    { value: "postpac-b-30kg", label: "PostPac Economy (B-Post) bis 30 kg: CHF 20.50" },
-  ]
+  // REMOVED: const shippingOptions = [
+  //   { value: "postpac-a-2kg", label: "PostPac Economy (A-Post) bis 2 kg: CHF 10.50" },
+  //   { value: "postpac-b-2kg", label: "PostPac Economy (B-Post) bis 2 kg: CHF 8.50" },
+  //   { value: "postpac-a-10kg", label: "PostPac Economy (A-Post) bis 10 kg: CHF 13.50" },
+  //   { value: "postpac-b-10kg", label: "PostPac Economy (B-Post) bis 10 kg: CHF 11.50" },
+  //   { value: "postpac-a-30kg", label: "PostPac Economy (A-Post) bis 30 kg: CHF 22.50" },
+  //   { value: "postpac-b-30kg", label: "PostPac Economy (B-Post) bis 30 kg: CHF 20.50" },
+  // ]
 
   const handleCustomGameTypeToggle = (type: string) => {
     setCustomGameType((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]))
@@ -491,7 +457,7 @@ export function CreateMarketplaceOfferForm({
     setSalePrice("")
     setDeliveryPickup(false)
     setDeliveryShipping(false)
-    setShippingOption("")
+    // REMOVED: setShippingOption("")
     setPickupAddress("")
     setCurrentStep(1)
     setErrors({})
@@ -602,7 +568,7 @@ export function CreateMarketplaceOfferForm({
 
         // Only require price field if no daily rates are provided
         if (!price && !hasAnyDailyRate) {
-          newErrors.price = "Bitte gib Preis/Bedingungen oder Ausleihgebühren an."
+          newErrors.price = "Bitte gib Preis/Bedingungen oder Mietgebühren an."
         }
 
         console.log("[v0] Validating lend-specific fields - dailyRates:", {
@@ -614,7 +580,7 @@ export function CreateMarketplaceOfferForm({
 
         // Only show daily rates error if no price and no daily rates
         if (!price && !hasAnyDailyRate) {
-          newErrors.dailyRates = "Bitte gib mindestens eine Ausleihgebühr an."
+          newErrors.dailyRates = "Bitte gib mindestens eine Mietgebühr an."
         }
 
         if (minRentalDays && maxRentalDays) {
@@ -622,13 +588,13 @@ export function CreateMarketplaceOfferForm({
           const maxDays = Number.parseInt(maxRentalDays)
 
           if (minDays < 1) {
-            newErrors.minRentalDays = "Mindestausleihdauer muss mindestens 1 Tag sein."
+            newErrors.minRentalDays = "Mindestmietdauer muss mindestens 1 Tag sein."
           }
           if (maxDays < 1) {
-            newErrors.maxRentalDays = "Maximalausleihdauer muss mindestens 1 Tag sein."
+            newErrors.maxRentalDays = "Maximalmietdauer muss mindestens 1 Tag sein."
           }
           if (minDays > maxDays) {
-            newErrors.maxRentalDays = "Maximalausleihdauer muss größer als Mindestausleihdauer sein."
+            newErrors.maxRentalDays = "Maximalmietdauer muss größer als Mindestmietdauer sein."
           }
         }
       }
@@ -649,13 +615,11 @@ export function CreateMarketplaceOfferForm({
           dailyRateOver30Days,
         })
         if (!dailyRate1Day && !dailyRate2To6Days && !dailyRate7To30Days && !dailyRateOver30Days) {
-          newErrors.dailyRates = "Bitte gib mindestens eine Ausleihgebühr an."
+          newErrors.dailyRates = "Bitte gib mindestens eine Mietgebühr an."
         }
+        // REMOVED: shipping option validation
         if (deliveryPickup && !pickupAddress) {
           newErrors.pickupAddress = "Bitte gib die Abholadresse an."
-        }
-        if (deliveryShipping && !shippingOption) {
-          newErrors.shippingOption = "Bitte wähle eine Versandoption."
         }
       }
 
@@ -664,11 +628,9 @@ export function CreateMarketplaceOfferForm({
         if (!salePrice) {
           newErrors.salePrice = "Bitte gib den Verkaufspreis an."
         }
+        // REMOVED: shipping option validation
         if (deliveryPickup && !pickupAddress) {
           newErrors.pickupAddress = "Bitte gib die Abholadresse an."
-        }
-        if (deliveryShipping && !shippingOption) {
-          newErrors.shippingOption = "Bitte wähle eine Versandoption."
         }
       }
     }
@@ -777,7 +739,8 @@ export function CreateMarketplaceOfferForm({
         pickup_available: deliveryPickup,
         shipping_available: deliveryShipping,
         pickup_address: deliveryPickup ? pickupAddress : null,
-        shipping_options: deliveryShipping ? { option: shippingOption } : null,
+        // REMOVED: shipping_options: deliveryShipping ? { option: shippingOption } : null,
+        shipping_options: null, // Set to null as shipping details are no longer collected
         ...(offerType === "lend" && minRentalDays && { min_rental_days: Number.parseInt(minRentalDays) }),
         ...(offerType === "lend" && maxRentalDays && { max_rental_days: Number.parseInt(maxRentalDays) }),
       }
@@ -839,7 +802,7 @@ export function CreateMarketplaceOfferForm({
   const getPricePlaceholder = () => {
     switch (offerType) {
       case "lend":
-        return "z.B. Kostenlose Ausleihe gegen Pfand"
+        return "z.B. Kostenlose Miete gegen Pfand"
       case "trade":
         return "z.B. Die Siedler von Catan "
       case "sell":
@@ -924,12 +887,6 @@ export function CreateMarketplaceOfferForm({
                             ))}
                           </SelectContent>
                         </Select>
-                        {selectedGame && (
-                          <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-                            <ImageIcon className="w-3 h-3" />
-                            Spielbild wird automatisch verwendet
-                          </p>
-                        )}
                       </div>
 
                       <div className="relative">
@@ -961,7 +918,7 @@ export function CreateMarketplaceOfferForm({
                         </div>
 
                         {!selectedGame && (
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             <Button
                               type="button"
                               variant="outline"
@@ -1507,17 +1464,17 @@ export function CreateMarketplaceOfferForm({
                             <SelectValue placeholder="Zustand auswählen..." />
                           </SelectTrigger>
                           <SelectContent className="rounded-xl">
-                            <SelectItem value="neu" className="rounded-lg">
-                              <div className="flex items-center gap-2">Neu</div>
+                            <SelectItem value="Neu" className="rounded-lg">
+                              <div className="flex items-center gap-2">Neu und orignialverpackt</div>
                             </SelectItem>
-                            <SelectItem value="wie neu" className="rounded-lg">
-                              <div className="flex items-center gap-2">Wie neu</div>
+                            <SelectItem value="Wie neu" className="rounded-lg">
+                              <div className="flex items-center gap-2">Neuwertig</div>
                             </SelectItem>
-                            <SelectItem value="sehr gut" className="rounded-lg">
-                              <div className="flex items-center gap-2">Sehr gut</div>
-                            </SelectItem>
-                            <SelectItem value="gut" className="rounded-lg">
+                            <SelectItem value="Sehr gut" className="rounded-lg">
                               <div className="flex items-center gap-2">Gut</div>
+                            </SelectItem>
+                            <SelectItem value="Gut" className="rounded-lg">
+                              <div className="flex items-center gap-2">Gebraucht (wurde bereits gespielt)</div>
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -1536,7 +1493,7 @@ export function CreateMarketplaceOfferForm({
                     <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl p-6 border border-teal-200 shadow-sm">
                       <h4 className="text-lg font-bold text-teal-800 mb-4 flex items-center gap-2">
                         <Clock className="w-5 h-5" />
-                        Ausleihkonditionen *
+                        Mietkonditionen *
                       </h4>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1603,10 +1560,10 @@ export function CreateMarketplaceOfferForm({
 
                         {/* Rental Duration */}
                         <div>
-                          <Label className="text-sm font-semibold text-gray-700 mb-2 block">Ausleihzeit</Label>
+                          <Label className="text-sm font-semibold text-gray-700 mb-2 block">Mietzeit</Label>
                           <div className="space-y-3">
                             <div>
-                              <Label className="text-xs text-gray-600 mb-1 block">Mindestausleihzeit (Tage)</Label>
+                              <Label className="text-xs text-gray-600 mb-1 block">Mindestmietzeit (Tage)</Label>
                               <Input
                                 placeholder="z.B. 1"
                                 value={minRentalDays}
@@ -1617,7 +1574,7 @@ export function CreateMarketplaceOfferForm({
                               />
                             </div>
                             <div>
-                              <Label className="text-xs text-gray-600 mb-1 block">Maximalausleihzeit (Tage)</Label>
+                              <Label className="text-xs text-gray-600 mb-1 block">Maximalmietzeit (Tage)</Label>
                               <Input
                                 placeholder="z.B. 30"
                                 value={maxRentalDays}
@@ -1636,7 +1593,9 @@ export function CreateMarketplaceOfferForm({
                   {/* Selling specific fields */}
                   {offerType === "sell" && (
                     <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl p-6 border border-pink-200 shadow-sm">
-                      <h4 className="text-lg font-bold text-pink-800 mb-4 flex items-center gap-2">Verkaufsbedingungen</h4>
+                      <h4 className="text-lg font-bold text-pink-800 mb-4 flex items-center gap-2">
+                        Verkaufsbedingungen
+                      </h4>
 
                       <div>
                         <Label className="text-sm font-semibold text-gray-700 mb-2 block">Verkaufspreis (CHF) *</Label>
@@ -1662,7 +1621,9 @@ export function CreateMarketplaceOfferForm({
                   {/* Trading specific fields */}
                   {offerType === "trade" && (
                     <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
-                      <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">Tauschbedingungen</h4>
+                      <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
+                        Tauschbedingungen
+                      </h4>
 
                       <div className="mb-4">
                         <div className="flex items-center space-x-3">
@@ -1781,7 +1742,7 @@ export function CreateMarketplaceOfferForm({
                                 deliveryShipping,
                               )
                               setDeliveryShipping(checked === true)
-                              if (checked !== true) setShippingOption("")
+                              // REMOVED: if (checked !== true) setShippingOption("")
                             }}
                             className="border-indigo-400 data-[state=checked]:bg-indigo-600"
                           />
@@ -1792,7 +1753,7 @@ export function CreateMarketplaceOfferForm({
                               console.log("[v0] Shipping label clicked - current state:", deliveryShipping)
                               const newState = !deliveryShipping
                               setDeliveryShipping(newState)
-                              if (!newState) setShippingOption("")
+                              // REMOVED: if (!newState) setShippingOption("")
                             }}
                           >
                             <Package className="w-4 h-4" />
@@ -1805,30 +1766,6 @@ export function CreateMarketplaceOfferForm({
                             )
                           </Label>
                         </div>
-
-                        {deliveryShipping && (
-                          <div className="ml-7">
-                            <Label className="text-sm font-medium text-gray-700 mb-2 block">Versandoption</Label>
-                            <Select value={shippingOption} onValueChange={setShippingOption}>
-                              <SelectTrigger className="h-10 border-2 border-indigo-200 focus:border-indigo-500 rounded-lg">
-                                <SelectValue placeholder="Versandoption wählen..." />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                {shippingOptions.map((option) => (
-                                  <SelectItem key={option.value} value={option.value} className="rounded-lg">
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {errors.shippingOption && (
-                              <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>{errors.shippingOption}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </div>
                     </div>
 
@@ -1861,7 +1798,7 @@ export function CreateMarketplaceOfferForm({
                       <div className="flex items-start gap-2">
                         <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                         <p className="text-sm text-blue-800">
-                          Das Spielbild wird automatisch für die Anzeige verwendet. Gerne darfst du hier ein anderes
+                          Das Spiel-Cover wird automatisch für die Anzeige verwendet. Gerne darfst du hier ein anderes
                           Bild hochladen.
                         </p>
                       </div>
@@ -1965,9 +1902,7 @@ export function CreateMarketplaceOfferForm({
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Zustand:</span>
-                            <Badge variant="outline" className="text-xs">
-                              {condition}
-                            </Badge>
+                            <span className="font-medium">{condition}</span>
                           </div>
                         </div>
                       </div>
@@ -1980,18 +1915,10 @@ export function CreateMarketplaceOfferForm({
                         </h4>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Typ:</span>
-                            <Badge
-                              className={`text-xs ${
-                                offerType === "lend"
-                                  ? "bg-teal-100 text-teal-700"
-                                  : offerType === "trade"
-                                    ? "bg-orange-100 text-orange-700"
-                                    : "bg-pink-100 text-pink-700"
-                              }`}
-                            >
+                            <span className="text-gray-600">Angebotsart:</span>
+                            <span className="font-medium">
                               {offerType === "lend" ? "Verleihen" : offerType === "trade" ? "Tauschen" : "Verkaufen"}
-                            </Badge>
+                            </span>
                           </div>
 
                           {offerType === "sell" && (
@@ -2013,7 +1940,7 @@ export function CreateMarketplaceOfferForm({
                         <div className="bg-white rounded-xl p-4 border border-teal-100">
                           <h4 className="font-bold text-teal-700 mb-3 flex items-center gap-2">
                             <Clock className="w-4 h-4" />
-                            Ausleihkonditionen
+                            Mietkonditionen
                           </h4>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -2027,12 +1954,12 @@ export function CreateMarketplaceOfferForm({
                                   !dailyRate2To6Days &&
                                   !dailyRate7To30Days &&
                                   !dailyRateOver30Days && (
-                                    <p className="text-teal-600 font-medium">Kostenlose Ausleihe</p>
+                                    <p className="text-teal-600 font-medium">Kostenlose Miete</p>
                                   )}
                               </div>
                             </div>
                             <div>
-                              <span className="text-sm text-gray-600 block mb-2">Ausleihzeit:</span>
+                              <span className="text-sm text-gray-600 block mb-2">Mietzeit:</span>
                               <div className="space-y-1 text-sm">
                                 {minRentalDays && <p>Min: {minRentalDays} Tage</p>}
                                 {maxRentalDays && <p>Max: {maxRentalDays} Tage</p>}
@@ -2065,7 +1992,12 @@ export function CreateMarketplaceOfferForm({
                                 Postversand
                               </Badge>
                               <p className="text-xs text-gray-600">
-                                {shippingOptions.find((opt) => opt.value === shippingOption)?.label}
+                                {/* REMOVED: Accessing shippingOption directly as it's no longer state. We'll infer it's PostPac based on deliveryShipping being true. */}
+                                {offerType === "lend"
+                                  ? "Kosten zu Lasten der Leihnehmer*innen"
+                                  : offerType === "sell"
+                                    ? "Kosten zu Lasten der Käufer*innen"
+                                    : "Kosten zu Lasten der Tauschpartner*innen"}
                               </p>
                             </div>
                           )}

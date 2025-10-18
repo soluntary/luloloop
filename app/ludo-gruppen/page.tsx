@@ -8,17 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { MessageComposerModal } from "@/components/message-composer-modal"
 import { BroadcastMessageModal } from "@/components/broadcast-message-modal"
 import {
@@ -32,10 +24,9 @@ import {
   CheckCircle,
   Settings,
   X,
-  Check,
-  Upload,
   UserCog,
   Dices,
+  ImageIcon,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
@@ -49,6 +40,14 @@ import { fetchGroupMembersAction } from "@/app/actions/fetch-group-members"
 import { handleJoinRequestAction } from "@/app/actions/handle-join-request"
 import { removeGroupMemberAction } from "@/app/actions/remove-group-member"
 import { loadUserMembershipsAction } from "@/app/actions/load-user-memberships"
+import { ShareButton } from "@/components/share-button"
+import { InviteFriendsToCommunityDialog } from "@/components/invite-friends-to-community-dialog"
+import { SimpleLocationSearch } from "@/components/simple-location-search"
+import { useLocationSearch } from "@/contexts/location-search-context"
+import { DistanceBadge } from "@/components/distance-badge"
+import { LocationMap } from "@/components/location-map"
+import { ExpandableText } from "@/components/expandable-text"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
 
 interface LudoGroup {
   id: string
@@ -67,6 +66,8 @@ interface LudoGroup {
     username: string
     avatar: string
   }
+  // Add distance property for location search
+  distance?: number
 }
 
 interface GroupMember {
@@ -136,8 +137,16 @@ export default function LudoGruppenPage() {
     type: "casual",
     approval_mode: "automatic" as "automatic" | "manual",
   })
+  // const [locationPLZ, setLocationPLZ] = useState("")
+  // const [locationOrt, setLocationOrt] = useState("")
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false)
   const [selectedGroupForBroadcast, setSelectedGroupForBroadcast] = useState<LudoGroup | null>(null)
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
+  const [inviteGroup, setInviteGroup] = useState<LudoGroup | null>(null)
+
+  const [locationSearchResults, setLocationSearchResults] = useState<any[]>([])
+  const [showLocationResults, setShowLocationResults] = useState(false)
+  const { searchByAddress, searchCommunitiesNearby } = useLocationSearch() // Ensure searchCommunitiesNearby is destructured
 
   const supabase = createClient()
 
@@ -555,6 +564,97 @@ export default function LudoGruppenPage() {
     return group.creator_id === user.id
   }
 
+  const handleLocationSearch = async (address: string, radius: number) => {
+    try {
+      console.log("[v0] Location search for communities:", address)
+
+      // Split the search address into parts (PLZ, city, street, etc.)
+      const searchParts = address
+        .toLowerCase()
+        .split(/[,\s]+/)
+        .filter((part) => part.length > 0)
+      console.log("[v0] Search parts:", searchParts)
+
+      // Filter groups where location contains any of the search parts
+      const results = ludoGroups.filter((group) => {
+        if (!group.location) return false
+        const locationLower = group.location.toLowerCase()
+        // Check if location contains any of the search parts
+        return searchParts.some((part) => locationLower.includes(part))
+      })
+
+      console.log("[v0] Found communities:", results.length)
+
+      setLocationSearchResults(results)
+      setShowLocationResults(true)
+
+      if (results.length === 0) {
+        toast.info("Keine Spielgruppen an diesem Standort gefunden")
+      } else {
+        toast.success(`${results.length} Spielgruppe${results.length !== 1 ? "n" : ""} gefunden`)
+      }
+    } catch (error) {
+      console.error("[v0] Location search error:", error)
+      toast.error("Fehler bei der Standortsuche")
+      setLocationSearchResults([])
+      setShowLocationResults(false)
+    }
+  }
+
+  const handleNearbySearch = async () => {
+    if (!navigator.geolocation) {
+      toast.error("Dein Browser unterstützt keine Standortermittlung")
+      return
+    }
+
+    toast.info("Ermittle deinen Standort...")
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords
+          console.log("[v0] User location:", latitude, longitude)
+
+          // Search for communities within 50km radius
+          const results = await searchCommunitiesNearby(latitude, longitude, 50)
+
+          console.log("[v0] Found nearby communities:", results.length)
+
+          setLocationSearchResults(results)
+          setShowLocationResults(true)
+
+          if (results.length === 0) {
+            toast.info("Keine Spielgruppen in deiner Nähe gefunden (50km Umkreis)")
+          } else {
+            toast.success(`${results.length} Spielgruppe${results.length !== 1 ? "n" : ""} in deiner Nähe gefunden`)
+          }
+        } catch (error) {
+          console.error("[v0] Nearby search error:", error)
+          toast.error("Fehler bei der Standortsuche")
+          setLocationSearchResults([])
+          setShowLocationResults(false)
+        }
+      },
+      (error) => {
+        console.error("[v0] Geolocation error:", error)
+        if (error.code === error.PERMISSION_DENIED) {
+          toast.error("Standortzugriff wurde verweigert. Bitte erlaube den Zugriff in deinen Browser-Einstellungen.")
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          toast.error("Standort konnte nicht ermittelt werden")
+        } else if (error.code === error.TIMEOUT) {
+          toast.error("Zeitüberschreitung bei der Standortermittlung")
+        } else {
+          toast.error("Fehler bei der Standortermittlung")
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      },
+    )
+  }
+
   const getJoinButtonProps = (group: LudoGroup) => {
     console.log("[v0] getJoinButtonProps called for group:", group.id)
     console.log("[v0] User:", !!user, "User ID:", user?.id)
@@ -562,7 +662,7 @@ export default function LudoGruppenPage() {
     console.log("[v0] Is user member of this group:", userMemberships.includes(group.id))
 
     if (!user) {
-      return { text: "Anmelden", disabled: false, variant: "default" as const }
+      return { text: "Beitreten", disabled: false, variant: "default" as const }
     }
 
     if (group.creator_id === user?.id) {
@@ -598,13 +698,48 @@ export default function LudoGruppenPage() {
     return { text: "Beitreten", disabled: false, variant: "default" as const }
   }
 
+  const formatMemberCount = (group: LudoGroup) => {
+    if (group.max_members === null) {
+      return (
+        <>
+          {group.member_count} Mitglieder <span className="text-gray-500">(unbegrenzt)</span>
+        </>
+      )
+    }
+
+    const freeSpots = group.max_members - group.member_count
+    if (freeSpots > 0) {
+      return (
+        <>
+          {group.member_count} Mitglieder (<span className="text-green-600 font-medium">{freeSpots} Plätze frei</span>)
+        </>
+      )
+    } else {
+      return (
+        <>
+          {group.member_count} Mitglieder (<span className="text-red-600 font-medium">Voll</span>)
+        </>
+      )
+    }
+  }
+
   const showGroupDetails = (group: LudoGroup) => {
     setSelectedGroup(group)
     setIsDetailsDialogOpen(true)
   }
 
+  const openInviteDialog = (group: LudoGroup, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation()
+    }
+    setInviteGroup(group)
+    setIsInviteDialogOpen(true)
+  }
+
   const getFilteredGroups = () => {
-    let filtered = ludoGroups.filter(
+    const sourceGroups = showLocationResults ? locationSearchResults : ludoGroups
+
+    let filtered = sourceGroups.filter(
       (group) =>
         group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         group.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -684,8 +819,11 @@ export default function LudoGruppenPage() {
   }
 
   const handleBroadcastMessage = (group: LudoGroup) => {
+    console.log("[v0] handleBroadcastMessage called with group:", group.id, group.name)
+    console.log("[v0] Setting selectedGroupForBroadcast and opening modal")
     setSelectedGroupForBroadcast(group)
     setIsBroadcastModalOpen(true)
+    console.log("[v0] Modal state should now be open")
   }
 
   return (
@@ -693,396 +831,140 @@ export default function LudoGruppenPage() {
       <Navigation currentPage="ludo-gruppen" />
 
       <div className="container mx-auto px-4 py-8">
+        {/* START CHANGE */}
         <div className="text-center mb-8">
           <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Spielgruppen</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-6">
             Finde deine perfekte Spielgruppe oder gründe deine eigene! Verbinde dich mit anderen Spiel-Enthusiasten und
             schliesse neue Freundschaften!
           </p>
+          {user && (
+            <Button
+              onClick={() => {
+                console.log("[v0] Spielgruppe erstellen button clicked")
+                console.log("[v0] User:", user)
+                console.log("[v0] Opening create dialog...")
+                setIsCreateDialogOpen(true)
+                console.log("[v0] isCreateDialogOpen state set to true")
+              }}
+              className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 font-handwritten"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Spielgruppe erstellen
+            </Button>
+          )}
+          {!user && console.log("[v0] Create button not shown - user not logged in")}
         </div>
+        {/* END CHANGE */}
 
+        {/* Updated filter section with professional, unified design */}
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Spielgruppen durchsuchen..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white/80 border-gray-200 focus:border-teal-500"
-              />
+          <div className="space-y-6">
+            {/* Search Bar */}
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Spielgruppen durchsuchen..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-12 bg-white/80 border-gray-200 focus:border-teal-500 text-base"
+                />
+              </div>
             </div>
 
-            <div className="flex gap-2">
-              {user && ludoGroups.some((group) => group.creator_id === user.id) && (
-                <Dialog open={isManageRequestsDialogOpen} onOpenChange={setIsManageRequestsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="relative bg-white/80 border-gray-200 hover:bg-white">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Anfragen verwalten
-                      {getPendingRequestsCount() > 0 && (
-                        <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs">
-                          {getPendingRequestsCount()}
-                        </Badge>
-                      )}
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle className="font-handwritten text-2xl text-gray-800">
-                        Beitrittsanfragen verwalten
-                      </DialogTitle>
-                      <DialogDescription>Verwalte die Beitrittsanfragen für deine Spielgruppen</DialogDescription>
-                    </DialogHeader>
-
-                    <div className="space-y-4">
-                      {creatorJoinRequests.length === 0 ? (
-                        <div className="text-center py-8">
-                          <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                          <h3 className="text-lg font-semibold text-gray-600 mb-2">Keine ausstehenden Anfragen</h3>
-                          <p className="text-gray-500">
-                            Alle Beitrittsanfragen für deine Spielgruppen wurden bearbeitet.
-                          </p>
-                        </div>
-                      ) : (
-                        creatorJoinRequests.map((request) => (
-                          <Card key={request.id} className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-10 w-10">
-                                  <AvatarImage src={request.users?.avatar || "/placeholder.svg"} />
-                                  <AvatarFallback>{request.users?.username?.[0]?.toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <UserLink
-                                    userId={request.users?.id || ""}
-                                    className="text-gray-800 hover:text-teal-600 transition-colors"
-                                  >
-                                    <p className="font-medium cursor-pointer hover:text-teal-600 transition-colors">
-                                      {request.users?.username}
-                                    </p>
-                                  </UserLink>
-                                  <p className="text-sm text-gray-600">
-                                    möchte "{request.communities?.name}" beitreten
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    {new Date(request.created_at).toLocaleDateString("de-DE", {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      year: "numeric",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleJoinRequest(request.id, "approve")}
-                                  className="bg-green-500 hover:bg-green-600 text-white"
-                                >
-                                  <Check className="h-4 w-4 mr-1" />
-                                  Genehmigen
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleJoinRequest(request.id, "reject")}
-                                  className="border-red-200 text-red-600 hover:bg-red-50"
-                                >
-                                  <X className="h-4 w-4 mr-1" />
-                                  Ablehnen
-                                </Button>
-                              </div>
-                            </div>
-                          </Card>
-                        ))
-                      )}
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )}
-
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-handwritten">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Spielgruppe erstellen
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto modern-form-dialog">
-                  <DialogHeader className="text-center pb-6">
-                    <DialogTitle className="font-handwritten text-3xl text-slate-800 mb-2">
-                      Neue Spielgruppe erstellen
-                    </DialogTitle>
-                    <DialogDescription className="text-slate-600 text-lg">
-                      Erstelle deine eigene Spielgruppe und lade andere Spieler ein
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="space-y-6">
-                    <div className="modern-form-step">
-                      <div className="form-step-header">
-                        <div className="form-step-number">1</div>
-                        <span>Spielgruppen-Bild</span>
-                        <span className="text-sm text-slate-500 font-normal">(optional)</span>
-                      </div>
-
-                      <div className="mt-4">
-                        {imagePreview ? (
-                          <div className="relative">
-                            <img
-                              src={imagePreview || "/placeholder.svg"}
-                              alt="Vorschau"
-                              className="w-full h-40 object-cover rounded-xl border-2 border-slate-200"
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="absolute top-3 right-3 bg-white/90 hover:bg-white shadow-md"
-                              onClick={() => {
-                                setImageFile(null)
-                                setImagePreview(null)
-                              }}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <label htmlFor="image-upload" className="upload-zone block">
-                            <div className="flex flex-col items-center justify-center py-6">
-                              <Upload className="w-12 h-12 mb-4 text-slate-400" />
-                              <p className="text-slate-600 font-semibold mb-1">Bild hochladen</p>
-                              <p className="text-sm text-slate-500">PNG, JPG bis zu 5MB</p>
-                            </div>
-                            <input
-                              id="image-upload"
-                              type="file"
-                              className="hidden"
-                              accept="image/*"
-                              onChange={handleImageUpload}
-                            />
-                          </label>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="modern-form-step">
-                      <div className="form-step-header">
-                        <div className="form-step-number">2</div>
-                        <span>Grundinformationen</span>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="name" className="text-slate-700 font-semibold mb-2 block">
-                            Spielgruppenname *
-                          </Label>
-                          <Input
-                            id="name"
-                            value={newGroup.name}
-                            onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
-                            placeholder="z.B. CATAN-Freunde Zürich"
-                            className="modern-input"
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="location" className="text-slate-700 font-semibold mb-2 block">
-                            Standort
-                          </Label>
-                          <Input
-                            id="location"
-                            value={newGroup.location}
-                            onChange={(e) => setNewGroup({ ...newGroup, location: e.target.value })}
-                            placeholder="Location, Ort oder Adresse"
-                            className="modern-input"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="modern-form-step">
-                      <div className="form-step-header">
-                        <div className="form-step-number">3</div>
-                        <span>Beschreibung</span>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="description" className="text-slate-700 font-semibold mb-2 block">
-                          Erzähle mehr über deine Spielgruppe
-                        </Label>
-                        <RichTextEditor
-                          value={newGroup.description}
-                          onChange={(value) => setNewGroup({ ...newGroup, description: value })}
-                          placeholder="Beschreibe deine Spielgruppe, welche Spiele ihr spielt, wann ihr euch trefft..."
-                          className="border-2 border-slate-200 focus:border-coral-500 rounded-lg"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="modern-form-step">
-                      <div className="form-step-header">
-                        <div className="form-step-number">4</div>
-                        <span>Einstellungen</span>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="max_members" className="text-slate-700 font-semibold mb-2 block">
-                            Maximale Mitglieder
-                          </Label>
-                          <Input
-                            id="max_members"
-                            type="number"
-                            min="2"
-                            value={newGroup.max_members || ""}
-                            onChange={(e) => {
-                              const value = e.target.value
-                              setNewGroup({
-                                ...newGroup,
-                                max_members: value === "" ? null : Number.parseInt(value) || 2,
-                              })
-                            }}
-                            className="modern-input"
-                            placeholder="Unbegrenzt"
-                          />
-                          <p className="text-xs text-slate-500 mt-1">Leer lassen für unbegrenzte Mitgliederzahl</p>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="approval_mode" className="text-slate-700 font-semibold mb-2 block">
-                            Beitrittsbedingungen
-                          </Label>
-                          <Select
-                            value={newGroup.approval_mode}
-                            onValueChange={(value: "automatic" | "manual") =>
-                              setNewGroup({ ...newGroup, approval_mode: value })
-                            }
-                          >
-                            <SelectTrigger className="modern-select">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="automatic">Sofort-Beitritt</SelectItem>
-                              <SelectItem value="manual">Beitritt erst nach Genehmigung</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <p className="text-xs text-slate-500 mt-1">
-                            {newGroup.approval_mode === "automatic"
-                              ? "Nutzer können sofort der Spielgruppe beitreten"
-                              : "Beitrittsanfragen müssen von dir genehmigt werden"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-4 pt-6 border-t border-slate-200">
-                      <Button onClick={() => setIsCreateDialogOpen(false)} className="flex-1 modern-button-secondary">
-                        Abbrechen
-                      </Button>
-                      <Button
-                        onClick={createLudoGroup}
-                        disabled={isUploading || !newGroup.name.trim()}
-                        className="flex-1 modern-button-primary"
-                      >
-                        {isUploading ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Erstelle...
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Spielgruppe erstellen
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+            {/* Location Search */}
+            <div className="space-y-3">
+              <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
             </div>
-          </div>
 
-          <div className="mt-6 space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Sortieren nach</Label>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="text-xs">
-                      Alle
-                    </SelectItem>
-                    <SelectItem value="newest" className="text-xs">
-                      Neueste
-                    </SelectItem>
-                    <SelectItem value="members" className="text-xs">
-                      Mitglieder
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Verfügbarkeit</Label>
-                <Select value={availableSpotsFilter} onValueChange={setAvailableSpotsFilter}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="text-xs">
-                      Alle Spielgruppen
-                    </SelectItem>
-                    <SelectItem value="available" className="text-xs">
-                      Freie Plätze
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Beitrittsverfahren</Label>
-                <Select value={approvalModeFilter} onValueChange={setApprovalModeFilter}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="text-xs">
-                      Alle
-                    </SelectItem>
-                    <SelectItem value="automatic" className="text-xs">
-                      Sofortiger Beitritt
-                    </SelectItem>
-                    <SelectItem value="manual" className="text-xs">
-                      Beitritt erst nach Genehmigung
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-end">
+            {showLocationResults && (
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-blue-600" />
+                  <span className="text-sm text-blue-800 font-medium">
+                    Zeige Ergebnisse in der Nähe ({locationSearchResults.length})
+                  </span>
+                </div>
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => {
-                    setSearchTerm("")
-                    setSortBy("all")
-                    setAvailableSpotsFilter("all")
-                    setApprovalModeFilter("all")
+                    setShowLocationResults(false)
+                    setLocationSearchResults([])
                   }}
-                  className="h-8 text-xs border-2 border-gray-400 text-gray-600 hover:bg-gray-400 hover:text-white font-handwritten bg-transparent"
+                  className="text-blue-600 border-blue-300 hover:bg-blue-100"
                 >
-                  Filter zurücksetzen
+                  Alle Spielgruppen zeigen
                 </Button>
+              </div>
+            )}
+
+            {/* Filters */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Sortieren nach</Label>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle</SelectItem>
+                      <SelectItem value="newest">Neueste</SelectItem>
+                      <SelectItem value="members">Mitglieder</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Kapazität</Label>
+                  <Select value={availableSpotsFilter} onValueChange={setAvailableSpotsFilter}>
+                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle</SelectItem>
+                      <SelectItem value="available">Freie Plätze</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Beitrittsverfahren</Label>
+                  <Select value={approvalModeFilter} onValueChange={setApprovalModeFilter}>
+                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle</SelectItem>
+                      <SelectItem value="automatic">Sofortiger Beitritt</SelectItem>
+                      <SelectItem value="manual">Beitritt erst nach Genehmigung</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchTerm("")
+                      setSortBy("all")
+                      setAvailableSpotsFilter("all")
+                      setApprovalModeFilter("all")
+                      setShowLocationResults(false)
+                      setLocationSearchResults([])
+                    }}
+                    className="h-12 w-full border-2 border-gray-300 text-gray-700 hover:bg-gray-100 font-medium"
+                  >
+                    Filter zurücksetzen
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
         </div>
+        {/* END CHANGE */}
 
         <div className="flex gap-8">
           <div className="flex-1">
@@ -1161,6 +1043,7 @@ export default function LudoGruppenPage() {
                             </CardTitle>
                             <div className="flex items-center gap-2 text-sm text-gray-500 mb-2"></div>
                           </div>
+                          {group.distance !== undefined && <DistanceBadge distance={group.distance} className="ml-2" />}
                         </div>
                       </CardHeader>
 
@@ -1170,16 +1053,20 @@ export default function LudoGruppenPage() {
                         <div className="space-y-2">
                           <div className="flex items-center gap-1 text-sm text-gray-500">
                             <Users className="h-4 w-4 text-teal-600" />
-                            <span>
-                              {group.max_members === null
-                                ? `${group.member_count} Mitglieder (unbegrenzt)`
-                                : `${group.member_count} Mitglieder (${group.max_members - group.member_count} Plätze frei)`}
-                            </span>
+                            <span>{formatMemberCount(group)}</span>
                           </div>
                           {group.location && (
                             <div className="flex items-center gap-1 text-sm text-gray-500">
                               <MapPin className="h-4 w-4 text-teal-600" />
-                              <span className="truncate">{group.location}</span>
+                              <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(group.location)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="truncate text-teal-600 hover:text-teal-700 hover:underline cursor-pointer transition-colors"
+                              >
+                                {group.location}
+                              </a>
                             </div>
                           )}
                         </div>
@@ -1239,6 +1126,25 @@ export default function LudoGruppenPage() {
                             {buttonProps.text}
                           </Button>
 
+                          {(!user || group.creator_id !== user.id) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="px-3 bg-transparent font-handwritten"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (!user) {
+                                  toast.info("Bitte melde dich an, um Nachrichten zu senden")
+                                  window.location.href = "/login"
+                                  return
+                                }
+                                handleSendGroupMessage(group)
+                              }}
+                            >
+                              <MessageCircle className="h-4 w-4" />
+                            </Button>
+                          )}
+
                           {user && canManageMembers(group) && (
                             <>
                               <Button
@@ -1266,20 +1172,6 @@ export default function LudoGruppenPage() {
                               </Button>
                             </>
                           )}
-
-                          {user && group.creator_id !== user.id && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="px-3 bg-transparent font-handwritten"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleSendGroupMessage(group)
-                              }}
-                            >
-                              <MessageCircle className="h-4 w-4" />
-                            </Button>
-                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -1296,9 +1188,269 @@ export default function LudoGruppenPage() {
           </div>
         </div>
 
-        <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-          <DialogContent className="sm:max-w-lg">
+        {/* START CHANGE */}
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
+              <DialogTitle className="font-handwritten text-3xl text-gray-800 mb-2">
+                Neue Spielgruppe erstellen
+              </DialogTitle>
+              <DialogDescription className="text-base text-gray-600">
+                Erstelle eine neue Spielgruppe und lade andere Spieler ein
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6 mt-6">
+              {/* Basic Information Section - Now includes all basic info */}
+              <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-6 border-2 border-teal-200">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 text-white flex items-center justify-center text-sm font-bold">
+                    1
+                  </span>
+                  Grundinformationen
+                </h3>
+
+                <div className="space-y-5">
+                  <div>
+                    <Label htmlFor="group-name" className="text-base font-semibold text-gray-900 mb-2 block">
+                      Name der Spielgruppe *
+                    </Label>
+                    <Input
+                      id="group-name"
+                      value={newGroup.name}
+                      onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
+                      placeholder="z.B. CATAN-Freunde Zürich"
+                      className="h-12 text-base border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="group-description" className="text-base font-semibold text-gray-900 mb-2 block">
+                      Beschreibung
+                    </Label>
+                    <textarea
+                      id="group-description"
+                      value={newGroup.description}
+                      onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
+                      placeholder="Beschreibe deine Spielgruppe..."
+                      className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none text-base"
+                      rows={4}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="max-members" className="text-base font-semibold text-gray-900 mb-2 block">
+                      Maximale Mitgliederzahl
+                    </Label>
+                    <Input
+                      id="max-members"
+                      type="number"
+                      value={newGroup.max_members || ""}
+                      onChange={(e) =>
+                        setNewGroup({
+                          ...newGroup,
+                          max_members: e.target.value ? Number.parseInt(e.target.value) : null,
+                        })
+                      }
+                      placeholder="Leer lassen für unbegrenzt"
+                      className="h-12 text-base border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                    />
+                  </div>
+
+                  <div>
+                    <Label
+                      htmlFor="group-image"
+                      className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2"
+                    >
+                      Gruppenbild (optional)
+                    </Label>
+
+                    {!imagePreview ? (
+                      <div
+                        onClick={() => document.getElementById("group-image")?.click()}
+                        className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50/50 transition-all duration-200 bg-gray-50"
+                      >
+                        <ImageIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-base font-medium text-gray-700 mb-1">Klicken zum Hochladen</p>
+                        <p className="text-sm text-gray-500">JPG, PNG oder WebP (max. 5MB)</p>
+                        <Input
+                          id="group-image"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                      </div>
+                    ) : (
+                      <div className="relative rounded-xl overflow-hidden border-2 border-teal-200">
+                        <img
+                          src={imagePreview || "/placeholder.svg"}
+                          alt="Preview"
+                          className="w-full h-64 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImageFile(null)
+                            setImagePreview(null)
+                          }}
+                          className="absolute top-3 right-3 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="group-location" className="text-base font-semibold text-gray-900 mb-2 block">
+                      Standort
+                    </Label>
+                    <AddressAutocomplete
+                      label=""
+                      placeholder="Location, Adresse, PLZ oder Ort eingeben..."
+                      value={newGroup.location}
+                      onChange={(value) => setNewGroup({ ...newGroup, location: value })}
+                      className="h-12 text-base border-gray-300 focus:border-teal-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-xl p-6 border-2 border-orange-200">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-pink-500 text-white flex items-center justify-center text-sm font-bold">
+                    2
+                  </span>
+                  Beitrittsverfahren
+                </h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="approval-mode" className="text-base font-semibold text-gray-900 mb-2 block">
+                      Wie sollen neue Mitglieder beitreten können?
+                    </Label>
+                    <Select
+                      value={newGroup.approval_mode}
+                      onValueChange={(value: "automatic" | "manual") =>
+                        setNewGroup({ ...newGroup, approval_mode: value })
+                      }
+                    >
+                      <SelectTrigger className="h-12 text-base border-gray-300 focus:border-orange-500 focus:ring-orange-500">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="automatic">Sofortiger Beitritt</SelectItem>
+                        <SelectItem value="manual">Beitritt erst nach Genehmigung</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="bg-white/60 rounded-lg p-4 border border-orange-200">
+                    {newGroup.approval_mode === "automatic" ? (
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="font-semibold text-gray-900 mb-1">Sofortiger Beitritt</p>
+                            <p className="text-sm text-gray-600">
+                              Interessenten können der Spielgruppe sofort beitreten, ohne auf eine Genehmigung warten
+                              zu müssen.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <Clock className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="font-semibold text-gray-900 mb-1">Beitritt erst nach Genehmigung</p>
+                            <p className="text-sm text-gray-600">
+                              Du erhältst eine Benachrichtigung für jede Beitrittsanfrage und kannst entscheiden, wer
+                              Mitglied wird.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-6 border-t-2 border-gray-200">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsCreateDialogOpen(false)
+                    setNewGroup({
+                      name: "",
+                      description: "",
+                      location: "",
+                      max_members: null,
+                      type: "casual",
+                      approval_mode: "automatic",
+                    })
+                    setImageFile(null)
+                    setImagePreview(null)
+                  }}
+                  className="flex-1 h-12 text-base border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold"
+                >
+                  Abbrechen
+                </Button>
+                <Button
+                  onClick={createLudoGroup}
+                  disabled={!newGroup.name.trim() || isUploading}
+                  className="flex-1 h-12 text-base bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-semibold shadow-lg"
+                >
+                  {isUploading ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                      Wird erstellt...
+                    </div>
+                  ) : (
+                    <>
+                      <Plus className="h-5 w-5 mr-2" />
+                      Spielgruppe erstellen
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+        {/* END CHANGE */}
+
+        <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+          <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              {user && selectedGroup && canManageMembers(selectedGroup) && (
+                <div className="flex gap-2 justify-end mb-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openInviteDialog(selectedGroup, e)
+                    }}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Einladen
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      showMemberManagement(selectedGroup)
+                    }}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Verwalten
+                  </Button>
+                </div>
+              )}
               <DialogTitle className="font-handwritten text-2xl text-gray-800">{selectedGroup?.name}</DialogTitle>
               <DialogDescription>Spielgruppe Details und Informationen</DialogDescription>
             </DialogHeader>
@@ -1337,26 +1489,46 @@ export default function LudoGruppenPage() {
                 {selectedGroup.description && (
                   <div>
                     <h4 className="text-gray-800 mb-2 font-semibold">Beschreibung</h4>
-                    <p className="text-gray-600 text-sm leading-relaxed">{selectedGroup.description}</p>
+                    <ExpandableText text={selectedGroup.description} maxLength={300} />
                   </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center gap-2 text-sm">
                     <Users className="h-4 w-4 text-teal-600" />
-                    <span className="text-gray-600">
-                      {selectedGroup.max_members === null
-                        ? `${selectedGroup.member_count} Mitglieder (unbegrenzt)`
-                        : `${selectedGroup.member_count} Mitglieder (${selectedGroup.max_members - selectedGroup.member_count} Plätze frei)`}
-                    </span>
+                    <span className="text-gray-600">{formatMemberCount(selectedGroup)}</span>
                   </div>
                   {selectedGroup.location && (
                     <div className="col-span-2 flex items-center gap-2 text-sm">
                       <MapPin className="h-4 w-4 text-teal-600" />
-                      <span className="text-gray-600">{selectedGroup.location}</span>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedGroup.location)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="truncate text-teal-600 hover:text-teal-700 hover:underline cursor-pointer transition-colors"
+                      >
+                        {selectedGroup.location}
+                      </a>
                     </div>
                   )}
                 </div>
+
+                {/* START CHANGE */}
+                <div>
+                  {selectedGroup.location ? (
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                      <LocationMap location={selectedGroup.location} className="h-64 w-full rounded-lg" />
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <p className="text-sm text-gray-600">
+                        Kein Standort angegeben. Diese Spielgruppe hat keinen Standort hinterlegt.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {/* END CHANGE */}
 
                 <div className="flex gap-3 pt-4">
                   {(() => {
@@ -1396,12 +1568,22 @@ export default function LudoGruppenPage() {
                       </Button>
                     )
                   })()}
-                  {user && selectedGroup && selectedGroup.creator_id !== user.id && (
+
+                  <ShareButton
+                    url={`${typeof window !== "undefined" ? window.location.origin : ""}/ludo-gruppen/${selectedGroup.id}`}
+                    title={selectedGroup.name}
+                    description={selectedGroup.description || "Schau dir diese Spielgruppe an!"}
+                    variant="outline"
+                    className="px-4 bg-transparent font-handwritten"
+                  />
+
+                  {(!user || (user && selectedGroup.creator_id !== user.id)) && (
                     <Button
                       variant="outline"
                       className="px-4 bg-transparent font-handwritten"
                       onClick={() => {
                         if (!user) {
+                          toast.info("Bitte melde dich an, um Nachrichten zu senden")
                           window.location.href = "/login"
                           return
                         }
@@ -1560,6 +1742,16 @@ export default function LudoGruppenPage() {
           }}
           groupId={selectedGroupForBroadcast?.id || ""}
           groupName={selectedGroupForBroadcast?.name || ""}
+        />
+
+        <InviteFriendsToCommunityDialog
+          isOpen={isInviteDialogOpen}
+          onClose={() => {
+            setIsInviteDialogOpen(false)
+            setInviteGroup(null)
+          }}
+          communityId={inviteGroup?.id || ""}
+          communityName={inviteGroup?.name || ""}
         />
       </div>
     </div>

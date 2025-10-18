@@ -32,7 +32,6 @@ import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 
 import { useMessages } from "@/contexts/messages-context"
-import { useUser } from "@/contexts/user-context"
 import { UserLink } from "@/components/user-link"
 
 import { SimpleLocationSearch } from "@/components/simple-location-search"
@@ -41,11 +40,13 @@ import { DistanceBadge } from "@/components/distance-badge"
 import { useLocationSearch } from "@/contexts/location-search-context"
 import { WideSkyscraperAd } from "@/components/advertising/ad-placements"
 
+import { ShareButton } from "@/components/share-button"
+import { LocationMap } from "@/components/location-map"
+
 export default function MarketplacePage() {
   const { sendMessage } = useMessages()
   const { marketplaceOffers, loading, error, databaseConnected } = useGames()
-  const { user: authUser } = useAuth()
-  const { user } = useUser()
+  const { user: authUser, user } = useAuth() // Added user to useAuth context
   console.log(
     "[v0] Marketplace page render - loading:",
     loading,
@@ -89,7 +90,7 @@ export default function MarketplacePage() {
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
-  const { searchByAddress } = useLocationSearch()
+  const { searchByAddress, searchMarketplaceOffersNearby } = useLocationSearch()
 
   const handleLocationSearch = async (address: string, radius: number) => {
     console.log("[v0] Location search initiated for:", address, "radius:", radius)
@@ -115,6 +116,39 @@ export default function MarketplacePage() {
       setLocationSearchResults([])
       setShowLocationResults(false)
     }
+  }
+
+  const handleNearbySearch = async () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation wird von deinem Browser nicht unterstützt")
+      return
+    }
+
+    const confirmed = confirm("Möchtest du nach Angeboten in deiner Nähe suchen?")
+    if (!confirmed) return
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        console.log("[v0] User location:", { latitude, longitude })
+
+        try {
+          const results = await searchMarketplaceOffersNearby(latitude, longitude, 50) // 50km radius
+          console.log("[v0] Nearby offers found:", results)
+
+          setLocationSearchResults(results || [])
+          setShowLocationResults(true)
+          alert(`${results?.length || 0} Angebote in deiner Nähe gefunden`)
+        } catch (error) {
+          console.error("[v0] Error searching nearby offers:", error)
+          alert("Fehler bei der Standortsuche")
+        }
+      },
+      (error) => {
+        console.error("[v0] Geolocation error:", error)
+        alert("Standort konnte nicht ermittelt werden")
+      },
+    )
   }
 
   const allItems = showLocationResults
@@ -220,7 +254,7 @@ export default function MarketplacePage() {
   const getTypeText = (type: string) => {
     switch (type) {
       case "lend":
-        return "Ausleihen"
+        return "Mieten"
       case "trade":
         return "Tauschen"
       case "sell":
@@ -228,7 +262,7 @@ export default function MarketplacePage() {
       case "buy":
         return "Kaufen"
       case "borrow":
-        return "Ausleihen"
+        return "Mieten"
       default:
         return type
     }
@@ -240,9 +274,9 @@ export default function MarketplacePage() {
 
     let baseMessage = ""
     if (offer.type === "lend" && rentalStartDate && rentalEndDate && calculatedPrice) {
-      baseMessage = `Hallo! Ich interessiere mich für dein Spiel "${offer.title}" und möchte es vom ${new Date(rentalStartDate).toLocaleDateString("de-DE")} bis ${new Date(rentalEndDate).toLocaleDateString("de-DE")} ausleihen. 
+      baseMessage = `Hallo! Ich interessiere mich für dein Spiel "${offer.title}" und möchte es vom ${new Date(rentalStartDate).toLocaleDateString("de-DE")} bis ${new Date(rentalEndDate).toLocaleDateString("de-DE")} mieten.
 
-Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
+Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
     } else {
       baseMessage = `Hallo! Ich interessiere mich für dein Spiel "${offer.title}".`
     }
@@ -268,9 +302,9 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
 
     let baseMessage = ""
     if (selectedOffer.type === "lend" && rentalStartDate && rentalEndDate && calculatedPrice) {
-      baseMessage = `Hallo! Ich interessiere mich für dein Spiel "${selectedOffer.title}" und möchte es vom ${new Date(rentalStartDate).toLocaleDateString("de-DE")} bis ${new Date(rentalEndDate).toLocaleDateString("de-DE")} ausleihen. 
+      baseMessage = `Hallo! Ich interessiere mich für dein Spiel "${selectedOffer.title}" und möchte es vom ${new Date(rentalStartDate).toLocaleDateString("de-DE")} bis ${new Date(rentalEndDate).toLocaleDateString("de-DE")} mieten.
 
-Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
+Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
     } else {
       baseMessage = `Hallo! Ich interessiere mich für dein Spiel "${selectedOffer.title}".`
     }
@@ -286,7 +320,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
   }
 
   const handleSendMessage = async () => {
-    if (!user || !selectedOffer || !contactMessage.trim()) return
+    if (!user || !selectedOffer || !contactMessage.trim()) return // Changed authUser to user
 
     const hasBothOptions = selectedOffer.pickup_available && selectedOffer.shipping_available
     if (hasBothOptions && !selectedDeliveryOption) {
@@ -313,8 +347,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
         delivery_preference: deliveryPreference,
       })
 
-      // Show success message
-      alert(`Nachricht an ${selectedOffer.owner} erfolgreich gesendet!`)
+      alert(`Nachricht an ${selectedOffer.users?.username || selectedOffer.owner} erfolgreich gesendet!`)
 
       setIsContactDialogOpen(false)
       setContactMessage("")
@@ -327,6 +360,9 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
   }
 
   const handleOfferClick = async (item: any) => {
+    console.log("[v0] Offer clicked, game_id:", item.game_id)
+    console.log("[v0] Current item data:", JSON.stringify(item).substring(0, 200) + "...")
+
     if (item.itemType === "search") {
       setSelectedSearchAdDetails(item)
       setIsSearchAdDetailsOpen(true)
@@ -335,31 +371,42 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
         const supabase = createClient()
         const { data: gameData, error } = await supabase
           .from("games")
-          .select("duration, players, category, style, age, language, game_types")
+          .select("id, duration, players, category, style, age, language, type") // Added id to select
           .eq("id", item.game_id)
           .single()
 
+        console.log("[v0] Game data fetched:", gameData)
+        if (error) {
+          console.log("[v0] Fetch error:", error.message)
+        }
+
         if (!error && gameData) {
-          // Merge game details with offer data
+          console.log("[v0] Merging game data with offer data")
+          // We expect `users` to be joined in the `marketplaceOffers` data from the context provider
           setSelectedOfferDetails({
             ...item,
-            duration: gameData.duration,
-            players: gameData.players,
-            category: gameData.category,
-            style: gameData.style,
-            age: gameData.age,
-            language: gameData.language,
-            game_types: gameData.game_types,
+            // Merge game details, prioritizing existing offer details if they exist and are valid
+            duration: gameData.duration || item.duration,
+            players: gameData.players || item.players,
+            category: gameData.category || item.category,
+            style: gameData.style || item.style,
+            age: gameData.age || item.age,
+            language: gameData.language || item.language,
+            game_types: gameData.style || item.style, // Map style to game_types for Typus display
+            // Ensure game_id is correctly set if it was missing in the original item
+            game_id: gameData.id || item.game_id,
           })
         } else {
+          console.log("[v0] No game data found or error occurred, using item data only")
           setSelectedOfferDetails(item)
         }
       } catch (error) {
-        console.error("Error fetching game details:", error)
+        console.error("[v0] Error fetching game details:", error)
         setSelectedOfferDetails(item)
       }
       setIsOfferDetailsOpen(true)
     } else {
+      // Fallback for items that are not offers or search ads, or have no game_id
       setSelectedOfferDetails(item)
       setIsOfferDetailsOpen(true)
     }
@@ -374,7 +421,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
   }
 
   const handleSendSearchAdMessage = async () => {
-    if (!user || !selectedSearchAd || !searchAdContactMessage.trim()) return
+    if (!user || !selectedSearchAd || !searchAdContactMessage.trim()) return // Changed authUser to user
 
     try {
       const mapSearchAdTypeToOfferType = (searchType: string) => {
@@ -399,8 +446,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
         offer_type: mapSearchAdTypeToOfferType(selectedSearchAd.type), // Use mapped offer type
       })
 
-      // Show success message
-      alert(`Nachricht an ${selectedSearchAd.users?.name || "den Ersteller"} erfolgreich gesendet!`)
+      alert(`Nachricht an ${selectedSearchAd.users?.username || "den Ersteller"} erfolgreich gesendet!`)
 
       setIsSearchAdContactDialogOpen(false)
       setSearchAdContactMessage("")
@@ -412,7 +458,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
   }
 
   const calculateRentalPrice = (startDate: string, endDate: string, priceString: string) => {
-    if (!startDate || !endDate || !priceString) return ""
+    if (!startDate || !endDate) return ""
 
     const start = new Date(startDate)
     const end = new Date(endDate)
@@ -428,6 +474,11 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
 
     if (diffDays <= 0) return ""
 
+    if (!priceString || priceString.trim() === "") {
+      console.log("[v0] Price string is empty, cannot calculate")
+      return ""
+    }
+
     // Parse the price string to extract tiered pricing
     const priceRanges = priceString.split(", ")
     let dailyRate = 0
@@ -437,22 +488,33 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
     for (const range of priceRanges) {
       console.log("[v0] Checking range:", range, "for", diffDays, "days")
 
+      const priceMatch = range.match(/(\d+(?:[.,]\d+)?)\s*CHF/i)
+      const extractedPrice = priceMatch ? Number.parseFloat(priceMatch[1].replace(",", ".")) : 0
+
       if (range.includes("1 Tag:") && diffDays === 1) {
-        dailyRate = Number.parseFloat(range.match(/(\d+(?:\.\d+)?)/)?.[0] || "0")
+        dailyRate = extractedPrice
         console.log("[v0] Using 1 day rate:", dailyRate)
         break
       } else if (range.includes("2-6 Tage:") && diffDays >= 2 && diffDays <= 6) {
-        dailyRate = Number.parseFloat(range.match(/(\d+(?:\.\d+)?)/)?.[0] || "0")
+        dailyRate = extractedPrice
         console.log("[v0] Using 2-6 days rate:", dailyRate)
         break
       } else if (range.includes("7-30 Tage:") && diffDays >= 7 && diffDays <= 30) {
-        dailyRate = Number.parseFloat(range.match(/(\d+(?:\.\d+)?)/)?.[0] || "0")
+        dailyRate = extractedPrice
         console.log("[v0] Using 7-30 days rate:", dailyRate)
         break
       } else if (range.includes(">30 Tage:") && diffDays > 30) {
-        dailyRate = Number.parseFloat(range.match(/(\d+(?:\.\d+)?)/)?.[0] || "0")
+        dailyRate = extractedPrice
         console.log("[v0] Using >30 days rate:", dailyRate)
         break
+      }
+    }
+
+    if (dailyRate === 0 && priceRanges.length > 0) {
+      const firstRateMatch = priceRanges[0].match(/(\d+(?:[.,]\d+)?)\s*CHF/i)
+      if (firstRateMatch) {
+        dailyRate = Number.parseFloat(firstRateMatch[1].replace(",", "."))
+        console.log("[v0] Using first available rate as fallback:", dailyRate)
       }
     }
 
@@ -462,9 +524,47 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
     return totalPrice > 0 ? `${totalPrice.toFixed(2)} CHF für ${diffDays} Tag${diffDays > 1 ? "e" : ""}` : ""
   }
 
+  const formatDailyRates = (priceString: string) => {
+    if (!priceString || priceString.trim() === "") return null
+
+    if (priceString.includes("Tag:") || priceString.includes("Tage:")) {
+      const rates = priceString.split(", ")
+      return (
+        <div className="space-y-1 w-full">
+          {rates.map((rate, index) => {
+            // Parse the rate to separate period and price
+            const parts = rate.split(":")
+            if (parts.length === 2) {
+              const period = parts[0].trim()
+              const price = parts[1].trim().replace("CHF", " CHF")
+              return (
+                <div key={index} className="flex items-center justify-between w-full">
+                  <span className="text-sm font-medium text-gray-700">{period}</span>
+                  <span className="text-sm font-bold px-20 mx-0 border-0 mr-0 border-l-0 border-r-0 text-left pr-0 ml-20 text-foreground">
+                    {price}
+                  </span>
+                </div>
+              )
+            }
+            // Fallback for unexpected format
+            return (
+              <div key={index} className="text-sm w-full">
+                {rate.replace("CHF", " CHF")}
+              </div>
+            )
+          })}
+        </div>
+      )
+    }
+
+    // For non-lending offers, return the price as is
+    return <span className="text-foreground">{priceString}</span>
+  }
+
   useEffect(() => {
     if (selectedOfferDetails?.type === "lend" && rentalStartDate && rentalEndDate) {
       const calculated = calculateRentalPrice(rentalStartDate, rentalEndDate, selectedOfferDetails.price || "")
+      console.log("[v0] Calculated price updated:", calculated)
       setCalculatedPrice(calculated)
     } else {
       setCalculatedPrice("")
@@ -582,7 +682,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">Spielemarkt</h1>
           <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
-            Entdecke, tausche, teile und finde deine Lieblingsspiele!
+            Entdecke spannende Angebote von anderen Mitgliedern und finde tolle Spiele zum Mieten, Kaufen oder Tauschen
           </p>
           {authUser && databaseConnected && (
             <div className="mt-6 flex gap-4 justify-center">
@@ -609,32 +709,29 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
 
         {/* Search and Filter Bar */}
         <div className="bg-white/50 rounded-lg p-4 border border-orange-200 mb-8">
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Search Bar */}
-            <div className="flex gap-4 items-center">
-              <div className="flex-1">
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Spiele, Verlage oder Anbieter durchsuchen..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="border-2 border-orange-200 focus:border-orange-400"
+                  className="pl-10 h-12 bg-white/80 border-gray-200 focus:border-teal-500 text-base"
                 />
               </div>
-              <Button
-                variant="outline"
-                className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white font-handwritten bg-transparent"
-              >
-                <Search className="w-5 h-5 mr-2" />
-                Suchen
-              </Button>
             </div>
 
-            <SimpleLocationSearch onLocationSearch={handleLocationSearch} />
+            {/* Location Search */}
+            <div className="space-y-3">
+              <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
+            </div>
 
             {showLocationResults && (
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200">
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-blue-600" />
+                  <MapPin className="h-5 w-5 text-blue-600" />
                   <span className="text-sm text-blue-800 font-medium">
                     Zeige Ergebnisse in der Nähe ({locationSearchResults.length})
                   </span>
@@ -653,256 +750,228 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
               </div>
             )}
 
-            <div className="flex flex-wrap gap-3 items-center">
-              {/* Sortierung */}
-              <div className="flex-1 min-w-[200px]">
-                <Label className="text-xs text-gray-600 mb-1 block">Sortieren nach</Label>
-                <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
-                  <SelectTrigger className="h-10 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {showLocationResults && (
-                      <SelectItem value="distance" className="text-sm">
-                        Nach Entfernung
-                      </SelectItem>
-                    )}
-                    <SelectItem value="newest" className="text-sm">
-                      Neueste zuerst
-                    </SelectItem>
-                    <SelectItem value="oldest" className="text-sm">
-                      Älteste zuerst
-                    </SelectItem>
-                    <SelectItem value="title" className="text-sm">
-                      Spielname A-Z
-                    </SelectItem>
-                    <SelectItem value="title-desc" className="text-sm">
-                      Spielname Z-A
-                    </SelectItem>
-                    <SelectItem value="price-low" className="text-sm">
-                      Preis aufsteigend
-                    </SelectItem>
-                    <SelectItem value="price-high" className="text-sm">
-                      Preis absteigend
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Anzeigeart */}
-              <div className="flex-1 min-w-[150px]">
-                <Label className="text-xs text-gray-600 mb-1 block">Anzeigeart</Label>
-                <Select value={selectedType} onValueChange={setSelectedType} disabled={!databaseConnected}>
-                  <SelectTrigger className="h-10 text-sm">
-                    <SelectValue placeholder="Alle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="text-sm">
-                      Alle Anzeigen
-                    </SelectItem>
-                    <SelectItem value="lend" className="text-sm">
-                      Leihangebote
-                    </SelectItem>
-                    <SelectItem value="trade" className="text-sm">
-                      Tauschangebote
-                    </SelectItem>
-                    <SelectItem value="sell" className="text-sm">
-                      Verkaufsangebote
-                    </SelectItem>
-                    <SelectItem value="search" className="text-sm">
-                      Suchanzeigen
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-end">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                  className="h-10 border-2 border-teal-400 text-teal-600 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent"
-                  disabled={!databaseConnected}
-                >
-                  <Filter className="w-4 h-4 mr-2" />
-                  Erweiterte Filter
-                  <ChevronDown
-                    className={`w-4 h-4 ml-2 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
-                  />
-                </Button>
-              </div>
-            </div>
-
-            {showAdvancedFilters && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {/* Spieleranzahl Filter */}
-                <div className="flex-1 min-w-[150px]">
-                  <Label className="text-xs text-gray-600 mb-1 block">Spieleranzahl</Label>
-                  <Select
-                    value={filters.playerCount}
-                    onValueChange={(value) =>
-                      setFilters((prev) => ({ ...prev, playerCount: value === "all" ? "" : value }))
-                    }
-                    disabled={!databaseConnected}
-                  >
-                    <SelectTrigger className="h-10 text-sm">
-                      <SelectValue placeholder="Alle" />
+            {/* Basic Filters */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Sortieren nach</Label>
+                  <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
+                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      {dynamicFilterOptions.playerCounts.map((count) => (
-                        <SelectItem key={count} value={count}>
-                          {count}
-                        </SelectItem>
-                      ))}
+                      {showLocationResults && <SelectItem value="distance">Nach Entfernung</SelectItem>}
+                      <SelectItem value="newest">Neueste zuerst</SelectItem>
+                      <SelectItem value="oldest">Älteste zuerst</SelectItem>
+                      <SelectItem value="title">Spielname A-Z</SelectItem>
+                      <SelectItem value="price-low">Preis aufsteigend</SelectItem>
+                      <SelectItem value="price-high">Preis absteigend</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Spieldauer Filter */}
-                <div className="flex-1 min-w-[150px]">
-                  <Label className="text-xs text-gray-600 mb-1 block">Spieldauer</Label>
-                  <Select
-                    value={filters.duration}
-                    onValueChange={(value) =>
-                      setFilters((prev) => ({ ...prev, duration: value === "all" ? "" : value }))
-                    }
-                    disabled={!databaseConnected}
-                  >
-                    <SelectTrigger className="h-10 text-sm">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Anzeigeart</Label>
+                  <Select value={selectedType} onValueChange={setSelectedType} disabled={!databaseConnected}>
+                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
                       <SelectValue placeholder="Alle" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Alle</SelectItem>
-                      {dynamicFilterOptions.durations.map((duration) => (
-                        <SelectItem key={duration} value={duration}>
-                          {duration}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="lend">Mietangebote</SelectItem>
+                      <SelectItem value="trade">Tauschangebote</SelectItem>
+                      <SelectItem value="sell">Verkaufsangebote</SelectItem>
+                      <SelectItem value="search">Suchanzeigen</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Altersempfehlung Filter */}
-                <div className="flex-1 min-w-[150px]">
-                  <Label className="text-xs text-gray-600 mb-1 block">Altersempfehlung</Label>
-                  <Select
-                    value={filters.age}
-                    onValueChange={(value) => setFilters((prev) => ({ ...prev, age: value === "all" ? "" : value }))}
+                <div className="md:col-span-2 flex items-end gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                    className="h-12 flex-1 border-2 border-teal-500 text-teal-600 hover:bg-teal-50 font-medium"
                     disabled={!databaseConnected}
                   >
-                    <SelectTrigger className="h-10 text-sm">
-                      <SelectValue placeholder="Alle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      {dynamicFilterOptions.ages.map((age) => (
-                        <SelectItem key={age} value={age}>
-                          {age}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Sprache Filter */}
-                <div className="flex-1 min-w-[150px]">
-                  <Label className="text-xs text-gray-600 mb-1 block">Sprache</Label>
-                  <Select
-                    value={filters.language}
-                    onValueChange={(value) =>
-                      setFilters((prev) => ({ ...prev, language: value === "all" ? "" : value }))
-                    }
+                    <Filter className="w-4 h-4 mr-2" />
+                    Erweiterte Filter
+                    <ChevronDown
+                      className={`w-4 h-4 ml-2 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
+                    />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchTerm("")
+                      setSelectedType("all")
+                      setSortBy("newest")
+                      setFilters({
+                        playerCount: "",
+                        duration: "",
+                        age: "",
+                        language: "",
+                        category: "",
+                        style: "",
+                      })
+                      setShowLocationResults(false)
+                      setLocationSearchResults([])
+                    }}
+                    className="h-12 px-6 border-2 border-gray-300 text-gray-700 hover:bg-gray-100 font-medium"
                     disabled={!databaseConnected}
                   >
-                    <SelectTrigger className="h-10 text-sm">
-                      <SelectValue placeholder="Alle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      {dynamicFilterOptions.languages.map((language) => (
-                        <SelectItem key={language} value={language}>
-                          {language}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Kategorie Filter */}
-                <div className="flex-1 min-w-[150px]">
-                  <Label className="text-xs text-gray-600 mb-1 block">Kategorie</Label>
-                  <Select
-                    value={filters.category}
-                    onValueChange={(value) =>
-                      setFilters((prev) => ({ ...prev, category: value === "all" ? "" : value }))
-                    }
-                    disabled={!databaseConnected}
-                  >
-                    <SelectTrigger className="h-10 text-sm">
-                      <SelectValue placeholder="Alle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      {dynamicFilterOptions.categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Typus Filter */}
-                <div className="flex-1 min-w-[150px]">
-                  <Label className="text-xs text-gray-600 mb-1 block">Typus</Label>
-                  <Select
-                    value={filters.style}
-                    onValueChange={(value) => setFilters((prev) => ({ ...prev, style: value === "all" ? "" : value }))}
-                    disabled={!databaseConnected}
-                  >
-                    <SelectTrigger className="h-10 text-sm">
-                      <SelectValue placeholder="Alle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      {dynamicFilterOptions.styles.map((style) => (
-                        <SelectItem key={style} value={style}>
-                          {style}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    Filter zurücksetzen
+                  </Button>
                 </div>
               </div>
-            )}
 
-            <div className="flex gap-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSearchTerm("")
-                  setSelectedType("all")
-                  setSortBy("newest")
-                  setFilters({
-                    playerCount: "",
-                    duration: "",
-                    age: "",
-                    language: "",
-                    category: "",
-                    style: "",
-                  })
-                }}
-                className="border-2 border-gray-400 text-gray-600 hover:bg-gray-400 hover:text-white font-handwritten"
-                disabled={!databaseConnected}
-              >
-                Alle Filter zurücksetzen
-              </Button>
-              <Button
-                onClick={() => setShowAdvancedFilters(false)}
-                className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
-              >
-                Filter anwenden
-              </Button>
+              {/* Advanced Filters */}
+              {showAdvancedFilters && (
+                <div className="pt-6 border-t border-gray-200 space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center">
+                    <Filter className="w-4 h-4 mr-2" />
+                    Erweiterte Filter
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Spieleranzahl</Label>
+                      <Select
+                        value={filters.playerCount}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({ ...prev, playerCount: value === "all" ? "" : value }))
+                        }
+                        disabled={!databaseConnected}
+                      >
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                          <SelectValue placeholder="Alle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle</SelectItem>
+                          {dynamicFilterOptions.playerCounts.map((count) => (
+                            <SelectItem key={count} value={count}>
+                              {count}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Spieldauer</Label>
+                      <Select
+                        value={filters.duration}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({ ...prev, duration: value === "all" ? "" : value }))
+                        }
+                        disabled={!databaseConnected}
+                      >
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                          <SelectValue placeholder="Alle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle</SelectItem>
+                          {dynamicFilterOptions.durations.map((duration) => (
+                            <SelectItem key={duration} value={duration}>
+                              {duration}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Altersempfehlung</Label>
+                      <Select
+                        value={filters.age}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({ ...prev, age: value === "all" ? "" : value }))
+                        }
+                        disabled={!databaseConnected}
+                      >
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                          <SelectValue placeholder="Alle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle</SelectItem>
+                          {dynamicFilterOptions.ages.map((age) => (
+                            <SelectItem key={age} value={age}>
+                              {age}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Sprache</Label>
+                      <Select
+                        value={filters.language}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({ ...prev, language: value === "all" ? "" : value }))
+                        }
+                        disabled={!databaseConnected}
+                      >
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                          <SelectValue placeholder="Alle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle</SelectItem>
+                          {dynamicFilterOptions.languages.map((language) => (
+                            <SelectItem key={language} value={language}>
+                              {language}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Kategorie</Label>
+                      <Select
+                        value={filters.category}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({ ...prev, category: value === "all" ? "" : value }))
+                        }
+                        disabled={!databaseConnected}
+                      >
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                          <SelectValue placeholder="Alle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle</SelectItem>
+                          {dynamicFilterOptions.categories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Typus</Label>
+                      <Select
+                        value={filters.style}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({ ...prev, style: value === "all" ? "" : value }))
+                        }
+                        disabled={!databaseConnected}
+                      >
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                          <SelectValue placeholder="Alle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle</SelectItem>
+                          {dynamicFilterOptions.styles.map((style) => (
+                            <SelectItem key={style} value={style}>
+                              {style}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -916,11 +985,11 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
           </p>
           <div className="flex items-center space-x-2 text-sm text-gray-500 font-body">
             <div className="w-2 h-2 bg-teal-400 rounded-full"></div>
-            <span>Leihangebote</span>
+            <span>Mietangebote</span>
             <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
             <span>Tauschangebote</span>
             <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
-            <span>Verkaufsangebot</span>
+            <span>Verkaufsangebote</span>
             <Search className="w-4 h-4 text-purple-500" />
             <span>Suchanzeigen</span>
           </div>
@@ -982,10 +1051,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                             )}
 
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-orange-600 text-sm">{item.price}</span>
-                              <Badge variant="outline" className="text-xs border-gray-200 text-gray-600">
-                                {item.condition}
-                              </Badge>
+                              <div className="font-bold text-orange-600 text-sm">{formatDailyRates(item.price)}</div>
                             </div>
                           </div>
                         </>
@@ -1015,7 +1081,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                               )}
                               {item.type === "rent" && (
                                 <Badge className="bg-purple-500 hover:bg-purple-500 text-white text-xs px-2 py-1 border-0 pointer-events-none">
-                                  Suche zum Ausleihen
+                                  Suche zum Mieten
                                 </Badge>
                               )}
                               {item.type === "trade" && (
@@ -1153,7 +1219,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                       className="w-4 h-4 text-teal-600 bg-gray-100 border-gray-300 focus:ring-indigo-500 focus:ring-2"
                     />
                     <Label htmlFor="shipping-option" className="text-sm font-medium text-indigo-800 cursor-pointer">
-                      Versand (Kosten zu Ihren Lasten)
+                      Versand (Kosten zu deinen Lasten)
                     </Label>
                   </div>
                 </div>
@@ -1239,18 +1305,36 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                       {getTypeText(selectedOfferDetails.type)}
                     </Badge>
                   </div>
+                  <div className="absolute top-6 left-6">
+                    <ShareButton
+                      title={selectedOfferDetails.title}
+                      url={`${typeof window !== "undefined" ? window.location.origin : ""}/marketplace?offer=${selectedOfferDetails.id}`}
+                      description={`${getTypeText(selectedOfferDetails.type)} - ${selectedOfferDetails.price} - ${selectedOfferDetails.description || ""}`}
+                      className="bg-white/90 hover:bg-white"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Price and Condition */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
-                  <p className="text-sm text-slate-500 mb-2">Preis</p>
-                  <p className="text-2xl font-bold text-slate-900">{selectedOfferDetails.price || "Auf Anfrage"}</p>
+                  <p className="text-sm text-slate-500 mb-2">
+                    {selectedOfferDetails.type === "lend"
+                      ? "Mietgebühr"
+                      : selectedOfferDetails.type === "sell"
+                        ? "Preis"
+                        : selectedOfferDetails.type === "trade"
+                          ? "Angebot"
+                          : "Preis"}
+                  </p>
+                  <div className="text-lg font-bold text-slate-900">
+                    {formatDailyRates(selectedOfferDetails.price || "Auf Anfrage")}
+                  </div>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
                   <p className="text-sm text-slate-500 mb-2">Zustand</p>
-                  <p className="text-lg font-semibold text-slate-900">
+                  <p className="font-semibold text-slate-900 text-sm">
                     {selectedOfferDetails.condition || "Nicht angegeben"}
                   </p>
                 </div>
@@ -1293,17 +1377,13 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
                     <p className="text-xs text-slate-500 mb-2">Kategorie</p>
                     <p className="text-sm font-semibold text-slate-900">
-                      {Array.isArray(selectedOfferDetails.categories)
-                        ? selectedOfferDetails.categories.join(", ")
-                        : selectedOfferDetails.categories || "Nicht angegeben"}
+                      {selectedOfferDetails.category || "Nicht angegeben"}
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
                     <p className="text-xs text-slate-500 mb-2">Typus</p>
                     <p className="text-sm font-semibold text-slate-900">
-                      {Array.isArray(selectedOfferDetails.game_types)
-                        ? selectedOfferDetails.game_types.join(", ")
-                        : selectedOfferDetails.game_types || "Nicht angegeben"}
+                      {selectedOfferDetails.game_types || selectedOfferDetails.style || "Nicht angegeben"}
                     </p>
                   </div>
                 </div>
@@ -1324,10 +1404,11 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 border-2 border-slate-200">
                     <img
                       src={
+                        selectedOfferDetails.users?.avatar ||
                         selectedOfferDetails.avatar ||
-                        `/placeholder.svg?height=64&width=64&query=avatar+${encodeURIComponent(selectedOfferDetails.owner || selectedOfferDetails.users?.name || "User")}`
+                        `/placeholder.svg?height=64&width=64&query=avatar+${encodeURIComponent(selectedOfferDetails.users?.username || selectedOfferDetails.owner || "User")}`
                       }
-                      alt={`${selectedOfferDetails.owner || selectedOfferDetails.users?.name || "User"} Avatar`}
+                      alt={`${selectedOfferDetails.users?.username || selectedOfferDetails.owner || "User"} Avatar`}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement
@@ -1341,7 +1422,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                       style={{ display: "none" }}
                     >
                       <span className="text-slate-600 font-bold text-xl">
-                        {(selectedOfferDetails.owner || selectedOfferDetails.users?.name || "U")
+                        {(selectedOfferDetails.users?.username || selectedOfferDetails.owner || "U")
                           .charAt(0)
                           .toUpperCase()}
                       </span>
@@ -1352,7 +1433,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                       userId={selectedOfferDetails.user_id}
                       className="text-slate-900 font-semibold text-lg block hover:text-blue-600"
                     >
-                      {selectedOfferDetails.owner || selectedOfferDetails.users?.name || "Unbekannter Nutzer"}
+                      {selectedOfferDetails.users?.username || selectedOfferDetails.owner || "Unbekannter Nutzer"}
                     </UserLink>
                     {selectedOfferDetails.rating && (
                       <div className="flex items-center mt-2">
@@ -1392,7 +1473,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                           <span className="text-slate-900 font-medium">📦 Versand</span>
                         </div>
                         <p className="text-sm text-slate-600">
-                          Kosten zu Ihren Lasten. Weitere Details mit dem/der Spielanbieter/-in besprechen.
+                          Kosten zu deinen Lasten. Weitere Details mit dem/der Spielanbieter/-in besprechen.
                         </p>
                       </div>
                     )}
@@ -1400,12 +1481,30 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                 </div>
               )}
 
+              <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                {selectedOfferDetails.pickup_address || selectedOfferDetails.location ? (
+                  <div className="space-y-4">
+                    <LocationMap
+                      location={selectedOfferDetails.pickup_address || selectedOfferDetails.location}
+                      className="h-64 w-full rounded-lg"
+                    />
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 p-4 rounded-xl">
+                    <p className="text-sm text-slate-600">
+                      Kein Standort angegeben. Der/die Spielanbieter/-in hat keinen Standort für dieses Angebot
+                      hinterlegt.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {/* Rental Period Selection for Lending */}
               {selectedOfferDetails.type === "lend" && (
                 <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6">
                   <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
                     <Calendar className="w-5 h-5" />
-                    Ausleihzeitraum wählen
+                    Mietzeitraum wählen
                   </h3>
                   <div className="grid md:grid-cols-2 gap-4 mb-4">
                     <div>
@@ -1433,7 +1532,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                   {calculatedPrice && (
                     <div className="bg-white p-4 rounded-xl border border-blue-200 mb-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-blue-800 font-medium">Gesamt-Ausleihgebühr:</span>
+                        <span className="text-sm text-blue-800 font-medium">Gesamt-Mietgebühr:</span>
                         <span className="text-xl font-bold text-blue-900">{calculatedPrice}</span>
                       </div>
                     </div>
@@ -1453,12 +1552,12 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                 </div>
               )}
 
-              {/* Action Buttons */}
               <div className="flex gap-4 pt-6 border-t border-slate-200">
                 <Button
                   onClick={() => {
                     setIsOfferDetailsOpen(false)
-                    if (selectedOfferDetails.itemType === "offer") {
+                    // When closing details, check if it's a valid offer to then proceed to contact
+                    if (selectedOfferDetails.itemType === "offer" || selectedOfferDetails.type) {
                       handleContactSeller(selectedOfferDetails)
                     }
                   }}
@@ -1468,7 +1567,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                   <MessageCircle className="w-5 h-5 mr-2" />
                   {selectedOfferDetails.type === "lend"
                     ? rentalStartDate && rentalEndDate
-                      ? "Ausleihe anfragen"
+                      ? "Miete anfragen"
                       : "Zeitraum wählen"
                     : selectedOfferDetails.itemType === "offer"
                       ? "Anfragen"
@@ -1503,6 +1602,14 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                 <div className="absolute top-4 right-4">
                   <Search className="w-6 h-6 text-purple-500" />
                 </div>
+                <div className="absolute top-4 left-4">
+                  <ShareButton
+                    title={selectedSearchAdDetails.title}
+                    url={`${typeof window !== "undefined" ? window.origin : ""}/marketplace?searchad=${selectedSearchAdDetails.id}`}
+                    description={selectedSearchAdDetails.description || ""}
+                    className="bg-white/90 hover:bg-white"
+                  />
+                </div>
               </div>
 
               <div className="p-8 space-y-6">
@@ -1521,7 +1628,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                     {selectedSearchAdDetails.type === "buy"
                       ? "Suche zum Kaufen"
                       : selectedSearchAdDetails.type === "rent"
-                        ? "Suche zum Ausleihen"
+                        ? "Suche zum Mieten"
                         : "Suche zum Tauschen"}
                   </Badge>
                 </div>
@@ -1540,12 +1647,12 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center">
                       <span className="text-purple-600 font-bold text-lg">
-                        {(selectedSearchAdDetails.users?.name || "U").charAt(0).toUpperCase()}
+                        {(selectedSearchAdDetails.users?.username || "U").charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div>
                       <UserLink userId={selectedSearchAdDetails.user_id} className="text-gray-900 font-semibold block">
-                        {selectedSearchAdDetails.users?.name || "Unbekannter Nutzer"}
+                        {selectedSearchAdDetails.users?.username || "Unbekannter Nutzer"}
                       </UserLink>
                       <p className="text-sm text-gray-500">
                         Erstellt am {new Date(selectedSearchAdDetails.created_at).toLocaleDateString("de-DE")}
@@ -1584,7 +1691,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-handwritten text-2xl text-center">
-              Nachricht an {selectedSearchAd?.users?.name || "Ersteller"}
+              Nachricht an {selectedSearchAd?.users?.username || "Ersteller"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -1599,7 +1706,7 @@ Berechneter Gesamt-Ausleihgebühr: ${calculatedPrice}`
                 {selectedSearchAd?.type === "buy"
                   ? "Suche zum Kaufen"
                   : selectedSearchAd?.type === "rent"
-                    ? "Suche zum Ausleihen"
+                    ? "Suche zum Mieten"
                     : "Suche zum Tauschen"}
               </Badge>
             </div>

@@ -55,7 +55,7 @@ const GAME_TYPE_OPTIONS = [
   "Merkspiel",
   "Outdoor-Spiel",
   "Partyspiel",
-  "Quiz-Spiel",
+  "Wissens- und Quizspiel",
   "Rollenspiel",
   "Trinkspiel",
   "Würfelspiel",
@@ -1646,7 +1646,7 @@ function LibraryContent() {
 
               {/* Altersempfehlung Filter */}
               <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Alter</Label>
+                <Label className="text-xs text-gray-600 mb-1 block">Altersempfehlung</Label>
                 <Select
                   value={filters.age}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, age: value === "all" ? "" : value }))}
@@ -1710,7 +1710,7 @@ function LibraryContent() {
                 </Select>
               </div>
 
-              <div className="flex items-end">
+              <div className="flex items-end px-5">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -1773,7 +1773,7 @@ function LibraryContent() {
                           className="bg-red-400 hover:bg-white-500 text-white font-handwritten text-sm"
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
-                          {selectedGames.size} Spiele löschen
+                          {selectedGames.size} Spiel(e) löschen
                         </Button>
                       )}
                     </>

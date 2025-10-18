@@ -74,9 +74,11 @@ export default function LoginPage() {
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-md mx-auto">
           <Card className="transform -rotate-1 hover:rotate-0 transition-all shadow-xl border-2 border-teal-200">
-            <CardHeader className="text-center">
+            <CardHeader className="text-center flex-col items-center space-y-2">
               <CardTitle className="text-2xl font-bold text-gray-800 font-handwritten">Anmeldung</CardTitle>
-              <CardDescription className="font-body">Melde dich bei deinem Ludoloop-Konto an</CardDescription>
+              <CardDescription className="font-body text-center">
+                Melde dich bei deinem Ludoloop-Konto an
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">

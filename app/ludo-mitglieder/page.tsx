@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Search, Users, UserPlus, UserCheck, UserX, MessageCircle, Star } from "lucide-react"
+import { Search, Users, UserPlus, UserCheck, UserX, MessageCircle } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useFriends } from "@/contexts/friends-context"
 import { useMessages } from "@/contexts/messages-context"
@@ -384,7 +384,7 @@ export default function LudoMitgliederPage() {
           <div className="text-center mb-8">
             <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Mitglieder</h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Entdecke andere Ludo-Enthusiasten, knüpfe neue Freundschaften und erweitere dein Spielernetzwerk!
+              Entdecke andere Brettspiel-Enthusiasten, knüpfe neue Freundschaften und erweitere dein Spielernetzwerk!
             </p>
           </div>
 
@@ -392,7 +392,7 @@ export default function LudoMitgliederPage() {
             <UserPlus className="h-16 w-16 text-teal-500 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-800 mb-2">Anmeldung erforderlich</h3>
             <p className="text-gray-600 mb-6">
-              Um Freundschaftsanfragen zu senden und zu empfangen, musst du dich anmelden.
+              Um die Mitglieder zu sehen und Freundschaftsanfragen zu senden, musst du dich anmelden.
             </p>
             <div className="flex gap-3 justify-center">
               <Button asChild className="bg-teal-500 hover:bg-teal-600">
@@ -408,69 +408,6 @@ export default function LudoMitgliederPage() {
                 </Link>
               </Button>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 bg-gray-200 rounded-full"></div>
-                      <div className="flex-1">
-                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-16 bg-gray-200 rounded mb-4"></div>
-                    <div className="h-8 bg-gray-200 rounded"></div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : ludoMembers.length === 0 ? (
-              <div className="col-span-full text-center py-12">
-                <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">Keine Mitglieder gefunden</h3>
-                <p className="text-gray-500">Keine öffentlichen Mitglieder verfügbar</p>
-              </div>
-            ) : (
-              ludoMembers.slice(0, 6).map((member) => (
-                <Card
-                  key={member.id}
-                  className="group hover:shadow-lg transition-all duration-300 bg-white/80 backdrop-blur-sm border-0"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={getAvatar(member.id, member.name) || "/placeholder.svg"} />
-                        <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-400 text-white">
-                          {member.username?.[0]?.toUpperCase() || member.name?.[0]?.toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-handwritten text-lg text-gray-800">{member.name || member.username}</h3>
-                        {member.name && member.username && <p className="text-sm text-gray-500">@{member.username}</p>}
-                      </div>
-                      <Badge variant="secondary" className="bg-teal-100 text-teal-700">
-                        <Star className="h-3 w-3 mr-1" />
-                        Ludo
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {member.bio && <p className="text-sm text-gray-600 line-clamp-2">{member.bio}</p>}
-
-                    <div className="flex items-center justify-center">
-                      <Badge variant="outline" className="text-gray-500">
-                        Anmelden für Freundschaften
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
           </div>
         </div>
       </div>
@@ -491,7 +428,7 @@ export default function LudoMitgliederPage() {
 
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg">
           <div className="flex flex-col gap-4">
-            <div className="relative max-w-md mx-auto w-full">
+            <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="Mitglieder durchsuchen..."
@@ -501,7 +438,7 @@ export default function LudoMitgliederPage() {
               />
             </div>
 
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex flex-wrap gap-2 justify-start">
               <Button
                 variant={activeFilter === "all" ? "default" : "outline"}
                 size="sm"

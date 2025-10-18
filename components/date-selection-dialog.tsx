@@ -4,11 +4,12 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Calendar, Clock, MapPin, Users, UserPlus } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Calendar, Clock, Users, UserPlus, CalendarCheck, UserMinus, MessageSquare, UserCheck } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
-import { registerForInstance, type LudoEventInstance } from "@/app/actions/ludo-event-instances"
-import { joinLudoEvent } from "@/app/actions/ludo-events"
+import { registerForInstance, unregisterFromInstance, type LudoEventInstance } from "@/app/actions/ludo-event-instances"
 
 interface DateSelectionDialogProps {
   isOpen: boolean
@@ -31,10 +32,12 @@ interface DateSelectionDialogProps {
 export default function DateSelectionDialog({ isOpen, onClose, event, user, onSuccess }: DateSelectionDialogProps) {
   const [instances, setInstances] = useState<LudoEventInstance[]>([])
   const [selectedInstances, setSelectedInstances] = useState<string[]>([])
+  const [instancesToUnregister, setInstancesToUnregister] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [registering, setRegistering] = useState(false)
   const [approvalMode, setApprovalMode] = useState<"automatic" | "manual">("automatic")
-  const [showJoinDialog, setShowJoinDialog] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [message, setMessage] = useState("")
 
   useEffect(() => {
     if (isOpen && event.id) {
@@ -64,19 +67,6 @@ export default function DateSelectionDialog({ isOpen, onClose, event, user, onSu
     try {
       const supabase = createClient()
 
-      // First, get the main event data to include the first date
-      const { data: eventData, error: eventError } = await supabase
-        .from("ludo_events")
-        .select("event_date, start_time, end_time")
-        .eq("id", event.id)
-        .single()
-
-      if (eventError) {
-        console.error("Error fetching main event data:", eventError)
-        throw new Error(eventError.message)
-      }
-
-      // Get additional instances from ludo_event_instances
       const { data: instancesData, error } = await supabase
         .from("ludo_event_instances")
         .select(`
@@ -91,75 +81,27 @@ export default function DateSelectionDialog({ isOpen, onClose, event, user, onSu
         throw new Error(error.message)
       }
 
-      // Create a combined list: first date + additional instances
-      const allDates = []
+      const allDates = (instancesData || []).map((instance) => ({
+        ...instance,
+        participant_count: instance.participant_count?.[0]?.count || 0,
+        user_registered: false,
+      }))
 
-      // Add the main event date as the first date
-      if (eventData) {
-        allDates.push({
-          id: `main-${event.id}`, // Special ID for main event date
-          event_id: event.id,
-          instance_date: eventData.event_date,
-          start_time: eventData.start_time,
-          end_time: eventData.end_time,
-          max_participants: null, // Will use event's max_participants
-          participant_count: 0, // Will be calculated separately
-          user_registered: false, // Will be checked separately
-          is_main_date: true, // Flag to identify this as the main event date
-        })
-      }
-
-      // Add additional instances
-      if (instancesData) {
-        instancesData.forEach((instance) => {
-          allDates.push({
-            ...instance,
-            participant_count: instance.participant_count?.[0]?.count || 0,
-            user_registered: false, // Will be checked below
-            is_main_date: false,
-          })
-        })
-      }
-
-      // Check user registration status for all dates if authenticated
       let datesWithRegistration = allDates
       if (user && allDates.length > 0) {
-        // Check main event registration
-        const { data: mainEventRegistration } = await supabase
-          .from("ludo_event_participants")
-          .select("id")
-          .eq("event_id", event.id)
+        const instanceIds = allDates.map((d) => d.id)
+        const { data: registrations } = await supabase
+          .from("ludo_event_instance_participants")
+          .select("instance_id")
           .eq("user_id", user.id)
-          .single()
+          .in("instance_id", instanceIds)
 
-        // Check instance registrations
-        const instanceIds = allDates.filter((d) => !d.is_main_date).map((d) => d.id)
-        let instanceRegistrations = []
-        if (instanceIds.length > 0) {
-          const { data } = await supabase
-            .from("ludo_event_instance_participants")
-            .select("instance_id")
-            .eq("user_id", user.id)
-            .in("instance_id", instanceIds)
-          instanceRegistrations = data || []
-        }
-
-        const registeredInstanceIds = new Set(instanceRegistrations.map((r) => r.instance_id))
+        const registeredInstanceIds = new Set((registrations || []).map((r) => r.instance_id))
 
         datesWithRegistration = allDates.map((date) => ({
           ...date,
-          user_registered: date.is_main_date ? !!mainEventRegistration : registeredInstanceIds.has(date.id),
+          user_registered: registeredInstanceIds.has(date.id),
         }))
-
-        // Get participant count for main event
-        if (mainEventRegistration) {
-          const { data: mainEventParticipants } = await supabase
-            .from("ludo_event_participants")
-            .select("id", { count: "exact" })
-            .eq("event_id", event.id)
-
-          datesWithRegistration[0].participant_count = mainEventParticipants?.length || 0
-        }
       }
 
       setInstances(datesWithRegistration)
@@ -201,6 +143,57 @@ export default function DateSelectionDialog({ isOpen, onClose, event, user, onSu
     }
   }
 
+  const handleUnregisterToggle = (instanceId: string, isCurrentlySelected: boolean) => {
+    if (isCurrentlySelected) {
+      setInstancesToUnregister((prev) => prev.filter((id) => id !== instanceId))
+    } else {
+      setInstancesToUnregister((prev) => [...prev, instanceId])
+    }
+  }
+
+  const handleUnregisterFromSelectedDates = async () => {
+    if (!user) {
+      toast.error("Du musst angemeldet sein")
+      return
+    }
+
+    if (instancesToUnregister.length === 0) {
+      toast.error("Bitte wähle mindestens einen Termin zum Abmelden aus")
+      return
+    }
+
+    setRegistering(true)
+    try {
+      const results = []
+
+      for (const instanceId of instancesToUnregister) {
+        try {
+          await unregisterFromInstance(instanceId)
+          results.push({ success: true })
+        } catch (error) {
+          console.error("Error unregistering from instance:", error)
+          results.push({ success: false })
+        }
+      }
+
+      const failedUnregistrations = results.filter((result) => !result.success)
+
+      if (failedUnregistrations.length > 0) {
+        toast.error(`Fehler bei ${failedUnregistrations.length} Abmeldung(en)`)
+      } else {
+        toast.success(`Du hast dich erfolgreich von ${instancesToUnregister.length} Termin(en) abgemeldet`)
+        setInstancesToUnregister([])
+        await loadEventInstances()
+        onSuccess()
+      }
+    } catch (error) {
+      console.error("Error unregistering from instances:", error)
+      toast.error("Fehler bei der Abmeldung")
+    } finally {
+      setRegistering(false)
+    }
+  }
+
   const handleRegisterForSelectedDates = async () => {
     if (!user) {
       toast.error("Du musst angemeldet sein, um an einem Event teilzunehmen")
@@ -212,30 +205,23 @@ export default function DateSelectionDialog({ isOpen, onClose, event, user, onSu
       return
     }
 
+    // For manual approval, show confirmation dialog with message field
     if (approvalMode === "manual") {
-      setShowJoinDialog(true)
-      return
+      setShowConfirmDialog(true)
+    } else {
+      // For automatic approval, register directly
+      await performRegistration()
     }
-
-    await performRegistration()
   }
 
-  const performRegistration = async (message?: string) => {
+  const performRegistration = async () => {
     setRegistering(true)
     try {
       const results = []
 
       for (const instanceId of selectedInstances) {
-        if (instanceId.startsWith("main-")) {
-          // Register for main event
-          const eventId = instanceId.replace("main-", "")
-          const result = await joinLudoEvent(eventId, user!.id, message)
-          results.push(result)
-        } else {
-          // Register for instance
-          const result = await registerForInstance(instanceId, message)
-          results.push(result)
-        }
+        const result = await registerForInstance(instanceId, approvalMode === "manual" ? message : undefined)
+        results.push(result)
       }
 
       const failedRegistrations = results.filter((result) => !result.success)
@@ -250,6 +236,8 @@ export default function DateSelectionDialog({ isOpen, onClose, event, user, onSu
         } else {
           toast.success(`Du hast dich erfolgreich für ${selectedInstances.length} Termin(e) angemeldet`)
         }
+        setMessage("")
+        setShowConfirmDialog(false)
         onSuccess()
         onClose()
       }
@@ -258,25 +246,51 @@ export default function DateSelectionDialog({ isOpen, onClose, event, user, onSu
       toast.error("Fehler bei der Anmeldung")
     } finally {
       setRegistering(false)
-      setShowJoinDialog(false)
     }
   }
 
   const displayInstances = instances
+
+  const registeredInstances = displayInstances.filter((i) => i.user_registered)
+  const unregisteredInstances = displayInstances.filter((i) => !i.user_registered)
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" />
-              Termine auswählen - {event.title}
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2">Termine auswählen - {event.title}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="text-sm text-gray-600">Wähle die Termine aus, an denen du teilnehmen möchtest:</div>
+            <div
+              className={`p-4 rounded-lg border-2 ${
+                approvalMode === "automatic" ? "bg-green-50 border-green-200" : "bg-orange-50 border-orange-200"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {approvalMode === "automatic" ? (
+                  <>
+                    <UserCheck className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-green-800 text-sm">Direkte Teilnahme</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="h-5 w-5 text-orange-600 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-orange-800 text-sm">Teilnahme erst nach Genehmigung</p>
+                      <p className="text-xs text-orange-700">
+                        Der Organisator muss deine Teilnahmeanfrage erst genehmigen.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="text-sm text-gray-600">Wähle die Termine aus, an denen du teilnehmen möchtest</div>
 
             {loading ? (
               <div className="text-center py-8">
@@ -289,74 +303,152 @@ export default function DateSelectionDialog({ isOpen, onClose, event, user, onSu
                 <p>Keine Termine verfügbar</p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {displayInstances.map((instance) => {
-                  const isSelected = selectedInstances.includes(instance.id)
-                  const maxParticipants = instance.max_participants || event.max_participants
-                  const currentParticipants = instance.participant_count || 0
-                  const freePlaces = maxParticipants - currentParticipants
-                  const isFull = freePlaces <= 0
-                  const isUserRegistered = instance.user_registered
+              <div className="space-y-6">
+                {registeredInstances.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
+                      <CalendarCheck className="h-4 w-4" />
+                      Deine angemeldeten Termine ({registeredInstances.length})
+                    </h3>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {registeredInstances.map((instance) => {
+                        const isSelectedForUnregister = instancesToUnregister.includes(instance.id)
+                        const maxParticipants = instance.max_participants || event.max_participants
+                        const currentParticipants = instance.participant_count || 0
+                        const freePlaces = maxParticipants - currentParticipants
 
-                  return (
-                    <div
-                      key={instance.id}
-                      className={`border rounded-lg p-4 transition-colors ${
-                        isSelected ? "bg-teal-50 border-teal-200" : "hover:bg-gray-50"
-                      } ${isFull && !isUserRegistered ? "opacity-50" : ""} ${
-                        isUserRegistered ? "bg-green-50 border-green-200" : ""
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => handleInstanceToggle(instance.id, isSelected)}
-                            disabled={(isFull && !isUserRegistered) || isUserRegistered}
-                          />
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-teal-600" />
-                              <span className="font-medium">{formatSingleDate(instance.instance_date)}</span>
-                              {instance.is_main_date && (
-                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                                  Haupttermin
-                                </span>
-                              )}
-                              {isUserRegistered && (
-                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                  Angemeldet
-                                </span>
-                              )}
+                        return (
+                          <div
+                            key={instance.id}
+                            className={`border rounded-lg p-4 transition-colors ${
+                              isSelectedForUnregister ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <Checkbox
+                                checked={isSelectedForUnregister}
+                                onCheckedChange={() => handleUnregisterToggle(instance.id, isSelectedForUnregister)}
+                                className="mt-0.5"
+                              />
+                              <div className="space-y-2 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4 text-teal-600 flex-shrink-0" />
+                                  <span className="text-sm text-gray-600">
+                                    {formatSingleDate(instance.instance_date)}
+                                  </span>
+                                </div>
+                                {instance.start_time && (
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4 text-teal-600 flex-shrink-0" />
+                                    <span className="text-sm text-gray-600">
+                                      {formatTimeForDate(instance.start_time, instance.end_time)}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Users className="h-4 w-4 text-teal-600 flex-shrink-0" />
+                                  <span className="text-sm text-gray-600">
+                                    {currentParticipants} Teilnehmer
+                                    {freePlaces > 0 && (
+                                      <span className="text-green-600 ml-1">
+                                        ({freePlaces} {freePlaces === 1 ? "Platz frei" : "Plätze frei"})
+                                      </span>
+                                    )}
+                                    {freePlaces <= 0 && <span className="text-red-600 ml-1">(Ausgebucht)</span>}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            {instance.start_time && (
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <Clock className="h-4 w-4 text-teal-600" />
-                                <span>{formatTimeForDate(instance.start_time, instance.end_time)}</span>
-                              </div>
-                            )}
-                            {event.location && (
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <MapPin className="h-4 w-4 text-teal-600" />
-                                <span>{event.location}</span>
-                              </div>
-                            )}
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm text-gray-600">
-                            <Users className="h-4 w-4 inline mr-1" />
-                            {isUserRegistered
-                              ? "Du bist angemeldet"
-                              : isFull
-                                ? "Ausgebucht"
-                                : `${currentParticipants} Teilnehmer (${freePlaces} ${freePlaces === 1 ? "Platz frei" : "Plätze frei"})`}
-                          </div>
-                        </div>
-                      </div>
+                        )
+                      })}
                     </div>
-                  )
-                })}
+                    <Button
+                      onClick={handleUnregisterFromSelectedDates}
+                      disabled={registering || instancesToUnregister.length === 0}
+                      variant="destructive"
+                      className="w-full bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+                    >
+                      {registering ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Abmelden...
+                        </div>
+                      ) : (
+                        <>
+                          <UserMinus className="h-4 w-4 mr-2" />
+                          {instancesToUnregister.length > 0
+                            ? `Von ${instancesToUnregister.length} Termin(en) abmelden`
+                            : "Termine zum Abmelden auswählen"}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {unregisteredInstances.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Geplante Termine ({unregisteredInstances.length})
+                    </h3>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {unregisteredInstances.map((instance) => {
+                        const isSelected = selectedInstances.includes(instance.id)
+                        const maxParticipants = instance.max_participants || event.max_participants
+                        const currentParticipants = instance.participant_count || 0
+                        const freePlaces = maxParticipants - currentParticipants
+                        const isFull = freePlaces <= 0
+
+                        return (
+                          <div
+                            key={instance.id}
+                            className={`border rounded-lg p-4 transition-colors ${
+                              isSelected ? "bg-teal-50 border-teal-200" : "hover:bg-gray-50"
+                            } ${isFull ? "opacity-50" : ""}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => handleInstanceToggle(instance.id, isSelected)}
+                                disabled={isFull}
+                                className="mt-0.5"
+                              />
+                              <div className="space-y-2 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4 text-teal-600 flex-shrink-0" />
+                                  <span className="text-sm text-gray-600">
+                                    {formatSingleDate(instance.instance_date)}
+                                  </span>
+                                </div>
+                                {instance.start_time && (
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4 text-teal-600 flex-shrink-0" />
+                                    <span className="text-sm text-gray-600">
+                                      {formatTimeForDate(instance.start_time, instance.end_time)}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Users className="h-4 w-4 text-teal-600 flex-shrink-0" />
+                                  <span className="text-sm text-gray-600">
+                                    {currentParticipants} Teilnehmer
+                                    {freePlaces > 0 && (
+                                      <span className="text-green-600 ml-1">
+                                        ({freePlaces} {freePlaces === 1 ? "Platz frei" : "Plätze frei"})
+                                      </span>
+                                    )}
+                                    {isFull && <span className="text-red-600 ml-1">(Ausgebucht)</span>}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -366,20 +458,19 @@ export default function DateSelectionDialog({ isOpen, onClose, event, user, onSu
               </Button>
               <Button
                 onClick={handleRegisterForSelectedDates}
-                disabled={registering || selectedInstances.length === 0 || displayInstances.length === 0}
+                disabled={registering || selectedInstances.length === 0 || unregisteredInstances.length === 0}
                 className="flex-1 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white"
               >
                 {registering ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    {approvalMode === "manual" ? "Anfrage senden..." : "Anmelden..."}
+                    {approvalMode === "manual" ? "Teilnahme anfragen..." : "Teilnehmen..."}
                   </div>
                 ) : (
                   <>
                     <UserPlus className="h-4 w-4 mr-2" />
-                    {approvalMode === "manual"
-                      ? `Anfrage für ${selectedInstances.length} Termin${selectedInstances.length !== 1 ? "e" : ""} senden`
-                      : `Für ${selectedInstances.length} Termin${selectedInstances.length !== 1 ? "e" : ""} anmelden`}
+                    {approvalMode === "manual" ? `Teilnahme anfragen` : `Teilnehmen`}
+                    {selectedInstances.length > 0 && ` (${selectedInstances.length})`}
                   </>
                 )}
               </Button>
@@ -388,60 +479,69 @@ export default function DateSelectionDialog({ isOpen, onClose, event, user, onSu
         </DialogContent>
       </Dialog>
 
-      {showJoinDialog && (
-        <Dialog open={showJoinDialog} onOpenChange={() => setShowJoinDialog(false)}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5" />
-                Anfrage senden
-              </DialogTitle>
-            </DialogHeader>
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Anfrage senden
+            </DialogTitle>
+          </DialogHeader>
 
-            <div className="space-y-4">
-              <div className="text-sm text-gray-600">
-                Du möchtest eine Anfrage für {selectedInstances.length} Termin
-                {selectedInstances.length !== 1 ? "e" : ""} senden.
-              </div>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Du möchtest dich für {selectedInstances.length} Termin(e) anmelden. Der Organisator muss deine Teilnahme
+              genehmigen.
+            </p>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div className="text-sm text-blue-800">
-                  <strong>Teilnahme mit Genehmigung:</strong> Der Organisator muss deine Anfrage genehmigen. Du erhältst
-                  eine Benachrichtigung, sobald über deine Anfrage entschieden wurde.
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowJoinDialog(false)}
-                  className="flex-1 bg-transparent"
-                  disabled={registering}
-                >
-                  Abbrechen
-                </Button>
-                <Button
-                  onClick={() => performRegistration()}
-                  disabled={registering}
-                  className="flex-1 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white"
-                >
-                  {registering ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Anfrage senden...
-                    </div>
-                  ) : (
-                    <>
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Anfrage senden
-                    </>
-                  )}
-                </Button>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-message" className="text-sm font-medium">
+                Nachricht an den Organisator (optional)
+              </Label>
+              <Textarea
+                id="confirm-message"
+                placeholder="Möchtest du dem Organisator etwas mitteilen? (z.B. Erfahrung, besondere Wünsche, etc.)"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="min-h-[100px] resize-none"
+                maxLength={500}
+              />
+              <p className="text-xs text-gray-500">{message.length}/500 Zeichen</p>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowConfirmDialog(false)
+                  setMessage("")
+                }}
+                className="flex-1"
+                disabled={registering}
+              >
+                Abbrechen
+              </Button>
+              <Button
+                onClick={performRegistration}
+                disabled={registering}
+                className="flex-1 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white"
+              >
+                {registering ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Senden...
+                  </div>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Teilnahme anfragen
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

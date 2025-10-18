@@ -29,7 +29,7 @@ export default function AboutPage() {
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-4 font-handwritten">Unsere Mission</h2>
               <p className="text-gray-600 font-body">
-               Brett- und Gesellschaftsspiele bringen Menschen zusammen, schaffen unvergessliche Erlebnisse, fördern Gemeinschaft und machen Spass. Doch oft stehen tolle Spiele ungenutzt im Regal, während andere genau danach suchen. Mit unserer Plattform möchten wir diese Lücke schliessen, den Zugang zu Spielen für alle erleichtern und nachhaltigen Umgang mit Spielen unterstützen. Ob Du Deine Lieblingsspiele teilen möchtest, auf der Suche nach neuen (Spiel-)Freunde bist oder einfach Deine Sammlung verkaufen möchtest – bei uns findest Du alles an einem Ort.
+               LudoLoop entstand aus einer einfachen Beobachtung: Viele von uns ha-ben Regale voller Brettspiele, die nur selten gespielt werden, während andere genau nach diesen Spielen suchen. Gleichzeitig ist es oft schwie-rig, Gleichgesinnte für regelmässige Spielrunden zu finden. Als begeisterte Brettspieler wollten wir eine Lösung schaffen, die mehrere Probleme gleichzeitig löst: Den Zugang zu einer grösseren Spielevielfalt ermöglichen, ohne dass jeder jedes Spiel neu kaufen muss. Eine Com-munity aufbauen, in der sich Spieler einfach finden und vernetzen kön-nen. Und dabei auch noch nachhaltig mit Ressourcen umgehen. So entstand LudoLoop - eine Plattform, die all diese Bedürfnisse vereint und das Beste aus der Sharing Economy mit der Leidenschaft für Brett-spiele verbindet.
               </p>
             </CardContent>
           </Card>
@@ -41,7 +41,7 @@ export default function AboutPage() {
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-4 font-handwritten">Unsere Vision</h2>
               <p className="text-gray-600 font-body">
-              Wir glauben, dass Gesellschaftsspiele mehr sind als nur Unterhaltung – sie sind Brücken zwischen Menschen. Unsere Vision ist es, die größte digitale Gemeinschaft rund um Brett- und Gesellschaftsspiele aufzubauen, in der Spiele nicht unbenutzt im Regal verstauben, sondern immer wieder neue Freude bereiten. Wir möchten das gemeinsame Spielen fördern, den Zugang zu Spielen erleichtern und nachhaltigen Umgang mit Spielen unterstützen.
+              Wir glauben, dass Gesellschaftsspiele mehr sind als nur Unterhaltung – sie sind Brücken zwischen Menschen. Unsere Vision ist es, die grösste digitale Gemeinschaft rund um Brett- und Gesellschaftsspiele aufzubauen, in der Spiele nicht unbenutzt im Regal verstauben, sondern immer wieder neue Freude bereiten. Wir möchten das gemeinsame Spielen fördern, den Zugang zu Spielen erleichtern und nachhaltigen Umgang mit Spielen unterstützen.
               </p>
             </CardContent>
           </Card>
@@ -117,7 +117,7 @@ export default function AboutPage() {
               </div>
             </div>
             <p className="text-gray-600 mb-6 font-body">
-              Hast du Fragen oder Feedback? Wir freuen uns auf deine Nachricht!
+              Hast du Fragen, Feedback oder Anregungen? Wir freuen uns auf deine Nachricht und helfen dir gerne weiter!
             </p>
             <Button
               asChild

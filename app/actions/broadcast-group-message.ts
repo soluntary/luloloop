@@ -6,7 +6,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js"
 export async function broadcastGroupMessageAction(groupId: string, message: string) {
   try {
     // Authenticate user with regular client
-    const supabase = createClient()
+    const supabase = await createClient()
     const {
       data: { user },
       error: authError,
