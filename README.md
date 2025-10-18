@@ -7,7 +7,6 @@ A comprehensive board game community platform built with modern web technologies
 This project uses a monorepo structure with multiple applications and shared packages:
 
 ### Applications
-- **`apps/web`** - Main Next.js web application
 - **`apps/mobile`** - React Native mobile app (Expo)
 - **`apps/admin`** - Admin dashboard for content management
 
@@ -46,7 +45,6 @@ pnpm dev
 \`\`\`
 
 This will start:
-- Web app: http://localhost:3000
 - Admin dashboard: http://localhost:3001
 
 ## 📦 Package Scripts
