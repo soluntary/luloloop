@@ -354,6 +354,54 @@ function AnimatedSection({ children, className = "" }: { children: React.ReactNo
 export default function HomePage() {
   const [showConfetti, setShowConfetti] = useState(false)
 
+  const getColorClasses = (color: string) => {
+    const colorMap: { [key: string]: { border: string; text: string; hover: string; bg: string; icon: string } } = {
+      pink: {
+        border: "border-pink-200",
+        text: "text-pink-600",
+        hover: "hover:bg-pink-400",
+        bg: "bg-pink-400",
+        icon: "bg-pink-400",
+      },
+      teal: {
+        border: "border-teal-200",
+        text: "text-teal-600",
+        hover: "hover:bg-teal-400",
+        bg: "bg-teal-400",
+        icon: "bg-teal-400",
+      },
+      orange: {
+        border: "border-orange-200",
+        text: "text-orange-600",
+        hover: "hover:bg-orange-400",
+        bg: "bg-orange-400",
+        icon: "bg-orange-400",
+      },
+      green: {
+        border: "border-green-200",
+        text: "text-green-600",
+        hover: "hover:bg-green-400",
+        bg: "bg-green-400",
+        icon: "bg-green-400",
+      },
+      purple: {
+        border: "border-purple-200",
+        text: "text-purple-600",
+        hover: "hover:bg-purple-400",
+        bg: "bg-purple-400",
+        icon: "bg-purple-400",
+      },
+      blue: {
+        border: "border-blue-200",
+        text: "text-blue-600",
+        hover: "hover:bg-blue-400",
+        bg: "bg-blue-400",
+        icon: "bg-blue-400",
+      },
+    }
+    return colorMap[color] || colorMap.pink
+  }
+
   const floatingElements = useMemo(
     () => (
       <div
@@ -497,45 +545,48 @@ export default function HomePage() {
               color: "teal",
               rotation: "-rotate-1",
             },
-          ].map((feature, index) => (
-            <motion.div key={index} variants={scaleIn} transition={{ duration: 0.5 }}>
-              <motion.div
-                whileHover={{ scale: 1.05, y: -8 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                onHoverStart={() => setShowConfetti(true)}
-                onHoverEnd={() => setShowConfetti(false)}
-                className="relative"
-              >
-                <Card
-                  className={`transform ${feature.rotation} transition-all border-2 border-${feature.color}-200 h-full hover:shadow-2xl`}
+          ].map((feature, index) => {
+            const colors = getColorClasses(feature.color)
+            return (
+              <motion.div key={index} variants={scaleIn} transition={{ duration: 0.5 }}>
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -8 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  onHoverStart={() => setShowConfetti(true)}
+                  onHoverEnd={() => setShowConfetti(false)}
+                  className="relative"
                 >
-                  <CardContent className="p-6 text-center relative">
-                    <motion.div
-                      whileHover={{ rotate: 360, scale: 1.1 }}
-                      transition={{ duration: 0.6 }}
-                      className={`w-16 h-16 bg-${feature.color}-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12`}
-                    >
-                      <feature.icon className="w-8 h-8 text-white" />
-                    </motion.div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">{feature.title}</h3>
-                    <p className="text-gray-600 font-body mb-4">{feature.description}</p>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button
-                        asChild
-                        variant="outline"
-                        className={`border-${feature.color}-400 text-${feature.color}-600 hover:bg-${feature.color}-400 hover:text-white font-handwritten bg-transparent group`}
+                  <Card
+                    className={`transform ${feature.rotation} transition-all border-2 ${colors.border} h-full hover:shadow-2xl`}
+                  >
+                    <CardContent className="p-6 text-center relative">
+                      <motion.div
+                        whileHover={{ rotate: 360, scale: 1.1 }}
+                        transition={{ duration: 0.6 }}
+                        className={`w-16 h-16 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12`}
                       >
-                        <Link href={feature.link} className="flex items-center justify-center gap-2">
-                          {feature.linkText}
-                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                        </Link>
-                      </Button>
-                    </motion.div>
-                  </CardContent>
-                </Card>
+                        <feature.icon className="w-8 h-8 text-white" />
+                      </motion.div>
+                      <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">{feature.title}</h3>
+                      <p className="text-gray-600 font-body mb-4">{feature.description}</p>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button
+                          asChild
+                          variant="outline"
+                          className={`${colors.border} ${colors.text} ${colors.hover} hover:text-white font-handwritten bg-transparent group`}
+                        >
+                          <Link href={feature.link} className="flex items-center justify-center gap-2">
+                            {feature.linkText}
+                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          </Link>
+                        </Button>
+                      </motion.div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          ))}
+            )
+          })}
         </motion.div>
       </AnimatedSection>
 
@@ -618,27 +669,30 @@ export default function HomePage() {
               rotation: "rotate-1",
               iconRotation: "rotate-12",
             },
-          ].map((benefit, index) => (
-            <motion.div key={index} variants={scaleIn} transition={{ duration: 0.5 }}>
-              <motion.div
-                whileHover={{ scale: 1.05, y: -5 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className={`flex items-start space-x-4 p-6 bg-white rounded-2xl shadow-sm transform ${benefit.rotation} hover:shadow-xl cursor-pointer relative`}
-              >
+          ].map((benefit, index) => {
+            const colors = getColorClasses(benefit.color)
+            return (
+              <motion.div key={index} variants={scaleIn} transition={{ duration: 0.5 }}>
                 <motion.div
-                  whileHover={{ rotate: 360, scale: 1.2 }}
-                  transition={{ duration: 0.6 }}
-                  className={`w-12 h-12 bg-${benefit.color}-400 rounded-full flex items-center justify-center flex-shrink-0 transform ${benefit.iconRotation}`}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  className={`flex items-start space-x-4 p-6 bg-white rounded-2xl shadow-sm transform ${benefit.rotation} hover:shadow-xl cursor-pointer relative`}
                 >
-                  <benefit.icon className="w-6 h-6 text-white" />
+                  <motion.div
+                    whileHover={{ rotate: 360, scale: 1.2 }}
+                    transition={{ duration: 0.6 }}
+                    className={`w-12 h-12 ${colors.icon} rounded-full flex items-center justify-center flex-shrink-0 transform ${benefit.iconRotation}`}
+                  >
+                    <benefit.icon className="w-6 h-6 text-white" />
+                  </motion.div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-2 font-handwritten">{benefit.title}</h3>
+                    <p className="text-gray-600 font-body">{benefit.description}</p>
+                  </div>
                 </motion.div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-2 font-handwritten">{benefit.title}</h3>
-                  <p className="text-gray-600 font-body">{benefit.description}</p>
-                </div>
               </motion.div>
-            </motion.div>
-          ))}
+            )
+          })}
         </motion.div>
       </AnimatedSection>
 
