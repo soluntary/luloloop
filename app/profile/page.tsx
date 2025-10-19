@@ -29,6 +29,7 @@ import {
   Users,
   Clock,
   Trash2,
+  Store,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -149,30 +150,30 @@ export default function ProfilePage() {
     },
   })
 
-  const [securityNotificationPrefs, setSecurityNotificationPrefs] = useState({
-    login_attempts: true,
-    password_changes: true,
-    email_changes: true,
-    suspicious_activity: true,
-    new_device_login: true,
-    account_recovery: true,
-    security_settings_changes: true,
-  })
-
   const [messageNotificationPrefs, setMessageNotificationPrefs] = useState<MessageNotificationPreferences>({
     user_id: "",
-    direct_messages: true,
-    game_inquiries: true,
-    event_inquiries: true,
-    group_inquiries: true,
-    marketplace_messages: true,
+    direct_messages: { platform: true, email: true },
+    game_inquiries: { platform: true, email: true },
+    event_inquiries: { platform: true, email: true },
+    group_inquiries: { platform: true, email: true },
+    marketplace_messages: { platform: true, email: true },
     instant_notifications: true,
     daily_digest: false,
     weekly_digest: false,
     quiet_hours_enabled: false,
     quiet_hours_start: "22:00",
     quiet_hours_end: "08:00",
-    weekend_notifications: true,
+    weekend_notifications: { platform: true, email: true },
+  })
+
+  const [securityNotificationPrefs, setSecurityNotificationPrefs] = useState({
+    login_attempts: { platform: true, email: true },
+    password_changes: { platform: true, email: true },
+    email_changes: { platform: true, email: true },
+    suspicious_activity: { platform: true, email: true },
+    new_device_login: { platform: true, email: true },
+    account_recovery: { platform: true, email: true },
+    security_settings_changes: { platform: true, email: true },
   })
 
   const [comprehensivePrefs, setComprehensivePrefs] = useState({
@@ -185,6 +186,8 @@ export default function ProfilePage() {
       shelf_access_requests: { platform: true, email: true },
       message_notifications: { platform: true, email: true },
       event_invitations: { platform: true, email: true },
+      event_reminders: { platform: true, email: true }, // Added event reminders
+      group_invites: { platform: true, email: true }, // Added group invites
     },
     privacy: {
       profile_visibility: "public",
@@ -194,8 +197,11 @@ export default function ProfilePage() {
     security: {
       security_events_notifications: true,
     },
-    // marketing and delivery are missing from existing state, assuming they should be added if used
-    marketing: {},
+    marketing: {
+      feature_announcements: { platform: true, email: true },
+      game_recommendations: { platform: true, email: true },
+      weekly_digest: { platform: true, email: true },
+    },
     delivery: {},
   })
 
@@ -353,26 +359,127 @@ export default function ProfilePage() {
   }, [user?.id])
 
   useEffect(() => {
+    if (!user?.id) return
+
+    // Subscribe to event participations changes
+    const participationsChannel = supabase
+      .channel("user-participations")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "ludo_event_participants",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          console.log("[v0] Event participations changed, refreshing...")
+          fetchUserActivities()
+        },
+      )
+      .subscribe()
+
+    // Subscribe to join requests changes
+    const requestsChannel = supabase
+      .channel("user-join-requests")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "ludo_event_join_requests",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          console.log("[v0] Join requests changed, refreshing...")
+          fetchUserActivities()
+        },
+      )
+      .subscribe()
+
+    // Subscribe to community memberships changes
+    const communitiesChannel = supabase
+      .channel("user-communities")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_members",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          console.log("[v0] Community memberships changed, refreshing...")
+          fetchUserActivities()
+        },
+      )
+      .subscribe()
+
+    // Subscribe to marketplace offers changes
+    const offersChannel = supabase
+      .channel("user-marketplace-offers")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "marketplace_offers",
+          filter: `creator_id=eq.${user.id}`,
+        },
+        () => {
+          console.log("[v0] Marketplace offers changed, refreshing...")
+          refreshData()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(participationsChannel)
+      supabase.removeChannel(requestsChannel)
+      supabase.removeChannel(communitiesChannel)
+      supabase.removeChannel(offersChannel)
+    }
+  }, [user?.id])
+
+  useEffect(() => {
     const loadSecurityPreferences = async () => {
-      const result = await getSecurityNotificationPreferences()
-      if (result.success && result.preferences) {
-        setSecurityNotificationPrefs(result.preferences)
+      try {
+        const prefs = await getSecurityNotificationPreferences()
+        if (prefs) {
+          setSecurityNotificationPrefs((prev) => ({
+            ...prev,
+            ...prefs,
+          }))
+        }
+      } catch (error) {
+        console.error("[v0] Error loading security preferences:", error)
       }
     }
 
     const loadMessageNotificationPrefs = async () => {
-      if (user?.id) {
-        const prefs = await getMessageNotificationPreferences(user.id)
+      try {
+        const prefs = await getMessageNotificationPreferences()
         if (prefs) {
-          setMessageNotificationPrefs(prefs)
+          setMessageNotificationPrefs((prev) => ({
+            ...prev,
+            ...prefs,
+          }))
         }
+      } catch (error) {
+        console.error("[v0] Error loading message notification preferences:", error)
       }
     }
 
     const loadComprehensivePrefs = async () => {
       try {
         const prefs = await getAllNotificationPreferences()
-        setComprehensivePrefs(prefs)
+        setComprehensivePrefs((prev) => ({
+          social: { ...prev.social, ...prefs.social },
+          privacy: { ...prev.privacy, ...prefs.privacy },
+          security: { ...prev.security, ...prefs.security },
+          marketing: { ...prev.marketing, ...prefs.marketing },
+          delivery: { ...prev.delivery, ...prefs.delivery },
+        }))
       } catch (error) {
         console.error("[v0] Error loading comprehensive preferences:", error)
       }
@@ -380,8 +487,8 @@ export default function ProfilePage() {
 
     if (user) {
       loadSecurityPreferences()
-      loadMessageNotificationPrefs() // Call the new function
-      loadComprehensivePrefs() // Load comprehensive preferences
+      loadMessageNotificationPrefs()
+      loadComprehensivePrefs()
     }
   }, [user])
 
@@ -445,38 +552,19 @@ export default function ProfilePage() {
     }))
   }
 
-  const handleSecurityNotificationChange = async (key: string, value: boolean) => {
-    const updatedPrefs = { ...securityNotificationPrefs, [key]: value }
-    setSecurityNotificationPrefs(updatedPrefs)
-
-    const result = await updateSecurityNotificationPreferences({ [key]: value })
-    if (result.success) {
-      // Log the security settings change
-      await logSecurityEvent({
-        eventType: "security_settings_change",
-        additionalData: { setting: key, value },
-      })
-      toast({
-        title: "Einstellungen gespeichert",
-        description: "Deine Sicherheitsbenachrichtigungen wurden aktualisiert.",
-      })
-    } else {
-      toast({
-        title: "Fehler",
-        description: "Die Einstellungen konnten nicht gespeichert werden.",
-        variant: "destructive",
-      })
-      // Revert the change
-      setSecurityNotificationPrefs(securityNotificationPrefs)
-    }
-  }
-
-  const handleMessageNotificationChange = async (key: string, value: boolean | string) => {
-    const updatedPrefs = { ...messageNotificationPrefs, [key]: value }
-    setMessageNotificationPrefs(updatedPrefs)
-
+  const handleMessageNotificationChange = async (key: string, type: "platform" | "email", value: boolean) => {
     try {
-      await updateMessageNotificationPreferences(updatedPrefs)
+      const updatedSetting = {
+        ...messageNotificationPrefs[key as keyof typeof messageNotificationPrefs],
+        [type]: value,
+      }
+
+      setMessageNotificationPrefs((prev) => ({
+        ...prev,
+        [key]: updatedSetting,
+      }))
+
+      await updateMessageNotificationPreferences({ [key]: updatedSetting })
       toast({
         title: "Einstellungen gespeichert",
         description: "Deine Nachrichten-Benachrichtigungen wurden aktualisiert.",
@@ -489,6 +577,38 @@ export default function ProfilePage() {
       })
       // Revert the change
       setMessageNotificationPrefs(messageNotificationPrefs)
+    }
+  }
+
+  const handleSecurityNotificationChange = async (key: string, type: "platform" | "email", value: boolean) => {
+    try {
+      const updatedSetting = {
+        ...securityNotificationPrefs[key as keyof typeof securityNotificationPrefs],
+        [type]: value,
+      }
+
+      setSecurityNotificationPrefs((prev) => ({
+        ...prev,
+        [key]: updatedSetting,
+      }))
+
+      await updateSecurityNotificationPreferences({ [key]: updatedSetting })
+      await logSecurityEvent({
+        eventType: "security_settings_change",
+        additionalData: { setting: key, value },
+      })
+      toast({
+        title: "Einstellungen gespeichert",
+        description: "Deine Sicherheitsbenachrichtigungen wurden aktualisiert.",
+      })
+    } catch (error) {
+      toast({
+        title: "Fehler",
+        description: "Die Einstellungen konnten nicht gespeichert werden.",
+        variant: "destructive",
+      })
+      // Revert the change
+      setSecurityNotificationPrefs(securityNotificationPrefs)
     }
   }
 
@@ -512,14 +632,19 @@ export default function ProfilePage() {
     }
   }
 
-  const handleMarketingNotificationChange = async (key: string, value: boolean) => {
+  const handleMarketingNotificationChange = async (key: string, type: "platform" | "email", value: boolean) => {
     try {
+      const updatedSetting = {
+        ...comprehensivePrefs.marketing[key as keyof typeof comprehensivePrefs.marketing],
+        [type]: value,
+      }
+
       setComprehensivePrefs((prev) => ({
         ...prev,
-        marketing: { ...prev.marketing, [key]: value },
+        marketing: { ...prev.marketing, [key]: updatedSetting },
       }))
 
-      await updateMarketingNotificationPreferences({ [key]: value })
+      await updateMarketingNotificationPreferences({ [key]: updatedSetting })
       setMessage("Marketing-Benachrichtigungseinstellungen erfolgreich gespeichert!")
     } catch (error) {
       console.error("[v0] Error updating marketing notifications:", error)
@@ -901,7 +1026,7 @@ export default function ProfilePage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 md:mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold font-handwritten text-gray-800 mb-2">Profileinstellungen</h1>
+            <h1 className="text-2xl md:text-3xl font-bold font-handwritten text-gray-800 mb-2">Profil</h1>
             <p className="text-gray-600 font-body text-sm md:text-base">
               Verwalte deine Kontoinformationen und Einstellungen
             </p>
@@ -1269,13 +1394,36 @@ export default function ProfilePage() {
                 <CardHeader className="p-4 md:p-6">
                   <CardTitle className="font-handwritten text-lg md:text-xl">Meine Aktivitäten</CardTitle>
                   <CardDescription className="text-sm md:text-base">
-                    Übersicht über deine Event-Teilnahmen, Anfragen und Spielgruppen
+                    Übersicht über deine Event-Teilnahmen, Anfragen und Spielgruppen, sowie Spielemarkt-Angebote
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6 p-4 md:p-6">
-                  <div className="space-y-8">
-                    {/* Participating Events Section */}
-                    <div>
+                <CardContent className="p-4 md:p-6">
+                  <Tabs defaultValue="events" className="w-full">
+                    <TabsList className="grid w-full grid-cols-4 mb-6">
+                      <TabsTrigger value="events" className="text-xs md:text-sm">
+                        <span className="hidden sm:inline">Events</span>
+                        <span className="sm:hidden">📅</span>
+                        <span className="ml-1">({participatingEvents.length})</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="requests" className="text-xs md:text-sm">
+                        <span className="hidden sm:inline">Anfragen</span>
+                        <span className="sm:hidden">⏳</span>
+                        <span className="ml-1">({pendingJoinRequests.length})</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="groups" className="text-xs md:text-sm">
+                        <span className="hidden sm:inline">Gruppen</span>
+                        <span className="sm:hidden">👥</span>
+                        <span className="ml-1">({joinedCommunities.length})</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="offers" className="text-xs md:text-sm">
+                        <span className="hidden sm:inline">Angebote</span>
+                        <span className="sm:hidden">🛒</span>
+                        <span className="ml-1">({userOffers.length})</span>
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {/* Events Tab */}
+                    <TabsContent value="events" className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
                         <Calendar className="w-5 h-5 text-blue-600" />
                         <h3 className="font-semibold text-base md:text-lg">
@@ -1283,7 +1431,9 @@ export default function ProfilePage() {
                         </h3>
                       </div>
                       {loadingActivities ? (
-                        <p className="text-gray-600 text-sm md:text-base">Lade Events...</p>
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        </div>
                       ) : participatingEvents.length === 0 ? (
                         <div className="text-center py-8 bg-gray-50 rounded-lg">
                           <p className="text-gray-600 text-sm md:text-base mb-2">
@@ -1346,10 +1496,10 @@ export default function ProfilePage() {
                           ))}
                         </div>
                       )}
-                    </div>
+                    </TabsContent>
 
-                    {/* Pending Join Requests Section */}
-                    <div>
+                    {/* Requests Tab */}
+                    <TabsContent value="requests" className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
                         <Clock className="w-5 h-5 text-orange-600" />
                         <h3 className="font-semibold text-base md:text-lg">
@@ -1357,7 +1507,9 @@ export default function ProfilePage() {
                         </h3>
                       </div>
                       {loadingActivities ? (
-                        <p className="text-gray-600 text-sm md:text-base">Lade Anfragen...</p>
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                        </div>
                       ) : pendingJoinRequests.length === 0 ? (
                         <div className="text-center py-8 bg-gray-50 rounded-lg">
                           <p className="text-gray-600 text-sm md:text-base">Keine ausstehenden Anfragen.</p>
@@ -1416,10 +1568,10 @@ export default function ProfilePage() {
                           ))}
                         </div>
                       )}
-                    </div>
+                    </TabsContent>
 
-                    {/* Joined Communities Section */}
-                    <div>
+                    {/* Groups Tab */}
+                    <TabsContent value="groups" className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
                         <Users className="w-5 h-5 text-purple-600" />
                         <h3 className="font-semibold text-base md:text-lg">
@@ -1427,7 +1579,9 @@ export default function ProfilePage() {
                         </h3>
                       </div>
                       {loadingActivities ? (
-                        <p className="text-gray-600 text-sm md:text-base">Lade Spielgruppen...</p>
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                        </div>
                       ) : joinedCommunities.length === 0 ? (
                         <div className="text-center py-8 bg-gray-50 rounded-lg">
                           <p className="text-gray-600 text-sm md:text-base mb-2">
@@ -1484,6 +1638,351 @@ export default function ProfilePage() {
                                     className="text-xs"
                                   >
                                     Verlassen
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    {/* Marketplace Offers Tab */}
+                    <TabsContent value="offers" className="space-y-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Store className="w-5 h-5 text-teal-600" />
+                        <h3 className="font-semibold text-base md:text-lg">
+                          Marktplatz-Angebote ({userOffers.length})
+                        </h3>
+                      </div>
+                      {userOffers.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <p className="text-gray-600 text-sm md:text-base mb-2">
+                            Du hast noch keine Angebote erstellt.
+                          </p>
+                          <Button size="sm" onClick={() => router.push("/marketplace")}>
+                            Erstes Angebot erstellen
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {userOffers.map((offer) => (
+                            <div key={offer.id} className="border rounded-lg p-3 md:p-4 bg-teal-50/50 w-full">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm md:text-base text-teal-900 truncate">
+                                    {offer.title}
+                                  </h4>
+                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                    {offer.description}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                    <span className="flex items-center gap-1 whitespace-nowrap">💰 {offer.price}</span>
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      📍 {offer.location}
+                                    </span>
+                                    <span
+                                      className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                                        offer.type === "sell"
+                                          ? "bg-green-100 text-green-800"
+                                          : offer.type === "lend"
+                                            ? "bg-blue-100 text-blue-800"
+                                            : "bg-purple-100 text-purple-800"
+                                      }`}
+                                    >
+                                      {offer.type === "sell"
+                                        ? "Verkaufen"
+                                        : offer.type === "lend"
+                                          ? "Verleihen"
+                                          : "Tauschen"}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingOffer(offer)
+                                      setIsEditOfferOpen(true)
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    Bearbeiten
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setDeleteConfirm({ type: "offer", id: offer.id })}
+                                    className="text-xs"
+                                  >
+                                    Löschen
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="dashboard">
+              <Card>
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="font-handwritten text-lg md:text-xl">Dashboard</CardTitle>
+                  <CardDescription className="text-sm md:text-base">
+                    Verwalte alle deine Anzeigen, Events und Spielgruppen an einem Ort
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6 p-4 md:p-6">
+                  <div className="space-y-8">
+                    {/* Events Section */}
+                    <div>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <h3 className="font-semibold text-base md:text-lg">Meine Events ({userEvents.length})</h3>
+                        <Button
+                          size="sm"
+                          onClick={() => router.push("/ludo-events")}
+                          className="text-xs w-full sm:w-auto"
+                        >
+                          Neues Event erstellen
+                        </Button>
+                      </div>
+                      {loadingEvents ? (
+                        <p className="text-gray-600 text-sm md:text-base">Lade Events...</p>
+                      ) : userEvents.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <p className="text-gray-600 text-sm md:text-base mb-2">Du hast noch keine Events erstellt.</p>
+                          <Button size="sm" onClick={() => router.push("/ludo-events")}>
+                            Erstes Event erstellen
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {userEvents.map((event) => (
+                            <div key={event.id} className="border rounded-lg p-3 md:p-4 bg-blue-50/50 w-full">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm md:text-base text-blue-900 truncate">
+                                    {event.title}
+                                  </h4>
+                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                    {event.description}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      📅 Siehe Event-Details
+                                    </span>
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      🕐 {event.start_time || event.time}
+                                    </span>
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      👥 {event.participants_count || 0}/{event.max_participants}
+                                    </span>
+                                    {event.frequency && event.frequency !== "once" && event.frequency !== "single" && (
+                                      <span className="flex items-center gap-1 whitespace-nowrap">
+                                        🔄 {getFrequencyText(event.frequency, event.interval_type)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => router.push(`/ludo-events/${event.id}`)}
+                                    className="text-xs"
+                                  >
+                                    Anzeigen
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setDeleteConfirm({ type: "event", id: event.id })}
+                                    className="text-xs"
+                                  >
+                                    Löschen
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Spielgruppen Section */}
+                    <div>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <h3 className="font-semibold text-base md:text-lg">Meine Spielgruppen</h3>
+                        <Button
+                          size="sm"
+                          onClick={() => router.push("/ludo-gruppen")}
+                          className="text-xs w-full sm:w-auto"
+                        >
+                          Neue Gruppe erstellen
+                        </Button>
+                      </div>
+                      <div className="text-center py-8 bg-gray-50 rounded-lg">
+                        <p className="text-gray-600 text-sm md:text-base mb-2">
+                          Spielgruppen-Verwaltung wird hier bald verfügbar sein.
+                        </p>
+                        <Button size="sm" onClick={() => router.push("/ludo-gruppen")}>
+                          Zu Spielgruppen
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Marketplace Offers Section */}
+                    <div>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <h3 className="font-semibold text-base md:text-lg">
+                          Marktplatz-Angebote ({userOffers.length})
+                        </h3>
+                        <Button
+                          size="sm"
+                          onClick={() => router.push("/marketplace")}
+                          className="text-xs w-full sm:w-auto"
+                        >
+                          Neues Angebot erstellen
+                        </Button>
+                      </div>
+                      {userOffers.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <p className="text-gray-600 text-sm md:text-base mb-2">
+                            Du hast noch keine Angebote erstellt.
+                          </p>
+                          <Button size="sm" onClick={() => router.push("/marketplace")}>
+                            Erstes Angebot erstellen
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {userOffers.map((offer) => (
+                            <div key={offer.id} className="border rounded-lg p-3 md:p-4 bg-teal-50/50 w-full">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm md:text-base text-teal-900 truncate">
+                                    {offer.title}
+                                  </h4>
+                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                    {offer.description}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                    <span className="flex items-center gap-1 whitespace-nowrap">💰 {offer.price}</span>
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      📍 {offer.location}
+                                    </span>
+                                    <span
+                                      className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                                        offer.type === "sell"
+                                          ? "bg-green-100 text-green-800"
+                                          : offer.type === "lend"
+                                            ? "bg-blue-100 text-blue-800"
+                                            : "bg-purple-100 text-purple-800"
+                                      }`}
+                                    >
+                                      {offer.type === "sell"
+                                        ? "Verkaufen"
+                                        : offer.type === "lend"
+                                          ? "Verleihen"
+                                          : "Tauschen"}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingOffer(offer)
+                                      setIsEditOfferOpen(true)
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    Bearbeiten
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setDeleteConfirm({ type: "offer", id: offer.id })}
+                                    className="text-xs"
+                                  >
+                                    Löschen
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Search Ads Section */}
+                    <div>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <h3 className="font-semibold text-base md:text-lg">Suchanzeigen ({userSearchAds.length})</h3>
+                        <Button
+                          size="sm"
+                          onClick={() => router.push("/marketplace")}
+                          className="text-xs w-full sm:w-auto"
+                        >
+                          Neue Suchanzeige erstellen
+                        </Button>
+                      </div>
+                      {userSearchAds.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <p className="text-gray-600 text-sm md:text-base mb-2">
+                            Du hast noch keine Suchanzeigen erstellt.
+                          </p>
+                          <Button size="sm" onClick={() => router.push("/marketplace")}>
+                            Erste Suchanzeige erstellen
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {userSearchAds.map((searchAd) => (
+                            <div key={searchAd.id} className="border rounded-lg p-3 md:p-4 bg-purple-50/50 w-full">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm md:text-base text-purple-900 truncate">
+                                    {searchAd.title}
+                                  </h4>
+                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                    {searchAd.description}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      💰 Bis {searchAd.max_price}
+                                    </span>
+                                    <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 whitespace-nowrap">
+                                      Suche
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingSearchAd(searchAd)
+                                      setIsEditSearchAdOpen(true)
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    Bearbeiten
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setDeleteConfirm({ type: "searchAd", id: searchAd.id })}
+                                    className="text-xs"
+                                  >
+                                    Löschen
                                   </Button>
                                 </div>
                               </div>
@@ -1741,14 +2240,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Direktnachrichten</Label>
                             <p className="text-xs text-gray-600">Private Nachrichten von anderen Nutzern</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={messageNotificationPrefs.direct_messages}
-                              onChange={(e) => handleMessageNotificationChange("direct_messages", e.target.checked)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.message_notifications?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("message_notifications", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.message_notifications?.email ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("message_notifications", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -1758,14 +2272,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Spielanfragen</Label>
                             <p className="text-xs text-gray-600">Anfragen zu deinen Spielen</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={messageNotificationPrefs.game_inquiries}
-                              onChange={(e) => handleMessageNotificationChange("game_inquiries", e.target.checked)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={messageNotificationPrefs.game_inquiries?.platform ?? true}
+                                onChange={(e) =>
+                                  handleMessageNotificationChange("game_inquiries", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={messageNotificationPrefs.game_inquiries?.email ?? true}
+                                onChange={(e) =>
+                                  handleMessageNotificationChange("game_inquiries", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -1775,14 +2304,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Event-Anfragen</Label>
                             <p className="text-xs text-gray-600">Anfragen zu deinen Events</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={messageNotificationPrefs.event_inquiries}
-                              onChange={(e) => handleMessageNotificationChange("event_inquiries", e.target.checked)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={messageNotificationPrefs.event_inquiries?.platform ?? true}
+                                onChange={(e) =>
+                                  handleMessageNotificationChange("event_inquiries", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={messageNotificationPrefs.event_inquiries?.email ?? true}
+                                onChange={(e) =>
+                                  handleMessageNotificationChange("event_inquiries", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -1792,14 +2336,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Spielgruppen-Anfragen</Label>
                             <p className="text-xs text-gray-600">Anfragen zu deinen Spielgruppen</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={messageNotificationPrefs.group_inquiries}
-                              onChange={(e) => handleMessageNotificationChange("group_inquiries", e.target.checked)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={messageNotificationPrefs.group_inquiries?.platform ?? true}
+                                onChange={(e) =>
+                                  handleMessageNotificationChange("group_inquiries", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={messageNotificationPrefs.group_inquiries?.email ?? true}
+                                onChange={(e) =>
+                                  handleMessageNotificationChange("group_inquiries", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -1809,16 +2368,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Marktplatz-Nachrichten</Label>
                             <p className="text-xs text-gray-600">Nachrichten zu Marktplatz-Angeboten</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={messageNotificationPrefs.marketplace_messages}
-                              onChange={(e) =>
-                                handleMessageNotificationChange("marketplace_messages", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={messageNotificationPrefs.marketplace_messages?.platform ?? true}
+                                onChange={(e) =>
+                                  handleMessageNotificationChange("marketplace_messages", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={messageNotificationPrefs.marketplace_messages?.email ?? true}
+                                onChange={(e) =>
+                                  handleMessageNotificationChange("marketplace_messages", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
                       </AccordionContent>
@@ -1876,16 +2448,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Event-Erinnerungen</Label>
                             <p className="text-xs text-gray-600">Erinnerungen vor Events</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={settings.notifications.eventReminders}
-                              onChange={(e) =>
-                                handleSettingsChange("notifications", "eventReminders", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.event_reminders?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("event_reminders", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.event_reminders?.email ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("event_reminders", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -1895,14 +2480,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Spielgruppen-Einladungen</Label>
                             <p className="text-xs text-gray-600">Einladungen zu Spielgruppen</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={settings.notifications.groupInvites}
-                              onChange={(e) => handleSettingsChange("notifications", "groupInvites", e.target.checked)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.group_invites?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("group_invites", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.social.group_invites?.email ?? true}
+                                onChange={(e) =>
+                                  handleSocialNotificationChange("group_invites", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
                       </AccordionContent>
@@ -1928,14 +2528,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Anmeldeversuche</Label>
                             <p className="text-xs text-gray-600">Benachrichtigung bei Anmeldeversuchen</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={securityNotificationPrefs.login_attempts}
-                              onChange={(e) => handleSecurityNotificationChange("login_attempts", e.target.checked)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.login_attempts?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange("login_attempts", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.login_attempts?.email ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange("login_attempts", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -1945,14 +2560,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Passwortänderungen</Label>
                             <p className="text-xs text-gray-600">Benachrichtigung bei Passwortänderungen</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={securityNotificationPrefs.password_changes}
-                              onChange={(e) => handleSecurityNotificationChange("password_changes", e.target.checked)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.password_changes?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange("password_changes", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.password_changes?.email ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange("password_changes", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -1962,14 +2592,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">E-Mail-Änderungen</Label>
                             <p className="text-xs text-gray-600">Benachrichtigung bei E-Mail-Änderungen</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={securityNotificationPrefs.email_changes}
-                              onChange={(e) => handleSecurityNotificationChange("email_changes", e.target.checked)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.email_changes?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange("email_changes", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.email_changes?.email ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange("email_changes", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -1979,16 +2624,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Verdächtige Aktivitäten</Label>
                             <p className="text-xs text-gray-600">Warnung bei verdächtigen Aktivitäten</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={securityNotificationPrefs.suspicious_activity}
-                              onChange={(e) =>
-                                handleSecurityNotificationChange("suspicious_activity", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.suspicious_activity?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange("suspicious_activity", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.suspicious_activity?.email ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange("suspicious_activity", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -1998,14 +2656,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Neue Geräteanmeldungen</Label>
                             <p className="text-xs text-gray-600">Anmeldung von neuen Geräten</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={securityNotificationPrefs.new_device_login}
-                              onChange={(e) => handleSecurityNotificationChange("new_device_login", e.target.checked)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.new_device_login?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange("new_device_login", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.new_device_login?.email ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange("new_device_login", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -2015,14 +2688,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Kontowiederherstellung</Label>
                             <p className="text-xs text-gray-600">Informationen zur Kontowiederherstellung</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={securityNotificationPrefs.account_recovery}
-                              onChange={(e) => handleSecurityNotificationChange("account_recovery", e.target.checked)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.account_recovery?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange("account_recovery", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.account_recovery?.email ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange("account_recovery", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -2034,16 +2722,37 @@ export default function ProfilePage() {
                               Benachrichtigung bei Änderungen an Sicherheitseinstellungen
                             </p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={securityNotificationPrefs.security_settings_changes}
-                              onChange={(e) =>
-                                handleSecurityNotificationChange("security_settings_changes", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.security_settings_changes?.platform ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange(
+                                    "security_settings_changes",
+                                    "platform",
+                                    e.target.checked,
+                                  )
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={securityNotificationPrefs.security_settings_changes?.email ?? true}
+                                onChange={(e) =>
+                                  handleSecurityNotificationChange(
+                                    "security_settings_changes",
+                                    "email",
+                                    e.target.checked,
+                                  )
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
                       </AccordionContent>
@@ -2069,14 +2778,33 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Feature-Ankündigungen</Label>
                             <p className="text-xs text-gray-600">Neue Features und Updates</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={settings.notifications.marketing}
-                              onChange={(e) => handleSettingsChange("notifications", "marketing", e.target.checked)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.marketing.feature_announcements?.platform ?? true}
+                                onChange={(e) =>
+                                  handleMarketingNotificationChange(
+                                    "feature_announcements",
+                                    "platform",
+                                    e.target.checked,
+                                  )
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.marketing.feature_announcements?.email ?? true}
+                                onChange={(e) =>
+                                  handleMarketingNotificationChange("feature_announcements", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -2086,14 +2814,33 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Spielempfehlungen</Label>
                             <p className="text-xs text-gray-600">Personalisierte Spielempfehlungen</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={settings.notifications.gameUpdates}
-                              onChange={(e) => handleSettingsChange("notifications", "gameUpdates", e.target.checked)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.marketing.game_recommendations?.platform ?? true}
+                                onChange={(e) =>
+                                  handleMarketingNotificationChange(
+                                    "game_recommendations",
+                                    "platform",
+                                    e.target.checked,
+                                  )
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.marketing.game_recommendations?.email ?? true}
+                                onChange={(e) =>
+                                  handleMarketingNotificationChange("game_recommendations", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -2103,14 +2850,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Wöchentlicher Newsletter</Label>
                             <p className="text-xs text-gray-600">Zusammenfassung der Woche</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={settings.notifications.weeklyDigest}
-                              onChange={(e) => handleSettingsChange("notifications", "weeklyDigest", e.target.checked)}
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.marketing.weekly_digest?.platform ?? true}
+                                onChange={(e) =>
+                                  handleMarketingNotificationChange("weekly_digest", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={comprehensivePrefs.marketing.weekly_digest?.email ?? true}
+                                onChange={(e) =>
+                                  handleMarketingNotificationChange("weekly_digest", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
                       </AccordionContent>
@@ -2144,7 +2906,7 @@ export default function ProfilePage() {
                                 type="checkbox"
                                 checked={messageNotificationPrefs.quiet_hours_enabled}
                                 onChange={(e) =>
-                                  handleMessageNotificationChange("quiet_hours_enabled", e.target.checked)
+                                  handleMessageNotificationChange("quiet_hours_enabled", "platform", e.target.checked)
                                 }
                                 className="rounded border-gray-300"
                               />
@@ -2159,7 +2921,7 @@ export default function ProfilePage() {
                                     type="time"
                                     value={messageNotificationPrefs.quiet_hours_start}
                                     onChange={(e) =>
-                                      handleMessageNotificationChange("quiet_hours_start", e.target.value)
+                                      handleMessageNotificationChange("quiet_hours_start", "platform", e.target.value)
                                     }
                                     className="w-32 h-8 text-xs"
                                   />
@@ -2169,7 +2931,9 @@ export default function ProfilePage() {
                                   <Input
                                     type="time"
                                     value={messageNotificationPrefs.quiet_hours_end}
-                                    onChange={(e) => handleMessageNotificationChange("quiet_hours_end", e.target.value)}
+                                    onChange={(e) =>
+                                      handleMessageNotificationChange("quiet_hours_end", "platform", e.target.value)
+                                    }
                                     className="w-32 h-8 text-xs"
                                   />
                                 </div>
@@ -2184,16 +2948,29 @@ export default function ProfilePage() {
                             <Label className="text-sm font-medium">Wochenend-Benachrichtigungen</Label>
                             <p className="text-xs text-gray-600">Benachrichtigungen am Wochenende erhalten</p>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <input
-                              type="checkbox"
-                              checked={messageNotificationPrefs.weekend_notifications}
-                              onChange={(e) =>
-                                handleMessageNotificationChange("weekend_notifications", e.target.checked)
-                              }
-                              className="rounded border-gray-300"
-                            />
-                            <span className="text-xs text-gray-600">Aktiviert</span>
+                          <div className="flex items-center gap-6 ml-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={messageNotificationPrefs.weekend_notifications?.platform ?? true}
+                                onChange={(e) =>
+                                  handleMessageNotificationChange("weekend_notifications", "platform", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">In-App</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={messageNotificationPrefs.weekend_notifications?.email ?? true}
+                                onChange={(e) =>
+                                  handleMessageNotificationChange("weekend_notifications", "email", e.target.checked)
+                                }
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-xs text-gray-600">E-Mail</span>
+                            </div>
                           </div>
                         </div>
 
@@ -2210,9 +2987,9 @@ export default function ProfilePage() {
                                 name="digest_mode"
                                 checked={messageNotificationPrefs.instant_notifications}
                                 onChange={() => {
-                                  handleMessageNotificationChange("instant_notifications", true)
-                                  handleMessageNotificationChange("daily_digest", false)
-                                  handleMessageNotificationChange("weekly_digest", false)
+                                  handleMessageNotificationChange("instant_notifications", "platform", true)
+                                  handleMessageNotificationChange("daily_digest", "platform", false)
+                                  handleMessageNotificationChange("weekly_digest", "platform", false)
                                 }}
                                 className="rounded-full border-gray-300"
                               />
@@ -2224,9 +3001,9 @@ export default function ProfilePage() {
                                 name="digest_mode"
                                 checked={messageNotificationPrefs.daily_digest}
                                 onChange={() => {
-                                  handleMessageNotificationChange("instant_notifications", false)
-                                  handleMessageNotificationChange("daily_digest", true)
-                                  handleMessageNotificationChange("weekly_digest", false)
+                                  handleMessageNotificationChange("instant_notifications", "platform", false)
+                                  handleMessageNotificationChange("daily_digest", "platform", true)
+                                  handleMessageNotificationChange("weekly_digest", "platform", false)
                                 }}
                                 className="rounded-full border-gray-300"
                               />
@@ -2238,9 +3015,9 @@ export default function ProfilePage() {
                                 name="digest_mode"
                                 checked={messageNotificationPrefs.weekly_digest}
                                 onChange={() => {
-                                  handleMessageNotificationChange("instant_notifications", false)
-                                  handleMessageNotificationChange("daily_digest", false)
-                                  handleMessageNotificationChange("weekly_digest", true)
+                                  handleMessageNotificationChange("instant_notifications", "platform", false)
+                                  handleMessageNotificationChange("daily_digest", "platform", false)
+                                  handleMessageNotificationChange("weekly_digest", "platform", true)
                                 }}
                                 className="rounded-full border-gray-300"
                               />
@@ -2562,272 +3339,6 @@ export default function ProfilePage() {
 
                 <SecurityEventsDashboard />
               </div>
-            </TabsContent>
-
-            <TabsContent value="dashboard">
-              <Card>
-                <CardHeader className="p-4 md:p-6">
-                  <CardTitle className="font-handwritten text-lg md:text-xl">Dashboard</CardTitle>
-                  <CardDescription className="text-sm md:text-base">
-                    Verwalte alle deine Anzeigen, Events und Spielgruppen an einem Ort
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6 p-4 md:p-6">
-                  <div className="space-y-8">
-                    {/* Events Section */}
-                    <div>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                        <h3 className="font-semibold text-base md:text-lg">Meine Events ({userEvents.length})</h3>
-                        <Button
-                          size="sm"
-                          onClick={() => router.push("/ludo-events")}
-                          className="text-xs w-full sm:w-auto"
-                        >
-                          Neues Event erstellen
-                        </Button>
-                      </div>
-                      {loadingEvents ? (
-                        <p className="text-gray-600 text-sm md:text-base">Lade Events...</p>
-                      ) : userEvents.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm md:text-base mb-2">Du hast noch keine Events erstellt.</p>
-                          <Button size="sm" onClick={() => router.push("/ludo-events")}>
-                            Erstes Event erstellen
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {userEvents.map((event) => (
-                            <div key={event.id} className="border rounded-lg p-3 md:p-4 bg-blue-50/50 w-full">
-                              <div className="flex flex-col gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm md:text-base text-blue-900 truncate">
-                                    {event.title}
-                                  </h4>
-                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
-                                    {event.description}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📅 Siehe Event-Details
-                                    </span>
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      🕐 {event.start_time || event.time}
-                                    </span>
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      👥 {event.participants_count || 0}/{event.max_participants}
-                                    </span>
-                                    {event.frequency && event.frequency !== "once" && event.frequency !== "single" && (
-                                      <span className="flex items-center gap-1 whitespace-nowrap">
-                                        🔄 {getFrequencyText(event.frequency, event.interval_type)}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex gap-2 justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => router.push(`/ludo-events/${event.id}`)}
-                                    className="text-xs"
-                                  >
-                                    Anzeigen
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setDeleteConfirm({ type: "event", id: event.id })}
-                                    className="text-xs"
-                                  >
-                                    Löschen
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Spielgruppen Section */}
-                    <div>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                        <h3 className="font-semibold text-base md:text-lg">Meine Spielgruppen</h3>
-                        <Button
-                          size="sm"
-                          onClick={() => router.push("/ludo-gruppen")}
-                          className="text-xs w-full sm:w-auto"
-                        >
-                          Neue Gruppe erstellen
-                        </Button>
-                      </div>
-                      <div className="text-center py-8 bg-gray-50 rounded-lg">
-                        <p className="text-gray-600 text-sm md:text-base mb-2">
-                          Spielgruppen-Verwaltung wird hier bald verfügbar sein.
-                        </p>
-                        <Button size="sm" onClick={() => router.push("/ludo-gruppen")}>
-                          Zu Spielgruppen
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Marketplace Offers Section */}
-                    <div>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                        <h3 className="font-semibold text-base md:text-lg">
-                          Marktplatz-Angebote ({userOffers.length})
-                        </h3>
-                        <Button
-                          size="sm"
-                          onClick={() => router.push("/marketplace")}
-                          className="text-xs w-full sm:w-auto"
-                        >
-                          Neues Angebot erstellen
-                        </Button>
-                      </div>
-                      {userOffers.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm md:text-base mb-2">
-                            Du hast noch keine Angebote erstellt.
-                          </p>
-                          <Button size="sm" onClick={() => router.push("/marketplace")}>
-                            Erstes Angebot erstellen
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {userOffers.map((offer) => (
-                            <div key={offer.id} className="border rounded-lg p-3 md:p-4 bg-teal-50/50 w-full">
-                              <div className="flex flex-col gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm md:text-base text-teal-900 truncate">
-                                    {offer.title}
-                                  </h4>
-                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
-                                    {offer.description}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                    <span className="flex items-center gap-1 whitespace-nowrap">💰 {offer.price}</span>
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📍 {offer.location}
-                                    </span>
-                                    <span
-                                      className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                                        offer.type === "sell"
-                                          ? "bg-green-100 text-green-800"
-                                          : offer.type === "lend"
-                                            ? "bg-blue-100 text-blue-800"
-                                            : "bg-purple-100 text-purple-800"
-                                      }`}
-                                    >
-                                      {offer.type === "sell"
-                                        ? "Verkaufen"
-                                        : offer.type === "lend"
-                                          ? "Verleihen"
-                                          : "Tauschen"}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="flex gap-2 justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setEditingOffer(offer)
-                                      setIsEditOfferOpen(true)
-                                    }}
-                                    className="text-xs"
-                                  >
-                                    Bearbeiten
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setDeleteConfirm({ type: "offer", id: offer.id })}
-                                    className="text-xs"
-                                  >
-                                    Löschen
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Search Ads Section */}
-                    <div>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                        <h3 className="font-semibold text-base md:text-lg">Suchanzeigen ({userSearchAds.length})</h3>
-                        <Button
-                          size="sm"
-                          onClick={() => router.push("/marketplace")}
-                          className="text-xs w-full sm:w-auto"
-                        >
-                          Neue Suchanzeige erstellen
-                        </Button>
-                      </div>
-                      {userSearchAds.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm md:text-base mb-2">
-                            Du hast noch keine Suchanzeigen erstellt.
-                          </p>
-                          <Button size="sm" onClick={() => router.push("/marketplace")}>
-                            Erste Suchanzeige erstellen
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {userSearchAds.map((searchAd) => (
-                            <div key={searchAd.id} className="border rounded-lg p-3 md:p-4 bg-purple-50/50 w-full">
-                              <div className="flex flex-col gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm md:text-base text-purple-900 truncate">
-                                    {searchAd.title}
-                                  </h4>
-                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
-                                    {searchAd.description}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      💰 Bis {searchAd.max_price}
-                                    </span>
-                                    <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 whitespace-nowrap">
-                                      Suche
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="flex gap-2 justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setEditingSearchAd(searchAd)
-                                      setIsEditSearchAdOpen(true)
-                                    }}
-                                    className="text-xs"
-                                  >
-                                    Bearbeiten
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setDeleteConfirm({ type: "searchAd", id: searchAd.id })}
-                                    className="text-xs"
-                                  >
-                                    Löschen
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         </div>

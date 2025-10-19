@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
 import NewForumPostForm from "@/components/new-forum-post-form" // Import the NewForumPostForm component
+import { useAvatar } from "@/contexts/avatar-context"
 
 interface ForumPost {
   id: string
@@ -76,6 +77,7 @@ function ForumLoading() {
 
 export default function ForumPage() {
   const { user } = useAuth()
+  const { getAvatar } = useAvatar()
   const [posts, setPosts] = useState<ForumPost[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -561,12 +563,14 @@ export default function ForumPage() {
                                     {post.replies.map((reply) => (
                                       <div key={reply.id} className="bg-teal-50/50 rounded-lg p-4">
                                         <div className="flex items-start gap-3">
-                                        <Avatar className="h-8 w-8 border border-teal-200">
-                                              <AvatarImage src={reply.author?.avatar || "/placeholder.svg"} />
-                                              <AvatarFallback className="bg-teal-100 text-teal-700 text-xs">
+                                          <Avatar className="h-8 w-8 border border-teal-200">
+                                            <AvatarImage
+                                              src={getAvatar(reply.author?.id || "", reply.author?.username)}
+                                            />
+                                            <AvatarFallback className="bg-teal-100 text-teal-700 text-xs">
                                               {reply.author?.username?.charAt(0).toUpperCase() || "?"}
-                                              </AvatarFallback>
-                                        </Avatar>
+                                            </AvatarFallback>
+                                          </Avatar>
                                           <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
                                               <button
@@ -611,7 +615,7 @@ export default function ForumPage() {
                                   <div className="border-t border-teal-200 pt-4">
                                     <div className="flex gap-3">
                                       <Avatar className="h-8 w-8 border border-teal-200">
-                                        <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                                        <AvatarImage src={getAvatar(user.id, user.email) || "/placeholder.svg"} />
                                         <AvatarFallback className="bg-teal-100 text-teal-700 text-xs">
                                           {user.username?.charAt(0).toUpperCase() || "?"}
                                         </AvatarFallback>

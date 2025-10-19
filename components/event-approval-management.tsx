@@ -11,6 +11,7 @@ import { Check, X, Clock, Users, MessageSquare, UserCheck, UserX, UserRoundCheck
 import { toast } from "sonner"
 import { getEventParticipants, updateParticipantStatus } from "@/app/actions/ludo-event-participants"
 import { UserLink } from "@/components/user-link"
+import { useAvatar } from "@/contexts/avatar-context"
 
 interface Participant {
   id: string
@@ -46,6 +47,7 @@ export default function EventApprovalManagement({
   onUpdate,
   approvalMode = "manual",
 }: EventApprovalManagementProps) {
+  const { getAvatar } = useAvatar()
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
@@ -162,12 +164,6 @@ export default function EventApprovalManagement({
               </div>
             ) : (
               <>
-                {(() => {
-                  console.log("[v0] Approval mode:", approvalMode)
-                  console.log("[v0] Should show tabs:", approvalMode !== "automatic")
-                  return null
-                })()}
-
                 {approvalMode === "automatic" ? (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-4">
@@ -181,7 +177,11 @@ export default function EventApprovalManagement({
                             <CardContent className="p-3">
                               <div className="flex items-center gap-3">
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage src={participant.users.avatar || "/placeholder.svg"} />
+                                  <AvatarImage
+                                    src={
+                                      getAvatar(participant.users.id, participant.users.username) || "/placeholder.svg"
+                                    }
+                                  />
                                   <AvatarFallback className="text-xs">
                                     {participant.users.username?.[0]?.toUpperCase() || "U"}
                                   </AvatarFallback>
@@ -253,7 +253,12 @@ export default function EventApprovalManagement({
                                 <div className="flex items-start justify-between">
                                   <div className="flex items-start gap-3 flex-1">
                                     <Avatar className="h-10 w-10">
-                                      <AvatarImage src={participant.users.avatar || "/placeholder.svg"} />
+                                      <AvatarImage
+                                        src={
+                                          getAvatar(participant.users.id, participant.users.username) ||
+                                          "/placeholder.svg"
+                                        }
+                                      />
                                       <AvatarFallback>
                                         {participant.users.username?.[0]?.toUpperCase() || "U"}
                                       </AvatarFallback>
@@ -330,7 +335,12 @@ export default function EventApprovalManagement({
                               <CardContent className="p-3">
                                 <div className="flex items-center gap-3">
                                   <Avatar className="h-8 w-8">
-                                    <AvatarImage src={participant.users.avatar || "/placeholder.svg"} />
+                                    <AvatarImage
+                                      src={
+                                        getAvatar(participant.users.id, participant.users.username) ||
+                                        "/placeholder.svg"
+                                      }
+                                    />
                                     <AvatarFallback className="text-xs">
                                       {participant.users.username?.[0]?.toUpperCase() || "U"}
                                     </AvatarFallback>
@@ -385,7 +395,12 @@ export default function EventApprovalManagement({
                               <CardContent className="p-3">
                                 <div className="flex items-center gap-3">
                                   <Avatar className="h-8 w-8">
-                                    <AvatarImage src={participant.users.avatar || "/placeholder.svg"} />
+                                    <AvatarImage
+                                      src={
+                                        getAvatar(participant.users.id, participant.users.username) ||
+                                        "/placeholder.svg"
+                                      }
+                                    />
                                     <AvatarFallback className="text-xs">
                                       {participant.users.username?.[0]?.toUpperCase() || "U"}
                                     </AvatarFallback>
@@ -479,7 +494,11 @@ export default function EventApprovalManagement({
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={selectedParticipant.users.avatar || "/placeholder.svg"} />
+                  <AvatarImage
+                    src={
+                      getAvatar(selectedParticipant.users.id, selectedParticipant.users.username) || "/placeholder.svg"
+                    }
+                  />
                   <AvatarFallback>{selectedParticipant.users.username?.[0]?.toUpperCase() || "U"}</AvatarFallback>
                 </Avatar>
                 <div>

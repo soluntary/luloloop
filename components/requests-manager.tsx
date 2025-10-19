@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Inbox, Send, BookOpen, Repeat, ShoppingCart, Clock, Check, X, MessageCircle } from "lucide-react"
 import { useRequests } from "@/contexts/requests-context"
 import { useAuth } from "@/contexts/auth-context"
+import { useAvatar } from "@/contexts/avatar-context"
 
 interface RequestsManagerProps {
   isOpen: boolean
@@ -17,6 +18,7 @@ interface RequestsManagerProps {
 
 export function RequestsManager({ isOpen, onClose }: RequestsManagerProps) {
   const { user } = useAuth()
+  const { getAvatar } = useAvatar()
   const {
     shelfAccessRequests,
     gameInteractionRequests,
@@ -147,7 +149,7 @@ export function RequestsManager({ isOpen, onClose }: RequestsManagerProps) {
                           <div className="flex items-start space-x-3">
                             <Avatar className="h-10 w-10">
                               <AvatarImage
-                                src={request.requester?.avatar || "/placeholder.svg"}
+                                src={getAvatar(request.requester?.id || "", request.requester?.name)}
                                 alt={request.requester?.name}
                               />
                               <AvatarFallback className="bg-teal-100 text-teal-700">
@@ -205,7 +207,7 @@ export function RequestsManager({ isOpen, onClose }: RequestsManagerProps) {
                           <div className="flex items-start space-x-3">
                             <Avatar className="h-10 w-10">
                               <AvatarImage
-                                src={request.requester?.avatar || "/placeholder.svg"}
+                                src={getAvatar(request.requester?.id || "", request.requester?.name)}
                                 alt={request.requester?.name}
                               />
                               <AvatarFallback className="bg-teal-100 text-teal-700">
@@ -287,7 +289,7 @@ export function RequestsManager({ isOpen, onClose }: RequestsManagerProps) {
                           <div className="flex items-start space-x-3">
                             <Avatar className="h-10 w-10">
                               <AvatarImage
-                                src={request.owner?.avatar || "/placeholder.svg"}
+                                src={getAvatar(request.owner?.id || "", request.owner?.name)}
                                 alt={request.owner?.name}
                               />
                               <AvatarFallback className="bg-teal-100 text-teal-700">
@@ -325,7 +327,7 @@ export function RequestsManager({ isOpen, onClose }: RequestsManagerProps) {
                           <div className="flex items-start space-x-3">
                             <Avatar className="h-10 w-10">
                               <AvatarImage
-                                src={request.owner?.avatar || "/placeholder.svg"}
+                                src={getAvatar(request.owner?.id || "", request.owner?.name)}
                                 alt={request.owner?.name}
                               />
                               <AvatarFallback className="bg-teal-100 text-teal-700">

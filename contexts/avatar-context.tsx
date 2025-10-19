@@ -8,6 +8,7 @@ interface AvatarContextType {
   avatarCache: Map<string, string>
   updateAvatar: (userId: string, avatarUrl: string) => void
   getAvatar: (userId: string, fallbackEmail?: string) => string
+  preloadAvatars: (userIds: string[]) => Promise<void>
 }
 
 const AvatarContext = createContext<AvatarContextType | undefined>(undefined)
@@ -67,10 +68,38 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
     return `https://api.dicebear.com/7.x/croodles/svg?seed=${encodeURIComponent(seed)}`
   }
 
+  const preloadAvatars = async (userIds: string[]) => {
+    if (!supabase || userIds.length === 0) return
+
+    try {
+      const uncachedIds = userIds.filter((id) => !avatarCache.has(id))
+      if (uncachedIds.length === 0) return
+
+      const { data, error } = await supabase.from("users").select("id, avatar").in("id", uncachedIds)
+
+      if (error) throw error
+
+      if (data) {
+        setAvatarCache((prev) => {
+          const newCache = new Map(prev)
+          data.forEach((user) => {
+            if (user.avatar) {
+              newCache.set(user.id, user.avatar)
+            }
+          })
+          return newCache
+        })
+      }
+    } catch (error) {
+      console.error("[v0] Error preloading avatars:", error)
+    }
+  }
+
   const value = {
     avatarCache,
     updateAvatar,
     getAvatar,
+    preloadAvatars,
   }
 
   return <AvatarContext.Provider value={value}>{children}</AvatarContext.Provider>

@@ -201,6 +201,8 @@ export async function getAllNotificationPreferences() {
     social: settings.notifications?.social || {},
     privacy: settings.privacy || {},
     security: settings.security || {},
+    marketing: settings.notifications?.marketing || {},
+    delivery: settings.notifications?.delivery || {},
   }
 }
 

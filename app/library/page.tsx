@@ -26,6 +26,7 @@ import {
   ChevronDown,
   Tag,
   Users,
+  EyeOff,
   Check,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -2136,7 +2137,7 @@ function LibraryContent() {
                   </div>
 
                   <Button variant="secondary" className="w-full font-handwritten" onClick={() => setSelectedGame(null)}>
-                    <Eye className="w-4 h-4 mr-2" />
+                    <EyeOff className="w-4 h-4 mr-2" />
                     Ansicht schliessen
                   </Button>
                 </CardContent>

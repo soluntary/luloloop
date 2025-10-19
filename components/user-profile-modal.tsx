@@ -21,7 +21,8 @@ import { createClient } from "@/lib/supabase/client"
 import { useFriends } from "@/contexts/friends-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequests } from "@/contexts/requests-context"
-import { useUserData, useUserDisplayName, useUserAvatar } from "@/hooks/use-user-data"
+import { useUserData, useUserDisplayName } from "@/hooks/use-user-data"
+import { useAvatar } from "@/contexts/avatar-context"
 import { GameShelfViewer } from "./game-shelf-viewer"
 import { useMessages } from "@/contexts/messages-context"
 import { MessageComposerModal } from "./message-composer-modal"
@@ -56,7 +57,8 @@ interface UserProfileModalProps {
 export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalProps) {
   const { user: profile, isLoading: loading } = useUserData(userId)
   const displayName = useUserDisplayName(userId)
-  const avatarUrl = useUserAvatar(userId, profile?.email)
+  const { getAvatar } = useAvatar()
+  const avatarUrl = getAvatar(userId || "", profile?.email)
 
   const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null)
   const [shelfRequestStatus, setShelfRequestStatus] = useState<string | null>(null)
