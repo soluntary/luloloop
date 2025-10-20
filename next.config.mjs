@@ -12,7 +12,6 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@supabase/supabase-js'],
   },
-  swcMinify: true,
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
