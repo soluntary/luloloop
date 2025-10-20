@@ -9,23 +9,16 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  output: 'standalone',
   experimental: {
     optimizePackageImports: ['lucide-react', '@supabase/supabase-js'],
   },
   swcMinify: true,
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-      }
-    }
-    config.optimization = {
-      ...config.optimization,
-      moduleIds: 'deterministic',
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
     }
     return config
   },
