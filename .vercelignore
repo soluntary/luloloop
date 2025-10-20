@@ -1,0 +1,9 @@
+node_modules
+.next
+.turbo
+*.log
+.env*.local
+coverage
+.DS_Store
+scripts
+packages/mobile
