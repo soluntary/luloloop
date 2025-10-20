@@ -30,6 +30,7 @@ import {
   Clock,
   Trash2,
   Store,
+  Search,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -86,6 +87,9 @@ export default function ProfilePage() {
   const [isEditSearchAdOpen, setIsEditSearchAdOpen] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: "offer" | "searchAd" | "event"; id: string } | null>(null)
   const [loadingEvents, setLoadingEvents] = useState(true)
+
+  const [createdEvents, setCreatedEvents] = useState<any[]>([])
+  const [createdCommunities, setCreatedCommunities] = useState<any[]>([])
 
   const [participatingEvents, setParticipatingEvents] = useState<any[]>([])
   const [pendingJoinRequests, setPendingJoinRequests] = useState<any[]>([])
@@ -292,6 +296,19 @@ export default function ProfilePage() {
       setLoadingActivities(true)
       console.log("[v0] Fetching user activities for user:", user.id)
 
+      const { data: eventsCreated, error: eventsCreatedError } = await supabase
+        .from("ludo_events")
+        .select("*")
+        .eq("creator_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (eventsCreatedError) {
+        console.error("Error fetching created events:", eventsCreatedError)
+      } else {
+        console.log("[v0] Created events loaded:", eventsCreated?.length || 0)
+        setCreatedEvents(eventsCreated || [])
+      }
+
       // Fetch events user is participating in
       const { data: participations, error: participationsError } = await supabase
         .from("ludo_event_participants")
@@ -325,6 +342,19 @@ export default function ProfilePage() {
       } else {
         console.log("[v0] Join requests loaded:", requests?.length || 0)
         setPendingJoinRequests(requests || [])
+      }
+
+      const { data: communitiesCreated, error: communitiesCreatedError } = await supabase
+        .from("communities")
+        .select("*")
+        .eq("creator_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (communitiesCreatedError) {
+        console.error("Error fetching created communities:", communitiesCreatedError)
+      } else {
+        console.log("[v0] Created communities loaded:", communitiesCreated?.length || 0)
+        setCreatedCommunities(communitiesCreated || [])
       }
 
       // Fetch communities user is a member of
@@ -361,9 +391,25 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user?.id) return
 
-    // Subscribe to event participations changes
+    const eventsChannel = supabase
+      .channel("user-events-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "ludo_events",
+          filter: `creator_id=eq.${user.id}`,
+        },
+        () => {
+          console.log("[v0] Events changed, refreshing...")
+          fetchUserActivities()
+        },
+      )
+      .subscribe()
+
     const participationsChannel = supabase
-      .channel("user-participations")
+      .channel("user-participations-changes")
       .on(
         "postgres_changes",
         {
@@ -373,15 +419,14 @@ export default function ProfilePage() {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          console.log("[v0] Event participations changed, refreshing...")
+          console.log("[v0] Participations changed, refreshing...")
           fetchUserActivities()
         },
       )
       .subscribe()
 
-    // Subscribe to join requests changes
     const requestsChannel = supabase
-      .channel("user-join-requests")
+      .channel("user-requests-changes")
       .on(
         "postgres_changes",
         {
@@ -397,9 +442,25 @@ export default function ProfilePage() {
       )
       .subscribe()
 
-    // Subscribe to community memberships changes
     const communitiesChannel = supabase
-      .channel("user-communities")
+      .channel("user-communities-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "communities",
+          filter: `creator_id=eq.${user.id}`,
+        },
+        () => {
+          console.log("[v0] Communities changed, refreshing...")
+          fetchUserActivities()
+        },
+      )
+      .subscribe()
+
+    const membershipChannel = supabase
+      .channel("user-membership-changes")
       .on(
         "postgres_changes",
         {
@@ -415,29 +476,48 @@ export default function ProfilePage() {
       )
       .subscribe()
 
-    // Subscribe to marketplace offers changes
     const offersChannel = supabase
-      .channel("user-marketplace-offers")
+      .channel("user-offers-changes")
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "marketplace_offers",
-          filter: `creator_id=eq.${user.id}`,
+          filter: `user_id=eq.${user.id}`,
         },
         () => {
           console.log("[v0] Marketplace offers changed, refreshing...")
-          refreshData()
+          loadUserListings()
+        },
+      )
+      .subscribe()
+
+    const searchAdsChannel = supabase
+      .channel("user-search-ads-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "search_ads",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          console.log("[v0] Search ads changed, refreshing...")
+          loadUserListings()
         },
       )
       .subscribe()
 
     return () => {
+      supabase.removeChannel(eventsChannel)
       supabase.removeChannel(participationsChannel)
       supabase.removeChannel(requestsChannel)
       supabase.removeChannel(communitiesChannel)
+      supabase.removeChannel(membershipChannel)
       supabase.removeChannel(offersChannel)
+      supabase.removeChannel(searchAdsChannel)
     }
   }, [user?.id])
 
@@ -552,10 +632,14 @@ export default function ProfilePage() {
     }))
   }
 
-  const handleMessageNotificationChange = async (key: string, type: "platform" | "email", value: boolean) => {
+  const handleMessageNotificationChange = async (key: string, type: "platform" | "email", value: boolean | string) => {
     try {
       const updatedSetting = {
-        ...messageNotificationPrefs[key as keyof typeof messageNotificationPrefs],
+        ...(messageNotificationPrefs[key as keyof typeof messageNotificationPrefs] as {
+          platform?: boolean
+          email?: boolean
+          [key: string]: any
+        }),
         [type]: value,
       }
 
@@ -564,19 +648,43 @@ export default function ProfilePage() {
         [key]: updatedSetting,
       }))
 
-      await updateMessageNotificationPreferences({ [key]: updatedSetting })
-      toast({
-        title: "Einstellungen gespeichert",
-        description: "Deine Nachrichten-Benachrichtigungen wurden aktualisiert.",
-      })
+      // Only call API if it's a boolean change, otherwise it's likely for time settings
+      if (typeof value === "boolean") {
+        await updateMessageNotificationPreferences({ [key]: updatedSetting })
+        toast({
+          title: "Einstellungen gespeichert",
+          description: "Deine Nachrichten-Benachrichtigungen wurden aktualisiert.",
+        })
+      } else {
+        // For time settings, just update local state for now, potentially save later or on a general save
+        console.log("Time setting updated for:", key, type, value)
+        toast({
+          title: "Zeit geändert",
+          description: "Ruhezeit wurde aktualisiert.",
+        })
+      }
     } catch (error) {
+      console.error(`Error updating message notification for ${key}:`, error)
       toast({
         title: "Fehler",
         description: "Die Einstellungen konnten nicht gespeichert werden.",
         variant: "destructive",
       })
-      // Revert the change
-      setMessageNotificationPrefs(messageNotificationPrefs)
+      // Revert the change - this might be complex for nested objects, simplified here
+      // A more robust solution would involve deep cloning or more specific revert logic
+      fetchMessageNotificationPrefs() // Re-fetch to revert
+    }
+  }
+
+  // Helper to re-fetch message notification preferences
+  const fetchMessageNotificationPrefs = async () => {
+    try {
+      const prefs = await getMessageNotificationPreferences()
+      if (prefs) {
+        setMessageNotificationPrefs(prefs)
+      }
+    } catch (error) {
+      console.error("Error re-fetching message notification preferences:", error)
     }
   }
 
@@ -602,6 +710,7 @@ export default function ProfilePage() {
         description: "Deine Sicherheitsbenachrichtigungen wurden aktualisiert.",
       })
     } catch (error) {
+      console.error(`Error updating security notification for ${key}:`, error)
       toast({
         title: "Fehler",
         description: "Die Einstellungen konnten nicht gespeichert werden.",
@@ -625,10 +734,17 @@ export default function ProfilePage() {
       }))
 
       await updateSocialNotificationPreferences({ [key]: updatedSetting })
-      setMessage("Benachrichtigungseinstellungen erfolgreich gespeichert!")
+      toast({
+        title: "Einstellungen gespeichert",
+        description: "Deine sozialen Benachrichtigungen wurden aktualisiert.",
+      })
     } catch (error) {
       console.error("[v0] Error updating social notifications:", error)
-      setMessage("Fehler beim Speichern der Benachrichtigungen.")
+      toast({
+        title: "Fehler",
+        description: "Die Einstellungen konnten nicht gespeichert werden.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -645,10 +761,17 @@ export default function ProfilePage() {
       }))
 
       await updateMarketingNotificationPreferences({ [key]: updatedSetting })
-      setMessage("Marketing-Benachrichtigungseinstellungen erfolgreich gespeichert!")
+      toast({
+        title: "Einstellungen gespeichert",
+        description: "Deine Marketing-Benachrichtigungen wurden aktualisiert.",
+      })
     } catch (error) {
       console.error("[v0] Error updating marketing notifications:", error)
-      setMessage("Fehler beim Speichern der Marketing-Benachrichtigungen.")
+      toast({
+        title: "Fehler",
+        description: "Die Einstellungen konnten nicht gespeichert werden.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -660,10 +783,17 @@ export default function ProfilePage() {
       }))
 
       await updateDeliveryMethodPreferences({ [key]: value })
-      setMessage("Übertragungsart-Einstellungen erfolgreich gespeichert!")
+      toast({
+        title: "Einstellungen gespeichert",
+        description: "Deine Übertragungsart-Einstellungen wurden aktualisiert.",
+      })
     } catch (error) {
       console.error("[v0] Error updating delivery method:", error)
-      setMessage("Fehler beim Speichern der Übertragungsart-Einstellungen.")
+      toast({
+        title: "Fehler",
+        description: "Die Einstellungen konnten nicht gespeichert werden.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -675,10 +805,17 @@ export default function ProfilePage() {
       }))
 
       await updatePrivacySettings({ [key]: value })
-      setMessage("Privatsphäre-Einstellungen erfolgreich gespeichert!")
+      toast({
+        title: "Einstellungen gespeichert",
+        description: "Deine Privatsphäre-Einstellungen wurden aktualisiert.",
+      })
     } catch (error) {
       console.error("[v0] Error updating privacy settings:", error)
-      setMessage("Fehler beim Speichern der Privatsphäre-Einstellungen.")
+      toast({
+        title: "Fehler",
+        description: "Die Einstellungen konnten nicht gespeichert werden.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -690,10 +827,17 @@ export default function ProfilePage() {
       }))
 
       await updateSecuritySettings({ [key]: value })
-      setMessage("Sicherheitseinstellungen erfolgreich gespeichert!")
+      toast({
+        title: "Einstellungen gespeichert",
+        description: "Deine Sicherheitseinstellungen wurden aktualisiert.",
+      })
     } catch (error) {
       console.error("[v0] Error updating security settings:", error)
-      setMessage("Fehler beim Speichern der Sicherheitseinstellungen.")
+      toast({
+        title: "Fehler",
+        description: "Die Einstellungen konnten nicht gespeichert werden.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -732,10 +876,17 @@ export default function ProfilePage() {
 
       setProfileData((prev) => ({ ...prev, avatar: url }))
       updateAvatar(user.id, url)
-      setMessage("Avatar erfolgreich hochgeladen!")
+      toast({
+        title: "Avatar hochgeladen",
+        description: "Dein Profilbild wurde erfolgreich aktualisiert.",
+      })
     } catch (error) {
       console.error("[v0] Error uploading avatar:", error)
-      setMessage("Fehler beim Hochladen des Avatars.")
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Hochladen des Avatars.",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -780,14 +931,21 @@ export default function ProfilePage() {
         // Trigger platform-wide synchronization
         syncProfile(user.id, result.data)
 
-        setMessage("Profil erfolgreich aktualisiert!")
+        toast({
+          title: "Profil aktualisiert",
+          description: "Dein Profil wurde erfolgreich gespeichert.",
+        })
         console.log("[v0] Profile updated and synchronized across platform")
       } else {
         throw new Error(result.error)
       }
     } catch (error) {
       console.error("Error updating profile:", error)
-      setMessage("Fehler beim Aktualisieren des Profils.")
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Aktualisieren des Profils.",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -801,6 +959,10 @@ export default function ProfilePage() {
       setIsEmailChanging(true)
       setEmailChangeMessage("")
 
+      // Note: Supabase update user might require a password confirmation step for sensitive actions.
+      // This example assumes the backend handles password verification implicitly or via another mechanism.
+      // For a real-world app, you might need to send the current password to your Supabase auth function.
+
       const { error } = await supabase.auth.updateUser(
         { email: emailChangeData.newEmail },
         {
@@ -812,9 +974,18 @@ export default function ProfilePage() {
 
       setEmailChangeMessage("Bestätigungs-E-Mail gesendet! Überprüfe dein Postfach.")
       setEmailChangeData({ newEmail: "", currentPassword: "" })
+      toast({
+        title: "E-Mail-Änderung beantragt",
+        description: "Eine Bestätigungs-E-Mail wurde an deine neue Adresse gesendet.",
+      })
     } catch (error: any) {
       console.error("Error changing email:", error)
       setEmailChangeMessage(error.message || "Fehler beim Ändern der E-Mail-Adresse.")
+      toast({
+        title: "Fehler",
+        description: error.message || "Fehler beim Ändern der E-Mail-Adresse.",
+        variant: "destructive",
+      })
     } finally {
       setIsEmailChanging(false)
     }
@@ -825,9 +996,17 @@ export default function ProfilePage() {
       await deleteMarketplaceOffer(offerId)
       await loadUserListings()
       setDeleteConfirm(null)
+      toast({
+        title: "Angebot gelöscht",
+        description: "Dein Marktplatz-Angebot wurde erfolgreich entfernt.",
+      })
     } catch (error) {
       console.error("Error deleting offer:", error)
-      alert("Fehler beim Löschen des Angebots.")
+      toast({
+        title: "Fehler",
+        description: "Das Angebot konnte nicht gelöscht werden.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -837,15 +1016,22 @@ export default function ProfilePage() {
 
       if (error) {
         console.error("Error deleting search ad:", error)
-        alert("Fehler beim Löschen der Suchanzeige.")
-        return
+        throw error
       }
 
       await loadUserListings()
       setDeleteConfirm(null)
+      toast({
+        title: "Suchanzeige gelöscht",
+        description: "Deine Suchanzeige wurde erfolgreich entfernt.",
+      })
     } catch (error) {
       console.error("Error deleting search ad:", error)
-      alert("Fehler beim Löschen der Suchanzeige.")
+      toast({
+        title: "Fehler",
+        description: "Die Suchanzeige konnte nicht gelöscht werden.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -855,13 +1041,22 @@ export default function ProfilePage() {
 
       if (error) {
         console.error("Error deleting event:", error)
-        return
+        throw error
       }
 
-      fetchUserEvents()
+      fetchUserEvents() // Re-fetch events created by the user
       setDeleteConfirm(null)
+      toast({
+        title: "Event gelöscht",
+        description: "Dein Event wurde erfolgreich entfernt.",
+      })
     } catch (error) {
       console.error("Error deleting event:", error)
+      toast({
+        title: "Fehler",
+        description: "Das Event konnte nicht gelöscht werden.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -913,6 +1108,11 @@ export default function ProfilePage() {
       fetchUserActivities()
     } catch (error) {
       console.error("Error canceling join request:", error)
+      toast({
+        title: "Fehler",
+        description: "Ein Fehler ist aufgetreten.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -941,6 +1141,11 @@ export default function ProfilePage() {
       fetchUserActivities()
     } catch (error) {
       console.error("Error leaving event:", error)
+      toast({
+        title: "Fehler",
+        description: "Ein Fehler ist aufgetreten.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -965,6 +1170,11 @@ export default function ProfilePage() {
       fetchUserActivities()
     } catch (error) {
       console.error("Error leaving community:", error)
+      toast({
+        title: "Fehler",
+        description: "Ein Fehler ist aufgetreten.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -1033,16 +1243,13 @@ export default function ProfilePage() {
           </div>
 
           <Tabs defaultValue="profile" className="space-y-4 md:space-y-6">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 h-auto">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
               <TabsTrigger value="profile" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
                 Profil
               </TabsTrigger>
               <TabsTrigger value="activities" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
                 <span className="hidden sm:inline">Meine Aktivitäten</span>
                 <span className="sm:hidden">Aktivitäten</span>
-              </TabsTrigger>
-              <TabsTrigger value="dashboard" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
-                Dashboard
               </TabsTrigger>
               <TabsTrigger value="notifications" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
                 <span className="hidden sm:inline">Benachrichtigungen</span>
@@ -1398,32 +1605,36 @@ export default function ProfilePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-4 md:p-6">
-                  <Tabs defaultValue="events" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 mb-6">
-                      <TabsTrigger value="events" className="text-xs md:text-sm">
-                        <span className="hidden sm:inline">Events</span>
-                        <span className="sm:hidden">📅</span>
-                        <span className="ml-1">({participatingEvents.length})</span>
+                  <Tabs defaultValue="events-participating" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6 gap-1">
+                      <TabsTrigger value="events-participating" className="text-xs md:text-sm px-1">
+                        <span className="hidden sm:inline">Events (Teilnahme)</span>
+                        <span className="sm:hidden">📅 Teil.</span>
                       </TabsTrigger>
-                      <TabsTrigger value="requests" className="text-xs md:text-sm">
+                      <TabsTrigger value="events-created" className="text-xs md:text-sm px-1">
+                        <span className="hidden sm:inline">Events (Erstellt)</span>
+                        <span className="sm:hidden">📅 Erst.</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="requests" className="text-xs md:text-sm px-1">
                         <span className="hidden sm:inline">Anfragen</span>
                         <span className="sm:hidden">⏳</span>
-                        <span className="ml-1">({pendingJoinRequests.length})</span>
                       </TabsTrigger>
-                      <TabsTrigger value="groups" className="text-xs md:text-sm">
-                        <span className="hidden sm:inline">Gruppen</span>
-                        <span className="sm:hidden">👥</span>
-                        <span className="ml-1">({joinedCommunities.length})</span>
+                      <TabsTrigger value="groups-joined" className="text-xs md:text-sm px-1">
+                        <span className="hidden sm:inline">Gruppen (Mitglied)</span>
+                        <span className="sm:hidden">👥 Mit.</span>
                       </TabsTrigger>
-                      <TabsTrigger value="offers" className="text-xs md:text-sm">
-                        <span className="hidden sm:inline">Angebote</span>
+                      <TabsTrigger value="groups-created" className="text-xs md:text-sm px-1">
+                        <span className="hidden sm:inline">Gruppen (Erstellt)</span>
+                        <span className="sm:hidden">👥 Erst.</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="marketplace" className="text-xs md:text-sm px-1">
+                        <span className="hidden sm:inline">Marktplatz</span>
                         <span className="sm:hidden">🛒</span>
-                        <span className="ml-1">({userOffers.length})</span>
                       </TabsTrigger>
                     </TabsList>
 
-                    {/* Events Tab */}
-                    <TabsContent value="events" className="space-y-4">
+                    {/* Events Participating Tab */}
+                    <TabsContent value="events-participating" className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
                         <Calendar className="w-5 h-5 text-blue-600" />
                         <h3 className="font-semibold text-base md:text-lg">
@@ -1498,7 +1709,76 @@ export default function ProfilePage() {
                       )}
                     </TabsContent>
 
-                    {/* Requests Tab */}
+                    <TabsContent value="events-created" className="space-y-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Calendar className="w-5 h-5 text-indigo-600" />
+                        <h3 className="font-semibold text-base md:text-lg">
+                          Events, die ich erstellt habe ({createdEvents.length})
+                        </h3>
+                      </div>
+                      {loadingActivities ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                        </div>
+                      ) : createdEvents.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <p className="text-gray-600 text-sm md:text-base mb-2">Du hast noch keine Events erstellt.</p>
+                          <Button size="sm" onClick={() => router.push("/ludo-events")}>
+                            Erstes Event erstellen
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {createdEvents.map((event) => (
+                            <div key={event.id} className="border rounded-lg p-3 md:p-4 bg-indigo-50/50 w-full">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm md:text-base text-indigo-900 truncate">
+                                    {event.title}
+                                  </h4>
+                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                    {event.description}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      📍 {event.location || "Kein Ort angegeben"}
+                                    </span>
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      🕐 {event.start_time || "Zeit nicht angegeben"}
+                                    </span>
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      📅{" "}
+                                      {event.event_date
+                                        ? new Date(event.event_date).toLocaleDateString("de-DE")
+                                        : "Datum nicht angegeben"}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => router.push(`/ludo-events/${event.id}`)}
+                                    className="text-xs"
+                                  >
+                                    Verwalten
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setDeleteConfirm({ type: "event", id: event.id })}
+                                    className="text-xs"
+                                  >
+                                    Löschen
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </TabsContent>
+
                     <TabsContent value="requests" className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
                         <Clock className="w-5 h-5 text-orange-600" />
@@ -1570,12 +1850,77 @@ export default function ProfilePage() {
                       )}
                     </TabsContent>
 
-                    {/* Groups Tab */}
-                    <TabsContent value="groups" className="space-y-4">
+                    <TabsContent value="groups-created" className="space-y-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Users className="w-5 h-5 text-pink-600" />
+                        <h3 className="font-semibold text-base md:text-lg">
+                          Spielgruppen, die ich erstellt habe ({createdCommunities.length})
+                        </h3>
+                      </div>
+                      {loadingActivities ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+                        </div>
+                      ) : createdCommunities.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <p className="text-gray-600 text-sm md:text-base mb-2">
+                            Du hast noch keine Spielgruppen erstellt.
+                          </p>
+                          <Button size="sm" onClick={() => router.push("/ludo-gruppen")}>
+                            Erste Spielgruppe erstellen
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {createdCommunities.map((community) => (
+                            <div key={community.id} className="border rounded-lg p-3 md:p-4 bg-pink-50/50 w-full">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm md:text-base text-pink-900 truncate">
+                                    {community.name}
+                                  </h4>
+                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                    {community.description}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      📍 {community.location || "Kein Ort angegeben"}
+                                    </span>
+                                    <span className="flex items-center gap-1 whitespace-nowrap">
+                                      📅 Erstellt am{" "}
+                                      {new Date(community.created_at).toLocaleDateString("de-DE", {
+                                        day: "2-digit",
+                                        month: "2-digit",
+                                        year: "numeric",
+                                      })}
+                                    </span>
+                                    <span className="px-2 py-1 rounded text-xs font-medium bg-pink-100 text-pink-800 whitespace-nowrap">
+                                      Ersteller
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => router.push(`/ludo-gruppen/${community.id}`)}
+                                    className="text-xs"
+                                  >
+                                    Verwalten
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="groups-joined" className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
                         <Users className="w-5 h-5 text-purple-600" />
                         <h3 className="font-semibold text-base md:text-lg">
-                          Meine Spielgruppen ({joinedCommunities.length})
+                          Spielgruppen, denen ich beigetreten bin ({joinedCommunities.length})
                         </h3>
                       </div>
                       {loadingActivities ? (
@@ -1647,351 +1992,165 @@ export default function ProfilePage() {
                       )}
                     </TabsContent>
 
-                    {/* Marketplace Offers Tab */}
-                    <TabsContent value="offers" className="space-y-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Store className="w-5 h-5 text-teal-600" />
-                        <h3 className="font-semibold text-base md:text-lg">
-                          Marktplatz-Angebote ({userOffers.length})
-                        </h3>
-                      </div>
-                      {userOffers.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm md:text-base mb-2">
-                            Du hast noch keine Angebote erstellt.
-                          </p>
-                          <Button size="sm" onClick={() => router.push("/marketplace")}>
-                            Erstes Angebot erstellen
-                          </Button>
+                    <TabsContent value="marketplace" className="space-y-6">
+                      {/* Marketplace Offers Section */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Store className="w-5 h-5 text-teal-600" />
+                          <h3 className="font-semibold text-base md:text-lg">
+                            Marktplatz-Angebote ({userOffers.length})
+                          </h3>
                         </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {userOffers.map((offer) => (
-                            <div key={offer.id} className="border rounded-lg p-3 md:p-4 bg-teal-50/50 w-full">
-                              <div className="flex flex-col gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm md:text-base text-teal-900 truncate">
-                                    {offer.title}
-                                  </h4>
-                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
-                                    {offer.description}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                    <span className="flex items-center gap-1 whitespace-nowrap">💰 {offer.price}</span>
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📍 {offer.location}
-                                    </span>
-                                    <span
-                                      className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                                        offer.type === "sell"
-                                          ? "bg-green-100 text-green-800"
+                        {userOffers.length === 0 ? (
+                          <div className="text-center py-8 bg-gray-50 rounded-lg">
+                            <p className="text-gray-600 text-sm md:text-base mb-2">
+                              Du hast noch keine Angebote erstellt.
+                            </p>
+                            <Button size="sm" onClick={() => router.push("/marketplace")}>
+                              Erstes Angebot erstellen
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {userOffers.map((offer) => (
+                              <div key={offer.id} className="border rounded-lg p-3 md:p-4 bg-teal-50/50 w-full">
+                                <div className="flex flex-col gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-sm md:text-base text-teal-900 truncate">
+                                      {offer.title}
+                                    </h4>
+                                    <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                      {offer.description}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                      <span className="flex items-center gap-1 whitespace-nowrap">
+                                        💰 {offer.price}
+                                      </span>
+                                      <span className="flex items-center gap-1 whitespace-nowrap">
+                                        📍 {offer.location}
+                                      </span>
+                                      <span
+                                        className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                                          offer.type === "sell"
+                                            ? "bg-green-100 text-green-800"
+                                            : offer.type === "lend"
+                                              ? "bg-blue-100 text-blue-800"
+                                              : "bg-purple-100 text-purple-800"
+                                        }`}
+                                      >
+                                        {offer.type === "sell"
+                                          ? "Verkaufen"
                                           : offer.type === "lend"
-                                            ? "bg-blue-100 text-blue-800"
-                                            : "bg-purple-100 text-purple-800"
-                                      }`}
+                                            ? "Verleihen"
+                                            : "Tauschen"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2 justify-end">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setEditingOffer(offer)
+                                        setIsEditOfferOpen(true)
+                                      }}
+                                      className="text-xs"
                                     >
-                                      {offer.type === "sell"
-                                        ? "Verkaufen"
-                                        : offer.type === "lend"
-                                          ? "Verleihen"
-                                          : "Tauschen"}
-                                    </span>
+                                      Bearbeiten
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => setDeleteConfirm({ type: "offer", id: offer.id })}
+                                      className="text-xs"
+                                    >
+                                      Löschen
+                                    </Button>
                                   </div>
                                 </div>
-                                <div className="flex gap-2 justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setEditingOffer(offer)
-                                      setIsEditOfferOpen(true)
-                                    }}
-                                    className="text-xs"
-                                  >
-                                    Bearbeiten
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setDeleteConfirm({ type: "offer", id: offer.id })}
-                                    className="text-xs"
-                                  >
-                                    Löschen
-                                  </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Search Ads Section */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Search className="w-5 h-5 text-amber-600" />
+                          <h3 className="font-semibold text-base md:text-lg">Suchanzeigen ({userSearchAds.length})</h3>
+                        </div>
+                        {userSearchAds.length === 0 ? (
+                          <div className="text-center py-8 bg-gray-50 rounded-lg">
+                            <p className="text-gray-600 text-sm md:text-base mb-2">
+                              Du hast noch keine Suchanzeigen erstellt.
+                            </p>
+                            <Button size="sm" onClick={() => router.push("/marketplace")}>
+                              Erste Suchanzeige erstellen
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {userSearchAds.map((searchAd) => (
+                              <div key={searchAd.id} className="border rounded-lg p-3 md:p-4 bg-amber-50/50 w-full">
+                                <div className="flex flex-col gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-sm md:text-base text-amber-900 truncate">
+                                      {searchAd.title}
+                                    </h4>
+                                    <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                      {searchAd.description}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
+                                      <span
+                                        className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                                          searchAd.type === "buy"
+                                            ? "bg-green-100 text-green-800"
+                                            : searchAd.type === "rent"
+                                              ? "bg-blue-100 text-blue-800"
+                                              : "bg-purple-100 text-purple-800"
+                                        }`}
+                                      >
+                                        {searchAd.type === "buy"
+                                          ? "Suche zu kaufen"
+                                          : searchAd.type === "rent"
+                                            ? "Suche zu mieten"
+                                            : "Suche zu tauschen"}
+                                      </span>
+                                      <span className="flex items-center gap-1 whitespace-nowrap">
+                                        📅 {new Date(searchAd.created_at).toLocaleDateString("de-DE")}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2 justify-end">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setEditingSearchAd(searchAd)
+                                        setIsEditSearchAdOpen(true)
+                                      }}
+                                      className="text-xs"
+                                    >
+                                      Bearbeiten
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => setDeleteConfirm({ type: "searchAd", id: searchAd.id })}
+                                      className="text-xs"
+                                    >
+                                      Löschen
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </TabsContent>
                   </Tabs>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="dashboard">
-              <Card>
-                <CardHeader className="p-4 md:p-6">
-                  <CardTitle className="font-handwritten text-lg md:text-xl">Dashboard</CardTitle>
-                  <CardDescription className="text-sm md:text-base">
-                    Verwalte alle deine Anzeigen, Events und Spielgruppen an einem Ort
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6 p-4 md:p-6">
-                  <div className="space-y-8">
-                    {/* Events Section */}
-                    <div>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                        <h3 className="font-semibold text-base md:text-lg">Meine Events ({userEvents.length})</h3>
-                        <Button
-                          size="sm"
-                          onClick={() => router.push("/ludo-events")}
-                          className="text-xs w-full sm:w-auto"
-                        >
-                          Neues Event erstellen
-                        </Button>
-                      </div>
-                      {loadingEvents ? (
-                        <p className="text-gray-600 text-sm md:text-base">Lade Events...</p>
-                      ) : userEvents.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm md:text-base mb-2">Du hast noch keine Events erstellt.</p>
-                          <Button size="sm" onClick={() => router.push("/ludo-events")}>
-                            Erstes Event erstellen
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {userEvents.map((event) => (
-                            <div key={event.id} className="border rounded-lg p-3 md:p-4 bg-blue-50/50 w-full">
-                              <div className="flex flex-col gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm md:text-base text-blue-900 truncate">
-                                    {event.title}
-                                  </h4>
-                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
-                                    {event.description}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📅 Siehe Event-Details
-                                    </span>
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      🕐 {event.start_time || event.time}
-                                    </span>
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      👥 {event.participants_count || 0}/{event.max_participants}
-                                    </span>
-                                    {event.frequency && event.frequency !== "once" && event.frequency !== "single" && (
-                                      <span className="flex items-center gap-1 whitespace-nowrap">
-                                        🔄 {getFrequencyText(event.frequency, event.interval_type)}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex gap-2 justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => router.push(`/ludo-events/${event.id}`)}
-                                    className="text-xs"
-                                  >
-                                    Anzeigen
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setDeleteConfirm({ type: "event", id: event.id })}
-                                    className="text-xs"
-                                  >
-                                    Löschen
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Spielgruppen Section */}
-                    <div>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                        <h3 className="font-semibold text-base md:text-lg">Meine Spielgruppen</h3>
-                        <Button
-                          size="sm"
-                          onClick={() => router.push("/ludo-gruppen")}
-                          className="text-xs w-full sm:w-auto"
-                        >
-                          Neue Gruppe erstellen
-                        </Button>
-                      </div>
-                      <div className="text-center py-8 bg-gray-50 rounded-lg">
-                        <p className="text-gray-600 text-sm md:text-base mb-2">
-                          Spielgruppen-Verwaltung wird hier bald verfügbar sein.
-                        </p>
-                        <Button size="sm" onClick={() => router.push("/ludo-gruppen")}>
-                          Zu Spielgruppen
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Marketplace Offers Section */}
-                    <div>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                        <h3 className="font-semibold text-base md:text-lg">
-                          Marktplatz-Angebote ({userOffers.length})
-                        </h3>
-                        <Button
-                          size="sm"
-                          onClick={() => router.push("/marketplace")}
-                          className="text-xs w-full sm:w-auto"
-                        >
-                          Neues Angebot erstellen
-                        </Button>
-                      </div>
-                      {userOffers.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm md:text-base mb-2">
-                            Du hast noch keine Angebote erstellt.
-                          </p>
-                          <Button size="sm" onClick={() => router.push("/marketplace")}>
-                            Erstes Angebot erstellen
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {userOffers.map((offer) => (
-                            <div key={offer.id} className="border rounded-lg p-3 md:p-4 bg-teal-50/50 w-full">
-                              <div className="flex flex-col gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm md:text-base text-teal-900 truncate">
-                                    {offer.title}
-                                  </h4>
-                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
-                                    {offer.description}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                    <span className="flex items-center gap-1 whitespace-nowrap">💰 {offer.price}</span>
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📍 {offer.location}
-                                    </span>
-                                    <span
-                                      className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                                        offer.type === "sell"
-                                          ? "bg-green-100 text-green-800"
-                                          : offer.type === "lend"
-                                            ? "bg-blue-100 text-blue-800"
-                                            : "bg-purple-100 text-purple-800"
-                                      }`}
-                                    >
-                                      {offer.type === "sell"
-                                        ? "Verkaufen"
-                                        : offer.type === "lend"
-                                          ? "Verleihen"
-                                          : "Tauschen"}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="flex gap-2 justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setEditingOffer(offer)
-                                      setIsEditOfferOpen(true)
-                                    }}
-                                    className="text-xs"
-                                  >
-                                    Bearbeiten
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setDeleteConfirm({ type: "offer", id: offer.id })}
-                                    className="text-xs"
-                                  >
-                                    Löschen
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Search Ads Section */}
-                    <div>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                        <h3 className="font-semibold text-base md:text-lg">Suchanzeigen ({userSearchAds.length})</h3>
-                        <Button
-                          size="sm"
-                          onClick={() => router.push("/marketplace")}
-                          className="text-xs w-full sm:w-auto"
-                        >
-                          Neue Suchanzeige erstellen
-                        </Button>
-                      </div>
-                      {userSearchAds.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm md:text-base mb-2">
-                            Du hast noch keine Suchanzeigen erstellt.
-                          </p>
-                          <Button size="sm" onClick={() => router.push("/marketplace")}>
-                            Erste Suchanzeige erstellen
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {userSearchAds.map((searchAd) => (
-                            <div key={searchAd.id} className="border rounded-lg p-3 md:p-4 bg-purple-50/50 w-full">
-                              <div className="flex flex-col gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm md:text-base text-purple-900 truncate">
-                                    {searchAd.title}
-                                  </h4>
-                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
-                                    {searchAd.description}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      💰 Bis {searchAd.max_price}
-                                    </span>
-                                    <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 whitespace-nowrap">
-                                      Suche
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="flex gap-2 justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setEditingSearchAd(searchAd)
-                                      setIsEditSearchAdOpen(true)
-                                    }}
-                                    className="text-xs"
-                                  >
-                                    Bearbeiten
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setDeleteConfirm({ type: "searchAd", id: searchAd.id })}
-                                    className="text-xs"
-                                  >
-                                    Löschen
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
