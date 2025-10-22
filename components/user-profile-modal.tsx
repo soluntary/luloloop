@@ -175,7 +175,7 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
   return (
     <>
       <Dialog open={isOpen && !showShelfViewer && !isMessageModalOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>Benutzerprofil</DialogTitle>
           </DialogHeader>

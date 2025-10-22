@@ -51,7 +51,7 @@ interface NavItem {
 function Navigation({ currentPage }: NavigationProps) {
   const pathname = usePathname()
   const { user, signOut } = useAuth() || { user: null, signOut: null }
-  const { getAvatar } = useAvatar()
+  const { getAvatar, avatarCache } = useAvatar()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { getUnreadCount } = useMessages()
 
@@ -130,6 +130,7 @@ function Navigation({ currentPage }: NavigationProps) {
   }
 
   const unreadCount = user ? getUnreadCount() : 0
+  const userAvatar = user ? getAvatar(user.id, user.email) : null
 
   return (
     <nav className="bg-white shadow-lg border-b-4 border-teal-400 sticky top-0 z-50">
@@ -225,7 +226,7 @@ function Navigation({ currentPage }: NavigationProps) {
                   >
                     <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-teal-400">
                       <img
-                        src={getAvatar(user.id, user.email) || "/placeholder.svg"}
+                        src={userAvatar || "/placeholder.svg"}
                         alt={user.username || user.name}
                         className="w-full h-full object-cover"
                       />
@@ -363,7 +364,7 @@ function Navigation({ currentPage }: NavigationProps) {
                       >
                         <div className="w-5 h-5 rounded-full overflow-hidden border border-teal-400">
                           <img
-                            src={getAvatar(user.id, user.email) || "/placeholder.svg"}
+                            src={userAvatar || "/placeholder.svg"}
                             alt={user.username || user.name}
                             className="w-full h-full object-cover"
                           />

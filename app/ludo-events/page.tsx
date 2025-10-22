@@ -1660,6 +1660,7 @@ export default function LudoEventsPage() {
                       <div className="flex items-center gap-3">
                         <MapPin className="h-5 w-5 text-teal-600" />
                         <div>
+                          {/* CHANGE> Made address non-clickable since map is already displayed */}
                           <div className="text-gray-600">
                             {selectedEvent.location_type === "virtual"
                               ? "Online Event"

@@ -816,7 +816,7 @@ export function CreateMarketplaceOfferForm({
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-orange-50 to-white border-2 border-orange-200 shadow-2xl">
-          <div className="sticky top-0 bg-gradient-to-r from-orange-600 to-orange-500 text-white p-6 -m-6 mb-6 rounded-t-lg">
+          <div className="sticky top-0 bg-gradient-to-r from-orange-300 to-orange-300 text-white p-6 -m-6 mb-6 rounded-t-lg">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold text-center mb-4">{getStepTitle()}</DialogTitle>
 
@@ -827,7 +827,7 @@ export function CreateMarketplaceOfferForm({
                       className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
                         step <= currentStep
                           ? "bg-white text-orange-800 shadow-lg"
-                          : "bg-orange-500 text-orange-800 border-2 border-orange-800"
+                          : "bg-orange-300 text-orange-800 border-2 border-orange-800"
                       }`}
                     >
                       {step < currentStep ? <Check className="w-5 h-5" /> : step}
@@ -1759,10 +1759,10 @@ export function CreateMarketplaceOfferForm({
                             <Package className="w-4 h-4" />
                             Versand (Kosten zu Lasten der{" "}
                             {offerType === "lend"
-                              ? "Leihnehmer*innen"
+                              ? "Mieter*in"
                               : offerType === "sell"
-                                ? "Käufer*innen"
-                                : "Tauschpartner*innen"}
+                                ? "Käufer*in"
+                                : "Tauschpartner*in"}
                             )
                           </Label>
                         </div>

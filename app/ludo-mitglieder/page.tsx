@@ -220,13 +220,15 @@ export default function LudoMitgliederPage() {
       return
     }
 
+    const avatarUrl = getAvatar(member.id, member.name)
+
     setMessageRecipient({
       id: member.id,
       name: member.username || member.name,
-      avatar: getAvatar(member.id, member.name),
+      avatar: avatarUrl,
       context: {
         title: member.username || member.name,
-        image: getAvatar(member.id, member.name) || "/placeholder.svg",
+        image: avatarUrl || "/placeholder.svg",
         type: "member",
       },
     })
@@ -626,7 +628,7 @@ export default function LudoMitgliederPage() {
         }}
         recipientId={messageRecipient?.id || ""}
         recipientName={messageRecipient?.name || ""}
-        recipientAvatar={messageRecipient?.avatar ? getAvatar(messageRecipient.id, messageRecipient.name) : undefined}
+        recipientAvatar={messageRecipient?.avatar}
         context={messageRecipient?.context || { title: "", type: "member" }}
       />
     </div>

@@ -1190,7 +1190,7 @@ export default function LudoGruppenPage() {
 
         {/* START CHANGE */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-handwritten text-3xl text-gray-800 mb-2">
                 Neue Spielgruppe erstellen
@@ -1354,8 +1354,8 @@ export default function LudoGruppenPage() {
                           <div>
                             <p className="font-semibold text-gray-900 mb-1">Sofortiger Beitritt</p>
                             <p className="text-sm text-gray-600">
-                              Interessenten können der Spielgruppe sofort beitreten, ohne auf eine Genehmigung warten
-                              zu müssen.
+                              Interessenten können der Spielgruppe sofort beitreten, ohne auf eine Genehmigung warten zu
+                              müssen.
                             </p>
                           </div>
                         </div>
@@ -1423,7 +1423,7 @@ export default function LudoGruppenPage() {
         {/* END CHANGE */}
 
         <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-          <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               {user && selectedGroup && canManageMembers(selectedGroup) && (
                 <div className="flex gap-2 justify-end mb-4">
@@ -1604,7 +1604,7 @@ export default function LudoGruppenPage() {
         </Dialog>
 
         <Dialog open={isMemberManagementDialogOpen} onOpenChange={setIsMemberManagementDialogOpen}>
-          <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-handwritten text-2xl text-gray-800">Mitglieder verwalten</DialogTitle>
               <DialogDescription>

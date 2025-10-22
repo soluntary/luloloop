@@ -42,6 +42,7 @@ import { WideSkyscraperAd } from "@/components/advertising/ad-placements"
 
 import { ShareButton } from "@/components/share-button"
 import { LocationMap } from "@/components/location-map"
+import { toast } from "sonner"
 
 export default function MarketplacePage() {
   const { sendMessage } = useMessages()
@@ -341,13 +342,12 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
         to_user_id: selectedOffer.user_id,
         message: contactMessage,
         game_id: selectedOffer.game_id,
-        game_title: selectedOffer.title,
         game_image: selectedOffer.image || "/images/ludoloop-placeholder.png",
         offer_type: selectedOffer.type,
         delivery_preference: deliveryPreference,
       })
 
-      alert(`Nachricht an ${selectedOffer.users?.username || selectedOffer.owner} erfolgreich gesendet!`)
+      toast.success(`Nachricht erfolgreich gesendet`)
 
       setIsContactDialogOpen(false)
       setContactMessage("")
@@ -355,7 +355,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
       setSelectedDeliveryOption("")
     } catch (error) {
       console.error("Error sending message:", error)
-      alert("Fehler beim Senden der Nachricht. Bitte versuche es erneut.")
+      toast.error("Fehler beim Senden der Nachricht. Bitte versuche es erneut.")
     }
   }
 
@@ -446,14 +446,14 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
         offer_type: mapSearchAdTypeToOfferType(selectedSearchAd.type), // Use mapped offer type
       })
 
-      alert(`Nachricht an ${selectedSearchAd.users?.username || "den Ersteller"} erfolgreich gesendet!`)
+      toast.success("Nachricht erfolgreich gesendet")
 
       setIsSearchAdContactDialogOpen(false)
       setSearchAdContactMessage("")
       setSelectedSearchAd(null)
     } catch (error) {
       console.error("Error sending search ad message:", error)
-      alert("Fehler beim Senden der Nachricht. Bitte versuche es erneut.")
+      toast.error("Fehler beim Senden der Nachricht. Bitte versuche es erneut.")
     }
   }
 
@@ -1279,7 +1279,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
       {/* Detailed Offer View Modal */}
       {/* Redesigning the offer details dialog with a cleaner, more cohesive design */}
       <Dialog open={isOfferDetailsOpen} onOpenChange={setIsOfferDetailsOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-center text-gray-900">
               {selectedOfferDetails?.title}
@@ -1588,7 +1588,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
       {/* Search Ad Details Modal */}
       <Dialog open={isSearchAdDetailsOpen} onOpenChange={setIsSearchAdDetailsOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto p-0">
           {selectedSearchAdDetails && (
             <div className="relative">
               <div className="relative h-48 bg-gradient-to-br from-purple-100 to-pink-100 overflow-hidden">
@@ -1684,63 +1684,6 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isSearchAdContactDialogOpen} onOpenChange={setIsSearchAdContactDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-handwritten text-2xl text-center">
-              Nachricht an {selectedSearchAd?.users?.username || "Ersteller"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="text-center">
-              <img
-                src="/images/ludoloop-placeholder.png"
-                alt={selectedSearchAd?.title}
-                className="w-24 h-32 mx-auto rounded-lg shadow-lg mb-4"
-              />
-              <h3 className="text-lg font-bold text-gray-800 mb-2 font-handwritten">{selectedSearchAd?.title}</h3>
-              <Badge className="bg-purple-500 hover:bg-purple-500 text-white px-3 py-1 border-0 pointer-events-none">
-                {selectedSearchAd?.type === "buy"
-                  ? "Suche zum Kaufen"
-                  : selectedSearchAd?.type === "rent"
-                    ? "Suche zum Mieten"
-                    : "Suche zum Tauschen"}
-              </Badge>
-            </div>
-
-            <div>
-              <Label className="font-body">Deine Nachricht:</Label>
-              <Textarea
-                value={searchAdContactMessage}
-                onChange={(e) => setSearchAdContactMessage(e.target.value)}
-                placeholder="Schreibe eine freundliche Nachricht..."
-                className="font-body"
-                rows={4}
-              />
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsSearchAdContactDialogOpen(false)}
-                className="flex-1 font-handwritten"
-              >
-                Abbrechen
-              </Button>
-              <Button
-                onClick={handleSendSearchAdMessage}
-                className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-handwritten"
-                disabled={!searchAdContactMessage.trim()}
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Senden
-              </Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 

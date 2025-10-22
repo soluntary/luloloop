@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { useUser } from "@/contexts/user-context"
 import { useMessages } from "@/contexts/messages-context"
 import { useAvatar } from "@/contexts/avatar-context"
+import { toast } from "react-toastify"
 
 function MessagesLoading() {
   return (
@@ -177,12 +178,13 @@ function MessagesContent() {
         })
 
         console.log("[v0] Message sent successfully")
+        toast.success("Nachricht erfolgreich gesendet")
         setNewMessage("")
 
         await refreshMessages()
       } catch (error) {
         console.error("[v0] Error sending message:", error)
-        alert("Fehler beim Senden der Nachricht. Bitte versuche es erneut.")
+        toast.error("Fehler beim Senden der Nachricht. Bitte versuche es erneut.")
       }
     }
   }
@@ -423,13 +425,6 @@ function MessagesContent() {
                               >
                                 {message.message}
                               </p>
-                              {message.game_image && (
-                                <img
-                                  src={message.game_image || "/placeholder.svg"}
-                                  alt={message.game_title}
-                                  className="w-16 h-20 md:w-20 md:h-24 rounded-lg shadow-md mt-3 border-2 border-gray-200"
-                                />
-                              )}
                             </div>
                             <Button
                               variant="ghost"

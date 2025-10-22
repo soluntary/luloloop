@@ -483,9 +483,9 @@ export default function HomePage() {
             {
               icon: Library,
               title: "Digitales Spielregal",
-              description: "Lege deine Spiele digital an und behalte den Überblick über deine Sammlung.",
+              description: "Erfasse deine gesamte Spielesammlung digital und behalte den perfekten Überblick.",
               link: "/library",
-              linkText: "Zur Spielebibliothek",
+              linkText: "Zur Ludothek",
               color: "pink",
               rotation: "rotate-1",
             },

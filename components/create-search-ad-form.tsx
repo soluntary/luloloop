@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Search, X, Upload, ImageIcon } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Search, X, Upload, ImageIcon, AlertCircle, ShoppingCart, Repeat, Clock } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
@@ -120,142 +121,174 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg mx-4 rounded-2xl shadow-2xl border-0 bg-gradient-to-br from-orange-50 to-orange-50">
-        <DialogHeader className="text-center pb-6 pt-2">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
-            <Search className="w-8 h-8 text-white" />
-          </div>
-          <DialogTitle className="font-handwritten text-3xl text-orange-800 font-bold">
-            Suchanzeige erstellen
-          </DialogTitle>
-          <p className="font-body text-orange-600/80 text-sm mt-2 text-center">
-            Teile der Community mit, welches Spiel du suchst
-          </p>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-6 px-2">
-          {/* Title Field */}
-          <div className="space-y-2">
-            <Label className="font-body text-orange-800 font-semibold text-base flex items-center gap-2">
-              Titel der Suchanzeige *
-            </Label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="z.B. Suche Catan Erweiterung"
-              className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/90 rounded-xl h-12 text-base shadow-sm transition-all duration-200 hover:shadow-md focus:shadow-md"
-              required
-            />
-            {errors.title && (
-              <p className="text-red-500 text-sm mt-1 font-body bg-red-50 p-2 rounded-lg border border-red-200">
-                {errors.title}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label className="font-body text-orange-800 font-semibold text-base">Bild</Label>
-            <div className="space-y-3">
-              {imagePreview ? (
-                <div className="relative">
-                  <img
-                    src={imagePreview || "/placeholder.svg"}
-                    alt="Vorschau"
-                    className="w-full h-32 object-cover rounded-xl border-2 border-orange-200"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={removeImage}
-                    className="absolute top-2 right-2 bg-white/90 hover:bg-white border-orange-200 text-orange-600 rounded-lg"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="border-2 border-dashed border-orange-200 rounded-xl p-6 text-center bg-white/50">
-                  <ImageIcon className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-                  <p className="text-orange-600 text-sm mb-3">Lade ein Bild hoch</p>
-                  <label className="cursor-pointer">
-                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="border-orange-300 text-orange-600 hover:bg-orange-50 rounded-lg bg-transparent"
-                      asChild
-                    >
-                      <span>
-                        <Upload className="w-4 h-4 mr-2" />
-                        Bild auswählen
-                      </span>
-                    </Button>
-                  </label>
-                </div>
-              )}
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-blue-50 to-white border-2 border-blue-200 shadow-2xl">
+        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-500 text-white p-6 -m-6 mb-6 rounded-t-lg z-10">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
+                <Search className="w-8 h-8 text-blue-600" />
+              </div>
             </div>
-          </div>
+            <DialogTitle className="text-2xl font-bold text-center text-white">Suchanzeige erstellen</DialogTitle>
+            <p className="text-center text-white/90 text-sm mt-2">Teile der Community mit, welches Spiel du suchst</p>
+          </DialogHeader>
+        </div>
 
-          {/* Type Field */}
-          <div className="space-y-2">
-            <Label className="font-body text-orange-800 font-semibold text-base flex items-center gap-2">
-              Was möchtest du? *
-            </Label>
-            <Select value={type} onValueChange={setType} required>
-              <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/90 rounded-xl h-12 text-base shadow-sm transition-all duration-200 hover:shadow-md">
-                <SelectValue placeholder="Wähle eine Option" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-2 border-orange-200 shadow-lg">
-                <SelectItem value="buy" className="font-body text-base py-3 rounded-lg">
-                  <div className="flex items-center gap-2">Kaufen</div>
-                </SelectItem>
-                <SelectItem value="rent" className="font-body text-base py-3 rounded-lg">
-                  <div className="flex items-center gap-2">Ausleihen</div>
-                </SelectItem>
-                <SelectItem value="trade" className="font-body text-base py-3 rounded-lg">
-                  <div className="flex items-center gap-2">Tauschen</div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.type && (
-              <p className="text-red-500 text-sm mt-1 font-body bg-red-50 p-2 rounded-lg border border-red-200">
-                {errors.type}
-              </p>
-            )}
-          </div>
+        <Card className="border-0 shadow-none bg-transparent">
+          <CardContent className="space-y-6 p-0">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100 hover:shadow-xl transition-all duration-300">
+                <h3 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-3">
+                  <Search className="w-6 h-6 text-blue-600" />
+                  Grundinformationen
+                </h3>
 
-          {/* Description Field */}
-          <div className="space-y-2">
-            <Label className="font-body text-orange-800 font-semibold text-base">Beschreibung</Label>
-            <RichTextEditor
-              value={description}
-              onChange={setDescription}
-              placeholder="Beschreibe genauer, was du suchst..."
-              className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/90 rounded-xl text-base shadow-sm transition-all duration-200 hover:shadow-md focus:shadow-md"
-            />
-          </div>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-700 mb-2 block">Titel der Suchanzeige *</Label>
+                    <Input
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="z.B. Suche Catan Erweiterung"
+                      className="h-12 border-2 border-blue-200 focus:border-blue-500 rounded-xl bg-white hover:border-blue-300 transition-colors"
+                      required
+                    />
+                    {errors.title && (
+                      <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>{errors.title}</span>
+                      </div>
+                    )}
+                  </div>
 
-          <div className="flex gap-4 pt-6 pb-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              className="flex-1 font-handwritten text-base h-12 border-2 border-orange-300 bg-white/80 text-orange-700 hover:bg-orange-50 hover:border-orange-400 rounded-xl shadow-sm hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
-              disabled={isSubmitting}
-            >
-              <X className="w-4 h-4 mr-2" />
-              Abbrechen
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1 bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-handwritten text-base h-12 shadow-lg hover:shadow-xl rounded-xl transition-all duration-200 transform hover:scale-[1.02]"
-              disabled={isSubmitting}
-            >
-              <Search className="w-4 h-4 mr-2" />
-              {isSubmitting ? "Erstelle..." : "Erstellen"}
-            </Button>
-          </div>
-        </form>
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-700 mb-2 block">Was möchtest du? *</Label>
+                    <Select value={type} onValueChange={setType} required>
+                      <SelectTrigger className="h-12 border-2 border-blue-200 focus:border-blue-500 rounded-xl bg-white hover:border-blue-300 transition-colors">
+                        <SelectValue placeholder="Wähle eine Option" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-blue-200">
+                        <SelectItem value="buy" className="rounded-lg hover:bg-blue-50">
+                          <div className="flex items-center gap-3">
+                            <ShoppingCart className="w-4 h-4 text-pink-500" />
+                            <span>Kaufen</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="rent" className="rounded-lg hover:bg-blue-50">
+                          <div className="flex items-center gap-3">
+                            <Clock className="w-4 h-4 text-teal-500" />
+                            <span>Ausleihen</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="trade" className="rounded-lg hover:bg-blue-50">
+                          <div className="flex items-center gap-3">
+                            <Repeat className="w-4 h-4 text-orange-500" />
+                            <span>Tauschen</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.type && (
+                      <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>{errors.type}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-200 shadow-sm">
+                <h3 className="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5" />
+                  Bild (optional)
+                </h3>
+
+                <div className="space-y-3">
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview || "/placeholder.svg"}
+                        alt="Vorschau"
+                        className="w-full h-48 object-cover rounded-xl border-2 border-blue-200 shadow-sm"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={removeImage}
+                        className="absolute top-3 right-3 bg-white/95 hover:bg-white border-2 border-red-300 text-red-600 hover:text-red-700 rounded-lg shadow-md"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-blue-300 rounded-xl p-8 text-center bg-white/70 hover:border-blue-400 transition-all duration-300">
+                      <ImageIcon className="w-12 h-12 text-blue-400 mx-auto mb-3" />
+                      <p className="text-blue-600 font-medium mb-4">Lade ein Bild hoch</p>
+                      <label className="cursor-pointer">
+                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-2 border-blue-400 text-blue-600 hover:bg-blue-400 hover:text-white transition-all duration-200 rounded-xl px-6 py-2 font-medium bg-transparent"
+                          asChild
+                        >
+                          <span>
+                            <Upload className="w-4 h-4 mr-2" />
+                            Bild auswählen
+                          </span>
+                        </Button>
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 border border-amber-100 shadow-sm">
+                <Label className="text-sm font-semibold text-gray-700 mb-2 block">Beschreibung (optional)</Label>
+                <RichTextEditor
+                  value={description}
+                  onChange={setDescription}
+                  placeholder="Beschreibe genauer, was du suchst..."
+                  className="border-2 border-amber-200 focus:border-amber-500 rounded-xl bg-white"
+                  rows={4}
+                  maxLength={2000}
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4 sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent pb-2 -mb-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClose}
+                  className="flex-1 h-12 border-2 border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl px-6 font-medium transition-all duration-200 bg-transparent"
+                  disabled={isSubmitting}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Abbrechen
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl px-8 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Wird erstellt...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4 mr-2" />
+                      Suchanzeige erstellen
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </DialogContent>
     </Dialog>
   )
