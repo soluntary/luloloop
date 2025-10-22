@@ -65,22 +65,10 @@ interface LudoGroup {
     id: string
     username: string
     avatar: string
+    name?: string // Added for notification
   }
   // Add distance property for location search
   distance?: number
-}
-
-interface GroupMember {
-  id: string
-  user_id: string
-  community_id: string
-  role: string
-  joined_at: string
-  users: {
-    id: string
-    username: string
-    avatar: string
-  }
 }
 
 interface JoinRequest {
@@ -96,6 +84,19 @@ interface JoinRequest {
   }
   communities?: {
     name: string
+  }
+}
+
+interface GroupMember {
+  id: string
+  user_id: string
+  community_id: string
+  role: string
+  joined_at: string
+  users: {
+    id: string
+    username: string
+    avatar: string
   }
 }
 
@@ -178,7 +179,7 @@ export default function LudoGruppenPage() {
         .from("communities")
         .select(`
           *,
-          users:creator_id(id, username, avatar)
+          users:creator_id(id, username, avatar, name)
         `)
         .eq("type", "casual")
         .order("created_at", { ascending: false })
@@ -415,6 +416,26 @@ export default function LudoGruppenPage() {
         console.log("[v0] Successfully joined group")
         toast.success("Erfolgreich der Spielgruppe beigetreten!")
         setUserMemberships((prev) => [...prev, group.id])
+
+        const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
+        const userName = userData?.name || userData?.username || "Ein Mitglied"
+
+        await supabase.from("notifications").insert({
+          user_id: group.creator_id,
+          type: "group_join",
+          title: "Neues Mitglied",
+          message: `${userName} ist deiner Spielgruppe "${group.name}" beigetreten`,
+          data: {
+            group_id: group.id,
+            group_name: group.name,
+            member_id: user.id,
+            member_name: userName,
+          },
+          read: false,
+          created_at: new Date().toISOString(),
+        })
+        // </CHANGE>
+
         loadLudoGroups()
       } else {
         console.log("[v0] Manual approval mode - checking existing request")
@@ -452,6 +473,26 @@ export default function LudoGruppenPage() {
 
         console.log("[v0] Successfully created join request")
         toast.success("Beitrittsanfrage gesendet! Der Spielgruppenersteller wird deine Anfrage prüfen.")
+
+        const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
+        const userName = userData?.name || userData?.username || "Ein Mitglied"
+
+        await supabase.from("notifications").insert({
+          user_id: group.creator_id,
+          type: "group_join_request",
+          title: "Neue Beitrittsanfrage",
+          message: `${userName} möchte deiner Spielgruppe "${group.name}" beitreten`,
+          data: {
+            group_id: group.id,
+            group_name: group.name,
+            requester_id: user.id,
+            requester_name: userName,
+          },
+          read: false,
+          created_at: new Date().toISOString(),
+        })
+        // </CHANGE>
+
         loadJoinRequests()
       }
     } catch (error) {
@@ -482,6 +523,26 @@ export default function LudoGruppenPage() {
       console.log("[v0] Successfully left group")
       toast.success("Du hast die Spielgruppe verlassen")
       setUserMemberships((prev) => prev.filter((id) => id !== group.id))
+
+      const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
+      const userName = userData?.name || userData?.username || "Ein Mitglied"
+
+      await supabase.from("notifications").insert({
+        user_id: group.creator_id,
+        type: "group_leave",
+        title: "Mitglied hat Gruppe verlassen",
+        message: `${userName} hat deine Spielgruppe "${group.name}" verlassen`,
+        data: {
+          group_id: group.id,
+          group_name: group.name,
+          member_id: user.id,
+          member_name: userName,
+        },
+        read: false,
+        created_at: new Date().toISOString(),
+      })
+      // </CHANGE>
+
       loadLudoGroups()
     } catch (error) {
       console.error("Error leaving group:", error)
@@ -538,8 +599,66 @@ export default function LudoGruppenPage() {
 
       if (action === "approve") {
         toast.success("Beitrittsanfrage genehmigt! Der Benutzer ist jetzt Mitglied der Spielgruppe.")
+        // Fetch details of the approved user and group to send notification
+        const { data: requestDetails } = await supabase
+          .from("community_join_requests")
+          .select(`
+          users:user_id(id, username, name),
+          communities:community_id(name)
+        `)
+          .eq("id", requestId)
+          .single()
+
+        if (requestDetails && requestDetails.users && requestDetails.communities) {
+          const userName = requestDetails.users.name || requestDetails.users.username || "Ein Mitglied"
+          const groupName = requestDetails.communities.name || "unbekannte Gruppe"
+
+          await supabase.from("notifications").insert({
+            user_id: requestDetails.users.id,
+            type: "group_join_approved",
+            title: "Beitritt genehmigt",
+            message: `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde genehmigt!`,
+            data: {
+              group_id: result.communityId, // result.communityId is now available from handleJoinRequestAction
+              group_name: groupName,
+              member_id: requestDetails.users.id,
+              member_name: userName,
+            },
+            read: false,
+            created_at: new Date().toISOString(),
+          })
+        }
       } else {
         toast.success("Beitrittsanfrage abgelehnt.")
+        // Fetch details of the rejected user and group to send notification
+        const { data: requestDetails } = await supabase
+          .from("community_join_requests")
+          .select(`
+          users:user_id(id, username, name),
+          communities:community_id(name)
+        `)
+          .eq("id", requestId)
+          .single()
+
+        if (requestDetails && requestDetails.users && requestDetails.communities) {
+          const userName = requestDetails.users.name || requestDetails.users.username || "Ein Mitglied"
+          const groupName = requestDetails.communities.name || "unbekannte Gruppe"
+
+          await supabase.from("notifications").insert({
+            user_id: requestDetails.users.id,
+            type: "group_join_rejected",
+            title: "Beitritt abgelehnt",
+            message: `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde abgelehnt.`,
+            data: {
+              group_id: result.communityId,
+              group_name: groupName,
+              member_id: requestDetails.users.id,
+              member_name: userName,
+            },
+            read: false,
+            created_at: new Date().toISOString(),
+          })
+        }
       }
 
       loadCreatorJoinRequests()
@@ -1067,6 +1186,7 @@ export default function LudoGruppenPage() {
                               >
                                 {group.location}
                               </a>
+                              {/* </CHANGE> */}
                             </div>
                           )}
                         </div>
@@ -1501,15 +1621,8 @@ export default function LudoGruppenPage() {
                   {selectedGroup.location && (
                     <div className="col-span-2 flex items-center gap-2 text-sm">
                       <MapPin className="h-4 w-4 text-teal-600" />
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedGroup.location)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="truncate text-teal-600 hover:text-teal-700 hover:underline cursor-pointer transition-colors"
-                      >
-                        {selectedGroup.location}
-                      </a>
+                      <span className="text-gray-600">{selectedGroup.location}</span>
+                      {/* </CHANGE> */}
                     </div>
                   )}
                 </div>

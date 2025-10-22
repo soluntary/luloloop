@@ -124,6 +124,40 @@ export default function LudoEventsPage() {
 
   useEffect(() => {
     loadEvents()
+
+    const channel = supabase
+      .channel("ludo-event-participants-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "ludo_event_participants",
+        },
+        (payload) => {
+          console.log("[v0] Participant change detected:", payload)
+          // Reload events to update participant counts
+          loadEvents()
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "ludo_event_instance_participants",
+        },
+        (payload) => {
+          console.log("[v0] Instance participant change detected:", payload)
+          // Reload events to update participant counts
+          loadEvents()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [user])
 
   const loadEvents = async () => {
@@ -274,7 +308,6 @@ export default function LudoEventsPage() {
       console.log("[v0] Loaded event instances from database:", data)
       console.log("[v0] Number of instances loaded:", data?.length || 0)
 
-      // Get participant counts for each instance
       const instancesWithCounts = await Promise.all(
         (data || []).map(async (instance) => {
           const { count } = await supabase
@@ -282,6 +315,8 @@ export default function LudoEventsPage() {
             .select("*", { count: "exact", head: true })
             .eq("instance_id", instance.id)
             .eq("status", "registered")
+
+          console.log(`[v0] Instance ${instance.id} has ${count} participants`)
 
           return {
             event_date: instance.instance_date,
@@ -368,6 +403,27 @@ export default function LudoEventsPage() {
         }
 
         toast.success("Anmeldung eingereicht! Warte auf Bestätigung des Organisators.")
+
+        const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
+        const userName = userData?.name || userData?.username || "Ein Teilnehmer"
+
+        await supabase.from("notifications").insert({
+          user_id: event.creator_id,
+          type: "event_join_request",
+          title: "Neue Teilnahmeanfrage",
+          message: `${userName} möchte an deinem Event "${event.title}" teilnehmen`,
+          data: {
+            event_id: event.id,
+            event_title: event.title,
+            event_date: event.event_date,
+            event_time: event.start_time,
+            requester_id: user.id,
+            requester_name: userName,
+          },
+          read: false,
+          created_at: new Date().toISOString(),
+        })
+        // </CHANGE>
       } else {
         // For automatic approval, add directly to participants
         if (selectedEventDates.length > 0) {
@@ -409,12 +465,36 @@ export default function LudoEventsPage() {
 
           toast.success("Erfolgreich für das Event angemeldet!")
         }
+
+        const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
+        const userName = userData?.name || userData?.username || "Ein Teilnehmer"
+
+        await supabase.from("notifications").insert({
+          user_id: event.creator_id,
+          type: "event_participant_joined",
+          title: "Neuer Teilnehmer",
+          message: `${userName} hat sich für dein Event "${event.title}" angemeldet`,
+          data: {
+            event_id: event.id,
+            event_title: event.title,
+            event_date: event.event_date,
+            event_time: event.start_time,
+            participant_id: user.id,
+            participant_name: userName,
+          },
+          read: false,
+          created_at: new Date().toISOString(),
+        })
+        // </CHANGE>
       }
 
       // Close dialogs and refresh
       setIsJoinDialogOpen(false)
       setIsDateSelectionOpen(false)
-      loadEvents()
+      await loadEvents()
+      if (selectedEvent && isDetailsDialogOpen) {
+        await loadAdditionalDates(selectedEvent.id)
+      }
     } catch (error) {
       console.error("Error joining event:", error)
       toast.error("Fehler beim Anmelden für das Event")
@@ -434,7 +514,10 @@ export default function LudoEventsPage() {
       if (error) throw error
 
       toast.success("Erfolgreich vom Event abgemeldet")
-      loadEvents() // Refresh events
+      await loadEvents()
+      if (selectedEvent && isDetailsDialogOpen) {
+        await loadAdditionalDates(selectedEvent.id)
+      }
     } catch (error) {
       console.error("Error leaving event:", error)
       toast.error("Fehler beim Abmelden vom Event")
@@ -1233,8 +1316,9 @@ export default function LudoEventsPage() {
                                 className="text-gray-600 hover:text-teal-600 transition-colors"
                               >
                                 <span className="text-sm hover:text-teal-600 cursor-pointer transition-colors">
-                                  {event.creator.name || event.creator.username}
+                                  {event.creator.username}
                                 </span>
+                                {/* </CHANGE> */}
                               </UserLink>
                             </div>
                           </div>
@@ -1372,8 +1456,9 @@ export default function LudoEventsPage() {
                       className="text-gray-800 hover:text-teal-600 transition-colors"
                     >
                       <span className="font-medium hover:text-teal-600 cursor-pointer transition-colors">
-                        {selectedEvent.creator.name || selectedEvent.creator.username}
+                        {selectedEvent.creator.username}
                       </span>
+                      {/* </CHANGE> */}
                     </UserLink>
                   </div>
                 </div>
