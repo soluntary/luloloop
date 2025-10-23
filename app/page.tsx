@@ -469,7 +469,7 @@ export default function HomePage() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-lg text-gray-600 text-center mb-12 font-body transform rotate-1"
         >
-          Alles was du brauchst für deine Brettspiel-Leidenschaft an einem Ort
+          Eine Plattform, unzählige Möglichkeiten für deine Brettspiel-Leidenschaft
         </motion.p>
 
         <motion.div
@@ -491,7 +491,7 @@ export default function HomePage() {
             },
             {
               icon: Expand,
-              title: "Verleihen",
+              title: "Spiele vermieten",
               description: "Leihe deine Spiele aus und verdiene dabei etwas. Sicher und einfach!",
               link: "/marketplace?filter=lend",
               linkText: "Zum Spielemarkt",
@@ -500,7 +500,7 @@ export default function HomePage() {
             },
             {
               icon: Repeat,
-              title: "Tauschen",
+              title: "Spiele tauschen",
               description: "Tausche Spiele mit anderen und entdecke neue Spiele!",
               link: "/marketplace?filter=trade",
               linkText: "Zum Spielemarkt",
@@ -509,7 +509,7 @@ export default function HomePage() {
             },
             {
               icon: HandCoins,
-              title: "Verkaufen",
+              title: "Spiele verkaufen",
               description: "Verkaufe Spiele, die du nicht mehr brauchst. Schnell und sicher!",
               link: "/marketplace?filter=sell",
               linkText: "Zum Spielemarkt",
@@ -630,8 +630,8 @@ export default function HomePage() {
             },
             {
               icon: Heart,
-              title: "Community-Feeling",
-              description: "Gleichgesinnte finden, Freundschaften knüpfen und Leidenschaft teilen.",
+              title: "Lebende Community",
+              description: "Vernetze dich mit Gleichgesinnten, finde Spielpartner für spontane oder regelmässige Runden, tausche Tipps aus und knüpfe Freundschaften, die über den Spieltisch hinausgehen.",
               color: "pink",
               rotation: "-rotate-1",
               iconRotation: "rotate-12",

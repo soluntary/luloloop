@@ -338,11 +338,24 @@ export default function LudoEventsPage() {
   }
 
   const handleJoinEvent = async (event: LudoEvent) => {
+    console.log("[v0] handleJoinEvent called for event:", event.id, event.title)
+    // </CHANGE>
+
     if (!user) {
+      console.log("[v0] No user logged in, redirecting to login")
       toast.info("Bitte melde dich an, um an Events teilzunehmen")
       window.location.href = "/login"
       return
     }
+
+    console.log("[v0] User logged in:", user.id)
+    console.log("[v0] Event details:", {
+      frequency: event.frequency,
+      has_additional_dates: event.has_additional_dates,
+      approval_mode: event.approval_mode,
+      max_participants: event.max_participants,
+      participant_count: event.participant_count,
+    })
 
     const isRecurring =
       event.frequency === "regular" ||
@@ -355,15 +368,15 @@ export default function LudoEventsPage() {
 
     // For recurring events with additional dates, show date selection
     if (isRecurring && event.has_additional_dates) {
+      console.log("[v0] Opening date selection dialog for recurring event")
       setDateSelectionEvent(event)
-      // Reset selectedDates state as it's handled by DateSelectionDialog component
-      // setSelectedDates([])
       setIsDateSelectionOpen(true)
       return
     }
 
     // For events requiring approval, show join dialog
     if (event.approval_mode === "manual") {
+      console.log("[v0] Opening join dialog for manual approval event")
       setJoinEvent(event)
       setJoinMessage("")
       setIsJoinDialogOpen(true)
@@ -371,20 +384,67 @@ export default function LudoEventsPage() {
     }
 
     // Direct participation for automatic approval single events
+    console.log("[v0] Processing direct participation for automatic approval event")
     await processJoinEvent(event, "")
   }
 
   const processJoinEvent = async (event: LudoEvent, message = "", selectedEventDates: string[] = []) => {
-    if (!user) return
+    console.log("[v0] processJoinEvent called:", {
+      event_id: event.id,
+      event_title: event.title,
+      message,
+      selectedEventDates,
+      user_id: user?.id,
+    })
+
+    if (!user) {
+      console.log("[v0] No user in processJoinEvent, aborting")
+      return
+    }
+
+    const loadingToast = toast.loading("Anmeldung wird verarbeitet...")
 
     try {
+      const { data: existingParticipant } = await supabase
+        .from("ludo_event_participants")
+        .select("id")
+        .eq("event_id", event.id)
+        .eq("user_id", user.id)
+        .maybeSingle()
+
+      if (existingParticipant) {
+        console.log("[v0] User is already registered for this event")
+        toast.dismiss(loadingToast)
+        toast.info("Du bist bereits für dieses Event angemeldet")
+        return
+      }
+      // </CHANGE>
+
       // Check if event is full (for single events)
       if (event.frequency === "single" && event.max_participants && event.participant_count >= event.max_participants) {
+        console.log("[v0] Event is full, cannot join")
+        toast.dismiss(loadingToast)
         toast.error("Das Event ist bereits ausgebucht")
         return
       }
 
       if (event.approval_mode === "manual") {
+        console.log("[v0] Creating join request for manual approval")
+        const { data: existingRequest } = await supabase
+          .from("ludo_event_join_requests")
+          .select("id")
+          .eq("event_id", event.id)
+          .eq("user_id", user.id)
+          .maybeSingle()
+
+        if (existingRequest) {
+          console.log("[v0] User already has a pending request for this event")
+          toast.dismiss(loadingToast)
+          toast.info("Du hast bereits eine Anfrage für dieses Event gestellt")
+          return
+        }
+        // </CHANGE>
+
         // For manual approval, create a join request
         const { error } = await supabase.from("ludo_event_join_requests").insert({
           event_id: event.id,
@@ -395,18 +455,26 @@ export default function LudoEventsPage() {
         })
 
         if (error) {
-          if (error.code === "23505") {
-            toast.error("Du hast bereits eine Anfrage für dieses Event gestellt")
-            return
-          }
-          throw error
+          console.error("[v0] Error creating join request:", {
+            error,
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+          })
+          toast.dismiss(loadingToast)
+          toast.error(`Fehler beim Erstellen der Anfrage: ${error.message}`)
+          return
         }
 
+        console.log("[v0] Join request created successfully")
+        toast.dismiss(loadingToast)
         toast.success("Anmeldung eingereicht! Warte auf Bestätigung des Organisators.")
 
         const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
         const userName = userData?.name || userData?.username || "Ein Teilnehmer"
 
+        console.log("[v0] Sending notification to organizer:", event.creator_id)
         await supabase.from("notifications").insert({
           user_id: event.creator_id,
           type: "event_join_request",
@@ -423,11 +491,11 @@ export default function LudoEventsPage() {
           read: false,
           created_at: new Date().toISOString(),
         })
-        // </CHANGE>
       } else {
+        console.log("[v0] Adding participant directly (automatic approval)")
         // For automatic approval, add directly to participants
         if (selectedEventDates.length > 0) {
-          // We'll handle this by creating separate participant entries for each date
+          console.log("[v0] Creating participant entries for multiple dates:", selectedEventDates.length)
           const participantEntries = selectedEventDates.map((date) => ({
             event_id: event.id,
             user_id: user.id,
@@ -438,37 +506,58 @@ export default function LudoEventsPage() {
           const { error } = await supabase.from("ludo_event_participants").insert(participantEntries)
 
           if (error) {
-            if (error.code === "23505") {
-              toast.error("Du bist bereits für einige dieser Termine angemeldet")
-              return
-            }
-            throw error
+            console.error("[v0] Error creating participant entries:", {
+              error,
+              code: error.code,
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              participantEntries,
+            })
+            toast.dismiss(loadingToast)
+            toast.error(`Fehler beim Anmelden: ${error.message}`)
+            return
           }
 
+          console.log("[v0] Participant entries created successfully")
+          toast.dismiss(loadingToast)
           toast.success(`Erfolgreich für ${selectedEventDates.length} Termin(e) angemeldet!`)
         } else {
-          // Single event participation
-          const { error } = await supabase.from("ludo_event_participants").insert({
+          console.log("[v0] Creating single participant entry")
+          const participantData = {
             event_id: event.id,
             user_id: user.id,
             status: "approved",
             joined_at: new Date().toISOString(),
-          })
+          }
+          console.log("[v0] Participant data to insert:", participantData)
+
+          // Single event participation
+          const { error } = await supabase.from("ludo_event_participants").insert(participantData)
 
           if (error) {
-            if (error.code === "23505") {
-              toast.error("Du bist bereits für dieses Event angemeldet")
-              return
-            }
-            throw error
+            console.error("[v0] Error creating participant entry:", {
+              error,
+              code: error.code,
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              participantData,
+            })
+            toast.dismiss(loadingToast)
+            toast.error(`Fehler beim Anmelden: ${error.message}`)
+            return
           }
 
+          console.log("[v0] Participant entry created successfully")
+          toast.dismiss(loadingToast)
           toast.success("Erfolgreich für das Event angemeldet!")
         }
 
         const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
         const userName = userData?.name || userData?.username || "Ein Teilnehmer"
 
+        console.log("[v0] Sending notification to organizer:", event.creator_id)
         await supabase.from("notifications").insert({
           user_id: event.creator_id,
           type: "event_participant_joined",
@@ -485,18 +574,38 @@ export default function LudoEventsPage() {
           read: false,
           created_at: new Date().toISOString(),
         })
-        // </CHANGE>
       }
 
       // Close dialogs and refresh
+      console.log("[v0] Closing dialogs and refreshing event list")
       setIsJoinDialogOpen(false)
       setIsDateSelectionOpen(false)
       await loadEvents()
+
       if (selectedEvent && isDetailsDialogOpen) {
-        await loadAdditionalDates(selectedEvent.id)
+        console.log("[v0] Refreshing selected event details")
+        const updatedEvent = await supabase
+          .from("ludo_events")
+          .select(`
+            *,
+            creator:users!creator_id(id, username, name, avatar)
+          `)
+          .eq("id", selectedEvent.id)
+          .single()
+
+        if (updatedEvent.data) {
+          setSelectedEvent(updatedEvent.data as LudoEvent)
+        }
       }
+
+      console.log("[v0] Event registration completed successfully")
     } catch (error) {
-      console.error("Error joining event:", error)
+      console.error("[v0] Unexpected error joining event:", {
+        error,
+        errorType: typeof error,
+        errorString: String(error),
+      })
+      toast.dismiss(loadingToast)
       toast.error("Fehler beim Anmelden für das Event")
     }
   }

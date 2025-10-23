@@ -179,18 +179,21 @@ export default function LudoGruppenPage() {
         .from("communities")
         .select(`
           *,
-          users:creator_id(id, username, avatar, name)
+          users:creator_id(id, username, avatar, name),
+          community_members(count)
         `)
         .eq("type", "casual")
         .order("created_at", { ascending: false })
 
       if (error) throw error
 
+      // Map the data and include actual member counts
       const groupsWithCounts =
         data?.map((group) => ({
           ...group,
-          member_count: 1, // Creator is automatically a member
+          member_count: group.community_members?.[0]?.count || 0,
         })) || []
+      // </CHANGE>
 
       setLudoGroups(groupsWithCounts)
     } catch (error) {
