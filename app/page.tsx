@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import {
   Users,
   Repeat,
-  Dices,
   Store,
   Plus,
   HandCoins,
@@ -20,6 +19,14 @@ import {
   Leaf,
   Shield,
   ArrowRight,
+  MessageCircle,
+  UserPlus,
+  Bell,
+  Star,
+  Search,
+  MessageSquare,
+  Calendar,
+  MapPin,
 } from "lucide-react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
@@ -477,73 +484,98 @@ export default function HomePage() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-50px" }}
-          className="grid md:grid-cols-2 lg:grid-cols-4 gap-8"
+          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
         >
           {[
             {
               icon: Library,
               title: "Digitales Spielregal",
-              description: "Erfasse deine gesamte Spielesammlung digital und behalte den perfekten Überblick.",
+              description:
+                "Erfasse deine gesamte Spielesammlung digital und behalte den perfekten Überblick.",
               link: "/library",
               linkText: "Zur Ludothek",
               color: "pink",
               rotation: "rotate-1",
             },
             {
+              icon: Store,
+              title: "Spielemarkt",
+              description:
+                "Dein Marktplatz für Brettspiele! Entdecke tolle Angebote von anderen Mitgliedern und finde tolle Spiele zum Mieten, Kaufen oder Tauschen.",
+              link: "/marketplace",
+              linkText: "Zum Spielemarkt",
+              color: "orange",
+              rotation: "rotate-1",
+            },
+            {
               icon: Expand,
               title: "Spiele vermieten",
-              description: "Leihe deine Spiele aus und verdiene dabei etwas. Sicher und einfach!",
+              description:
+                "Vermiete deine Spiele und verdiene dabei etwas. Lass deine Sammlung für dich arbeiten - sicher, einfach und fair!",
               link: "/marketplace?filter=lend",
-              linkText: "Zum Spielemarkt",
+              linkText: "Jetzt vermieten",
               color: "teal",
               rotation: "rotate-1",
             },
             {
               icon: Repeat,
               title: "Spiele tauschen",
-              description: "Tausche Spiele mit anderen und entdecke neue Spiele!",
+              description:
+                "Tausche Spiele mit anderen Mitgliedern und entdecke ständig neue Spiele. Perfekt für Abwechslung im Spielregal!",
               link: "/marketplace?filter=trade",
-              linkText: "Zum Spielemarkt",
+              linkText: "Jetzt tauschen",
               color: "orange",
               rotation: "-rotate-1",
             },
             {
               icon: HandCoins,
               title: "Spiele verkaufen",
-              description: "Verkaufe Spiele, die du nicht mehr brauchst. Schnell und sicher!",
-              link: "/marketplace?filter=sell",
-              linkText: "Zum Spielemarkt",
-              color: "pink",
-              rotation: "rotate-1",
-            },
-            {
-              icon: Store,
-              title: "Marktplatz",
               description:
-                "Stöbere durch den Marktplatz, entdecke spannende Angebote von anderen Mitgliedern und finde tolle Spiele zum Ausleihen, Kaufen oder Tauschen.",
+                "Verkaufe Spiele, die du nicht mehr brauchst. Schnell, sicher und fair!",
               link: "/marketplace?filter=sell",
-              linkText: "Zum Spielemarkt",
-              color: "orange",
+              linkText: "Jetzt verkaufen",
+              color: "pink",
               rotation: "rotate-1",
             },
             {
               icon: Users,
               title: "Spielgruppen",
               description:
-                "Tritt Spielgruppen bei oder gründe deine eigene und finde Gleichgesinnte für gemeinsame Spielrunden.",
-              link: "/groups?tab=communities",
+                "Tritt Spielgruppen bei oder gründe deine eigene Community. Finde Gleichgesinnte für spontane oder regelmässige Spielrunden und baue dein Spielnetzwerk auf.",
+              link: "/ludo-gruppen",
               linkText: "Zu Spielgruppen",
-              color: "pink",
+              color: "purple",
               rotation: "-rotate-1",
             },
             {
-              icon: Dices,
-              title: "Events",
-              description: "Organisiere deine nächste Spielrunde im Handumdrehen und finde Mitspieler.",
+              icon: Calendar,
+              title: "Events & Spielrunden",
+              description:
+                "Organisiere deine nächste Spielrunde im Handumdrehen. Plane Events, lade Mitspieler ein und verwalte Teilnehmer - alles an einem Ort.",
               link: "/ludo-events",
-              linkText: "Zu Events",
+              linkText: "Events entdecken",
               color: "teal",
               rotation: "-rotate-1",
+            },
+            {
+              icon: UserPlus,
+              title: "Freunde finden",
+              description:
+                "Vernetze dich mit anderen Brettspiel-Fans, baue dein Freundesnetzwerk auf und bleibe mit deinen Spielpartnern in Kontakt.",
+              link: "/ludo-mitglieder",
+              linkText: "Mitglieder entdecken",
+              color: "pink",
+              rotation: "rotate-1",
+            },
+            {
+              icon: MessageSquare,
+              title: "Community-Forum",
+              description:
+                "Diskutiere mit der Community. Stelle Fragen, teile Erfahrungen und lerne von anderen Spielern.",
+              link: "/ludo-forum",
+              linkText: "Zum Forum",
+              color: "orange",
+              rotation: "rotate-1",
             },
           ].map((feature, index) => {
             const colors = getColorClasses(feature.color)
@@ -568,7 +600,7 @@ export default function HomePage() {
                         <feature.icon className="w-8 h-8 text-white" />
                       </motion.div>
                       <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">{feature.title}</h3>
-                      <p className="text-gray-600 font-body mb-4">{feature.description}</p>
+                      <p className="text-gray-600 font-body mb-4 text-sm leading-relaxed">{feature.description}</p>
                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                         <Button
                           asChild
@@ -631,7 +663,8 @@ export default function HomePage() {
             {
               icon: Heart,
               title: "Lebende Community",
-              description: "Vernetze dich mit Gleichgesinnten, finde Spielpartner für spontane oder regelmässige Runden, tausche Tipps aus und knüpfe Freundschaften, die über den Spieltisch hinausgehen.",
+              description:
+                "Vernetze dich mit Gleichgesinnten, finde Spielpartner für spontane oder regelmässige Runden, tausche Tipps aus und knüpfe Freundschaften, die über den Spieltisch hinausgehen.",
               color: "pink",
               rotation: "-rotate-1",
               iconRotation: "rotate-12",

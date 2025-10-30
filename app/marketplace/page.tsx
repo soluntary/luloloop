@@ -47,7 +47,7 @@ import { toast } from "sonner"
 export default function MarketplacePage() {
   const { sendMessage } = useMessages()
   const { marketplaceOffers, loading, error, databaseConnected } = useGames()
-  const { user: authUser, user } = useAuth() // Added user to useAuth context
+  const { user, user: authUser } = useAuth() // Added user to useAuth context
   console.log(
     "[v0] Marketplace page render - loading:",
     loading,
@@ -270,6 +270,11 @@ export default function MarketplacePage() {
   }
 
   const handleContactSeller = (offer: (typeof marketplaceOffers)[0]) => {
+    if (user && offer.user_id === user.id) {
+      toast.error("Du kannst keine Nachricht an dich selbst senden")
+      return
+    }
+
     setSelectedOffer(offer)
     setSelectedDeliveryOption("")
 
@@ -413,6 +418,11 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
   }
 
   const handleContactSearchAdCreator = (searchAd: any) => {
+    if (user && searchAd.user_id === user.id) {
+      toast.error("Du kannst keine Nachricht an dich selbst senden")
+      return
+    }
+
     setSelectedSearchAd(searchAd)
     setSearchAdContactMessage(
       `Hallo! Ich habe deine Suchanzeige "${searchAd.title}" gesehen und könnte dir helfen. Lass uns darüber sprechen!`,
@@ -1225,12 +1235,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 </div>
 
                 {selectedDeliveryOption === "pickup" && (
-                  <div className="mt-3 p-3 bg-teal-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-700">
-                      Die genaue Adresse wird dir von dem/der Spielanbieter/-in bekannt gegeben, sobald deine Anfrage
-                      angenommen wurde.
-                    </p>
-                  </div>
+                  <div className="mt-3 p-3 bg-teal-50 rounded-lg border border-blue-200"></div>
                 )}
                 {selectedDeliveryOption === "shipping" && (
                   <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -1553,30 +1558,32 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               )}
 
               <div className="flex gap-4 pt-6 border-t border-slate-200">
-                <Button
-                  onClick={() => {
-                    setIsOfferDetailsOpen(false)
-                    // When closing details, check if it's a valid offer to then proceed to contact
-                    if (selectedOfferDetails.itemType === "offer" || selectedOfferDetails.type) {
-                      handleContactSeller(selectedOfferDetails)
-                    }
-                  }}
-                  disabled={selectedOfferDetails.type === "lend" && (!rentalStartDate || !rentalEndDate)}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
-                >
-                  <MessageCircle className="w-5 h-5 mr-2" />
-                  {selectedOfferDetails.type === "lend"
-                    ? rentalStartDate && rentalEndDate
-                      ? "Miete anfragen"
-                      : "Zeitraum wählen"
-                    : selectedOfferDetails.itemType === "offer"
-                      ? "Anfragen"
-                      : "Antworten"}
-                </Button>
+                {selectedOfferDetails.user_id !== user?.id && (
+                  <Button
+                    onClick={() => {
+                      setIsOfferDetailsOpen(false)
+                      // When closing details, check if it's a valid offer to then proceed to contact
+                      if (selectedOfferDetails.itemType === "offer" || selectedOfferDetails.type) {
+                        handleContactSeller(selectedOfferDetails)
+                      }
+                    }}
+                    disabled={selectedOfferDetails.type === "lend" && (!rentalStartDate || !rentalEndDate)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
+                  >
+                    <MessageCircle className="w-5 h-5 mr-2" />
+                    {selectedOfferDetails.type === "lend"
+                      ? rentalStartDate && rentalEndDate
+                        ? "Miete anfragen"
+                        : "Zeitraum wählen"
+                      : selectedOfferDetails.itemType === "offer"
+                        ? "Anfragen"
+                        : "Antworten"}
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   onClick={() => setIsOfferDetailsOpen(false)}
-                  className="px-8 py-3 rounded-xl border-slate-300 hover:bg-slate-50 font-medium"
+                  className="ml-auto px-8 py-3 rounded-xl border-slate-300 hover:bg-slate-50 font-medium"
                 >
                   Schliessen
                 </Button>
@@ -1663,16 +1670,18 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
                 {/* Action buttons */}
                 <div className="flex gap-4 pt-6 border-t border-gray-100">
-                  <Button
-                    onClick={() => {
-                      setIsSearchAdDetailsOpen(false)
-                      handleContactSearchAdCreator(selectedSearchAdDetails)
-                    }}
-                    className="flex-1 bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
-                  >
-                    <MessageCircle className="w-5 h-5 mr-2" />
-                    Antworten
-                  </Button>
+                  {selectedSearchAdDetails.user_id !== user?.id && (
+                    <Button
+                      onClick={() => {
+                        setIsSearchAdDetailsOpen(false)
+                        handleContactSearchAdCreator(selectedSearchAdDetails)
+                      }}
+                      className="flex-1 bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
+                    >
+                      <MessageCircle className="w-5 h-5 mr-2" />
+                      Antworten
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     onClick={() => setIsSearchAdDetailsOpen(false)}

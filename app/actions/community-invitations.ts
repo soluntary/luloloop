@@ -9,7 +9,17 @@ export async function sendCommunityInvitations(communityId: string, inviteeIds: 
     data: { user },
   } = await supabase.auth.getUser()
 
+  console.log(
+    "[v0] sendCommunityInvitations called - user:",
+    user?.id,
+    "communityId:",
+    communityId,
+    "inviteeIds:",
+    inviteeIds,
+  )
+
   if (!user) {
+    console.log("[v0] User not authenticated")
     return { error: "Nicht authentifiziert" }
   }
 
@@ -21,9 +31,15 @@ export async function sendCommunityInvitations(communityId: string, inviteeIds: 
       .eq("id", communityId)
       .single()
 
-    if (communityError) throw communityError
+    console.log("[v0] Community data:", community, "error:", communityError)
+
+    if (communityError) {
+      console.error("[v0] Error fetching community:", communityError)
+      throw communityError
+    }
 
     if (community.creator_id !== user.id) {
+      console.log("[v0] User is not the creator - creator_id:", community.creator_id, "user_id:", user.id)
       return { error: "Nur der Ersteller kann Einladungen versenden" }
     }
 
@@ -36,16 +52,19 @@ export async function sendCommunityInvitations(communityId: string, inviteeIds: 
       status: "pending",
     }))
 
+    console.log("[v0] Creating invitations:", invitations)
+
     const { error: insertError } = await supabase.from("community_invitations").insert(invitations)
 
     if (insertError) {
-      console.error("Error creating invitations:", insertError)
+      console.error("[v0] Error creating invitations:", insertError)
       return { error: "Fehler beim Erstellen der Einladungen" }
     }
 
+    console.log("[v0] Invitations created successfully")
     return { success: true }
   } catch (error) {
-    console.error("Error sending community invitations:", error)
+    console.error("[v0] Error sending community invitations:", error)
     return { error: "Fehler beim Versenden der Einladungen" }
   }
 }

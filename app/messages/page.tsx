@@ -93,8 +93,8 @@ function MessagesContent() {
 
   const filteredConversations = sortedConversations.filter(
     ([conversationKey, data]: any) =>
-      data.gameTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      data.partnerName.toLowerCase().includes(searchTerm.toLowerCase()),
+      (data.gameTitle?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (data.partnerName?.toLowerCase() || "").includes(searchTerm.toLowerCase()),
   )
 
   const formatTime = (timestamp: string) => {
@@ -302,12 +302,9 @@ function MessagesContent() {
                               </div>
                             </div>
                             <div className="flex items-center space-x-2 mb-1">
-                              <p className="text-xs text-gray-600 font-medium truncate">{data.gameTitle}</p>
-                              <Badge
-                                className={`${getOfferTypeColor(latestMessage.offer_type)} text-white text-xs font-body px-2 py-0.5 flex-shrink-0`}
-                              >
-                                {getOfferTypeText(latestMessage.offer_type)}
-                              </Badge>
+                              <p className="text-xs text-gray-600 font-medium truncate">
+                                {data.gameTitle} • {getOfferTypeText(latestMessage.offer_type)}
+                              </p>
                             </div>
                             <p className="text-xs text-gray-500 font-body truncate">
                               {latestMessage.from_user_id === user.id
@@ -403,20 +400,11 @@ function MessagesContent() {
                                   : "bg-white text-gray-800 border-gray-200 mr-4 md:mr-8"
                               }`}
                             >
-                              <div className="flex flex-wrap items-center gap-2 mb-2">
-                                <span
-                                  className={`text-xs font-medium truncate ${isFromCurrentUser ? "text-gray-600" : "text-gray-600"}`}
-                                >
-                                  {message.game_title}
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-medium text-gray-600">
+                                  {message.game_title} • {getOfferTypeText(message.offer_type)}
                                 </span>
-                                <Badge
-                                  className={`${getOfferTypeColor(message.offer_type)} text-white text-xs font-body px-2 py-0.5 flex-shrink-0`}
-                                >
-                                  {getOfferTypeText(message.offer_type)}
-                                </Badge>
-                                <span
-                                  className={`text-xs ml-auto ${isFromCurrentUser ? "text-gray-500" : "text-gray-500"}`}
-                                >
+                                <span className={`text-xs ${isFromCurrentUser ? "text-gray-500" : "text-gray-500"}`}>
                                   {formatTime(message.created_at)}
                                 </span>
                               </div>

@@ -2017,7 +2017,7 @@ export default function LudoEventsPage() {
                     title={selectedEvent.title}
                     description={selectedEvent.description || "Schau dir dieses Event an!"}
                     variant="outline"
-                    className="px-4 bg-transparent font-handwritten"
+                    className="px-4 bg-transparent font-handwritten ml-auto"
                   />
 
                   <Button
