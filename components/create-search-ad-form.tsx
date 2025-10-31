@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, X, Upload, ImageIcon, AlertCircle, ShoppingCart, Repeat, Clock } from "lucide-react"
+import { Search, X, Upload, ImageIcon, AlertCircle } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
@@ -56,7 +56,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
     }
 
     if (!type) {
-      newErrors.type = "Bitte wähle aus, ob du kaufen, ausleihen oder tauschen möchtest."
+      newErrors.type = "Bitte wähle aus, ob du kaufen, mieten oder tauschen möchtest."
     }
 
     setErrors(newErrors)
@@ -121,27 +121,24 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-blue-50 to-white border-2 border-blue-200 shadow-2xl">
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-500 text-white p-6 -m-6 mb-6 rounded-t-lg z-10">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-orange-50 to-white border-2 border-orange-200 shadow-2xl">
+        <div className="sticky top-0 bg-gradient-to-r from-orange-300 to-orange-300 text-white p-6 -m-6 mb-6 rounded-t-lg z-10">
           <DialogHeader>
             <div className="flex items-center justify-center mb-4">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
-                <Search className="w-8 h-8 text-blue-600" />
+                <Search className="w-8 h-8 text-orange-600" />
               </div>
             </div>
-            <DialogTitle className="text-2xl font-bold text-center text-white">Suchanzeige erstellen</DialogTitle>
-            <p className="text-center text-white/90 text-sm mt-2">Teile der Community mit, welches Spiel du suchst</p>
+            <DialogTitle className="text-2xl font-bold text-center text-orange-800">Suchanzeige erstellen</DialogTitle>
+            <p className="text-center text-orange-800 text-sm mt-2">Teile der Community mit, welches Spiel du suchst</p>
           </DialogHeader>
         </div>
 
         <Card className="border-0 shadow-none bg-transparent">
           <CardContent className="space-y-6 p-0">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100 hover:shadow-xl transition-all duration-300">
-                <h3 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-3">
-                  <Search className="w-6 h-6 text-blue-600" />
-                  Grundinformationen
-                </h3>
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100 hover:shadow-xl transition-all duration-300">
+                <h3 className="text-xl font-bold text-orange-800 mb-4 flex items-center gap-3">Grundinformationen</h3>
 
                 <div className="space-y-4">
                   <div>
@@ -150,7 +147,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="z.B. Suche Catan Erweiterung"
-                      className="h-12 border-2 border-blue-200 focus:border-blue-500 rounded-xl bg-white hover:border-blue-300 transition-colors"
+                      className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors"
                       required
                     />
                     {errors.title && (
@@ -164,25 +161,22 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                   <div>
                     <Label className="text-sm font-semibold text-gray-700 mb-2 block">Was möchtest du? *</Label>
                     <Select value={type} onValueChange={setType} required>
-                      <SelectTrigger className="h-12 border-2 border-blue-200 focus:border-blue-500 rounded-xl bg-white hover:border-blue-300 transition-colors">
+                      <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
                         <SelectValue placeholder="Wähle eine Option" />
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl border-blue-200">
-                        <SelectItem value="buy" className="rounded-lg hover:bg-blue-50">
+                      <SelectContent className="rounded-xl border-orange-200">
+                        <SelectItem value="buy" className="rounded-lg hover:bg-orange-50">
                           <div className="flex items-center gap-3">
-                            <ShoppingCart className="w-4 h-4 text-pink-500" />
                             <span>Kaufen</span>
                           </div>
                         </SelectItem>
-                        <SelectItem value="rent" className="rounded-lg hover:bg-blue-50">
+                        <SelectItem value="rent" className="rounded-lg hover:bg-orange-50">
                           <div className="flex items-center gap-3">
-                            <Clock className="w-4 h-4 text-teal-500" />
-                            <span>Ausleihen</span>
+                            <span>Mieten</span>
                           </div>
                         </SelectItem>
-                        <SelectItem value="trade" className="rounded-lg hover:bg-blue-50">
+                        <SelectItem value="trade" className="rounded-lg hover:bg-orange-50">
                           <div className="flex items-center gap-3">
-                            <Repeat className="w-4 h-4 text-orange-500" />
                             <span>Tauschen</span>
                           </div>
                         </SelectItem>
@@ -198,11 +192,8 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-200 shadow-sm">
-                <h3 className="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5" />
-                  Bild (optional)
-                </h3>
+              <div className="bg-gradient-to-br from-white rounded-2xl p-6 border border-orange-200 shadow-sm">
+                <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">Bild (optional)</h3>
 
                 <div className="space-y-3">
                   {imagePreview ? (
@@ -210,7 +201,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                       <img
                         src={imagePreview || "/placeholder.svg"}
                         alt="Vorschau"
-                        className="w-full h-48 object-cover rounded-xl border-2 border-blue-200 shadow-sm"
+                        className="w-full h-48 object-cover rounded-xl border-2 border-orange-200 shadow-sm"
                       />
                       <Button
                         type="button"
@@ -223,15 +214,15 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                       </Button>
                     </div>
                   ) : (
-                    <div className="border-2 border-dashed border-blue-300 rounded-xl p-8 text-center bg-white/70 hover:border-blue-400 transition-all duration-300">
-                      <ImageIcon className="w-12 h-12 text-blue-400 mx-auto mb-3" />
-                      <p className="text-blue-600 font-medium mb-4">Lade ein Bild hoch</p>
+                    <div className="border-2 border-dashed border-orange-300 rounded-xl p-8 text-center bg-white/70 hover:border-orange-400 transition-all duration-300">
+                      <ImageIcon className="w-12 h-12 text-orange-400 mx-auto mb-3" />
+                      <p className="text-orange-600 font-medium mb-4">Lade ein Bild hoch</p>
                       <label className="cursor-pointer">
                         <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                         <Button
                           type="button"
                           variant="outline"
-                          className="border-2 border-blue-400 text-blue-600 hover:bg-blue-400 hover:text-white transition-all duration-200 rounded-xl px-6 py-2 font-medium bg-transparent"
+                          className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white transition-all duration-200 rounded-xl px-6 py-2 font-medium bg-transparent"
                           asChild
                         >
                           <span>
@@ -245,13 +236,15 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 border border-amber-100 shadow-sm">
-                <Label className="text-sm font-semibold text-gray-700 mb-2 block">Beschreibung (optional)</Label>
+              <div className="bg-white rounded-2xl p-6 border border-orange-100 shadow-sm">
+                <Label className="text-xl font-bold text-orange-800 mb-4 flex items-center gap-3">
+                  Beschreibung (optional)
+                </Label>
                 <RichTextEditor
                   value={description}
                   onChange={setDescription}
                   placeholder="Beschreibe genauer, was du suchst..."
-                  className="border-2 border-amber-200 focus:border-amber-500 rounded-xl bg-white"
+                  className="border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white"
                   rows={4}
                   maxLength={2000}
                 />
@@ -270,7 +263,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl px-8 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
+                  className="flex-1 h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl px-8 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (

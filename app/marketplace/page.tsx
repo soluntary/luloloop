@@ -43,6 +43,7 @@ import { WideSkyscraperAd } from "@/components/advertising/ad-placements"
 import { ShareButton } from "@/components/share-button"
 import { LocationMap } from "@/components/location-map"
 import { toast } from "sonner"
+import { ExpandableDescription } from "@/components/expandable-description"
 
 export default function MarketplacePage() {
   const { sendMessage } = useMessages()
@@ -589,6 +590,25 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
     }
   }, [isOfferDetailsOpen])
 
+  // Moved loadSearchAds here to comply with hook rules
+  const loadSearchAds = async () => {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase.from("search_ads").select("*")
+      if (error) {
+        console.error("Error fetching search ads:", error)
+      } else {
+        setSearchAds(data || [])
+      }
+    } catch (error) {
+      console.error("Error fetching search ads:", error)
+    }
+  }
+
+  useEffect(() => {
+    loadSearchAds()
+  }, [])
+
   if (loading) {
     console.log("[v0] Marketplace showing loading state")
     return (
@@ -642,19 +662,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
   const dynamicFilterOptions = getUniqueFilterValues()
 
-  const loadSearchAds = async () => {
-    try {
-      const supabase = createClient()
-      const { data, error } = await supabase.from("search_ads").select("*")
-      if (error) {
-        console.error("Error fetching search ads:", error)
-      } else {
-        setSearchAds(data || [])
-      }
-    } catch (error) {
-      console.error("Error fetching search ads:", error)
-    }
-  }
+  // Removed redundant loadSearchAds call from here as it's now handled by useEffect
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
@@ -1398,7 +1406,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               {selectedOfferDetails.description && (
                 <div className="bg-white border border-slate-200 rounded-2xl p-6">
                   <h3 className="text-lg font-semibold text-slate-900 mb-4">Beschreibung</h3>
-                  <p className="text-slate-700 leading-relaxed">{selectedOfferDetails.description}</p>
+                  <ExpandableDescription text={selectedOfferDetails.description} />
                 </div>
               )}
 

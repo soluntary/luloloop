@@ -1,102 +1,136 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
-import { createClient as createServiceClient } from "@supabase/supabase-js"
 
 export async function broadcastGroupMessageAction(groupId: string, message: string) {
+  console.log("[v0] broadcastGroupMessageAction called with:", { groupId, messageLength: message.length })
+
+  const supabase = await createClient()
+
+  // Get current user
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    console.error("[v0] User authentication error:", userError)
+    return { error: "Nicht authentifiziert" }
+  }
+
+  console.log("[v0] Current user:", user.id)
+
   try {
-    console.log("[v0] broadcastGroupMessageAction called - groupId:", groupId, "message length:", message.length)
-
-    // Authenticate user with regular client
-    const supabase = await createClient()
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    console.log("[v0] User authenticated:", !!user, "authError:", authError)
-
-    if (authError || !user) {
-      return { error: "Nicht authentifiziert" }
-    }
-
-    // Verify user is the group creator
+    // Get group details and check if user is creator or admin
     const { data: group, error: groupError } = await supabase
       .from("communities")
-      .select("creator_id, name")
+      .select("id, name, creator_id")
       .eq("id", groupId)
       .single()
 
-    console.log("[v0] Group data:", group, "groupError:", groupError)
-
-    if (groupError || !group) {
-      return { error: "Spielgruppe nicht gefunden" }
+    if (groupError) {
+      console.error("[v0] Error fetching group:", groupError)
+      return { error: "Fehler beim Laden der Spielgruppe" }
     }
 
-    if (group.creator_id !== user.id) {
-      console.log("[v0] User is not the creator - creator_id:", group.creator_id, "user_id:", user.id)
-      return { error: "Nur der Gruppenersteller kann Nachrichten an alle Mitglieder senden" }
+    console.log("[v0] Group found:", group.name, "Creator:", group.creator_id)
+
+    // Check if user is creator
+    const isCreator = group.creator_id === user.id
+    console.log("[v0] Is user creator?", isCreator)
+
+    // Check if user is admin
+    const { data: membership, error: membershipError } = await supabase
+      .from("community_members")
+      .select("role")
+      .eq("community_id", groupId)
+      .eq("user_id", user.id)
+      .single()
+
+    if (membershipError) {
+      console.error("[v0] Error checking membership:", membershipError)
     }
 
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error("[v0] SUPABASE_SERVICE_ROLE_KEY not found in environment variables")
-      return { error: "Server-Konfigurationsfehler: Service-Schlüssel fehlt" }
+    const isAdmin = membership?.role === "admin"
+    console.log("[v0] Is user admin?", isAdmin, "Role:", membership?.role)
+
+    // User must be creator or admin
+    if (!isCreator && !isAdmin) {
+      console.error("[v0] User is neither creator nor admin - permission denied")
+      return { error: "Nur der Ersteller oder Organisatoren können Nachrichten an alle Mitglieder senden" }
     }
 
-    // Use service role client for database operations
-    const serviceSupabase = createServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    )
+    console.log("[v0] User has permission - proceeding with broadcast")
 
-    // Get all group members
-    const { data: members, error: membersError } = await serviceSupabase
+    // Get all group members except the sender
+    const { data: members, error: membersError } = await supabase
       .from("community_members")
       .select("user_id")
       .eq("community_id", groupId)
-      .neq("user_id", user.id) // Don't send message to the creator themselves
-
-    console.log("[v0] Members found:", members?.length, "membersError:", membersError)
+      .neq("user_id", user.id)
 
     if (membersError) {
-      console.error("[v0] Error fetching group members:", membersError)
-      return { error: "Fehler beim Laden der Gruppenmitglieder" }
+      console.error("[v0] Error fetching members:", membersError)
+      return { error: "Fehler beim Laden der Mitglieder" }
     }
+
+    console.log("[v0] Found", members?.length || 0, "members to send message to")
 
     if (!members || members.length === 0) {
-      console.log("[v0] No members found in group")
-      return { error: "Keine Mitglieder in der Gruppe gefunden" }
+      console.log("[v0] No members to send message to")
+      return { error: "Keine Mitglieder zum Senden gefunden" }
     }
 
-    // Create message records for each member
-    const messageRecords = members.map((member) => ({
-      sender_id: user.id,
-      recipient_id: member.user_id,
-      content: message,
-      context_type: "group_broadcast",
-      context_id: groupId,
-      context_title: group.name,
-      created_at: new Date().toISOString(),
-    }))
+    // Get sender info
+    const { data: senderData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
 
-    console.log("[v0] Inserting", messageRecords.length, "message records")
+    const senderName = senderData?.name || senderData?.username || "Ein Organisator"
 
-    // Insert all messages
-    const { error: insertError } = await serviceSupabase.from("messages").insert(messageRecords)
+    console.log("[v0] Sender name:", senderName)
 
-    if (insertError) {
-      console.error("[v0] Error inserting broadcast messages:", insertError)
+    // Send messages to all members
+    let successCount = 0
+    let errorCount = 0
+
+    for (const member of members) {
+      try {
+        console.log("[v0] Sending message to member:", member.user_id)
+
+        const { error: messageError } = await supabase.from("messages").insert({
+          from_user_id: user.id,
+          to_user_id: member.user_id,
+          message: message,
+          game_title: group.name,
+          offer_type: "general",
+          read: false,
+          created_at: new Date().toISOString(),
+        })
+
+        if (messageError) {
+          console.error("[v0] Error sending message to", member.user_id, ":", messageError)
+          errorCount++
+        } else {
+          console.log("[v0] Successfully sent message to", member.user_id)
+          successCount++
+        }
+      } catch (error) {
+        console.error("[v0] Error processing member", member.user_id, ":", error)
+        errorCount++
+      }
+    }
+
+    console.log("[v0] Broadcast complete - Success:", successCount, "Errors:", errorCount)
+
+    if (successCount === 0) {
       return { error: "Fehler beim Senden der Nachrichten" }
     }
 
-    console.log("[v0] Broadcast messages sent successfully to", members.length, "members")
-
     return {
       success: true,
-      memberCount: members.length,
+      message: `Nachricht erfolgreich an ${successCount} Mitglied${successCount !== 1 ? "er" : ""} gesendet${errorCount > 0 ? ` (${errorCount} Fehler)` : ""}`,
     }
   } catch (error) {
-    console.error("[v0] Error in broadcastGroupMessageAction:", error)
-    return { error: "Unerwarteter Fehler beim Senden der Nachricht" }
+    console.error("[v0] Unexpected error in broadcastGroupMessageAction:", error)
+    return { error: "Ein unerwarteter Fehler ist aufgetreten" }
   }
 }

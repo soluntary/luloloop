@@ -42,6 +42,7 @@ import { useLocationSearch } from "@/contexts/location-search-context"
 import { DistanceBadge } from "@/components/distance-badge"
 import { LocationMap } from "@/components/location-map"
 import CreateLudoEventForm from "@/components/create-ludo-event-form-advanced"
+import { ExpandableDescription } from "@/components/expandable-description"
 
 interface LudoEvent {
   id: string
@@ -83,7 +84,7 @@ export default function LudoEventsPage() {
   const [events, setEvents] = useState<LudoEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [sortBy, setSortBy] = useState("all")
+  const [sortBy, setSortBy] = useState("date")
   const [locationFilter, setLocationFilter] = useState("all")
   const [frequencyFilter, setFrequencyFilter] = useState("all")
   const [timePeriodFilter, setTimePeriodFilter] = useState("all")
@@ -103,7 +104,6 @@ export default function LudoEventsPage() {
   const [isDateSelectionOpen, setIsDateSelectionOpen] = useState(false)
   const [dateSelectionEvent, setDateSelectionEvent] = useState<LudoEvent | null>(null)
   const [detailViewTab, setDetailViewTab] = useState<"info" | "schedule">("info")
-  // const [selectedDates, setSelectedDates] = useState<string[]>([])
   const [additionalDates, setAdditionalDates] = useState<any[]>([])
   const [isMessageComposerOpen, setIsMessageComposerOpen] = useState(false)
   const [messageRecipient, setMessageRecipient] = useState<{
@@ -136,7 +136,6 @@ export default function LudoEventsPage() {
         },
         (payload) => {
           console.log("[v0] Participant change detected:", payload)
-          // Reload events to update participant counts
           loadEvents()
         },
       )
@@ -149,7 +148,6 @@ export default function LudoEventsPage() {
         },
         (payload) => {
           console.log("[v0] Instance participant change detected:", payload)
-          // Reload events to update participant counts
           loadEvents()
         },
       )
@@ -186,7 +184,6 @@ export default function LudoEventsPage() {
 
       const processedEvents = await Promise.all(
         (data || []).map(async (event: any) => {
-          // Get the earliest instance date for this event
           const { data: instances } = await supabase
             .from("ludo_event_instances")
             .select("instance_date")
@@ -205,7 +202,13 @@ export default function LudoEventsPage() {
       if (user) {
         const eventsWithStatus = await Promise.all(
           processedEvents.map(async (event) => {
-            // Check if user is registered for any instances of this event
+            const { data: eventParticipation } = await supabase
+              .from("ludo_event_participants")
+              .select("id, status")
+              .eq("event_id", event.id)
+              .eq("user_id", user.id)
+              .maybeSingle()
+
             const { data: instanceRegistrations } = await supabase
               .from("ludo_event_instance_participants")
               .select("instance_id, status")
@@ -230,16 +233,22 @@ export default function LudoEventsPage() {
               .select("id")
               .eq("event_id", event.id)
 
-            // Determine user participation status based on instance registrations
+            // Determine user participation status based on both event and instance registrations
             let userStatus = null
+
+            // First check event-level participation
+            if (eventParticipation) {
+              userStatus = eventParticipation.status === "approved" ? "approved" : "pending"
+            }
+
+            // Then check instance-level participation
             if (instanceRegistrations && instanceRegistrations.length > 0) {
-              // If user is registered for any instance, show as "approved"
               const hasRegistered = instanceRegistrations.some((r) => r.status === "registered")
               const hasPending = instanceRegistrations.some((r) => r.status === "pending")
 
               if (hasRegistered) {
                 userStatus = "approved"
-              } else if (hasPending) {
+              } else if (hasPending && !userStatus) {
                 userStatus = "pending"
               }
             }
@@ -283,7 +292,6 @@ export default function LudoEventsPage() {
       console.log("[v0] Events loaded successfully:", processedEvents.length)
     } catch (error) {
       console.error("[v0] Error in loadEvents:", error)
-      toast.error("Fehler beim Laden der Events")
     } finally {
       setLoading(false)
     }
@@ -339,7 +347,6 @@ export default function LudoEventsPage() {
 
   const handleJoinEvent = async (event: LudoEvent) => {
     console.log("[v0] handleJoinEvent called for event:", event.id, event.title)
-    // </CHANGE>
 
     if (!user) {
       console.log("[v0] No user logged in, redirecting to login")
@@ -366,7 +373,6 @@ export default function LudoEventsPage() {
       event.frequency === "monatlich" ||
       event.frequency === "andere"
 
-    // For recurring events with additional dates, show date selection
     if (isRecurring && event.has_additional_dates) {
       console.log("[v0] Opening date selection dialog for recurring event")
       setDateSelectionEvent(event)
@@ -374,7 +380,6 @@ export default function LudoEventsPage() {
       return
     }
 
-    // For events requiring approval, show join dialog
     if (event.approval_mode === "manual") {
       console.log("[v0] Opening join dialog for manual approval event")
       setJoinEvent(event)
@@ -383,7 +388,6 @@ export default function LudoEventsPage() {
       return
     }
 
-    // Direct participation for automatic approval single events
     console.log("[v0] Processing direct participation for automatic approval event")
     await processJoinEvent(event, "")
   }
@@ -418,9 +422,7 @@ export default function LudoEventsPage() {
         toast.info("Du bist bereits für dieses Event angemeldet")
         return
       }
-      // </CHANGE>
 
-      // Check if event is full (for single events)
       if (event.frequency === "single" && event.max_participants && event.participant_count >= event.max_participants) {
         console.log("[v0] Event is full, cannot join")
         toast.dismiss(loadingToast)
@@ -443,9 +445,7 @@ export default function LudoEventsPage() {
           toast.info("Du hast bereits eine Anfrage für dieses Event gestellt")
           return
         }
-        // </CHANGE>
 
-        // For manual approval, create a join request
         const { error } = await supabase.from("ludo_event_join_requests").insert({
           event_id: event.id,
           user_id: user.id,
@@ -493,7 +493,6 @@ export default function LudoEventsPage() {
         })
       } else {
         console.log("[v0] Adding participant directly (automatic approval)")
-        // For automatic approval, add directly to participants
         if (selectedEventDates.length > 0) {
           console.log("[v0] Creating participant entries for multiple dates:", selectedEventDates.length)
           const participantEntries = selectedEventDates.map((date) => ({
@@ -532,7 +531,6 @@ export default function LudoEventsPage() {
           }
           console.log("[v0] Participant data to insert:", participantData)
 
-          // Single event participation
           const { error } = await supabase.from("ludo_event_participants").insert(participantData)
 
           if (error) {
@@ -576,7 +574,6 @@ export default function LudoEventsPage() {
         })
       }
 
-      // Close dialogs and refresh
       console.log("[v0] Closing dialogs and refreshing event list")
       setIsJoinDialogOpen(false)
       setIsDateSelectionOpen(false)
@@ -766,7 +763,6 @@ export default function LudoEventsPage() {
     const sourceEvents = showLocationResults ? locationSearchResults : events
 
     let filtered = sourceEvents.filter((event) => {
-      // Search filter
       const searchMatch =
         event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -775,15 +771,12 @@ export default function LudoEventsPage() {
 
       if (!searchMatch) return false
 
-      // Location filter
       if (locationFilter !== "all") {
         if (locationFilter === "local" && event.location_type !== "local") return false
         if (locationFilter === "virtual" && event.location_type !== "virtual") return false
       }
 
-      // Frequency filter
       if (frequencyFilter !== "all") {
-        // Map old frequency values to new ones for backwards compatibility
         const eventFrequency = event.frequency
 
         if (frequencyFilter === "einmalig" && eventFrequency !== "einmalig" && eventFrequency !== "single") return false
@@ -801,7 +794,6 @@ export default function LudoEventsPage() {
         if (approvalModeFilter === "manual" && event.approval_mode !== "manual") return false
       }
 
-      // Time period filter
       if (timePeriodFilter !== "all") {
         if (!event.first_instance_date) return false
 
@@ -846,7 +838,6 @@ export default function LudoEventsPage() {
         }
       }
 
-      // Availability filter
       if (availabilityFilter !== "all") {
         const hasSpots = !event.max_participants || event.participant_count < event.max_participants
         if (availabilityFilter === "available" && !hasSpots) return false
@@ -856,14 +847,12 @@ export default function LudoEventsPage() {
       return true
     })
 
-    // Sort events
     if (sortBy !== "all") {
       filtered = [...filtered].sort((a, b) => {
         switch (sortBy) {
           case "newest":
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           case "date":
-            // Use first_instance_date for sorting
             return new Date(a.first_instance_date || "").getTime() - new Date(b.first_instance_date || "").getTime()
           case "participants":
             return b.participant_count - a.participant_count
@@ -905,14 +894,12 @@ export default function LudoEventsPage() {
       custom_interval: event.custom_interval,
     })
 
-    // New German frequency values
     if (event.frequency === "täglich") return "Täglich"
     if (event.frequency === "wöchentlich") return "Wöchentlich"
     if (event.frequency === "zweiwöchentlich") return "Zweiwöchentlich"
     if (event.frequency === "monatlich") return "Monatlich"
     if (event.frequency === "andere" && event.custom_interval) return event.custom_interval
 
-    // Old frequency values with interval_type
     if (event.frequency !== "regular" && event.frequency !== "recurring") return null
     if (!event.interval_type) return null
 
@@ -996,10 +983,8 @@ export default function LudoEventsPage() {
           {!user && console.log("[v0] Create button not shown - user not logged in")}
         </div>
 
-        {/* Updated filter section with professional, unified design */}
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg">
           <div className="space-y-6">
-            {/* Search Bar */}
             <div className="flex gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -1012,7 +997,6 @@ export default function LudoEventsPage() {
               </div>
             </div>
 
-            {/* Location Search */}
             <div className="space-y-3">
               <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
             </div>
@@ -1039,7 +1023,6 @@ export default function LudoEventsPage() {
               </div>
             )}
 
-            {/* Basic Filters */}
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
@@ -1105,7 +1088,6 @@ export default function LudoEventsPage() {
                 </div>
               </div>
 
-              {/* Advanced Filters */}
               {showAdvancedFilters && (
                 <div className="pt-6 border-t border-gray-200 space-y-4">
                   <h3 className="text-sm font-semibold text-gray-700 flex items-center">
@@ -1158,7 +1140,6 @@ export default function LudoEventsPage() {
                 </div>
               )}
 
-              {/* Reset Button */}
               <div className="flex justify-end">
                 <Button
                   variant="outline"
@@ -1182,7 +1163,6 @@ export default function LudoEventsPage() {
           </div>
         </div>
 
-        {/* Events Grid */}
         <div className="flex gap-8">
           <div className="flex-1">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1363,9 +1343,7 @@ export default function LudoEventsPage() {
                                 {(() => {
                                   const gameNames = event.selected_games
                                     .map((game: any, index: number) => {
-                                      // Handle string games that might be JSON strings
                                       if (typeof game === "string") {
-                                        // Try to parse as JSON first
                                         try {
                                           const parsedGame = JSON.parse(game)
                                           if (parsedGame && typeof parsedGame === "object") {
@@ -1378,13 +1356,11 @@ export default function LudoEventsPage() {
                                             )
                                           }
                                         } catch (e) {
-                                          // If parsing fails, treat as regular string
                                           return game
                                         }
                                         return game
                                       }
 
-                                      // Handle object games - extract title with fallbacks
                                       if (typeof game === "object" && game !== null) {
                                         return (
                                           game.title ||
@@ -1394,11 +1370,9 @@ export default function LudoEventsPage() {
                                           "Unbekanntes Spiel"
                                         )
                                       }
-
-                                      // Fallback for any other type
                                       return "Unbekanntes Spiel"
                                     })
-                                    .filter(Boolean) // Remove any empty/null values
+                                    .filter(Boolean)
 
                                   return gameNames.length > 0 ? gameNames.join(", ") : "Keine Spiele ausgewählt"
                                 })()}
@@ -1427,7 +1401,6 @@ export default function LudoEventsPage() {
                                 <span className="text-sm hover:text-teal-600 cursor-pointer transition-colors">
                                   {event.creator.username}
                                 </span>
-                                {/* </CHANGE> */}
                               </UserLink>
                             </div>
                           </div>
@@ -1444,7 +1417,6 @@ export default function LudoEventsPage() {
                                 return
                               }
                               if (buttonProps.action === "manage") {
-                                // Open date selection dialog to manage registrations
                                 setDateSelectionEvent(event)
                                 setIsDateSelectionOpen(true)
                               } else {
@@ -1507,7 +1479,6 @@ export default function LudoEventsPage() {
           </div>
         </div>
 
-        {/* Event Details Dialog */}
         <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
           <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -1550,7 +1521,6 @@ export default function LudoEventsPage() {
                   </div>
                 )}
 
-                {/* Organizer information frame */}
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-gray-600 font-medium">Organisiert von</span>
@@ -1567,7 +1537,6 @@ export default function LudoEventsPage() {
                       <span className="font-medium hover:text-teal-600 cursor-pointer transition-colors">
                         {selectedEvent.creator.username}
                       </span>
-                      {/* </CHANGE> */}
                     </UserLink>
                   </div>
                 </div>
@@ -1663,7 +1632,6 @@ export default function LudoEventsPage() {
                                     <li key={index} className="flex items-center gap-2">
                                       {(() => {
                                         if (typeof game === "string") {
-                                          // Try to parse as JSON first
                                           try {
                                             const parsedGame = JSON.parse(game)
                                             if (parsedGame && typeof parsedGame === "object") {
@@ -1676,7 +1644,6 @@ export default function LudoEventsPage() {
                                               )
                                             }
                                           } catch (e) {
-                                            // If parsing fails, treat as regular string
                                             return game
                                           }
                                           return game
@@ -1703,7 +1670,7 @@ export default function LudoEventsPage() {
                         {selectedEvent.description && (
                           <div>
                             <h4 className="text-gray-800 mb-2 font-semibold">Beschreibung</h4>
-                            <p className="text-gray-600 leading-relaxed">{selectedEvent.description}</p>
+                            <ExpandableDescription text={selectedEvent.description} />
                           </div>
                         )}
                         {selectedEvent.additional_notes && (
@@ -1735,7 +1702,6 @@ export default function LudoEventsPage() {
                       </div>
                     )}
 
-                    {/* DETAIL VIEW TAB SCHEDULE START */}
                     {detailViewTab === "schedule" && (
                       <div className="space-y-4">
                         <h3 className="font-semibold text-gray-800 mb-3">Alle geplanten Termine</h3>
@@ -1816,7 +1782,6 @@ export default function LudoEventsPage() {
                         </div>
                       </div>
                     )}
-                    {/* DETAIL VIEW TAB SCHEDULE END */}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1854,7 +1819,6 @@ export default function LudoEventsPage() {
                       <div className="flex items-center gap-3">
                         <MapPin className="h-5 w-5 text-teal-600" />
                         <div>
-                          {/* CHANGE> Made address non-clickable since map is already displayed */}
                           <div className="text-gray-600">
                             {selectedEvent.location_type === "virtual"
                               ? "Online Event"
@@ -1879,7 +1843,6 @@ export default function LudoEventsPage() {
                                 <li key={index} className="flex items-center gap-2">
                                   {(() => {
                                     if (typeof game === "string") {
-                                      // Try to parse as JSON first
                                       try {
                                         const parsedGame = JSON.parse(game)
                                         if (parsedGame && typeof parsedGame === "object") {
@@ -1892,7 +1855,6 @@ export default function LudoEventsPage() {
                                           )
                                         }
                                       } catch (e) {
-                                        // If parsing fails, treat as regular string
                                         return game
                                       }
                                       return game
@@ -1939,7 +1901,7 @@ export default function LudoEventsPage() {
                     {selectedEvent.description && (
                       <div>
                         <h4 className="text-gray-800 mb-2 font-semibold">Beschreibung</h4>
-                        <p className="text-gray-600 leading-relaxed">{selectedEvent.description}</p>
+                        <ExpandableDescription text={selectedEvent.description} />
                       </div>
                     )}
 
@@ -1972,7 +1934,6 @@ export default function LudoEventsPage() {
                   </div>
                 )}
 
-                {/* Join button */}
                 <div className="flex gap-3 pt-4 border-t">
                   {(() => {
                     const buttonProps = getJoinButtonProps(selectedEvent)
@@ -1987,7 +1948,6 @@ export default function LudoEventsPage() {
                             return
                           }
                           if (buttonProps.action === "manage") {
-                            // Open date selection dialog to manage registrations
                             setDateSelectionEvent(selectedEvent)
                             setIsDateSelectionOpen(true)
                           } else {
@@ -2138,7 +2098,7 @@ export default function LudoEventsPage() {
             onClose={() => {
               setIsManagementDialogOpen(false)
               setManagementEvent(null)
-              loadEvents() // Refresh events after management changes
+              loadEvents()
             }}
             event={managementEvent}
           />

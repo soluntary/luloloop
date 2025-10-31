@@ -238,7 +238,7 @@ function Navigation({ currentPage }: NavigationProps) {
                   <DropdownMenuItem asChild>
                     <Link href="/profile" className="flex items-center space-x-2 cursor-pointer">
                       <Settings className="w-4 h-4" />
-                      <span>Profileinstellungen</span>
+                      <span>Profil</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center space-x-2 cursor-pointer">

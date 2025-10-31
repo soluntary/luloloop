@@ -103,36 +103,36 @@ export function EditSearchAdForm({ isOpen, onClose, onSuccess, searchAd }: EditS
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg mx-4 rounded-2xl shadow-2xl border-0 bg-gradient-to-br from-purple-50 to-purple-50">
+      <DialogContent className="max-w-lg mx-4 rounded-2xl shadow-2xl border-0 bg-gradient-to-br from-orange-50 to-orange-50">
         <DialogHeader className="text-center pb-6 pt-2">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
             <Edit className="w-8 h-8 text-white" />
           </div>
-          <DialogTitle className="font-handwritten text-3xl text-purple-800 font-bold">
+          <DialogTitle className="font-handwritten text-3xl text-orange-800 font-bold">
             Suchanzeige bearbeiten
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 px-2">
           <div className="space-y-2">
-            <Label className="font-body text-purple-800 font-semibold text-base">Titel *</Label>
+            <Label className="font-body text-orange-800 font-semibold text-base">Titel *</Label>
             <Input
               value={formData.title}
               onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
               placeholder="z.B. Suche Catan Erweiterung"
-              className="font-body border-2 border-purple-200 focus:border-purple-400 bg-white/90 rounded-xl h-12 text-base"
+              className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/90 rounded-xl h-12 text-base"
               required
             />
             {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label className="font-body text-purple-800 font-semibold text-base">Was möchtest du? *</Label>
+            <Label className="font-body text-orange-800 font-semibold text-base">Was möchtest du? *</Label>
             <Select
               value={formData.type}
               onValueChange={(value: "buy" | "rent") => setFormData((prev) => ({ ...prev, type: value }))}
             >
-              <SelectTrigger className="font-body border-2 border-purple-200 focus:border-purple-400 bg-white/90 rounded-xl h-12">
+              <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/90 rounded-xl h-12">
                 <SelectValue placeholder="Wähle eine Option" />
               </SelectTrigger>
               <SelectContent>
@@ -144,12 +144,12 @@ export function EditSearchAdForm({ isOpen, onClose, onSuccess, searchAd }: EditS
           </div>
 
           <div className="space-y-2">
-            <Label className="font-body text-purple-800 font-semibold text-base">Beschreibung</Label>
+            <Label className="font-body text-orange-800 font-semibold text-base">Beschreibung</Label>
             <Textarea
               value={formData.description}
               onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
               placeholder="Beschreibe genauer, was du suchst..."
-              className="font-body border-2 border-purple-200 focus:border-purple-400 bg-white/90 rounded-xl text-base resize-none"
+              className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/90 rounded-xl text-base resize-none"
               rows={4}
             />
           </div>
@@ -159,7 +159,7 @@ export function EditSearchAdForm({ isOpen, onClose, onSuccess, searchAd }: EditS
               type="button"
               variant="outline"
               onClick={handleClose}
-              className="flex-1 font-handwritten text-base h-12 border-2 border-purple-300 bg-white/80 text-purple-700 hover:bg-purple-50 rounded-xl"
+              className="flex-1 font-handwritten text-base h-12 border-2 border-orange-300 bg-white/80 text-orange-700 hover:bg-orange-50 rounded-xl"
               disabled={isSubmitting}
             >
               <X className="w-4 h-4 mr-2" />
@@ -167,7 +167,7 @@ export function EditSearchAdForm({ isOpen, onClose, onSuccess, searchAd }: EditS
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white font-handwritten text-base h-12 rounded-xl"
+              className="flex-1 bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-handwritten text-base h-12 rounded-xl"
               disabled={isSubmitting}
             >
               <Save className="w-4 h-4 mr-2" />

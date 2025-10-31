@@ -1,5 +1,5 @@
 @import "tailwindcss";
-/* Removed @import "tw-animate-css" - package doesn't exist */
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -85,8 +85,7 @@
 }
 
 @theme inline {
-  --font-mclaren: var(--font-mclaren);
-  --font-galindo: var(--font-galindo);
+  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -123,8 +122,6 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-
-  /* LudoLoop custom colors */
   --color-coral-50: var(--coral-50);
   --color-coral-100: var(--coral-100);
   --color-coral-200: var(--coral-200);

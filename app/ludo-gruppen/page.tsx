@@ -46,8 +46,8 @@ import { SimpleLocationSearch } from "@/components/simple-location-search"
 import { useLocationSearch } from "@/contexts/location-search-context"
 import { DistanceBadge } from "@/components/distance-badge"
 import { LocationMap } from "@/components/location-map"
-import { ExpandableText } from "@/components/expandable-text"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
+import { ExpandableDescription } from "@/components/expandable-description"
 
 interface LudoGroup {
   id: string
@@ -270,22 +270,6 @@ export default function LudoGruppenPage() {
     } catch (error) {
       console.error("[v0] Error removing member:", error)
       toast.error("Fehler beim Entfernen des Mitglieds")
-    }
-  }
-
-  const changeMemberRole = async (memberId: string, newRole: string, memberUsername: string) => {
-    if (!user || !selectedGroupForMembers) return
-
-    try {
-      const { error } = await supabase.from("community_members").update({ role: newRole }).eq("id", memberId)
-
-      if (error) throw error
-
-      toast.success(`${memberUsername} ist jetzt ${newRole === "admin" ? "Organisator" : "Mitglied"}`)
-      loadGroupMembers(selectedGroupForMembers.id)
-    } catch (error) {
-      console.error("Error changing member role:", error)
-      toast.error("Fehler beim Ändern der Rolle")
     }
   }
 
@@ -682,9 +666,19 @@ export default function LudoGruppenPage() {
 
   const canManageMembers = (group: LudoGroup) => {
     if (!user) return false
+    if (group.creator_id === user.id) return true
 
-    return group.creator_id === user.id
+    // Check if user is an admin of this group
+    const userMembership = groupMembers.find((m) => m.user_id === user.id)
+    return userMembership?.role === "admin"
+    // </CHANGE>
   }
+
+  const isAdminOrCreator = (group: LudoGroup) => {
+    if (!user) return false
+    return group.creator_id === user.id || canManageMembers(group)
+  }
+  // </CHANGE>
 
   const handleLocationSearch = async (address: string, radius: number) => {
     try {
@@ -1053,7 +1047,7 @@ export default function LudoGruppenPage() {
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Beitrittsverfahren</Label>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Beitrittsmodus</Label>
                   <Select value={approvalModeFilter} onValueChange={setApprovalModeFilter}>
                     <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
                       <SelectValue />
@@ -1238,7 +1232,7 @@ export default function LudoGruppenPage() {
                             className={`flex-1 font-handwritten ${
                               buttonProps.action === "leave"
                                 ? "bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white border-red-500"
-                                : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:to-gray-400"
+                                : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:from-gray-400"
                             }`}
                           >
                             {IconComponent ? (
@@ -1445,7 +1439,7 @@ export default function LudoGruppenPage() {
                   <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-pink-500 text-white flex items-center justify-center text-sm font-bold">
                     2
                   </span>
-                  Beitrittsverfahren
+                  Beitrittsmodus
                 </h3>
 
                 <div className="space-y-4">
@@ -1612,7 +1606,7 @@ export default function LudoGruppenPage() {
                 {selectedGroup.description && (
                   <div>
                     <h4 className="text-gray-800 mb-2 font-semibold">Beschreibung</h4>
-                    <ExpandableText text={selectedGroup.description} maxLength={300} />
+                    <ExpandableDescription text={selectedGroup.description} />
                   </div>
                 )}
 
@@ -1672,7 +1666,7 @@ export default function LudoGruppenPage() {
                         className={`flex-1 font-handwritten ${
                           buttonProps.action === "leave"
                             ? "bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white border-red-500"
-                            : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:to-gray-400"
+                            : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:from-gray-400"
                         }`}
                       >
                         {IconComponent ? (
@@ -1777,6 +1771,11 @@ export default function LudoGruppenPage() {
                                   {member.users?.username}
                                 </p>
                               </UserLink>
+                              {member.role === "admin" && (
+                                <Badge className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-xs px-2 py-0.5">
+                                  Admin
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-xs text-gray-500">
                               Beigetreten am{" "}
@@ -1792,43 +1791,30 @@ export default function LudoGruppenPage() {
                         {/* Only show management options if current user is creator */}
                         {user &&
                           selectedGroupForMembers &&
-                          selectedGroupForMembers.creator_id === user.id &&
+                          canManageMembers(selectedGroupForMembers) &&
                           member.user_id !== user.id &&
                           selectedGroupForMembers.creator_id !== member.user_id && (
                             <div className="flex gap-2">
-                              {/* Role change button */}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  changeMemberRole(
-                                    member.id,
-                                    member.role === "admin" ? "member" : "admin",
-                                    member.users?.username || "Unbekannt",
-                                  )
-                                }
-                                className="text-xs"
-                              >
-                                {member.role === "admin" ? "Zu Mitglied" : "Zu Admin"}
-                              </Button>
-
-                              {/* Remove member button */}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  console.log("[v0] Remove button clicked for member:", member.users?.username)
-                                  removeMemberFromGroup(member.id, member.users?.username || "Unbekannt")
-                                }}
-                                className="border-red-200 text-red-600 hover:bg-red-50 text-xs"
-                              >
-                                <X className="h-3 w-3 mr-1" />
-                                Entfernen
-                              </Button>
+                              {/* Remove member button - admins can remove regular members, only creator can remove admins */}
+                              {(selectedGroupForMembers.creator_id === user.id || member.role !== "admin") && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    console.log("[v0] Remove button clicked for member:", member.users?.username)
+                                    removeMemberFromGroup(member.id, member.users?.username || "Unbekannt")
+                                  }}
+                                  className="border-red-200 text-red-600 hover:bg-red-50 text-xs"
+                                >
+                                  <X className="h-3 w-3 mr-1" />
+                                  Entfernen
+                                </Button>
+                              )}
                             </div>
                           )}
+                        {/* </CHANGE> */}
                       </div>
                     </Card>
                   ))}

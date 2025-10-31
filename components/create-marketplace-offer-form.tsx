@@ -25,15 +25,13 @@ import {
   Dices,
   ChevronDown,
   Info,
-  Truck,
   MapPin,
+  Trash2,
   Package,
-  FileText,
   Eye,
   ArrowLeft,
   ArrowRight,
   Search,
-  Clock,
 } from "lucide-react"
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
@@ -600,7 +598,7 @@ export function CreateMarketplaceOfferForm({
       }
 
       if (offerType === "trade" && !openToSuggestions && !price.trim()) {
-        newErrors.price = "Bitte gib Tauschbedingungen an."
+        newErrors.price = "Bitte gib eine Tauschbedingung an."
       }
 
       if (!deliveryPickup && !deliveryShipping) {
@@ -843,7 +841,7 @@ export function CreateMarketplaceOfferForm({
                 ))}
               </div>
 
-              <p className="text-center text-white text-sm">Schritt {currentStep} von 3</p>
+              <p className="text-center text-orange-800 text-sm">Schritt {currentStep} von 3</p>
             </DialogHeader>
           </div>
 
@@ -861,11 +859,11 @@ export function CreateMarketplaceOfferForm({
                     <div className="space-y-4">
                       <div>
                         <Label className="text-sm font-semibold text-gray-700 mb-2 block">
-                          Aus deiner Bibliothek wählen
+                          Aus deiner Ludothek wählen
                         </Label>
                         <Select value={selectedGame} onValueChange={handleGameSelection}>
                           <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
-                            <SelectValue placeholder="Spiel aus Bibliothek wählen..." />
+                            <SelectValue placeholder="Spiel aus Ludothek wählen..." />
                           </SelectTrigger>
                           <SelectContent className="rounded-xl border-orange-200">
                             {games.map((game) => (
@@ -913,7 +911,7 @@ export function CreateMarketplaceOfferForm({
                             className="border-orange-400 data-[state=checked]:bg-orange-600"
                           />
                           <Label htmlFor="custom-game" className="font-medium text-black-800 cursor-pointer">
-                            Neues Spiel erstellen
+                            Neues Spiel erfassen
                           </Label>
                         </div>
 
@@ -939,7 +937,7 @@ export function CreateMarketplaceOfferForm({
                                 <div className="w-full border-t border-orange-200" />
                               </div>
                               <div className="relative flex justify-center text-sm">
-                                <span className="bg-white px-4 text-orange-600 font-medium">oder manuell eingeben</span>
+                                <span className="bg-white px-4 text-orange-600 font-medium">oder manuell erfassen</span>
                               </div>
                             </div>
                           </div>
@@ -952,7 +950,7 @@ export function CreateMarketplaceOfferForm({
                   {!selectedGame && (
                     <div className="space-y-6">
                       {/* Game Cover Section */}
-                      <div className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-2xl p-6 border border-amber-200 shadow-sm">
+                      <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
                         <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
                           <Camera className="w-5 h-5" />
                           Spiel Cover
@@ -1214,8 +1212,8 @@ export function CreateMarketplaceOfferForm({
                         )}
                       </div>
 
-                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 border border-purple-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-purple-800 mb-4 flex items-center gap-2">
+                      <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
+                        <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
                           <Tag className="w-5 h-5" />
                           Kategorien & Typus
                         </h3>
@@ -1228,12 +1226,12 @@ export function CreateMarketplaceOfferForm({
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="outline"
-                                  className="w-full justify-between h-12 border-2 border-purple-200 focus:border-purple-500 rounded-xl bg-white hover:border-purple-300 transition-colors"
+                                  className="w-full justify-between h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors"
                                   type="button"
                                   disabled={!!selectedGame}
                                 >
                                   {customGameType.length > 0 ? (
-                                    <span className="text-purple-600 font-medium">
+                                    <span className="text-orange-600 font-medium">
                                       {customGameType.length} Kategorie{customGameType.length > 1 ? "n" : ""} ausgewählt
                                     </span>
                                   ) : (
@@ -1244,14 +1242,14 @@ export function CreateMarketplaceOfferForm({
                               </PopoverTrigger>
                               <PopoverContent className="w-80 p-0">
                                 <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
-                                  <h4 className="font-medium text-sm text-purple-700">Kategorie auswählen:</h4>
+                                  <h4 className="font-medium text-sm text-orange-700">Kategorie auswählen:</h4>
                                   {GAME_TYPE_OPTIONS.map((type) => (
                                     <div key={type} className="flex items-center space-x-2">
                                       <Checkbox
                                         id={`custom-type-${type}`}
                                         checked={customGameType.includes(type)}
                                         onCheckedChange={() => handleCustomGameTypeToggle(type)}
-                                        className="border-purple-300 data-[state=checked]:bg-purple-600"
+                                        className="border-orange-300 data-[state=checked]:bg-orange-600"
                                       />
                                       <Label htmlFor={`custom-type-${type}`} className="text-sm cursor-pointer">
                                         {type}
@@ -1267,7 +1265,7 @@ export function CreateMarketplaceOfferForm({
                                         value={customGameCustomType}
                                         onChange={(e) => setCustomGameCustomType(e.target.value)}
                                         placeholder="Kategorie eingeben..."
-                                        className="text-xs border-purple-200"
+                                        className="text-xs border-orange-200"
                                         onKeyPress={(e) => {
                                           if (e.key === "Enter") {
                                             e.preventDefault()
@@ -1279,7 +1277,7 @@ export function CreateMarketplaceOfferForm({
                                         type="button"
                                         size="sm"
                                         onClick={handleAddCustomType}
-                                        className="bg-purple-500 hover:bg-purple-600 text-white px-2"
+                                        className="bg-orange-500 hover:bg-orange-600 text-white px-2"
                                       >
                                         <Plus className="w-3 h-3" />
                                       </Button>
@@ -1292,7 +1290,7 @@ export function CreateMarketplaceOfferForm({
                                         {customGameType.map((type) => (
                                           <Badge
                                             key={type}
-                                            className="text-xs cursor-pointer bg-purple-100 text-purple-700 hover:bg-purple-200"
+                                            className="text-xs cursor-pointer bg-orange-100 text-orange-700 hover:bg-orange-200"
                                             onClick={() => handleCustomGameTypeToggle(type)}
                                           >
                                             {type} ×
@@ -1320,12 +1318,12 @@ export function CreateMarketplaceOfferForm({
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="outline"
-                                  className="w-full justify-between h-12 border-2 border-purple-200 focus:border-purple-500 rounded-xl bg-white hover:border-purple-300 transition-colors"
+                                  className="w-full justify-between h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors"
                                   type="button"
                                   disabled={!!selectedGame}
                                 >
                                   {customGameStyle.length > 0 ? (
-                                    <span className="text-purple-600 font-medium">
+                                    <span className="text-orange-600 font-medium">
                                       {customGameStyle.length} Typus {customGameStyle.length > 1 ? "en" : ""} ausgewählt
                                     </span>
                                   ) : (
@@ -1336,14 +1334,14 @@ export function CreateMarketplaceOfferForm({
                               </PopoverTrigger>
                               <PopoverContent className="w-80 p-0">
                                 <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
-                                  <h4 className="font-medium text-sm text-purple-700">Typus auswählen:</h4>
+                                  <h4 className="font-medium text-sm text-orange-700">Typus auswählen:</h4>
                                   {GAME_STYLE_OPTIONS.map((style) => (
                                     <div key={style} className="flex items-center space-x-2">
                                       <Checkbox
                                         id={`custom-style-${style}`}
                                         checked={customGameStyle.includes(style)}
                                         onCheckedChange={() => handleCustomGameStyleToggle(style)}
-                                        className="border-purple-300 data-[state=checked]:bg-purple-600"
+                                        className="border-orange-300 data-[state=checked]:bg-orange-600"
                                       />
                                       <Label htmlFor={`custom-style-${style}`} className="text-sm cursor-pointer">
                                         {style}
@@ -1359,7 +1357,7 @@ export function CreateMarketplaceOfferForm({
                                         value={customGameCustomStyle}
                                         onChange={(e) => setCustomGameCustomStyle(e.target.value)}
                                         placeholder="Typus eingeben..."
-                                        className="text-xs border-purple-200"
+                                        className="text-xs border-orange-200"
                                         onKeyPress={(e) => {
                                           if (e.key === "Enter") {
                                             e.preventDefault()
@@ -1371,7 +1369,7 @@ export function CreateMarketplaceOfferForm({
                                         type="button"
                                         size="sm"
                                         onClick={handleAddCustomStyle}
-                                        className="bg-purple-500 hover:bg-purple-600 text-white px-2"
+                                        className="bg-orange-500 hover:bg-orange-600 text-white px-2"
                                       >
                                         <Plus className="w-3 h-3" />
                                       </Button>
@@ -1384,7 +1382,7 @@ export function CreateMarketplaceOfferForm({
                                         {customGameStyle.map((style) => (
                                           <Badge
                                             key={style}
-                                            className="text-xs cursor-pointer bg-purple-100 text-purple-700 hover:bg-purple-200"
+                                            className="text-xs cursor-pointer bg-orange-100 text-orange-700 hover:bg-orange-200"
                                             onClick={() => handleCustomGameStyleToggle(style)}
                                           >
                                             {style} ×
@@ -1465,16 +1463,16 @@ export function CreateMarketplaceOfferForm({
                           </SelectTrigger>
                           <SelectContent className="rounded-xl">
                             <SelectItem value="Neu" className="rounded-lg">
-                              <div className="flex items-center gap-2">Neu und orignialverpackt</div>
+                              <div className="flex items-center gap-2">Neu</div>
                             </SelectItem>
-                            <SelectItem value="Wie neu" className="rounded-lg">
+                            <SelectItem value="Neuwertig" className="rounded-lg">
                               <div className="flex items-center gap-2">Neuwertig</div>
                             </SelectItem>
-                            <SelectItem value="Sehr gut" className="rounded-lg">
+                            <SelectItem value="Gut" className="rounded-lg">
                               <div className="flex items-center gap-2">Gut</div>
                             </SelectItem>
-                            <SelectItem value="Gut" className="rounded-lg">
-                              <div className="flex items-center gap-2">Gebraucht (wurde bereits gespielt)</div>
+                            <SelectItem value="Gebraucht" className="rounded-lg">
+                              <div className="flex items-center gap-2">Gebraucht</div>
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -1490,9 +1488,8 @@ export function CreateMarketplaceOfferForm({
 
                   {/* Lending specific fields */}
                   {offerType === "lend" && (
-                    <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl p-6 border border-teal-200 shadow-sm">
-                      <h4 className="text-lg font-bold text-teal-800 mb-4 flex items-center gap-2">
-                        <Clock className="w-5 h-5" />
+                    <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100">
+                      <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
                         Mietkonditionen *
                       </h4>
 
@@ -1507,7 +1504,7 @@ export function CreateMarketplaceOfferForm({
                                 placeholder="z.B. 5.00"
                                 value={dailyRate1Day}
                                 onChange={(e) => setDailyRate1Day(e.target.value)}
-                                className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg bg-white"
+                                className="h-10 border-2 border-orange-200 focus:border-orange-500 rounded-lg bg-white"
                                 type="number"
                                 step="0.01"
                                 min="0"
@@ -1519,7 +1516,7 @@ export function CreateMarketplaceOfferForm({
                                 placeholder="z.B. 4.00"
                                 value={dailyRate2To6Days}
                                 onChange={(e) => setDailyRate2To6Days(e.target.value)}
-                                className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg bg-white"
+                                className="h-10 border-2 border-orange-200 focus:border-orange-500 rounded-lg bg-white"
                                 type="number"
                                 step="0.01"
                                 min="0"
@@ -1531,7 +1528,7 @@ export function CreateMarketplaceOfferForm({
                                 placeholder="z.B. 3.00"
                                 value={dailyRate7To30Days}
                                 onChange={(e) => setDailyRate7To30Days(e.target.value)}
-                                className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg bg-white"
+                                className="h-10 border-2 border-orange-200 focus:border-orange-500 rounded-lg bg-white"
                                 type="number"
                                 step="0.01"
                                 min="0"
@@ -1543,7 +1540,7 @@ export function CreateMarketplaceOfferForm({
                                 placeholder="z.B. 2.00"
                                 value={dailyRateOver30Days}
                                 onChange={(e) => setDailyRateOver30Days(e.target.value)}
-                                className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg bg-white"
+                                className="h-10 border-2 border-orange-200 focus:border-orange-500 rounded-lg bg-white"
                                 type="number"
                                 step="0.01"
                                 min="0"
@@ -1568,7 +1565,7 @@ export function CreateMarketplaceOfferForm({
                                 placeholder="z.B. 1"
                                 value={minRentalDays}
                                 onChange={(e) => setMinRentalDays(e.target.value)}
-                                className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg bg-white"
+                                className="h-10 border-2 border-orange-200 focus:border-orange-500 rounded-lg bg-white"
                                 type="number"
                                 min="1"
                               />
@@ -1579,7 +1576,7 @@ export function CreateMarketplaceOfferForm({
                                 placeholder="z.B. 30"
                                 value={maxRentalDays}
                                 onChange={(e) => setMaxRentalDays(e.target.value)}
-                                className="h-10 border-2 border-teal-200 focus:border-teal-500 rounded-lg bg-white"
+                                className="h-10 border-2 border-orange-200 focus:border-orange-500 rounded-lg bg-white"
                                 type="number"
                                 min="1"
                               />
@@ -1592,8 +1589,8 @@ export function CreateMarketplaceOfferForm({
 
                   {/* Selling specific fields */}
                   {offerType === "sell" && (
-                    <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl p-6 border border-pink-200 shadow-sm">
-                      <h4 className="text-lg font-bold text-pink-800 mb-4 flex items-center gap-2">
+                    <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100">
+                      <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
                         Verkaufsbedingungen
                       </h4>
 
@@ -1603,7 +1600,7 @@ export function CreateMarketplaceOfferForm({
                           placeholder="z.B. 25.00"
                           value={salePrice}
                           onChange={(e) => setSalePrice(e.target.value)}
-                          className="h-12 border-2 border-pink-200 focus:border-pink-500 rounded-xl bg-white"
+                          className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white"
                           type="number"
                           step="0.01"
                           min="0"
@@ -1620,9 +1617,9 @@ export function CreateMarketplaceOfferForm({
 
                   {/* Trading specific fields */}
                   {offerType === "trade" && (
-                    <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
+                    <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100">
                       <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
-                        Tauschbedingungen
+                        Tauschbedingung
                       </h4>
 
                       <div className="mb-4">
@@ -1634,16 +1631,11 @@ export function CreateMarketplaceOfferForm({
                             onChange={(e) => setOpenToSuggestions(e.target.checked)}
                             className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
                           />
-                          <Label
-                            htmlFor="openToSuggestions"
-                            className="text-sm font-medium text-gray-700 cursor-pointer"
-                          >
+                          <Label htmlFor="openToSuggestions" className="flex items-center gap-2 text-sm cursor-pointer">
                             Offen für Vorschläge
                           </Label>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1 ml-7">
-                          Ich bin offen für verschiedene Tauschvorschläge
-                        </p>
+                        <p className="text-xs text-gray-500 mt-1 ml-7">Ich bin offen für Tauschvorschläge</p>
                       </div>
 
                       {!openToSuggestions && (
@@ -1667,23 +1659,21 @@ export function CreateMarketplaceOfferForm({
                       {openToSuggestions && (
                         <div className="bg-orange-100 border border-orange-300 rounded-xl p-4">
                           <p className="text-orange-800 text-sm font-medium">
-                            Du bist offen für Tauschvorschläge. Andere Nutzer können dir verschiedene Spiele zum Tausch
-                            anbieten.
+                            Du bist offen für Tauschvorschläge. Andere Mitglieder können dir Spiele zum Tausch anbieten.
                           </p>
                         </div>
                       )}
                     </div>
                   )}
 
-                  <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-200 shadow-sm">
-                    <h4 className="text-lg font-bold text-indigo-800 mb-4 flex items-center gap-2">
-                      <Truck className="w-5 h-5" />
+                  <div className="bg-white rounded-2xl p-6 border border-orange-100 shadow-sm">
+                    <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
                       Welche Zustelloption bietest du an? *
                     </h4>
 
                     <div className="space-y-4">
                       {/* Pickup Option */}
-                      <div className="bg-white p-4 rounded-xl border border-indigo-200">
+                      <div className="bg-white p-4 rounded-xl border border-orange-200">
                         <div className="flex items-center space-x-3 mb-3">
                           <Checkbox
                             id="pickup"
@@ -1697,11 +1687,11 @@ export function CreateMarketplaceOfferForm({
                               )
                               setDeliveryPickup(checked === true)
                             }}
-                            className="border-indigo-400 data-[state=checked]:bg-indigo-600"
+                            className="border-orange-400 data-[state=checked]:bg-orange-600"
                           />
                           <Label
                             htmlFor="pickup"
-                            className="font-medium text-indigo-800 cursor-pointer flex items-center gap-2"
+                            className="flex items-center gap-2 text-sm"
                             onClick={() => {
                               console.log("[v0] Pickup label clicked - current state:", deliveryPickup)
                               setDeliveryPickup(!deliveryPickup)
@@ -1719,7 +1709,7 @@ export function CreateMarketplaceOfferForm({
                               className={`px-2 py-1 rounded text-sm ${
                                 pickupAddress.includes("unvollständig") || pickupAddress.includes("vervollständigen")
                                   ? "bg-red-100 text-red-700"
-                                  : "bg-indigo-100 text-indigo-700"
+                                  : "bg-orange-100 text-orange-700"
                               }`}
                             >
                               {pickupAddress || "Adresse wird geladen..."}
@@ -1729,7 +1719,7 @@ export function CreateMarketplaceOfferForm({
                       </div>
 
                       {/* Shipping Option */}
-                      <div className="bg-white p-4 rounded-xl border border-indigo-200">
+                      <div className="bg-white p-4 rounded-xl border border-orange-200">
                         <div className="flex items-center space-x-3 mb-3">
                           <Checkbox
                             id="shipping"
@@ -1744,11 +1734,11 @@ export function CreateMarketplaceOfferForm({
                               setDeliveryShipping(checked === true)
                               // REMOVED: if (checked !== true) setShippingOption("")
                             }}
-                            className="border-indigo-400 data-[state=checked]:bg-indigo-600"
+                            className="border-orange-400 data-[state=checked]:bg-orange-600"
                           />
                           <Label
                             htmlFor="shipping"
-                            className="font-medium text-indigo-800 cursor-pointer flex items-center gap-2"
+                            className="flex items-center gap-2 text-sm cursor-pointer flex items-center gap-2"
                             onClick={() => {
                               console.log("[v0] Shipping label clicked - current state:", deliveryShipping)
                               const newState = !deliveryShipping
@@ -1778,16 +1768,13 @@ export function CreateMarketplaceOfferForm({
                   </div>
 
                   {/* Description */}
-                  <div className="bg-white rounded-2xl p-6 border border-amber-100 shadow-sm">
-                    <Label className="text-sm font-semibold text-gray-700 mb-2 block flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      Beschreibung
-                    </Label>
+                  <div className="bg-white rounded-2xl p-6 border border-orange-100 shadow-sm">
+                    <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">Beschreibung</h4>
                     <RichTextEditor
                       placeholder="Zusätzliche Informationen zum Spiel oder Angebot..."
                       value={description}
                       onChange={setDescription}
-                      className="border-2 border-amber-200 focus:border-amber-500 rounded-xl bg-white"
+                      className="border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white"
                       rows={4}
                       maxLength={2000}
                     />
@@ -1806,12 +1793,9 @@ export function CreateMarketplaceOfferForm({
                   )}
 
                   {/* Image Upload */}
-                  <div className="bg-white rounded-2xl p-6 border border-purple-100 shadow-sm">
-                    <Label className="text-sm font-semibold text-gray-700 mb-3 block flex items-center gap-2">
-                      <ImageIcon className="w-4 h-4" />
-                      Bild
-                    </Label>
-                    <div className="border-2 border-dashed border-purple-200 rounded-xl p-6 hover:border-purple-300 transition-colors">
+                  <div className="bg-white rounded-2xl p-6 border border-orange-100 shadow-sm">
+                    <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">Bild</h4>
+                    <div className="border-2 border-dashed border-orange-200 rounded-xl p-6 hover:border-orange-300 transition-colors">
                       {imagePreview ? (
                         <div className="relative">
                           <img
@@ -1821,12 +1805,12 @@ export function CreateMarketplaceOfferForm({
                           />
                           <Button
                             type="button"
-                            variant="destructive"
+                            variant="ghost"
                             size="sm"
-                            className="absolute top-3 right-3 rounded-full w-8 h-8 p-0"
+                            className="absolute top-3 right-3 rounded-full w-8 h-8 p-0 bg-white hover:bg-gray-100 shadow-lg border border-gray-200"
                             onClick={removeImage}
                           >
-                            <X className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4 text-gray-700" />
                           </Button>
                           {selectedGame && !image && (
                             <div className="absolute bottom-3 left-3 bg-green-100 text-green-800 px-2 py-1 rounded-lg text-xs font-medium">
@@ -1836,8 +1820,8 @@ export function CreateMarketplaceOfferForm({
                         </div>
                       ) : (
                         <div className="text-center">
-                          <ImageIcon className="w-16 h-16 text-purple-300 mx-auto mb-4" />
-                          <p className="text-purple-600 font-medium mb-2">
+                          <ImageIcon className="w-16 h-16 text-orange-300 mx-auto mb-4" />
+                          <p className="text-orange-600 font-medium mb-2">
                             {selectedGame ? "Zusätzliches Bild hochladen" : "Bild hochladen"}
                           </p>
 
@@ -1852,7 +1836,7 @@ export function CreateMarketplaceOfferForm({
                             type="button"
                             variant="outline"
                             onClick={() => document.getElementById("image-upload")?.click()}
-                            className="border-2 border-purple-400 text-purple-600 hover:bg-purple-400 hover:text-white rounded-xl px-6 py-2 transition-all duration-200"
+                            className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white rounded-xl px-6 py-2 transition-all duration-200"
                           >
                             <Upload className="w-4 h-4 mr-2" />
                             Bild auswählen
@@ -1874,7 +1858,7 @@ export function CreateMarketplaceOfferForm({
               {/* Step 3: Summary */}
               {currentStep === 3 && (
                 <div className="space-y-6">
-                  <div className="bg-gradient-to-br from-orange-50 to-indigo-50 rounded-2xl p-6 border border-orange-200 shadow-lg">
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 shadow-lg">
                     <h3 className="text-2xl font-bold text-orange-800 mb-6 flex items-center gap-3">
                       <Eye className="w-6 h-6" />
                       Angebots-Zusammenfassung
@@ -1883,10 +1867,7 @@ export function CreateMarketplaceOfferForm({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Game Information */}
                       <div className="bg-white rounded-xl p-4 border border-orange-100">
-                        <h4 className="font-bold text-orange-700 mb-3 flex items-center gap-2">
-                          <Dices className="w-4 h-4" />
-                          Spiel-Informationen
-                        </h4>
+                        <h4 className="font-bold text-orange-700 mb-3 flex items-center gap-2">Spiel-Informationen</h4>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Spiel:</span>
@@ -1910,38 +1891,38 @@ export function CreateMarketplaceOfferForm({
                       {/* Offer Information */}
                       <div className="bg-white rounded-xl p-4 border border-orange-100">
                         <h4 className="font-bold text-orange-700 mb-3 flex items-center gap-2">
-                          <Tag className="w-4 h-4" />
                           Angebots-Informationen
                         </h4>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Angebotsart:</span>
                             <span className="font-medium">
-                              {offerType === "lend" ? "Verleihen" : offerType === "trade" ? "Tauschen" : "Verkaufen"}
+                              {offerType === "lend"
+                                ? "Mietangebot"
+                                : offerType === "trade"
+                                  ? "Tauschangebot"
+                                  : "Verkaufsangebot"}
                             </span>
                           </div>
 
                           {offerType === "sell" && (
                             <div className="flex justify-between">
                               <span className="text-gray-600">Verkaufspreis:</span>
-                              <span className="font-bold text-pink-600">CHF {salePrice}</span>
+                              <span className="font-medium">CHF {salePrice}</span>
                             </div>
                           )}
 
                           {offerType === "trade" && (
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Preis:</span>
-                              <span className="font-medium">{price}</span>
+                              <span className="text-gray-600">Tauschbedingungen:</span>
+                              <span className="font-medium">{openToSuggestions ? "Offen für Vorschläge" : price}</span>
                             </div>
                           )}
                         </div>
                       </div>
                       {offerType === "lend" && (
-                        <div className="bg-white rounded-xl p-4 border border-teal-100">
-                          <h4 className="font-bold text-teal-700 mb-3 flex items-center gap-2">
-                            <Clock className="w-4 h-4" />
-                            Mietkonditionen
-                          </h4>
+                        <div className="bg-white rounded-xl p-4 border border-orange-100">
+                          <h4 className="font-bold text-orange-700 mb-3 flex items-center gap-2">Mietkonditionen</h4>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <span className="text-sm text-gray-600 block mb-2">Tagespreise:</span>
@@ -1954,7 +1935,7 @@ export function CreateMarketplaceOfferForm({
                                   !dailyRate2To6Days &&
                                   !dailyRate7To30Days &&
                                   !dailyRateOver30Days && (
-                                    <p className="text-teal-600 font-medium">Kostenlose Miete</p>
+                                    <p className="text-orange-600 font-medium">Kostenlose Miete</p>
                                   )}
                               </div>
                             </div>
@@ -1970,35 +1951,33 @@ export function CreateMarketplaceOfferForm({
                       )}
 
                       {/* Delivery Options */}
-                      <div className="md:col-span-2 bg-white rounded-xl p-4 border border-indigo-100">
-                        <h4 className="font-bold text-indigo-700 mb-3 flex items-center gap-2">
-                          <Truck className="w-4 h-4" />
-                          Zustellungsoptionen
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
+                      <div className="md:col-span-2 bg-white rounded-xl p-4 border border-orange-100">
+                        <h4 className="font-bold text-orange-700 mb-3 flex items-center gap-2">Zustellungsoptionen</h4>
+                        <div className="space-y-3">
                           {deliveryPickup && (
-                            <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
-                              <Badge variant="outline" className="mb-2 bg-indigo-100 text-indigo-700">
-                                <MapPin className="w-3 h-3 mr-1" />
-                                Abholung
-                              </Badge>
-                              <p className="text-xs text-gray-600">{pickupAddress}</p>
+                            <div className="flex items-start gap-2">
+                              <MapPin className="w-4 h-4 text-gray-900 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">
+                                  Abholung bei <span className="text-orange-600 font-medium">{pickupAddress}</span>
+                                </p>
+                              </div>
                             </div>
                           )}
                           {deliveryShipping && (
-                            <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
-                              <Badge variant="outline" className="mb-2 bg-indigo-100 text-indigo-700">
-                                <Package className="w-3 h-3 mr-1" />
-                                Postversand
-                              </Badge>
-                              <p className="text-xs text-gray-600">
-                                {/* REMOVED: Accessing shippingOption directly as it's no longer state. We'll infer it's PostPac based on deliveryShipping being true. */}
-                                {offerType === "lend"
-                                  ? "Kosten zu Lasten der Leihnehmer*innen"
-                                  : offerType === "sell"
-                                    ? "Kosten zu Lasten der Käufer*innen"
-                                    : "Kosten zu Lasten der Tauschpartner*innen"}
-                              </p>
+                            <div className="flex items-start gap-2">
+                              <Package className="w-4 h-4 text-gray-900 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">
+                                  Postversand (Kosten zu Lasten der{" "}
+                                  {offerType === "lend"
+                                    ? "Leihnehmer*innen"
+                                    : offerType === "sell"
+                                      ? "Käufer*innen"
+                                      : "Tauschpartner*innen"}
+                                  )
+                                </p>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -2007,26 +1986,20 @@ export function CreateMarketplaceOfferForm({
 
                     {/* Description */}
                     {description && (
-                      <div className="mt-6 bg-white rounded-xl p-4 border border-purple-100">
-                        <h4 className="font-bold text-purple-700 mb-2 flex items-center gap-2">
-                          <FileText className="w-4 h-4" />
-                          Beschreibung
-                        </h4>
+                      <div className="mt-6 bg-white rounded-xl p-4 border border-orange-100">
+                        <h4 className="font-bold text-orange-700 mb-2 flex items-center gap-2">Beschreibung</h4>
                         <p className="text-gray-700 text-sm leading-relaxed">{description}</p>
                       </div>
                     )}
 
                     {/* Image Preview */}
                     {imagePreview && (
-                      <div className="mt-6 bg-white rounded-xl p-4 border border-purple-100">
-                        <h4 className="font-bold text-purple-700 mb-3 flex items-center gap-2">
-                          <ImageIcon className="w-4 h-4" />
-                          Bild
-                        </h4>
+                      <div className="mt-6 bg-white rounded-xl p-4 border border-orange-100">
+                        <h4 className="font-bold text-orange-700 mb-3 flex items-center gap-2">Bild</h4>
                         <img
                           src={imagePreview || "/placeholder.svg"}
                           alt="Vorschau"
-                          className="w-48 h-48 object-cover rounded-xl border border-purple-200"
+                          className="w-48 h-48 object-cover rounded-xl border border-orange-200"
                         />
                       </div>
                     )}
