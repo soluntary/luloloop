@@ -24,7 +24,7 @@ import {
   Dices,
   UserCheck,
   Spade,
-  CalendarPlus2Icon,CalendarPlus2Icon,CalendarSearch as CalendarSync,
+  CalendarPlus2Icon,CalendarSearch as CalendarSync,
   ChevronDown,
   UserRoundCheck,
   UserRoundCog,
