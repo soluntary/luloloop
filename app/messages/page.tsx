@@ -155,6 +155,18 @@ function MessagesContent() {
     }
   }
 
+  const getConversationTitle = (gameTitle: string, offerType: string) => {
+    switch (offerType) {
+      case "event_inquiry":
+        return `Event • ${gameTitle}`
+      case "group_inquiry":
+        return `Spielgruppe • ${gameTitle}`
+      default:
+        // For marketplace messages: "Spielname • Verleihen/Verkaufen/etc."
+        return `${gameTitle} • ${getOfferTypeText(offerType)}`
+    }
+  }
+
   const handleSendMessage = async () => {
     if (newMessage.trim() && selectedConversation) {
       try {
@@ -303,7 +315,7 @@ function MessagesContent() {
                             </div>
                             <div className="flex items-center space-x-2 mb-1">
                               <p className="text-xs text-gray-600 font-medium truncate">
-                                {data.gameTitle} • {getOfferTypeText(latestMessage.offer_type)}
+                                {getConversationTitle(data.gameTitle, latestMessage.offer_type)}
                               </p>
                             </div>
                             <p className="text-xs text-gray-500 font-body truncate">
@@ -352,7 +364,7 @@ function MessagesContent() {
                                   {conversationData?.partnerName}
                                 </h2>
                                 <p className="text-xs md:text-sm text-gray-600 font-body">
-                                  {conversationData?.gameTitle} • {getOfferTypeText(conversationData?.offerType)}
+                                  {getConversationTitle(conversationData?.gameTitle, conversationData?.offerType)}
                                 </p>
                               </div>
                             </>
@@ -402,7 +414,7 @@ function MessagesContent() {
                             >
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs font-medium text-gray-600">
-                                  {message.game_title} • {getOfferTypeText(message.offer_type)}
+                                  {getConversationTitle(message.game_title, message.offer_type)}
                                 </span>
                                 <span className={`text-xs ${isFromCurrentUser ? "text-gray-500" : "text-gray-500"}`}>
                                   {formatTime(message.created_at)}

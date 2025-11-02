@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, X, Upload, ImageIcon, AlertCircle } from "lucide-react"
+import { Search, X, AlertCircle } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
@@ -142,13 +142,17 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
 
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-sm font-semibold text-gray-700 mb-2 block">Titel der Suchanzeige *</Label>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="text-sm font-semibold text-gray-700">Titel der Suchanzeige *</Label>
+                      <span className="text-sm text-gray-500">{title.length}/60</span>
+                    </div>
                     <Input
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="z.B. Suche Catan Erweiterung"
                       className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors"
                       required
+                      maxLength={60}
                     />
                     {errors.title && (
                       <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
@@ -193,60 +197,17 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
               </div>
 
               <div className="bg-gradient-to-br from-white rounded-2xl p-6 border border-orange-200 shadow-sm">
-                <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">Bild (optional)</h3>
-
-                <div className="space-y-3">
-                  {imagePreview ? (
-                    <div className="relative">
-                      <img
-                        src={imagePreview || "/placeholder.svg"}
-                        alt="Vorschau"
-                        className="w-full h-48 object-cover rounded-xl border-2 border-orange-200 shadow-sm"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={removeImage}
-                        className="absolute top-3 right-3 bg-white/95 hover:bg-white border-2 border-red-300 text-red-600 hover:text-red-700 rounded-lg shadow-md"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="border-2 border-dashed border-orange-300 rounded-xl p-8 text-center bg-white/70 hover:border-orange-400 transition-all duration-300">
-                      <ImageIcon className="w-12 h-12 text-orange-400 mx-auto mb-3" />
-                      <p className="text-orange-600 font-medium mb-4">Lade ein Bild hoch</p>
-                      <label className="cursor-pointer">
-                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white transition-all duration-200 rounded-xl px-6 py-2 font-medium bg-transparent"
-                          asChild
-                        >
-                          <span>
-                            <Upload className="w-4 h-4 mr-2" />
-                            Bild auswählen
-                          </span>
-                        </Button>
-                      </label>
-                    </div>
-                  )}
+                <div className="flex items-center justify-between mb-4">
+                  <Label className="text-lg font-bold text-orange-800">Beschreibung (optional)</Label>
+                  <span className="text-sm text-gray-500">{description.replace(/<[^>]*>/g, "").length}/5000</span>
                 </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 border border-orange-100 shadow-sm">
-                <Label className="text-xl font-bold text-orange-800 mb-4 flex items-center gap-3">
-                  Beschreibung (optional)
-                </Label>
                 <RichTextEditor
                   value={description}
                   onChange={setDescription}
                   placeholder="Beschreibe genauer, was du suchst..."
                   className="border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white"
                   rows={4}
-                  maxLength={2000}
+                  maxLength={5000}
                 />
               </div>
 

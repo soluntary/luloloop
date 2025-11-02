@@ -23,8 +23,10 @@ import {
   UserPlus,
   Bell,
   Star,
+  CalendarDays,
   Search,
   MessageSquare,
+  MessagesSquare,
   Calendar,
   MapPin,
 } from "lucide-react"
@@ -501,7 +503,7 @@ export default function HomePage() {
               icon: Store,
               title: "Spielemarkt",
               description:
-                "Dein Marktplatz für Brettspiele! Entdecke tolle Angebote von anderen Mitgliedern und finde tolle Spiele zum Mieten, Kaufen oder Tauschen.",
+                "Entdecke tolle Angebote von anderen Mitgliedern und finde tolle (Brett-)Spiele zum Mieten, Kaufen oder Tauschen.",
               link: "/marketplace",
               linkText: "Zum Spielemarkt",
               color: "orange",
@@ -541,17 +543,17 @@ export default function HomePage() {
               icon: Users,
               title: "Spielgruppen",
               description:
-                "Tritt Spielgruppen bei oder gründe deine eigene Community. Finde Gleichgesinnte für spontane oder regelmässige Spielrunden und baue dein Spielnetzwerk auf.",
+                "Tritt Spielgruppen bei oder gründe deine eigene Community. Verbinde dich mit anderen Spiel-Enthusiasten und schliesse neue Freundschaften!",
               link: "/ludo-gruppen",
               linkText: "Zu Spielgruppen",
               color: "purple",
               rotation: "-rotate-1",
             },
             {
-              icon: Calendar,
+              icon: CalendarDays,
               title: "Events & Spielrunden",
               description:
-                "Organisiere deine nächste Spielrunde im Handumdrehen. Plane Events, lade Mitspieler ein und verwalte Teilnehmer - alles an einem Ort.",
+                "Organisiere deine nächste Spielrunde im Handumdrehen und finde Gleichgesinnte für spontane oder regelmässige Spielrunden.",
               link: "/ludo-events",
               linkText: "Events entdecken",
               color: "teal",
@@ -561,14 +563,14 @@ export default function HomePage() {
               icon: UserPlus,
               title: "Freunde finden",
               description:
-                "Vernetze dich mit anderen Brettspiel-Fans, baue dein Freundesnetzwerk auf und bleibe mit deinen Spielpartnern in Kontakt.",
+                "Vernetze dich mit anderen Brettspiel-Fans und baue dein Freundesnetzwerk auf.",
               link: "/ludo-mitglieder",
               linkText: "Mitglieder entdecken",
               color: "pink",
               rotation: "rotate-1",
             },
             {
-              icon: MessageSquare,
+              icon: MessagesSquare,
               title: "Community-Forum",
               description:
                 "Diskutiere mit der Community. Stelle Fragen, teile Erfahrungen und lerne von anderen Spielern.",

@@ -52,7 +52,9 @@ export function AddressAutocomplete({
     const timeoutId = setTimeout(async () => {
       setIsLoading(true)
       try {
+        console.log("[v0] Fetching suggestions for input:", value)
         const addressSuggestions = await getAddressSuggestions(value)
+        console.log("[v0] Received", addressSuggestions.length, "suggestions:", addressSuggestions)
         setSuggestions(addressSuggestions)
         setShowSuggestions(addressSuggestions.length > 0 && isFocused)
         setSelectedIndex(-1)
@@ -142,27 +144,35 @@ export function AddressAutocomplete({
           ref={suggestionsRef}
           className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
         >
-          {suggestions.map((suggestion, index) => (
-            <div
-              key={suggestion.place_id}
-              className={`px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${
-                index === selectedIndex ? "bg-indigo-50 border-indigo-200" : ""
-              }`}
-              onClick={() => handleSuggestionClick(suggestion)}
-            >
-              <div className="flex items-start space-x-3">
-                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {suggestion.structured_formatting?.main_text || suggestion.description.split(",")[0]}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {suggestion.structured_formatting?.secondary_text || suggestion.description}
-                  </p>
+          {suggestions.map((suggestion, index) => {
+            console.log("[v0] Displaying suggestion:", {
+              main_text: suggestion.structured_formatting?.main_text,
+              secondary_text: suggestion.structured_formatting?.secondary_text,
+              description: suggestion.description,
+            })
+
+            return (
+              <div
+                key={suggestion.place_id}
+                className={`px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${
+                  index === selectedIndex ? "bg-indigo-50 border-indigo-200" : ""
+                }`}
+                onClick={() => handleSuggestionClick(suggestion)}
+              >
+                <div className="flex items-start space-x-3">
+                  <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {suggestion.structured_formatting?.main_text || suggestion.description.split(",")[0]}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {suggestion.structured_formatting?.secondary_text || suggestion.description}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

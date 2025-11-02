@@ -54,6 +54,13 @@ interface TimeSlot {
   timeTo: string
 }
 
+const parseLocalDate = (dateString: string): Date => {
+  // Parse date string as local date, not UTC
+  // "2025-02-30" should be February 30 in local timezone, not UTC
+  const [year, month, day] = dateString.split("-").map(Number)
+  return new Date(year, month - 1, day, 0, 0, 0, 0)
+}
+
 const generateSeriesDates = (
   startDate: string,
   frequency: string,
@@ -74,11 +81,15 @@ const generateSeriesDates = (
   const start = new Date(startDate)
   let current = new Date(start)
 
-  // Normalize end date to midnight for proper comparison
-  const endDate = seriesEndDate ? new Date(seriesEndDate) : null
-  if (endDate) {
-    endDate.setHours(0, 0, 0, 0)
+  // Helper function to parse date string as local date
+  const parseLocalDate = (dateString: string): Date => {
+    const [year, month, day] = dateString.split("-").map(Number)
+    return new Date(year, month - 1, day, 0, 0, 0, 0)
   }
+
+  // Normalize end date to midnight for proper comparison
+  const endDate = seriesEndDate ? parseLocalDate(seriesEndDate) : null
+  // </CHANGE>
 
   const maxCount = seriesEndCount ? Number.parseInt(seriesEndCount) : 100
 
@@ -140,18 +151,51 @@ const generateSeriesDates = (
     }
 
     if (frequency === "monatlich") {
-      // First, increment to next month
+      console.log("[v0] Monthly calculation - Before:", {
+        currentDate: currentDate.toISOString(),
+        currentDay: currentDate.getDate(),
+        currentMonth: currentDate.getMonth(),
+        timezoneOffset: currentDate.getTimezoneOffset(),
+      })
+
+      // Set to day 1 first to avoid month overflow issues when current day > days in next month
+      next.setDate(1)
+      console.log("[v0] After setDate(1):", {
+        date: next.toISOString(),
+        day: next.getDate(),
+        month: next.getMonth(),
+      })
+
+      // Now increment to next month
       next.setMonth(next.getMonth() + 1)
+      console.log("[v0] After setMonth(+1):", {
+        date: next.toISOString(),
+        day: next.getDate(),
+        month: next.getMonth(),
+      })
 
       if (monthlyType === "day" && monthlyDay) {
         const dayOfMonth = Number.parseInt(monthlyDay)
         if (dayOfMonth) {
+          // Set the desired day of month
           next.setDate(dayOfMonth)
+          console.log("[v0] After setDate(dayOfMonth):", {
+            date: next.toISOString(),
+            day: next.getDate(),
+            month: next.getMonth(),
+            requestedDay: dayOfMonth,
+          })
+
           // Check if the date rolled over (e.g., Feb 31 -> Mar 3)
           if (next.getDate() !== dayOfMonth) {
             // Invalid day for this month, use last day of month
-            next.setMonth(next.getMonth())
+            console.log("[v0] Date rolled over, adjusting to last day of month")
             next.setDate(0)
+            console.log("[v0] After setDate(0):", {
+              date: next.toISOString(),
+              day: next.getDate(),
+              month: next.getMonth(),
+            })
           }
         }
       } else if (monthlyType === "weekday" && monthlyWeekday && monthlyWeekdayPosition) {
@@ -193,6 +237,13 @@ const generateSeriesDates = (
           return foundDate
         }
       }
+
+      console.log("[v0] Monthly calculation - Final result:", {
+        date: next.toISOString(),
+        day: next.getDate(),
+        month: next.getMonth(),
+        localDateString: next.toLocaleDateString("de-DE"),
+      })
 
       return next
     }
@@ -844,9 +895,9 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
         console.log("[v0] Created event data:", JSON.stringify(result.data, null, 2))
 
         if (formData.visibility === "friends_only" && selectedFriends.length > 0) {
-          toast.success("Event erfolgreich erstellt und an die ausgewählten Freunde gesendet.")
+          toast.success("Viel Spass! Dein Event wurde erstellt und an die ausgewählten Freunde gesendet!")
         } else {
-          toast.success("Event erfolgreich erstellt.")
+          toast.success("Viel Spass! Dein Event wurde erstellt!")
         }
 
         console.log("[v0] Event created successfully, calling onSuccess callback")
@@ -1130,15 +1181,19 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
       {currentStep === 1 && (
         <div className="space-y-8">
           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-            <Label htmlFor="title" className="text-base font-semibold text-gray-900 mb-2 block">
-              Event-Titel *
-            </Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label htmlFor="title" className="text-base font-semibold text-gray-900">
+                Event-Titel *
+              </Label>
+              <span className="text-sm text-gray-500">{formData.title.length}/60</span>
+            </div>
             <Input
               id="title"
               placeholder="z.B. Gemütlicher CATAN Abend..."
               value={formData.title}
               onChange={(e) => handleInputChange("title", e.target.value)}
               className="text-lg h-12 border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+              maxLength={60}
             />
             {fieldErrors.title && (
               <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
@@ -1218,13 +1273,14 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             <Label htmlFor="description" className="text-base font-semibold text-gray-900 mb-2 block">
               Beschreibung
             </Label>
+            <div className="flex justify-end mb-2"></div>
             <RichTextEditor
               value={formData.description}
               onChange={(value) => handleInputChange("description", value)}
               placeholder="Beschreibe dein Event: was möchtest du veranstalten?"
               className="mt-1"
               rows={6}
-              maxLength={1000}
+              maxLength={5000}
             />
           </div>
         </div>
@@ -1766,7 +1822,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 {formData.frequency === "einmalig" ? (
                   <div className="flex justify-between items-center bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm">
                     <span className="font-semibold text-blue-800">
-                      {new Date(formData.eventDate).toLocaleDateString("de-DE", {
+                      {parseLocalDate(formData.eventDate).toLocaleDateString("de-DE", {
                         weekday: "long",
                         year: "numeric",
                         month: "long",
@@ -1782,7 +1838,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                     {formData.eventDate && (
                       <div className="flex justify-between items-center bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm">
                         <span className="font-semibold text-blue-800">
-                          {new Date(formData.eventDate).toLocaleDateString("de-DE", {
+                          {parseLocalDate(formData.eventDate).toLocaleDateString("de-DE", {
                             weekday: "long",
                             year: "numeric",
                             month: "long",
@@ -1802,7 +1858,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                           className="flex justify-between items-center bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm"
                         >
                           <span className="font-semibold text-blue-800">
-                            {new Date(date).toLocaleDateString("de-DE", {
+                            {parseLocalDate(date).toLocaleDateString("de-DE", {
                               weekday: "long",
                               year: "numeric",
                               month: "long",
@@ -1840,7 +1896,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                         className="flex justify-between items-center bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm"
                       >
                         <span className="font-semibold text-blue-800">
-                          {new Date(date).toLocaleDateString("de-DE", {
+                          {parseLocalDate(date).toLocaleDateString("de-DE", {
                             weekday: "long",
                             year: "numeric",
                             month: "long",
@@ -2140,7 +2196,6 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                               variant="outline"
                               className="h-14 justify-start text-left text-base border-2 border-pink-300 hover:bg-pink-50"
                             >
-                              <Gamepad2 className="w-5 h-5 mr-3 text-pink-600 flex-shrink-0" />
                               <span className="truncate font-medium text-pink-800">
                                 {friend.name}
                                 {friendGameRequests[friend.id]?.length > 0 && (
@@ -2163,7 +2218,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
           {formData.visibility !== "friends_only" && (
             <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
               <Label htmlFor="requiresApproval" className="text-base font-semibold text-gray-900 mb-3 block">
-                Teilnahmemodalitäten *
+                Teilnahmemodus *
               </Label>
               <Select
                 value={formData.requiresApproval ? "manual" : "automatic"}
@@ -2266,7 +2321,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
           )}
         </div>
       </div>
-      {/* Friend Selection Dialog */};
+      {/* Friend Selection Dialog */}
       <Dialog open={showFriendDialog} onOpenChange={setShowFriendDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
           <DialogHeader>

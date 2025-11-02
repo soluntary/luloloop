@@ -16,17 +16,21 @@ import { BroadcastMessageModal } from "@/components/broadcast-message-modal"
 import {
   Search,
   Plus,
-  Users,
   MapPin,
+  Users,
   UserPlus,
   MessageCircle,
+  Settings,
   Clock,
   CheckCircle,
-  Settings,
-  X,
   UserCog,
   Dices,
+  X,
+  BarChart3,
+  UserRoundMinus,
+  UserRoundCog,
   ImageIcon,
+  UserX,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
@@ -48,6 +52,11 @@ import { DistanceBadge } from "@/components/distance-badge"
 import { LocationMap } from "@/components/location-map"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { ExpandableDescription } from "@/components/expandable-description"
+
+// Added for polls
+import { CreatePollDialog } from "@/components/create-poll-dialog"
+import { PollCard } from "@/components/poll-card"
+import { getCommunityPollsAction, type Poll } from "@/app/actions/community-polls"
 
 interface LudoGroup {
   id: string
@@ -149,6 +158,12 @@ export default function LudoGruppenPage() {
   const [showLocationResults, setShowLocationResults] = useState(false)
   const { searchByAddress, searchCommunitiesNearby } = useLocationSearch() // Ensure searchCommunitiesNearby is destructured
 
+  const [isCreatePollDialogOpen, setIsCreatePollDialogOpen] = useState(false)
+  const [selectedGroupForPolls, setSelectedGroupForPolls] = useState<LudoGroup | null>(null) // Corrected state variable name
+  const [isPollsDialogOpen, setIsPollsDialogOpen] = useState(false)
+  const [groupPolls, setGroupPolls] = useState<Poll[]>([])
+  const [loadingPolls, setLoadingPolls] = useState(false)
+
   const supabase = createClient()
 
   useEffect(() => {
@@ -193,7 +208,6 @@ export default function LudoGruppenPage() {
           ...group,
           member_count: group.community_members?.[0]?.count || 0,
         })) || []
-      // </CHANGE>
 
       setLudoGroups(groupsWithCounts)
     } catch (error) {
@@ -338,7 +352,22 @@ export default function LudoGruppenPage() {
         },
       ])
 
-      toast.success("Spielgruppen erfolgreich erstellt!")
+      const userName = user.user_metadata?.name || user.user_metadata?.preferred_username || "Ein Mitglied"
+
+      await supabase.from("notifications").insert({
+        user_id: data.creator_id,
+        type: "group_created",
+        title: "Neue Spielgruppe erstellt",
+        message: `Deine Spielgruppe "${data.name}" wurde erfolgreich erstellt!`,
+        data: {
+          group_id: data.id,
+          group_name: data.name,
+        },
+        read: false,
+        created_at: new Date().toISOString(),
+      })
+
+      toast.success("Viel Spass! Deine Spielgruppe wurde erstellt!")
       setIsCreateDialogOpen(false)
       setNewGroup({
         name: "",
@@ -405,7 +434,7 @@ export default function LudoGruppenPage() {
         setUserMemberships((prev) => [...prev, group.id])
 
         const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
-        const userName = userData?.name || userData?.username || "Ein Mitglied"
+        const userName = userData?.username || userData?.name || "Ein Mitglied"
 
         await supabase.from("notifications").insert({
           user_id: group.creator_id,
@@ -421,7 +450,6 @@ export default function LudoGruppenPage() {
           read: false,
           created_at: new Date().toISOString(),
         })
-        // </CHANGE>
 
         loadLudoGroups()
       } else {
@@ -462,7 +490,7 @@ export default function LudoGruppenPage() {
         toast.success("Beitrittsanfrage gesendet! Der Spielgruppenersteller wird deine Anfrage prüfen.")
 
         const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
-        const userName = userData?.name || userData?.username || "Ein Mitglied"
+        const userName = userData?.username || userData?.name || "Ein Mitglied"
 
         await supabase.from("notifications").insert({
           user_id: group.creator_id,
@@ -478,7 +506,6 @@ export default function LudoGruppenPage() {
           read: false,
           created_at: new Date().toISOString(),
         })
-        // </CHANGE>
 
         loadJoinRequests()
       }
@@ -512,7 +539,7 @@ export default function LudoGruppenPage() {
       setUserMemberships((prev) => prev.filter((id) => id !== group.id))
 
       const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
-      const userName = userData?.name || userData?.username || "Ein Mitglied"
+      const userName = userData?.username || userData?.name || "Ein Mitglied"
 
       await supabase.from("notifications").insert({
         user_id: group.creator_id,
@@ -528,7 +555,6 @@ export default function LudoGruppenPage() {
         read: false,
         created_at: new Date().toISOString(),
       })
-      // </CHANGE>
 
       loadLudoGroups()
     } catch (error) {
@@ -597,7 +623,7 @@ export default function LudoGruppenPage() {
           .single()
 
         if (requestDetails && requestDetails.users && requestDetails.communities) {
-          const userName = requestDetails.users.name || requestDetails.users.username || "Ein Mitglied"
+          const userName = requestDetails.users.username || requestDetails.users.name || "Ein Mitglied"
           const groupName = requestDetails.communities.name || "unbekannte Gruppe"
 
           await supabase.from("notifications").insert({
@@ -628,7 +654,7 @@ export default function LudoGruppenPage() {
           .single()
 
         if (requestDetails && requestDetails.users && requestDetails.communities) {
-          const userName = requestDetails.users.name || requestDetails.users.username || "Ein Mitglied"
+          const userName = requestDetails.users.username || requestDetails.users.name || "Ein Mitglied"
           const groupName = requestDetails.communities.name || "unbekannte Gruppe"
 
           await supabase.from("notifications").insert({
@@ -671,14 +697,12 @@ export default function LudoGruppenPage() {
     // Check if user is an admin of this group
     const userMembership = groupMembers.find((m) => m.user_id === user.id)
     return userMembership?.role === "admin"
-    // </CHANGE>
   }
 
   const isAdminOrCreator = (group: LudoGroup) => {
     if (!user) return false
     return group.creator_id === user.id || canManageMembers(group)
   }
-  // </CHANGE>
 
   const handleLocationSearch = async (address: string, radius: number) => {
     try {
@@ -782,12 +806,12 @@ export default function LudoGruppenPage() {
     }
 
     if (group.creator_id === user?.id) {
-      return { text: "Deine Spielgruppe", disabled: true, variant: "secondary" as const }
+      return { text: "Deine Spielgruppe", disabled: true, variant: "secondary" as const, icon: UserRoundCog }
     }
 
     if (userMemberships.includes(group.id)) {
       console.log("[v0] User is member - showing 'Verlassen' button")
-      return { text: "Verlassen", disabled: false, variant: "outline" as const, action: "leave" }
+      return { text: "Verlassen", disabled: false, variant: "outline" as const, action: "leave", icon: UserRoundMinus }
     }
 
     if (group.max_members !== null && group.member_count >= group.max_members) {
@@ -803,7 +827,7 @@ export default function LudoGruppenPage() {
         case "approved":
           return { text: "Genehmigt", disabled: true, variant: "default" as const, icon: CheckCircle }
         case "rejected":
-          return { text: "Abgelehnt", disabled: true, variant: "destructive" as const }
+          return { text: "Abgelehnt", disabled: true, variant: "destructive" as const, icon: UserX }
       }
     }
 
@@ -942,18 +966,44 @@ export default function LudoGruppenPage() {
     console.log("[v0] Modal state should now be open")
   }
 
+  const loadGroupPolls = async (groupId: string) => {
+    setLoadingPolls(true)
+    try {
+      const result = await getCommunityPollsAction(groupId)
+
+      if (result.error) {
+        console.error("Error loading polls:", result.error)
+        toast.error(result.error)
+        return
+      }
+
+      setGroupPolls(result.data || [])
+    } catch (error) {
+      console.error("Error loading polls:", error)
+      toast.error("Fehler beim Laden der Abstimmungen")
+    } finally {
+      setLoadingPolls(false)
+    }
+  }
+
+  const showGroupPolls = (group: LudoGroup) => {
+    setSelectedGroupForPolls(group) // Use the corrected state setter
+    setIsPollsDialogOpen(true)
+    loadGroupPolls(group.id)
+  }
+
+  const openCreatePollDialog = (group: LudoGroup) => {
+    setSelectedGroupForPolls(group) // Use the corrected state setter
+    setIsCreatePollDialogOpen(true)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-teal-50">
       <Navigation currentPage="ludo-gruppen" />
 
       <div className="container mx-auto px-4 py-8">
-        {/* START CHANGE */}
         <div className="text-center mb-8">
           <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Spielgruppen</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-6">
-            Finde deine perfekte Spielgruppe oder gründe deine eigene! Verbinde dich mit anderen Spiel-Enthusiasten und
-            schliesse neue Freundschaften!
-          </p>
           {user && (
             <Button
               onClick={() => {
@@ -971,12 +1021,9 @@ export default function LudoGruppenPage() {
           )}
           {!user && console.log("[v0] Create button not shown - user not logged in")}
         </div>
-        {/* END CHANGE */}
 
-        {/* Updated filter section with professional, unified design */}
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg">
           <div className="space-y-6">
-            {/* Search Bar */}
             <div className="flex gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -989,7 +1036,6 @@ export default function LudoGruppenPage() {
               </div>
             </div>
 
-            {/* Location Search */}
             <div className="space-y-3">
               <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
             </div>
@@ -1016,7 +1062,6 @@ export default function LudoGruppenPage() {
               </div>
             )}
 
-            {/* Filters */}
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
@@ -1080,7 +1125,6 @@ export default function LudoGruppenPage() {
             </div>
           </div>
         </div>
-        {/* END CHANGE */}
 
         <div className="flex gap-8">
           <div className="flex-1">
@@ -1183,7 +1227,6 @@ export default function LudoGruppenPage() {
                               >
                                 {group.location}
                               </a>
-                              {/* </CHANGE> */}
                             </div>
                           )}
                         </div>
@@ -1289,6 +1332,21 @@ export default function LudoGruppenPage() {
                               </Button>
                             </>
                           )}
+
+                          {user && userMemberships.includes(group.id) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="px-3 bg-transparent font-handwritten"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                showGroupPolls(group)
+                              }}
+                              title="Abstimmungen anzeigen"
+                            >
+                              <BarChart3 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -1305,20 +1363,15 @@ export default function LudoGruppenPage() {
           </div>
         </div>
 
-        {/* START CHANGE */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-handwritten text-3xl text-gray-800 mb-2">
                 Neue Spielgruppe erstellen
               </DialogTitle>
-              <DialogDescription className="text-base text-gray-600">
-                Erstelle eine neue Spielgruppe und lade andere Spieler ein
-              </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-6 mt-6">
-              {/* Basic Information Section - Now includes all basic info */}
               <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-6 border-2 border-teal-200">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 text-white flex items-center justify-center text-sm font-bold">
@@ -1329,22 +1382,29 @@ export default function LudoGruppenPage() {
 
                 <div className="space-y-5">
                   <div>
-                    <Label htmlFor="group-name" className="text-base font-semibold text-gray-900 mb-2 block">
-                      Name der Spielgruppe *
-                    </Label>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label htmlFor="group-name" className="text-base font-semibold text-gray-900">
+                        Name der Spielgruppe *
+                      </Label>
+                      <span className="text-sm text-gray-500">{newGroup.name.length}/60</span>
+                    </div>
                     <Input
                       id="group-name"
                       value={newGroup.name}
                       onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
                       placeholder="z.B. CATAN-Freunde Zürich"
                       className="h-12 text-base border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                      maxLength={60}
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="group-description" className="text-base font-semibold text-gray-900 mb-2 block">
-                      Beschreibung
-                    </Label>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label htmlFor="group-description" className="text-base font-semibold text-gray-900">
+                        Beschreibung
+                      </Label>
+                      <span className="text-sm text-gray-500">{newGroup.description.length}/5000</span>
+                    </div>
                     <textarea
                       id="group-description"
                       value={newGroup.description}
@@ -1352,6 +1412,7 @@ export default function LudoGruppenPage() {
                       placeholder="Beschreibe deine Spielgruppe..."
                       className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none text-base"
                       rows={4}
+                      maxLength={5000}
                     />
                   </div>
 
@@ -1379,7 +1440,7 @@ export default function LudoGruppenPage() {
                       htmlFor="group-image"
                       className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2"
                     >
-                      Gruppenbild (optional)
+                      Spielgruppenbild (optional)
                     </Label>
 
                     {!imagePreview ? (
@@ -1434,9 +1495,9 @@ export default function LudoGruppenPage() {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-xl p-6 border-2 border-orange-200">
+              <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-6 border-2 border-teal-200">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-pink-500 text-white flex items-center justify-center text-sm font-bold">
+                  <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 text-white flex items-center justify-center text-sm font-bold">
                     2
                   </span>
                   Beitrittsmodus
@@ -1463,7 +1524,7 @@ export default function LudoGruppenPage() {
                     </Select>
                   </div>
 
-                  <div className="bg-white/60 rounded-lg p-4 border border-orange-200">
+                  <div className="bg-white/60 rounded-lg p-4 border border-green-200">
                     {newGroup.approval_mode === "automatic" ? (
                       <div className="space-y-2">
                         <div className="flex items-start gap-2">
@@ -1495,7 +1556,6 @@ export default function LudoGruppenPage() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-4 pt-6 border-t-2 border-gray-200">
                 <Button
                   variant="outline"
@@ -1537,12 +1597,11 @@ export default function LudoGruppenPage() {
             </div>
           </DialogContent>
         </Dialog>
-        {/* END CHANGE */}
 
         <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
           <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              {user && selectedGroup && canManageMembers(selectedGroup) && (
+              {user && selectedGroup && selectedGroup.creator_id === user.id && (
                 <div className="flex gap-2 justify-end mb-4">
                   <Button
                     size="sm"
@@ -1554,6 +1613,18 @@ export default function LudoGruppenPage() {
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
                     Einladen
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedGroupForPolls(selectedGroup)
+                      setIsCreatePollDialogOpen(true)
+                    }}
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Abstimmung
                   </Button>
                   <Button
                     size="sm"
@@ -1619,12 +1690,10 @@ export default function LudoGruppenPage() {
                     <div className="col-span-2 flex items-center gap-2 text-sm">
                       <MapPin className="h-4 w-4 text-teal-600" />
                       <span className="text-gray-600">{selectedGroup.location}</span>
-                      {/* </CHANGE> */}
                     </div>
                   )}
                 </div>
 
-                {/* START CHANGE */}
                 <div>
                   {selectedGroup.location ? (
                     <div className="bg-white border border-slate-200 rounded-2xl p-6">
@@ -1638,7 +1707,6 @@ export default function LudoGruppenPage() {
                     </div>
                   )}
                 </div>
-                {/* END CHANGE */}
 
                 <div className="flex gap-3 pt-4">
                   {(() => {
@@ -1788,14 +1856,12 @@ export default function LudoGruppenPage() {
                           </div>
                         </div>
 
-                        {/* Only show management options if current user is creator */}
                         {user &&
                           selectedGroupForMembers &&
                           canManageMembers(selectedGroupForMembers) &&
                           member.user_id !== user.id &&
                           selectedGroupForMembers.creator_id !== member.user_id && (
                             <div className="flex gap-2">
-                              {/* Remove member button - admins can remove regular members, only creator can remove admins */}
                               {(selectedGroupForMembers.creator_id === user.id || member.role !== "admin") && (
                                 <Button
                                   size="sm"
@@ -1814,7 +1880,6 @@ export default function LudoGruppenPage() {
                               )}
                             </div>
                           )}
-                        {/* </CHANGE> */}
                       </div>
                     </Card>
                   ))}
@@ -1823,6 +1888,98 @@ export default function LudoGruppenPage() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={isPollsDialogOpen} onOpenChange={setIsPollsDialogOpen}>
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
+                    <BarChart3 className="h-6 w-6 text-teal-600" />
+                    Abstimmungen
+                  </DialogTitle>
+                  <DialogDescription>{selectedGroupForPolls?.name} - Abstimmungen und Umfragen</DialogDescription>
+                </div>
+                {user && selectedGroupForPolls && selectedGroupForPolls.creator_id === user.id && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setIsPollsDialogOpen(false)
+                      openCreatePollDialog(selectedGroupForPolls)
+                    }}
+                    className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600"
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Neue Abstimmung
+                  </Button>
+                )}
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-4 mt-4">
+              {loadingPolls ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
+                  <p className="text-gray-500">Lade Abstimmungen...</p>
+                </div>
+              ) : groupPolls.length === 0 ? (
+                <div className="text-center py-12">
+                  <BarChart3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-600 mb-2">Keine Abstimmungen</h3>
+                  <p className="text-gray-500 mb-4">
+                    {user && selectedGroupForPolls && selectedGroupForPolls.creator_id === user.id
+                      ? "Erstelle die erste Abstimmung für diese Spielgruppe!"
+                      : "Diese Spielgruppe hat noch keine Abstimmungen."}
+                  </p>
+                  {user && selectedGroupForPolls && selectedGroupForPolls.creator_id === user.id && (
+                    <Button
+                      onClick={() => {
+                        setIsPollsDialogOpen(false)
+                        openCreatePollDialog(selectedGroupForPolls)
+                      }}
+                      className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600"
+                    >
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Erste Abstimmung erstellen
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {groupPolls.map((poll) => (
+                    <PollCard
+                      key={poll.id}
+                      poll={poll}
+                      currentUserId={user?.id || ""}
+                      isCreator={selectedGroupForPolls?.creator_id === user?.id}
+                      onPollUpdated={() => {
+                        if (selectedGroupForPolls) {
+                          loadGroupPolls(selectedGroupForPolls.id)
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <CreatePollDialog
+          isOpen={isCreatePollDialogOpen}
+          onClose={() => {
+            setIsCreatePollDialogOpen(false)
+            setSelectedGroupForPolls(null) // Reset the selected group for polls
+          }}
+          communityId={selectedGroupForPolls?.id || ""}
+          communityName={selectedGroupForPolls?.name || ""}
+          onPollCreated={() => {
+            if (selectedGroupForPolls) {
+              loadGroupPolls(selectedGroupForPolls.id)
+              setIsPollsDialogOpen(true)
+            }
+          }}
+        />
 
         <MessageComposerModal
           isOpen={isMessageModalOpen}

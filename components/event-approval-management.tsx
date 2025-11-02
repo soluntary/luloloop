@@ -188,7 +188,7 @@ export default function EventApprovalManagement({
                                 </Avatar>
                                 <div className="flex-1">
                                   <UserLink userId={participant.users.id} className="font-medium text-gray-800 text-sm">
-                                    {participant.users.username || participant.users.name || "Unbekannter Benutzer"}
+                                    {participant.users.username || "Unbekannter Benutzer"}
                                   </UserLink>
                                   <div className="text-xs text-gray-600">
                                     {participant.approved_at
@@ -256,6 +256,7 @@ export default function EventApprovalManagement({
                                       <AvatarImage
                                         src={
                                           getAvatar(participant.users.id, participant.users.username) ||
+                                          "/placeholder.svg" ||
                                           "/placeholder.svg"
                                         }
                                       />
@@ -266,9 +267,7 @@ export default function EventApprovalManagement({
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2 mb-1">
                                         <UserLink userId={participant.users.id} className="font-medium text-gray-800">
-                                          {participant.users.username ||
-                                            participant.users.name ||
-                                            "Unbekannter Benutzer"}
+                                          {participant.users.username || "Unbekannter Benutzer"}
                                         </UserLink>
                                         {getStatusBadge(participant.status)}
                                       </div>
@@ -304,10 +303,9 @@ export default function EventApprovalManagement({
                                     </Button>
                                     <Button
                                       size="sm"
-                                      variant="outline"
                                       disabled={processingId === participant.id}
                                       onClick={() => handleApproval(participant.id, "rejected")}
-                                      className="border-red-200 text-red-600 hover:bg-red-50"
+                                      className="bg-red-600 hover:bg-red-700 text-white"
                                     >
                                       <X className="h-4 w-4 mr-1" />
                                       Ablehnen
@@ -338,6 +336,7 @@ export default function EventApprovalManagement({
                                     <AvatarImage
                                       src={
                                         getAvatar(participant.users.id, participant.users.username) ||
+                                        "/placeholder.svg" ||
                                         "/placeholder.svg"
                                       }
                                     />
@@ -350,7 +349,7 @@ export default function EventApprovalManagement({
                                       userId={participant.users.id}
                                       className="font-medium text-gray-800 text-sm"
                                     >
-                                      {participant.users.username || participant.users.name || "Unbekannter Benutzer"}
+                                      {participant.users.username || "Unbekannter Benutzer"}
                                     </UserLink>
                                     <div className="text-xs text-gray-600">
                                       {participant.approved_at
@@ -398,6 +397,7 @@ export default function EventApprovalManagement({
                                     <AvatarImage
                                       src={
                                         getAvatar(participant.users.id, participant.users.username) ||
+                                        "/placeholder.svg" ||
                                         "/placeholder.svg"
                                       }
                                     />
@@ -410,7 +410,7 @@ export default function EventApprovalManagement({
                                       userId={participant.users.id}
                                       className="font-medium text-gray-800 text-sm"
                                     >
-                                      {participant.users.username || participant.users.name || "Unbekannter Benutzer"}
+                                      {participant.users.username || "Unbekannter Benutzer"}
                                     </UserLink>
                                     <div className="text-xs text-gray-600">
                                       {participant.approved_at
@@ -487,7 +487,7 @@ export default function EventApprovalManagement({
                 <MessageSquare className="h-5 w-5" />
                 Nachricht von
                 <UserLink userId={selectedParticipant.users.id}>
-                  {selectedParticipant.users.username || selectedParticipant.users.name || "Unbekannter Benutzer"}
+                  {selectedParticipant.users.username || "Unbekannter Benutzer"}
                 </UserLink>
               </DialogTitle>
             </DialogHeader>
@@ -503,7 +503,7 @@ export default function EventApprovalManagement({
                 </Avatar>
                 <div>
                   <UserLink userId={selectedParticipant.users.id} className="font-medium text-gray-800">
-                    {selectedParticipant.users.username || selectedParticipant.users.name || "Unbekannter Benutzer"}
+                    {selectedParticipant.users.username || "Unbekannter Benutzer"}
                   </UserLink>
                   <div className="text-sm text-gray-600">{formatDate(selectedParticipant.requested_at)}</div>
                 </div>

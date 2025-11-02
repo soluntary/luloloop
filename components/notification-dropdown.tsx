@@ -9,12 +9,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { Bell, MessageCircle, Users, MessageSquare, BookOpen, Calendar } from "lucide-react"
+import { Bell, MessageCircle, Users, MessageSquare, BookOpen, Calendar, BarChart3 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import { formatDistanceToNow } from "date-fns"
 import { de } from "date-fns/locale"
 import EventInvitationsDialog from "./event-invitations-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 interface Notification {
   id: string
@@ -26,6 +27,7 @@ interface Notification {
     | "game_shelf_request"
     | "message"
     | "event_invitation"
+    | "poll_created"
   title: string
   message: string
   created_at: string
@@ -43,14 +45,91 @@ export default function NotificationDropdown({ className }: NotificationDropdown
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [showEventInvitations, setShowEventInvitations] = useState(false)
+  const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     if (user) {
       loadNotifications()
-      const interval = setInterval(loadNotifications, 30000)
-      return () => clearInterval(interval)
+      setupRealtimeSubscription()
     }
   }, [user])
+
+  const setupRealtimeSubscription = async () => {
+    if (!user) return
+
+    const supabase = await createClient()
+
+    // Subscribe to INSERT events on notifications table for this user
+    const channel = supabase
+      .channel(`notifications:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log("[v0] New notification received:", payload)
+          const newNotification = payload.new as Notification
+
+          // Only add if it's unread
+          if (!newNotification.read) {
+            setNotifications((prev) => [newNotification, ...prev])
+            setUnreadCount((prev) => prev + 1)
+
+            // Show toast notification
+            toast({
+              title: newNotification.title,
+              description: newNotification.message,
+              duration: 5000,
+            })
+
+            // Play notification sound (optional)
+            playNotificationSound()
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log("[v0] Notification updated:", payload)
+          const updatedNotification = payload.new as Notification
+
+          // If notification was marked as read, remove it from the list
+          if (updatedNotification.read) {
+            setNotifications((prev) => prev.filter((n) => n.id !== updatedNotification.id))
+            setUnreadCount((prev) => Math.max(0, prev - 1))
+          }
+        },
+      )
+      .subscribe()
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }
+
+  const playNotificationSound = () => {
+    try {
+      const audio = new Audio("/notification.mp3")
+      audio.volume = 0.5
+      audio.play().catch((error) => {
+        console.log("[v0] Could not play notification sound:", error)
+      })
+    } catch (error) {
+      console.log("[v0] Error playing notification sound:", error)
+    }
+  }
 
   const loadNotifications = async () => {
     if (!user) return
@@ -134,6 +213,8 @@ export default function NotificationDropdown({ className }: NotificationDropdown
         return <MessageCircle className="w-4 h-4 text-orange-500" />
       case "event_invitation":
         return <Calendar className="w-4 h-4 text-teal-500" />
+      case "poll_created":
+        return <BarChart3 className="w-4 h-4 text-cyan-500" />
       default:
         return <Bell className="w-4 h-4 text-gray-500" />
     }
@@ -161,7 +242,15 @@ export default function NotificationDropdown({ className }: NotificationDropdown
         window.location.href = "/messages"
         break
       case "event_invitation":
+        setHighlightedEventId(notification.data?.event_id || null)
         setShowEventInvitations(true)
+        break
+      case "poll_created":
+        if (notification.data?.community_id) {
+          window.location.href = `/ludo-gruppen?group=${notification.data.community_id}`
+        } else {
+          window.location.href = "/ludo-gruppen"
+        }
         break
       default:
         break
@@ -245,8 +334,12 @@ export default function NotificationDropdown({ className }: NotificationDropdown
         <EventInvitationsDialog
           userId={user.id}
           isOpen={showEventInvitations}
-          onClose={() => setShowEventInvitations(false)}
+          onClose={() => {
+            setShowEventInvitations(false)
+            setHighlightedEventId(null)
+          }}
           onUpdate={handleInvitationUpdate}
+          highlightedEventId={highlightedEventId}
         />
       )}
     </>

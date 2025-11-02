@@ -39,9 +39,16 @@ interface EventInvitationsDialogProps {
   isOpen: boolean
   onClose: () => void
   onUpdate: () => void
+  highlightedEventId?: string | null
 }
 
-export default function EventInvitationsDialog({ userId, isOpen, onClose, onUpdate }: EventInvitationsDialogProps) {
+export default function EventInvitationsDialog({
+  userId,
+  isOpen,
+  onClose,
+  onUpdate,
+  highlightedEventId,
+}: EventInvitationsDialogProps) {
   const [invitations, setInvitations] = useState<EventInvitation[]>([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
@@ -183,89 +190,98 @@ export default function EventInvitationsDialog({ userId, isOpen, onClose, onUpda
               <p className="text-gray-500">Du hast derzeit keine ausstehenden Event-Einladungen.</p>
             </div>
           ) : (
-            invitations.map((invitation) => (
-              <Card key={invitation.id} className="border-blue-200 bg-blue-50/50">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg text-gray-800 mb-2">{invitation.ludo_events.title}</CardTitle>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={invitation.inviter.avatar || "/placeholder.svg"} />
-                          <AvatarFallback className="text-xs">
-                            {invitation.inviter.username?.[0]?.toUpperCase() || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm text-gray-600">
-                          Einladung von {invitation.inviter.username || invitation.inviter.name}
-                        </span>
+            invitations.map((invitation) => {
+              const isHighlighted = highlightedEventId === invitation.event_id
+
+              return (
+                <Card
+                  key={invitation.id}
+                  className={`${
+                    isHighlighted ? "border-teal-400 bg-teal-50/70 shadow-lg" : "border-blue-200 bg-blue-50/50"
+                  } transition-all`}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-lg text-gray-800 mb-2">{invitation.ludo_events.title}</CardTitle>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={invitation.inviter.avatar || "/placeholder.svg"} />
+                            <AvatarFallback className="text-xs">
+                              {invitation.inviter.username?.[0]?.toUpperCase() || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm text-gray-600">
+                            Einladung von {invitation.inviter.username || invitation.inviter.name}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {invitation.ludo_events.description && (
-                    <p className="text-sm text-gray-600 line-clamp-2">{invitation.ludo_events.description}</p>
-                  )}
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-500" />
-                      <span>Siehe Event-Details für Termine</span>
-                    </div>
-
-                    {formatTime(invitation.ludo_events.start_time, invitation.ludo_events.end_time) && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-500" />
-                        <span>{formatTime(invitation.ludo_events.start_time, invitation.ludo_events.end_time)}</span>
-                      </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {invitation.ludo_events.description && (
+                      <p className="text-sm text-gray-600 line-clamp-2">{invitation.ludo_events.description}</p>
                     )}
 
-                    {invitation.ludo_events.location && (
+                    <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-gray-500" />
-                        <span>{invitation.ludo_events.location}</span>
+                        <Calendar className="h-4 w-4 text-gray-500" />
+                        <span>{formatDate(invitation.ludo_events.event_date)}</span>
                       </div>
-                    )}
-                  </div>
 
-                  {invitation.message && (
-                    <div className="bg-white border border-gray-200 rounded-lg p-3">
-                      <div className="text-sm font-medium text-gray-700 mb-1">Nachricht:</div>
-                      <p className="text-sm text-gray-600">{invitation.message}</p>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      size="sm"
-                      disabled={processingId === invitation.id}
-                      onClick={() => handleResponse(invitation.id, "accepted")}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {processingId === invitation.id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      ) : (
-                        <>
-                          <Check className="h-4 w-4 mr-1" />
-                          Annehmen
-                        </>
+                      {formatTime(invitation.ludo_events.start_time, invitation.ludo_events.end_time) && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-gray-500" />
+                          <span>{formatTime(invitation.ludo_events.start_time, invitation.ludo_events.end_time)}</span>
+                        </div>
                       )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={processingId === invitation.id}
-                      onClick={() => handleResponse(invitation.id, "declined")}
-                      className="flex-1 border-red-200 text-red-600 hover:bg-red-50"
-                    >
-                      <X className="h-4 w-4 mr-1" />
-                      Ablehnen
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+
+                      {invitation.ludo_events.location && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-gray-500" />
+                          <span>{invitation.ludo_events.location}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {invitation.message && (
+                      <div className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="text-sm font-medium text-gray-700 mb-1">Nachricht:</div>
+                        <p className="text-sm text-gray-600">{invitation.message}</p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        disabled={processingId === invitation.id}
+                        onClick={() => handleResponse(invitation.id, "accepted")}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        {processingId === invitation.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                          <>
+                            <Check className="h-4 w-4 mr-1" />
+                            Annehmen
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={processingId === invitation.id}
+                        onClick={() => handleResponse(invitation.id, "declined")}
+                        className="flex-1 border-red-200 text-red-600 hover:bg-red-50"
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Ablehnen
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })
           )}
         </div>
       </DialogContent>

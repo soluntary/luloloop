@@ -699,9 +699,6 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">Spielemarkt</h1>
-          <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
-            Entdecke spannende Angebote von anderen Mitgliedern und finde tolle Spiele zum Mieten, Kaufen oder Tauschen
-          </p>
           {authUser && databaseConnected && (
             <div className="mt-6 flex gap-4 justify-center">
               <Button

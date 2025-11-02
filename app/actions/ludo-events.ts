@@ -84,6 +84,7 @@ function generateRecurringDates(eventData: any): string[] {
       console.error("[v0] Invalid end date:", eventData.seriesEndDate)
       endDate = null
     } else {
+      endDate.setHours(23, 59, 59, 999)
       console.log("[v0] End date parsed:", formatLocalDate(endDate))
     }
   } else if (eventData.seriesEndType === "count" && eventData.seriesEndCount) {
@@ -97,14 +98,17 @@ function generateRecurringDates(eventData: any): string[] {
   console.log("[v0] Starting date generation loop")
 
   while (count < maxCount) {
+    const currentDateNormalized = new Date(currentDate)
+    currentDateNormalized.setHours(0, 0, 0, 0)
+
     console.log("[v0] Loop iteration:", {
       count,
       currentDate: formatLocalDate(currentDate),
       endDate: endDate ? formatLocalDate(endDate) : "no end date",
-      comparison: endDate ? currentDate.getTime() > endDate.getTime() : "no end date",
+      comparison: endDate ? currentDateNormalized.getTime() - endDate.getTime() : "no end date",
     })
 
-    if (endDate && currentDate.getTime() > endDate.getTime()) {
+    if (endDate && currentDateNormalized.getTime() > endDate.getTime()) {
       console.log("[v0] Current date exceeds end date, stopping generation")
       break
     }
@@ -131,24 +135,22 @@ function generateRecurringDates(eventData: any): string[] {
 
       case "monatlich":
         if (eventData.monthlyType === "day" && eventData.monthlyDay) {
-          const year = currentDate.getFullYear()
-          const month = currentDate.getMonth()
-
-          // Get the last day of the next month
-          const lastDayOfNextMonth = new Date(year, month + 2, 0).getDate()
-
-          // Use the specified day, or the last day of the month if the specified day doesn't exist
-          const targetDay = Math.min(eventData.monthlyDay, lastDayOfNextMonth)
-
-          // Set to next month with the target day
-          currentDate.setMonth(month + 1)
+          currentDate.setDate(1)
+          // Now increment to next month
+          currentDate.setMonth(currentDate.getMonth() + 1)
+          // Now set the desired day
+          const targetDay = eventData.monthlyDay
           currentDate.setDate(targetDay)
 
+          // Check if the date rolled over (e.g., Feb 31 -> Mar 3)
+          if (currentDate.getDate() !== targetDay) {
+            // Invalid day for this month, use last day of month
+            currentDate.setDate(0)
+          }
+
           console.log("[v0] Monthly calculation:", {
-            originalDate: formatLocalDate(new Date(year, month, currentDate.getDate())),
             targetDay: eventData.monthlyDay,
-            lastDayOfNextMonth,
-            actualDay: targetDay,
+            actualDay: currentDate.getDate(),
             newDate: formatLocalDate(currentDate),
           })
         } else if (
@@ -166,20 +168,16 @@ function generateRecurringDates(eventData: any): string[] {
 
           // TODO: Implement proper weekday position calculation
         } else {
-          // Default: same day next month
-          const year = currentDate.getFullYear()
-          const month = currentDate.getMonth()
-          const day = currentDate.getDate()
-
-          // Get the last day of the next month
-          const lastDayOfNextMonth = new Date(year, month + 2, 0).getDate()
-
-          // Use the same day, or the last day of the month if it doesn't exist
-          const targetDay = Math.min(day, lastDayOfNextMonth)
-
-          // Set to next month with the target day
-          currentDate.setMonth(month + 1)
+          currentDate.setDate(1)
+          currentDate.setMonth(currentDate.getMonth() + 1)
+          const targetDay = startDate.getDate()
           currentDate.setDate(targetDay)
+
+          // Check if the date rolled over
+          if (currentDate.getDate() !== targetDay) {
+            // Use last day of month
+            currentDate.setDate(0)
+          }
         }
         break
 
@@ -217,11 +215,11 @@ function generateRecurringDates(eventData: any): string[] {
         break
     }
 
-    // Safety check: don't generate more than 2 years in the future
-    const twoYearsFromNow = new Date()
-    twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2)
-    if (currentDate > twoYearsFromNow) {
-      console.warn("[v0] Stopping date generation: exceeded 2 years")
+    const yearsLimit = eventData.frequency === "jährlich" ? 10 : 2
+    const limitDate = new Date()
+    limitDate.setFullYear(limitDate.getFullYear() + yearsLimit)
+    if (currentDate > limitDate) {
+      console.warn(`[v0] Stopping date generation: exceeded ${yearsLimit} years`)
       break
     }
   }

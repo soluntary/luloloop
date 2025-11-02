@@ -13,7 +13,7 @@ import {
   Search,
   Plus,
   MapPin,
-  Calendar,
+  CalendarDaysIcon,Calendar,
   Clock,
   UserPlus,
   MessageCircle,
@@ -24,8 +24,12 @@ import {
   Dices,
   UserCheck,
   Spade,
-  CalendarSearch as CalendarSync,
+  CalendarPlus2Icon,CalendarPlus2Icon,CalendarSearch as CalendarSync,
   ChevronDown,
+  UserRoundCheck,
+  UserRoundCog,
+  UserX,
+  UserRoundMinus,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
@@ -55,7 +59,17 @@ interface LudoEvent {
   location: string
   location_type: "local" | "virtual"
   virtual_link: string | null
-  frequency: "single" | "regular" | "recurring" | "täglich" | "wöchentlich" | "zweiwöchentlich" | "monatlich" | "andere"
+  frequency:
+    | "single"
+    | "regular"
+    | "recurring"
+    | "täglich"
+    | "wöchentlich"
+    | "zweiwöchentlich"
+    | "monatlich"
+    | "jährlich"
+    | "andere"
+    | "einmalig"
   interval_type: string | null
   custom_interval: string | null
   visibility: "public" | "friends_only" | "private"
@@ -222,11 +236,12 @@ export default function LudoEventsPage() {
                   .then((res) => (res.data || []).map((i) => i.id)),
               )
 
+            // Fix participant count to use "approved" status
             const { count: participantCount } = await supabase
               .from("ludo_event_participants")
               .select("*", { count: "exact", head: true })
               .eq("event_id", event.id)
-              .eq("status", "confirmed")
+              .eq("status", "approved")
 
             const { data: instancesData } = await supabase
               .from("ludo_event_instances")
@@ -239,17 +254,23 @@ export default function LudoEventsPage() {
             // First check event-level participation
             if (eventParticipation) {
               userStatus = eventParticipation.status === "approved" ? "approved" : "pending"
+              if (eventParticipation.status === "rejected") {
+                userStatus = "rejected"
+              }
             }
 
             // Then check instance-level participation
             if (instanceRegistrations && instanceRegistrations.length > 0) {
               const hasRegistered = instanceRegistrations.some((r) => r.status === "registered")
               const hasPending = instanceRegistrations.some((r) => r.status === "pending")
+              const hasRejected = instanceRegistrations.some((r) => r.status === "rejected")
 
               if (hasRegistered) {
                 userStatus = "approved"
               } else if (hasPending && !userStatus) {
                 userStatus = "pending"
+              } else if (hasRejected && !userStatus) {
+                userStatus = "rejected"
               }
             }
 
@@ -266,11 +287,12 @@ export default function LudoEventsPage() {
       } else {
         const eventsWithCounts = await Promise.all(
           processedEvents.map(async (event) => {
+            // Fix participant count to use "approved" status
             const { count: participantCount } = await supabase
               .from("ludo_event_participants")
               .select("*", { count: "exact", head: true })
               .eq("event_id", event.id)
-              .eq("status", "confirmed")
+              .eq("status", "approved")
 
             const { data: instancesData } = await supabase
               .from("ludo_event_instances")
@@ -371,6 +393,7 @@ export default function LudoEventsPage() {
       event.frequency === "wöchentlich" ||
       event.frequency === "zweiwöchentlich" ||
       event.frequency === "monatlich" ||
+      event.frequency === "jährlich" || // Added jährlich to recurring check
       event.frequency === "andere"
 
     if (isRecurring && event.has_additional_dates) {
@@ -411,15 +434,21 @@ export default function LudoEventsPage() {
     try {
       const { data: existingParticipant } = await supabase
         .from("ludo_event_participants")
-        .select("id")
+        .select("id, status")
         .eq("event_id", event.id)
         .eq("user_id", user.id)
         .maybeSingle()
 
       if (existingParticipant) {
-        console.log("[v0] User is already registered for this event")
+        console.log("[v0] User is already registered for this event or has a pending status")
         toast.dismiss(loadingToast)
-        toast.info("Du bist bereits für dieses Event angemeldet")
+        if (existingParticipant.status === "approved") {
+          toast.info("Du bist bereits für dieses Event angemeldet")
+        } else if (existingParticipant.status === "pending") {
+          toast.info("Deine Anmeldung wartet noch auf Genehmigung")
+        } else if (existingParticipant.status === "rejected") {
+          toast.error("Deine Anmeldung für dieses Event wurde abgelehnt")
+        }
         return
       }
 
@@ -636,15 +665,37 @@ export default function LudoEventsPage() {
     }
 
     if (event.creator_id === user.id) {
-      return { text: "Dein Event", disabled: true, variant: "secondary" as const }
+      return { text: "Dein Event", disabled: true, variant: "secondary" as const, icon: UserRoundCog }
     }
 
     if (event.user_participation_status === "approved") {
-      return { text: "Angemeldet", disabled: false, variant: "outline" as const, action: "manage" }
+      const isOneTimeEvent = event.frequency === "single" || event.frequency === "einmalig"
+
+      if (isOneTimeEvent) {
+        return {
+          text: "Abmelden",
+          disabled: false,
+          variant: "destructive" as const,
+          action: "leave",
+          icon: UserRoundMinus,
+        }
+      }
+
+      return {
+        text: "Angemeldet",
+        disabled: false,
+        variant: "outline" as const,
+        action: "manage",
+        icon: UserRoundCheck,
+      }
     }
 
     if (event.user_participation_status === "pending") {
       return { text: "Warte auf Genehmigung", disabled: true, variant: "outline" as const, icon: Clock }
+    }
+
+    if (event.user_participation_status === "rejected") {
+      return { text: "Abgelehnt", disabled: false, variant: "outline" as const, icon: UserX }
     }
 
     if (event.max_participants && event.participant_count >= event.max_participants) {
@@ -666,6 +717,7 @@ export default function LudoEventsPage() {
       event.frequency === "wöchentlich" ||
       event.frequency === "zweiwöchentlich" ||
       event.frequency === "monatlich" ||
+      event.frequency === "jährlich" || // Added jährlich to recurring check
       event.frequency === "andere"
 
     if (isRecurring) {
@@ -785,7 +837,7 @@ export default function LudoEventsPage() {
           return false
         if (frequencyFilter === "monatlich" && eventFrequency !== "monatlich" && eventFrequency !== "monthly")
           return false
-        if (frequencyFilter === "jährlich" && eventFrequency !== "jährlich") return false
+        if (frequencyFilter === "jährlich" && eventFrequency !== "jährlich") return false // CHANGE: Added condition for 'jährlich'
         if (frequencyFilter === "andere" && eventFrequency !== "andere" && eventFrequency !== "custom") return false
       }
 
@@ -802,7 +854,7 @@ export default function LudoEventsPage() {
         today.setHours(0, 0, 0, 0)
 
         const tomorrow = new Date(today)
-        tomorrow.setDate(tomorrow.getDate() + 1)
+        tomorrow.setDate(today.getDate() + 1)
 
         const thisWeekEnd = new Date(today)
         thisWeekEnd.setDate(today.getDate() + (7 - today.getDay()))
@@ -894,11 +946,19 @@ export default function LudoEventsPage() {
       custom_interval: event.custom_interval,
     })
 
-    if (event.frequency === "täglich") return "Täglich"
-    if (event.frequency === "wöchentlich") return "Wöchentlich"
-    if (event.frequency === "zweiwöchentlich") return "Zweiwöchentlich"
-    if (event.frequency === "monatlich") return "Monatlich"
-    if (event.frequency === "andere" && event.custom_interval) return event.custom_interval
+    const frequency = event.frequency
+    const intervalType = event.interval_type
+
+    if (frequency === "single" || frequency === "einmalig") {
+      return "Einmalig"
+    }
+
+    if (frequency === "täglich") return "Täglich"
+    if (frequency === "wöchentlich") return "Wöchentlich"
+    if (frequency === "zweiwöchentlich") return "Zweiwöchentlich"
+    if (frequency === "monatlich") return "Monatlich"
+    if (frequency === "jährlich") return "Jährlich" // CHANGE: Added annually to the frequency display
+    if (frequency === "andere") return "Andere"
 
     if (event.frequency !== "regular" && event.frequency !== "recurring") return null
     if (!event.interval_type) return null
@@ -950,7 +1010,9 @@ export default function LudoEventsPage() {
       wöchentlich: "Wöchentlich",
       zweiwöchentlich: "Zweiwöchentlich",
       monatlich: "Monatlich",
+      jährlich: "Jährlich", // Added jährlich to frequency map
       andere: "Andere",
+      einmalig: "Einmalig",
     }
     return frequencyMap[frequency] || frequency
   }
@@ -962,9 +1024,6 @@ export default function LudoEventsPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Spielevents</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-6">
-            Entdecke spannende Spielevents und verbinde dich mit anderen Spielern
-          </p>
           {user && (
             <Button
               onClick={() => {
@@ -1052,6 +1111,7 @@ export default function LudoEventsPage() {
                       <SelectItem value="täglich">Täglich</SelectItem>
                       <SelectItem value="wöchentlich">Wöchentlich</SelectItem>
                       <SelectItem value="monatlich">Monatlich</SelectItem>
+                      <SelectItem value="jährlich">Jährlich</SelectItem> {/* Added jährlich option */}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1124,7 +1184,7 @@ export default function LudoEventsPage() {
                     </div>
 
                     <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Teilnahme</Label>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Teilnahmemodus</Label>
                       <Select value={approvalModeFilter} onValueChange={setApprovalModeFilter}>
                         <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
                           <SelectValue />
@@ -1208,6 +1268,7 @@ export default function LudoEventsPage() {
                     event.frequency === "wöchentlich" ||
                     event.frequency === "zweiwöchentlich" ||
                     event.frequency === "monatlich" ||
+                    event.frequency === "jährlich" || // Added yıllık to recurring check
                     event.frequency === "andere"
 
                   return (
@@ -1256,7 +1317,7 @@ export default function LudoEventsPage() {
                           {isRecurring && (
                             <div className="absolute top-2 right-2 z-10">
                               <div className="flex items-center gap-1.5 px-2 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium text-blue-600 rounded-full border border-blue-200">
-                                <CalendarSync className="h-3.5 w-3.5" />
+                                <CalendarPlus2Icon className="h-3.5 w-3.5" />
                                 <span>Serientermine</span>
                               </div>
                             </div>
@@ -1294,7 +1355,7 @@ export default function LudoEventsPage() {
                       <CardContent className="space-y-3">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Calendar className="h-4 w-4 text-teal-600" />
+                            <CalendarDaysIcon className="h-4 w-4 text-teal-600" />
                             <span>
                               {event.first_instance_date
                                 ? formatEventDate(event.first_instance_date, event.start_time)
@@ -1312,7 +1373,7 @@ export default function LudoEventsPage() {
 
                           {intervalDisplay && (
                             <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <CalendarSync className="h-4 w-4 text-teal-600" />
+                              <CalendarPlus2Icon className="h-4 w-4 text-teal-600" />
                               <span>{intervalDisplay}</span>
                             </div>
                           )}
@@ -1416,7 +1477,9 @@ export default function LudoEventsPage() {
                                 window.location.href = "/login"
                                 return
                               }
-                              if (buttonProps.action === "manage") {
+                              if (buttonProps.action === "leave") {
+                                leaveEvent(event)
+                              } else if (buttonProps.action === "manage") {
                                 setDateSelectionEvent(event)
                                 setIsDateSelectionOpen(true)
                               } else {
@@ -1428,7 +1491,9 @@ export default function LudoEventsPage() {
                             className={`flex-1 font-handwritten ${
                               buttonProps.action === "manage"
                                 ? "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-blue-500"
-                                : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:to-gray-400"
+                                : buttonProps.action === "leave"
+                                  ? "bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white border-red-500"
+                                  : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:to-gray-400"
                             }`}
                           >
                             {IconComponent ? (
@@ -1547,6 +1612,7 @@ export default function LudoEventsPage() {
                 selectedEvent.frequency === "wöchentlich" ||
                 selectedEvent.frequency === "zweiwöchentlich" ||
                 selectedEvent.frequency === "monatlich" ||
+                selectedEvent.frequency === "jährlich" || // CHANGE: added 'jährlich'
                 selectedEvent.frequency === "andere" ? (
                   <div className="space-y-4">
                     <div className="flex border-b border-gray-200">
@@ -1947,7 +2013,9 @@ export default function LudoEventsPage() {
                             window.location.href = "/login"
                             return
                           }
-                          if (buttonProps.action === "manage") {
+                          if (buttonProps.action === "leave") {
+                            leaveEvent(selectedEvent)
+                          } else if (buttonProps.action === "manage") {
                             setDateSelectionEvent(selectedEvent)
                             setIsDateSelectionOpen(true)
                           } else {
@@ -1959,7 +2027,9 @@ export default function LudoEventsPage() {
                         className={`flex-1 font-handwritten ${
                           buttonProps.action === "manage"
                             ? "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-blue-500"
-                            : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:to-gray-400"
+                            : buttonProps.action === "leave"
+                              ? "bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white border-red-500"
+                              : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:to-gray-400"
                         }`}
                       >
                         {IconComponent ? (
@@ -2115,7 +2185,7 @@ export default function LudoEventsPage() {
               onSuccess={() => {
                 setIsCreateDialogOpen(false)
                 loadEvents()
-                toast.success("Event erfolgreich erstellt!")
+                toast.success("Viel Spass! Dein Event wurde erstellt!")
               }}
               onCancel={() => setIsCreateDialogOpen(false)}
             />

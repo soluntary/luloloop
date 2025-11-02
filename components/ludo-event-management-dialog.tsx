@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, X, Users, Settings, Trash2, Calendar, Clock, UserMinus } from "lucide-react"
+import { Check, X, Users, Settings, Trash2, Clock, UserMinus } from "lucide-react"
 import { toast } from "sonner"
 import { deleteLudoEvent } from "@/app/actions/ludo-events"
 import { createClient } from "@/lib/supabase/client"
+import { UserLink } from "@/components/user-link"
 
 interface Participant {
   id: string
@@ -397,6 +398,26 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
     })
   }
 
+  const formatShortDate = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+  }
+
+  const getPendingDatesForUser = (userId: string) => {
+    return instanceParticipants
+      .filter((p) => p.user_id === userId && p.status === "pending")
+      .map((p) => ({
+        date: p.instance.instance_date,
+        startTime: p.instance.start_time,
+        endTime: p.instance.end_time,
+      }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -417,7 +438,7 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
             )}
             <TabsTrigger value="participants" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Teilnehmer ({Object.keys(participantsByUser).length})
+              Teilnehmer ({Object.keys(participantsByInstance).length})
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -453,52 +474,78 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
                     <p className="text-gray-500 text-center py-8">Keine eingegangene Anfragen</p>
                   ) : (
                     <div className="space-y-3">
-                      {joinRequests.map((request) => (
-                        <div key={request.id} className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <Avatar>
-                                <AvatarImage src={request.user.avatar || "/placeholder.svg"} />
-                                <AvatarFallback>
-                                  {request.user.username?.[0]?.toUpperCase() || request.user.name?.[0]?.toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">{request.user.name || request.user.username}</p>
-                                <p className="text-sm text-gray-500">
-                                  Angefragt am {new Date(request.created_at).toLocaleDateString("de-DE")}
-                                </p>
+                      {joinRequests.map((request) => {
+                        const pendingDates = getPendingDatesForUser(request.user_id)
+
+                        return (
+                          <div key={request.id} className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <Avatar>
+                                  <AvatarImage src={request.user.avatar || "/placeholder.svg"} />
+                                  <AvatarFallback>{request.user.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <UserLink
+                                    userId={request.user.id}
+                                    className="font-medium hover:text-teal-600 transition-colors"
+                                  >
+                                    {request.user.username || "Unbekannt"}
+                                  </UserLink>
+                                  <p className="text-sm text-gray-500">
+                                    Angefragt am {new Date(request.created_at).toLocaleDateString("de-DE")}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApproveRequest(request.id, request.user_id)}
+                                  disabled={actionLoading === request.id}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Genehmigen
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleRejectRequest(request.id, request.user_id)}
+                                  disabled={actionLoading === request.id}
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                >
+                                  <X className="h-4 w-4 mr-1" />
+                                  Ablehnen
+                                </Button>
                               </div>
                             </div>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleApproveRequest(request.id, request.user_id)}
-                                disabled={actionLoading === request.id}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <Check className="h-4 w-4 mr-1" />
-                                Genehmigen
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleRejectRequest(request.id, request.user_id)}
-                                disabled={actionLoading === request.id}
-                              >
-                                <X className="h-4 w-4 mr-1" />
-                                Ablehnen
-                              </Button>
-                            </div>
+
+                            {pendingDates.length > 0 && (
+                              <div className="mt-3 p-3 bg-white rounded border border-orange-200">
+                                <p className="text-sm font-medium text-gray-700 mb-2">Ausgewählte Termine:</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {pendingDates.map((dateInfo, idx) => (
+                                    <Badge
+                                      key={idx}
+                                      variant="outline"
+                                      className="bg-blue-50 text-blue-700 border-blue-200"
+                                    >
+                                      {formatShortDate(dateInfo.date)} • {dateInfo.startTime.slice(0, 5)}
+                                      {dateInfo.endTime && ` - ${dateInfo.endTime.slice(0, 5)}`}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {request.message && (
+                              <div className="mt-3 p-3 bg-white rounded border border-orange-200">
+                                <p className="text-sm font-medium text-gray-700 mb-1">Nachricht:</p>
+                                <p className="text-sm text-gray-600">{request.message}</p>
+                              </div>
+                            )}
                           </div>
-                          {request.message && (
-                            <div className="mt-3 p-3 bg-white rounded border border-orange-200">
-                              <p className="text-sm font-medium text-gray-700 mb-1">Nachricht:</p>
-                              <p className="text-sm text-gray-600">{request.message}</p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -511,9 +558,9 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
-                    {Object.keys(participantsByUser).length}
+                    {Object.keys(participantsByInstance).length}
                   </Badge>
-                  Genehmigte Teilnehmer
+                  Termine mit Teilnehmern
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -529,55 +576,57 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
                       </div>
                     ))}
                   </div>
-                ) : Object.keys(participantsByUser).length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">Noch keine genehmigte Teilnehmer</p>
+                ) : Object.keys(participantsByInstance).length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">Noch keine Teilnehmer für Termine</p>
                 ) : (
                   <div className="space-y-4">
-                    {Object.values(participantsByUser).map((userGroup) => (
-                      <div key={userGroup.user.id} className="p-4 bg-green-50 rounded-lg border border-green-200">
-                        <div className="flex items-center gap-3 mb-3">
-                          <Avatar>
-                            <AvatarImage src={userGroup.user.avatar || "/placeholder.svg"} />
-                            <AvatarFallback>
-                              {userGroup.user.username?.[0]?.toUpperCase() || userGroup.user.name?.[0]?.toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <p className="font-medium">{userGroup.user.name || userGroup.user.username}</p>
-                            <p className="text-sm text-gray-500">
-                              Angemeldet für {userGroup.instances.length} Termin
-                              {userGroup.instances.length !== 1 ? "e" : ""}
-                            </p>
+                    {Object.values(participantsByInstance)
+                      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                      .map((dateGroup) => (
+                        <div key={dateGroup.date} className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="flex-1">
+                              <p className="font-semibold text-lg">{formatDate(dateGroup.date)}</p>
+                              <p className="text-sm text-gray-600">
+                                {dateGroup.startTime.slice(0, 5)}
+                                {dateGroup.endTime && ` - ${dateGroup.endTime.slice(0, 5)}`}
+                              </p>
+                            </div>
+                            <Badge className="bg-teal-600 text-white">{dateGroup.participants.length} Teilnehmer</Badge>
                           </div>
-                          <Badge className="bg-green-600 text-white">Genehmigt</Badge>
-                        </div>
 
-                        <div className="space-y-2 mt-3 pl-14">
-                          {userGroup.instances
-                            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                            .map((instance) => (
+                          <div className="space-y-2">
+                            {dateGroup.participants.map((participant) => (
                               <div
-                                key={instance.id}
-                                className="flex items-center justify-between p-2 bg-white rounded border border-green-200"
+                                key={participant.id}
+                                className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-200"
                               >
-                                <div className="flex items-center gap-2 text-sm">
-                                  <Calendar className="h-4 w-4 text-green-600" />
-                                  <span className="font-medium">{formatDate(instance.date)}</span>
-                                  <span className="text-gray-500">
-                                    {instance.startTime.slice(0, 5)}
-                                    {instance.endTime && ` - ${instance.endTime.slice(0, 5)}`}
-                                  </span>
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-9 w-9">
+                                    <AvatarImage src={participant.user.avatar || "/placeholder.svg"} />
+                                    <AvatarFallback>
+                                      {participant.user.username?.[0]?.toUpperCase() || "?"}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <UserLink
+                                      userId={participant.user.id}
+                                      className="font-medium hover:text-teal-600 transition-colors"
+                                    >
+                                      {participant.user.username || "Unbekannt"}
+                                    </UserLink>
+                                    <p className="text-xs text-gray-500">
+                                      Angemeldet am {new Date(participant.joined_at).toLocaleDateString("de-DE")}
+                                    </p>
+                                  </div>
                                 </div>
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   onClick={() =>
-                                    handleRemoveFromInstance(
-                                      instance.id,
-                                      userGroup.user.name || userGroup.user.username,
-                                    )
+                                    handleRemoveFromInstance(participant.id, participant.user.username || "Unbekannt")
                                   }
-                                  disabled={actionLoading === instance.id}
+                                  disabled={actionLoading === participant.id}
                                   className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                                 >
                                   <UserMinus className="h-4 w-4 mr-1" />
@@ -585,9 +634,9 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
                                 </Button>
                               </div>
                             ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 )}
               </CardContent>

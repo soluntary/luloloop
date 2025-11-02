@@ -11,15 +11,40 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const headers = {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Accept: "application/xml, text/xml, */*",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Encoding": "gzip, deflate, br",
+      Referer: "https://boardgamegeek.com/",
+      Origin: "https://boardgamegeek.com",
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    }
+
     // Search for games on BoardGameGeek
     const searchUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(query)}&type=boardgame`
     console.log("[v0] Fetching from BGG search URL:", searchUrl)
 
-    const searchResponse = await fetch(searchUrl)
+    const searchResponse = await fetch(searchUrl, {
+      headers,
+      next: { revalidate: 3600 }, // Cache for 1 hour
+    })
     console.log("[v0] BGG search response status:", searchResponse.status)
 
     if (!searchResponse.ok) {
       console.log("[v0] BGG search failed with status:", searchResponse.status)
+
+      if (searchResponse.status === 401 || searchResponse.status === 403) {
+        console.log("[v0] BGG API access denied, returning empty results")
+        return NextResponse.json({
+          games: [],
+          error: "BoardGameGeek API is temporarily unavailable. Please enter game details manually.",
+          status: searchResponse.status,
+        })
+      }
+
       throw new Error("Failed to search BoardGameGeek")
     }
 
@@ -41,7 +66,7 @@ export async function GET(request: NextRequest) {
     const detailUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${detailIds}&stats=1`
     console.log("[v0] Fetching game details from:", detailUrl)
 
-    const detailResponse = await fetch(detailUrl)
+    const detailResponse = await fetch(detailUrl, { headers })
     console.log("[v0] BGG detail response status:", detailResponse.status)
 
     if (!detailResponse.ok) {
