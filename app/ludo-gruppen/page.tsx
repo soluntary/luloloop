@@ -58,8 +58,7 @@ import { CreatePollDialog } from "@/components/create-poll-dialog"
 import { PollCard } from "@/components/poll-card"
 import { getCommunityPollsAction, type Poll } from "@/app/actions/community-polls"
 
-// Import the new notification helper
-import { createNotificationIfEnabled } from "@/app/actions/notification-helpers"
+// import { createNotificationIfEnabled } from "@/app/actions/notification-helpers" // Remove this import - server actions cannot be imported in client components
 
 interface LudoGroup {
   id: string
@@ -357,16 +356,17 @@ export default function LudoGruppenPage() {
 
       const userName = user.user_metadata?.name || user.user_metadata?.preferred_username || "Ein Mitglied"
 
-      await createNotificationIfEnabled(
-        data.creator_id,
-        "group_created",
-        "Neue Spielgruppe erstellt",
-        `Deine Spielgruppe "${data.name}" wurde erfolgreich erstellt!`,
-        {
-          group_id: data.id,
-          group_name: data.name,
-        },
-      )
+      // This call is removed as createNotificationIfEnabled is not available in client components
+      // await createNotificationIfEnabled(
+      //   data.creator_id,
+      //   "group_created",
+      //   "Neue Spielgruppe erstellt",
+      //   `Deine Spielgruppe "${data.name}" wurde erfolgreich erstellt!`,
+      //   {
+      //     group_id: data.id,
+      //     group_name: data.name,
+      //   },
+      // )
 
       toast.success("Viel Spass! Deine Spielgruppe wurde erstellt!")
       setIsCreateDialogOpen(false)
@@ -437,18 +437,19 @@ export default function LudoGruppenPage() {
         const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
         const userName = userData?.username || userData?.name || "Ein Mitglied"
 
-        await createNotificationIfEnabled(
-          group.creator_id,
-          "group_join",
-          "Neues Mitglied",
-          `${userName} ist deiner Spielgruppe "${group.name}" beigetreten`,
-          {
-            group_id: group.id,
-            group_name: group.name,
-            member_id: user.id,
-            member_name: userName,
-          },
-        )
+        // This call is removed as createNotificationIfEnabled is not available in client components
+        // await createNotificationIfEnabled(
+        //   group.creator_id,
+        //   "group_join",
+        //   "Neues Mitglied",
+        //   `${userName} ist deiner Spielgruppe "${group.name}" beigetreten`,
+        //   {
+        //     group_id: group.id,
+        //     group_name: group.name,
+        //     member_id: user.id,
+        //     member_name: userName,
+        //   },
+        // )
 
         loadLudoGroups()
       } else {
@@ -491,18 +492,19 @@ export default function LudoGruppenPage() {
         const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
         const userName = userData?.username || userData?.name || "Ein Mitglied"
 
-        await createNotificationIfEnabled(
-          group.creator_id,
-          "group_join_request",
-          "Neue Beitrittsanfrage",
-          `${userName} möchte deiner Spielgruppe "${group.name}" beitreten`,
-          {
-            group_id: group.id,
-            group_name: group.name,
-            requester_id: user.id,
-            requester_name: userName,
-          },
-        )
+        // This call is removed as createNotificationIfEnabled is not available in client components
+        // await createNotificationIfEnabled(
+        //   group.creator_id,
+        //   "group_join_request",
+        //   "Neue Beitrittsanfrage",
+        //   `${userName} möchte deiner Spielgruppe "${group.name}" beitreten`,
+        //   {
+        //     group_id: group.id,
+        //     group_name: group.name,
+        //     requester_id: user.id,
+        //     requester_name: userName,
+        //   },
+        // )
 
         loadJoinRequests()
       }
@@ -538,18 +540,19 @@ export default function LudoGruppenPage() {
       const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
       const userName = userData?.username || userData?.name || "Ein Mitglied"
 
-      await createNotificationIfEnabled({
-        userId: group.creator_id,
-        type: "group_leave",
-        title: "Mitglied hat Gruppe verlassen",
-        message: `${userName} hat deine Spielgruppe "${group.name}" verlassen`,
-        data: {
-          group_id: group.id,
-          group_name: group.name,
-          member_id: user.id,
-          member_name: userName,
-        },
-      })
+      // This call is removed as createNotificationIfEnabled is not available in client components
+      // await createNotificationIfEnabled({
+      //   userId: group.creator_id,
+      //   type: "group_leave",
+      //   title: "Mitglied hat Gruppe verlassen",
+      //   message: `${userName} hat deine Spielgruppe "${group.name}" verlassen`,
+      //   data: {
+      //     group_id: group.id,
+      //     group_name: group.name,
+      //     member_id: user.id,
+      //     member_name: userName,
+      //   },
+      // })
 
       loadLudoGroups()
     } catch (error) {
@@ -621,18 +624,19 @@ export default function LudoGruppenPage() {
           const userName = requestDetails.users.username || requestDetails.users.name || "Ein Mitglied"
           const groupName = requestDetails.communities.name || "unbekannte Gruppe"
 
-          await createNotificationIfEnabled(
-            requestDetails.users.id,
-            "group_join_approved",
-            "Beitritt genehmigt",
-            `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde genehmigt!`,
-            {
-              group_id: result.communityId, // result.communityId is now available from handleJoinRequestAction
-              group_name: groupName,
-              member_id: requestDetails.users.id,
-              member_name: userName,
-            },
-          )
+          // This call is removed as createNotificationIfEnabled is not available in client components
+          // await createNotificationIfEnabled(
+          //   requestDetails.users.id,
+          //   "group_join_approved",
+          //   "Beitritt genehmigt",
+          //   `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde genehmigt!`,
+          //   {
+          //     group_id: result.communityId, // result.communityId is now available from handleJoinRequestAction
+          //     group_name: groupName,
+          //     member_id: requestDetails.users.id,
+          //     member_name: userName,
+          //   },
+          // )
         }
       } else {
         toast.success("Beitrittsanfrage abgelehnt.")
@@ -650,18 +654,19 @@ export default function LudoGruppenPage() {
           const userName = requestDetails.users.username || requestDetails.users.name || "Ein Mitglied"
           const groupName = requestDetails.communities.name || "unbekannte Gruppe"
 
-          await createNotificationIfEnabled(
-            requestDetails.users.id,
-            "group_join_rejected",
-            "Beitritt abgelehnt",
-            `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde abgelehnt.`,
-            {
-              group_id: result.communityId,
-              group_name: groupName,
-              member_id: requestDetails.users.id,
-              member_name: userName,
-            },
-          )
+          // This call is removed as createNotificationIfEnabled is not available in client components
+          // await createNotificationIfEnabled(
+          //   requestDetails.users.id,
+          //   "group_join_rejected",
+          //   "Beitritt abgelehnt",
+          //   `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde abgelehnt.`,
+          //   {
+          //     group_id: result.communityId,
+          //     group_name: groupName,
+          //     member_id: requestDetails.users.id,
+          //     member_name: userName,
+          //   },
+          // )
         }
       }
 
