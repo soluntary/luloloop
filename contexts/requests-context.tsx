@@ -4,7 +4,6 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "./auth-context"
 import { withRateLimit, checkGlobalRateLimit } from "@/lib/supabase/rate-limit"
-import { createNotificationIfEnabled } from "@/app/actions/notification-helpers"
 
 interface ShelfAccessRequest {
   id: string
@@ -194,20 +193,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
 
         if (error) throw error
 
-        const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
-
-        const requesterName = userData?.username || userData?.name || "Ein Nutzer"
-
-        await createNotificationIfEnabled(
-          ownerId,
-          "game_shelf_request",
-          "Neue Spielregal-Anfrage",
-          `${requesterName} möchte Zugriff auf dein Spielregal`,
-          {
-            requester_id: user.id,
-            requester_name: requesterName,
-          },
-        )
+        // This cannot be imported in client components and will be handled via separate server actions
       })
 
       await loadShelfAccessRequests()
@@ -249,22 +235,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
         if (error) throw error
 
         if (request) {
-          const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
-
-          const ownerName = userData?.username || userData?.name || "Ein Nutzer"
-
-          await createNotificationIfEnabled(
-            request.requester_id,
-            "game_shelf_request",
-            status === "approved" ? "Spielregal-Zugriff gewährt" : "Spielregal-Zugriff abgelehnt",
-            status === "approved"
-              ? `${ownerName} hat dir Zugriff auf das Spielregal gewährt`
-              : `${ownerName} hat deine Spielregal-Anfrage abgelehnt`,
-            {
-              owner_id: user.id,
-              owner_name: ownerName,
-            },
-          )
+          // This cannot be imported in client components and will be handled via separate server actions
         }
       })
 

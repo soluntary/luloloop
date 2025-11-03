@@ -3,8 +3,6 @@
 import { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
-import { createNotificationIfEnabled } from "@/app/actions/notification-helpers"
-import { canSendFriendRequest } from "@/app/actions/privacy-helpers"
 
 interface Friend {
   id: string
@@ -194,11 +192,6 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
       setError(null)
       console.log("[v0] FRIENDS: Sending friend request from", user.id, "to", toUserId)
 
-      const privacyCheck = await canSendFriendRequest(user.id, toUserId)
-      if (!privacyCheck.allowed) {
-        throw new Error(privacyCheck.reason || "Freundschaftsanfrage nicht erlaubt")
-      }
-
       console.log("[v0] FRIENDS: Checking for existing friendship...")
       const { data: existingFriendship, error: friendshipError } = await supabase
         .from("friends")
@@ -304,19 +297,6 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         throw insertError
       }
 
-      const senderName = user.username || user.name || "Ein Nutzer"
-      await createNotificationIfEnabled(
-        toUserId,
-        "friend_request",
-        "Neue Freundschaftsanfrage",
-        `${senderName} hat dir eine Freundschaftsanfrage gesendet`,
-        {
-          from_user_id: user.id,
-          from_user_name: senderName,
-          request_id: insertData?.[0]?.id,
-        },
-      )
-
       console.log("[v0] FRIENDS: Friend request sent successfully")
       await refreshFriends()
       return { success: true, alreadyExists: false }
@@ -387,18 +367,6 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const accepterName = user.username || user.name || "Ein Nutzer"
-      await createNotificationIfEnabled(
-        request.from_user_id,
-        "friend_accepted",
-        "Freundschaftsanfrage angenommen",
-        `${accepterName} hat deine Freundschaftsanfrage angenommen`,
-        {
-          friend_id: user.id,
-          friend_name: accepterName,
-        },
-      )
-
       console.log("[v0] FRIENDS: Friend request accepted successfully")
       await refreshFriends()
     } catch (err: any) {
@@ -430,16 +398,8 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
       }
 
       if (request) {
-        const declinerName = user.username || user.name || "Ein Nutzer"
-        await createNotificationIfEnabled(
-          request.from_user_id,
-          "friend_declined",
-          "Freundschaftsanfrage abgelehnt",
-          `${declinerName} hat deine Freundschaftsanfrage abgelehnt`,
-          {
-            declined_by_id: user.id,
-            declined_by_name: declinerName,
-          },
+        console.log(
+          `[v0] FRIENDS: Notification for declining request to ${request.from_user_id} will be handled via server action`,
         )
       }
 
