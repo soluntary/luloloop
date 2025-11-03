@@ -357,16 +357,16 @@ export default function LudoGruppenPage() {
 
       const userName = user.user_metadata?.name || user.user_metadata?.preferred_username || "Ein Mitglied"
 
-      await createNotificationIfEnabled({
-        userId: data.creator_id,
-        type: "group_created",
-        title: "Neue Spielgruppe erstellt",
-        message: `Deine Spielgruppe "${data.name}" wurde erfolgreich erstellt!`,
-        data: {
+      await createNotificationIfEnabled(
+        data.creator_id,
+        "group_created",
+        "Neue Spielgruppe erstellt",
+        `Deine Spielgruppe "${data.name}" wurde erfolgreich erstellt!`,
+        {
           group_id: data.id,
           group_name: data.name,
         },
-      })
+      )
 
       toast.success("Viel Spass! Deine Spielgruppe wurde erstellt!")
       setIsCreateDialogOpen(false)
@@ -621,18 +621,18 @@ export default function LudoGruppenPage() {
           const userName = requestDetails.users.username || requestDetails.users.name || "Ein Mitglied"
           const groupName = requestDetails.communities.name || "unbekannte Gruppe"
 
-          await createNotificationIfEnabled({
-            userId: requestDetails.users.id,
-            type: "group_join_approved",
-            title: "Beitritt genehmigt",
-            message: `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde genehmigt!`,
-            data: {
+          await createNotificationIfEnabled(
+            requestDetails.users.id,
+            "group_join_approved",
+            "Beitritt genehmigt",
+            `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde genehmigt!`,
+            {
               group_id: result.communityId, // result.communityId is now available from handleJoinRequestAction
               group_name: groupName,
               member_id: requestDetails.users.id,
               member_name: userName,
             },
-          })
+          )
         }
       } else {
         toast.success("Beitrittsanfrage abgelehnt.")
@@ -650,18 +650,18 @@ export default function LudoGruppenPage() {
           const userName = requestDetails.users.username || requestDetails.users.name || "Ein Mitglied"
           const groupName = requestDetails.communities.name || "unbekannte Gruppe"
 
-          await createNotificationIfEnabled({
-            userId: requestDetails.users.id,
-            type: "group_join_rejected",
-            title: "Beitritt abgelehnt",
-            message: `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde abgelehnt.`,
-            data: {
+          await createNotificationIfEnabled(
+            requestDetails.users.id,
+            "group_join_rejected",
+            "Beitritt abgelehnt",
+            `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde abgelehnt.`,
+            {
               group_id: result.communityId,
               group_name: groupName,
               member_id: requestDetails.users.id,
               member_name: userName,
             },
-          })
+          )
         }
       }
 
