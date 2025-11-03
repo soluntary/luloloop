@@ -2,11 +2,5 @@
   "framework": "nextjs",
   "buildCommand": "pnpm build",
   "outputDirectory": ".next",
-  "installCommand": "pnpm install --no-frozen-lockfile",
-  "crons": [
-    {
-      "path": "/api/cron/event-reminders",
-      "schedule": "*/15 * * * *"
-    }
-  ]
+  "installCommand": "pnpm install --no-frozen-lockfile"
 }
