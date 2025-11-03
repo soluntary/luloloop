@@ -49,15 +49,23 @@ export default function NotificationDropdown({ className }: NotificationDropdown
   const { toast } = useToast()
 
   useEffect(() => {
+    console.log("[v0] NotificationDropdown useEffect triggered, user:", user?.id)
     if (user) {
+      console.log("[v0] User is logged in, loading notifications and setting up realtime")
       loadNotifications()
       setupRealtimeSubscription()
+    } else {
+      console.log("[v0] No user logged in, skipping notification setup")
     }
   }, [user])
 
   const setupRealtimeSubscription = async () => {
-    if (!user) return
+    if (!user) {
+      console.log("[v0] setupRealtimeSubscription: No user, aborting")
+      return
+    }
 
+    console.log("[v0] Setting up realtime subscription for user:", user.id)
     const supabase = await createClient()
 
     // Subscribe to INSERT events on notifications table for this user
@@ -72,11 +80,12 @@ export default function NotificationDropdown({ className }: NotificationDropdown
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log("[v0] New notification received:", payload)
+          console.log("[v0] New notification received via realtime:", payload)
           const newNotification = payload.new as Notification
 
           // Only add if it's unread
           if (!newNotification.read) {
+            console.log("[v0] Adding new notification to state:", newNotification.title)
             setNotifications((prev) => [newNotification, ...prev])
             setUnreadCount((prev) => prev + 1)
 
@@ -89,6 +98,8 @@ export default function NotificationDropdown({ className }: NotificationDropdown
 
             // Play notification sound (optional)
             playNotificationSound()
+          } else {
+            console.log("[v0] Notification is already read, skipping")
           }
         },
       )
@@ -101,20 +112,26 @@ export default function NotificationDropdown({ className }: NotificationDropdown
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log("[v0] Notification updated:", payload)
+          console.log("[v0] Notification updated via realtime:", payload)
           const updatedNotification = payload.new as Notification
 
           // If notification was marked as read, remove it from the list
           if (updatedNotification.read) {
+            console.log("[v0] Notification marked as read, removing from list:", updatedNotification.id)
             setNotifications((prev) => prev.filter((n) => n.id !== updatedNotification.id))
             setUnreadCount((prev) => Math.max(0, prev - 1))
           }
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log("[v0] Realtime subscription status:", status)
+      })
+
+    console.log("[v0] Realtime subscription channel created:", channel)
 
     // Cleanup subscription on unmount
     return () => {
+      console.log("[v0] Cleaning up realtime subscription")
       supabase.removeChannel(channel)
     }
   }
@@ -132,8 +149,12 @@ export default function NotificationDropdown({ className }: NotificationDropdown
   }
 
   const loadNotifications = async () => {
-    if (!user) return
+    if (!user) {
+      console.log("[v0] loadNotifications: No user, aborting")
+      return
+    }
 
+    console.log("[v0] Loading notifications for user:", user.id)
     try {
       const supabase = await createClient()
 
@@ -154,9 +175,12 @@ export default function NotificationDropdown({ className }: NotificationDropdown
         .limit(20)
 
       if (error) {
-        console.error("Error loading notifications:", error)
+        console.error("[v0] Error loading notifications:", error)
         return
       }
+
+      console.log("[v0] Notifications loaded from database:", data?.length || 0, "notifications")
+      console.log("[v0] Notification data:", data)
 
       const processedNotifications =
         data?.map((notification) => ({
@@ -166,8 +190,9 @@ export default function NotificationDropdown({ className }: NotificationDropdown
 
       setNotifications(processedNotifications)
       setUnreadCount(processedNotifications.length || 0)
+      console.log("[v0] Notifications state updated, unread count:", processedNotifications.length)
     } catch (error) {
-      console.error("Error loading notifications:", error)
+      console.error("[v0] Error loading notifications:", error)
     }
   }
 

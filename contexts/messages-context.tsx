@@ -4,6 +4,8 @@ import { createContext, useContext, useState, type ReactNode, useEffect, useCall
 import { createClient } from "@/lib/supabase/client"
 import { useUser } from "@/contexts/user-context"
 import { withRateLimit, checkGlobalRateLimit } from "@/lib/supabase/rate-limit"
+import { createNotificationIfEnabled } from "@/app/actions/notification-helpers"
+import { canSendMessage } from "@/app/actions/privacy-helpers"
 
 interface Message {
   id: string
@@ -137,6 +139,11 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       throw new Error("Service temporarily unavailable. Please try again in a moment.")
     }
 
+    const privacyCheck = await canSendMessage(user.id, messageData.to_user_id)
+    if (!privacyCheck.allowed) {
+      throw new Error(privacyCheck.reason || "Nachricht nicht erlaubt")
+    }
+
     try {
       const result = await new Promise((resolve, reject) => {
         withRateLimit(async () => {
@@ -161,6 +168,24 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
               console.error("Error sending message:", error)
               throw error
             }
+
+            const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
+
+            const senderName = userData?.username || userData?.name || "Ein Nutzer"
+
+            await createNotificationIfEnabled(
+              messageData.to_user_id,
+              "message",
+              "Neue Nachricht",
+              `${senderName} hat dir eine Nachricht gesendet`,
+              {
+                from_user_id: user.id,
+                from_user_name: senderName,
+                message_id: data.id,
+                game_title: messageData.game_title,
+                offer_type: messageData.offer_type,
+              },
+            )
 
             return data
           } catch (innerError) {

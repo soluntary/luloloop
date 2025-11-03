@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { createNotificationIfEnabled } from "./notification-helpers"
 
 export async function createForumReply(formData: {
   content: string
@@ -25,6 +26,31 @@ export async function createForumReply(formData: {
       return { success: false, error: "Inhalt und Post-ID sind erforderlich" }
     }
 
+    let notificationUserId: string | null = null
+    let notificationType: "forum_reply" | "comment_reply" = "forum_reply"
+
+    if (formData.parent_reply_id) {
+      // Replying to a comment
+      const { data: parentReply } = await supabase
+        .from("forum_replies")
+        .select("author_id")
+        .eq("id", formData.parent_reply_id)
+        .single()
+
+      if (parentReply && parentReply.author_id !== user.id) {
+        notificationUserId = parentReply.author_id
+        notificationType = "comment_reply"
+      }
+    } else {
+      // Replying to a post
+      const { data: post } = await supabase.from("forum_posts").select("author_id").eq("id", formData.post_id).single()
+
+      if (post && post.author_id !== user.id) {
+        notificationUserId = post.author_id
+        notificationType = "forum_reply"
+      }
+    }
+
     // Create the forum reply
     const { data, error } = await supabase
       .from("forum_replies")
@@ -41,6 +67,25 @@ export async function createForumReply(formData: {
     if (error) {
       console.error("Error creating forum reply:", error)
       return { success: false, error: "Fehler beim Erstellen der Antwort" }
+    }
+
+    if (notificationUserId) {
+      const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
+
+      const authorName = userData?.username || userData?.name || "Ein Nutzer"
+
+      await createNotificationIfEnabled(
+        notificationUserId,
+        notificationType,
+        notificationType === "forum_reply" ? "Neue Antwort auf deinen Beitrag" : "Neue Antwort auf deinen Kommentar",
+        `${authorName} hat auf ${notificationType === "forum_reply" ? "deinen Beitrag" : "deinen Kommentar"} geantwortet`,
+        {
+          post_id: formData.post_id,
+          reply_id: data.id,
+          author_id: user.id,
+          author_name: authorName,
+        },
+      )
     }
 
     // Update replies count on the post

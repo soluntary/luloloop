@@ -67,7 +67,7 @@ import {
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Mail, Bell, Shield, TrendingUp, SettingsIcon } from "lucide-react"
+import { Mail, Bell } from "lucide-react"
 
 export default function ProfilePage() {
   const { user, updateProfile, signOut } = useAuth()
@@ -2164,11 +2164,7 @@ export default function ProfilePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 p-4 md:p-6">
-                  <Accordion
-                    type="multiple"
-                    defaultValue={["social", "messages", "events", "security", "marketing", "advanced"]}
-                    className="w-full"
-                  >
+                  <Accordion type="single" collapsible className="w-full">
                     {/* Soziale Benachrichtigungen */}
                     <AccordionItem value="social" className="border rounded-lg mb-4 px-4">
                       <AccordionTrigger className="hover:no-underline">
@@ -2667,527 +2663,255 @@ export default function ProfilePage() {
                       </AccordionContent>
                     </AccordionItem>
 
-                    {/* Sicherheits-Benachrichtigungen */}
-                    <AccordionItem value="security" className="border rounded-lg mb-4 px-4">
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-red-100 rounded-lg">
-                            <Shield className="h-5 w-5 text-red-600" />
-                          </div>
-                          <div className="text-left">
-                            <h3 className="font-semibold text-base">Sicherheit</h3>
-                            <p className="text-xs text-gray-600">Login, Passwort, verdächtige Aktivitäten</p>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="space-y-4 pt-4">
-                        {/* Login Attempts */}
-                        <div className="space-y-3 pb-4 border-b">
-                          <div>
-                            <Label className="text-sm font-medium">Anmeldeversuche</Label>
-                            <p className="text-xs text-gray-600">Benachrichtigung bei Anmeldeversuchen</p>
-                          </div>
-                          <div className="flex items-center gap-6 ml-4">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.login_attempts?.platform ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange("login_attempts", "platform", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">In-App</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.login_attempts?.email ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange("login_attempts", "email", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">E-Mail</span>
-                            </div>
-                          </div>
-                        </div>
+                    {/* Security - REMOVED AS PER UPDATES */}
+                    {/* <AccordionItem value="security" className="border rounded-lg mb-4 px-4"> */}
+                    {/*   <AccordionTrigger className="hover:no-underline"> */}
+                    {/*     <div className="flex items-center gap-3"> */}
+                    {/*       <div className="p-2 bg-red-100 rounded-lg"> */}
+                    {/*         <Shield className="h-5 w-5 text-red-600" /> */}
+                    {/*       </div> */}
+                    {/*       <div className="text-left"> */}
+                    {/*         <h3 className="font-semibold text-base">Sicherheit</h3> */}
+                    {/*         <p className="text-xs text-gray-600">Login, Passwort, verdächtige Aktivitäten</p> */}
+                    {/*       </div> */}
+                    {/*     </div> */}
+                    {/*   </AccordionTrigger> */}
+                    {/*   <AccordionContent className="space-y-4 pt-4"> */}
+                    {/*     /!* Login Attempts *!/ */}
+                    {/*     <div className="space-y-3 pb-4 border-b"> */}
+                    {/*       <div> */}
+                    {/*         <Label className="text-sm font-medium">Anmeldeversuche</Label> */}
+                    {/*         <p className="text-xs text-gray-600">Benachrichtigung bei Anmeldeversuchen</p> */}
+                    {/*       </div> */}
+                    {/*       <div className="flex items-center gap-6 ml-4"> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.login_attempts?.platform ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange("login_attempts", "platform", e.target.checked) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
+                    {/*         </div> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.login_attempts?.email ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange("login_attempts", "email", e.target.checked) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
+                    {/*         </div> */}
+                    {/*       </div> */}
+                    {/*     </div> */}
 
-                        {/* Password Changes */}
-                        <div className="space-y-3 pb-4 border-b">
-                          <div>
-                            <Label className="text-sm font-medium">Passwortänderungen</Label>
-                            <p className="text-xs text-gray-600">Benachrichtigung bei Passwortänderungen</p>
-                          </div>
-                          <div className="flex items-center gap-6 ml-4">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.password_changes?.platform ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange("password_changes", "platform", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">In-App</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.password_changes?.email ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange("password_changes", "email", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">E-Mail</span>
-                            </div>
-                          </div>
-                        </div>
+                    {/*     /!* Password Changes *!/ */}
+                    {/*     <div className="space-y-3 pb-4 border-b"> */}
+                    {/*       <div> */}
+                    {/*         <Label className="text-sm font-medium">Passwortänderungen</Label> */}
+                    {/*         <p className="text-xs text-gray-600">Benachrichtigung bei Passwortänderungen</p> */}
+                    {/*       </div> */}
+                    {/*       <div className="flex items-center gap-6 ml-4"> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.password_changes?.platform ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange("password_changes", "platform", e.target.checked) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
+                    {/*         </div> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.password_changes?.email ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange("password_changes", "email", e.target.checked) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
+                    {/*         </div> */}
+                    {/*       </div> */}
+                    {/*     </div> */}
 
-                        {/* Email Changes */}
-                        <div className="space-y-3 pb-4 border-b">
-                          <div>
-                            <Label className="text-sm font-medium">E-Mail-Änderungen</Label>
-                            <p className="text-xs text-gray-600">Benachrichtigung bei E-Mail-Änderungen</p>
-                          </div>
-                          <div className="flex items-center gap-6 ml-4">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.email_changes?.platform ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange("email_changes", "platform", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">In-App</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.email_changes?.email ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange("email_changes", "email", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">E-Mail</span>
-                            </div>
-                          </div>
-                        </div>
+                    {/*     /!* Email Changes *!/ */}
+                    {/*     <div className="space-y-3 pb-4 border-b"> */}
+                    {/*       <div> */}
+                    {/*         <Label className="text-sm font-medium">E-Mail-Änderungen</Label> */}
+                    {/*         <p className="text-xs text-gray-600">Benachrichtigung bei E-Mail-Änderungen</p> */}
+                    {/*       </div> */}
+                    {/*       <div className="flex items-center gap-6 ml-4"> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.email_changes?.platform ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange("email_changes", "platform", e.target.checked) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
+                    {/*         </div> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.email_changes?.email ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange("email_changes", "email", e.target.checked) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
+                    {/*         </div> */}
+                    {/*       </div> */}
+                    {/*     </div> */}
 
-                        {/* Suspicious Activity */}
-                        <div className="space-y-3 pb-4 border-b">
-                          <div>
-                            <Label className="text-sm font-medium">Verdächtige Aktivitäten</Label>
-                            <p className="text-xs text-gray-600">Warnung bei verdächtigen Aktivitäten</p>
-                          </div>
-                          <div className="flex items-center gap-6 ml-4">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.suspicious_activity?.platform ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange("suspicious_activity", "platform", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">In-App</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.suspicious_activity?.email ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange("suspicious_activity", "email", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">E-Mail</span>
-                            </div>
-                          </div>
-                        </div>
+                    {/*     /!* Suspicious Activity *!/ */}
+                    {/*     <div className="space-y-3 pb-4 border-b"> */}
+                    {/*       <div> */}
+                    {/*         <Label className="text-sm font-medium">Verdächtige Aktivitäten</Label> */}
+                    {/*         <p className="text-xs text-gray-600">Warnung bei verdächtigen Aktivitäten</p> */}
+                    {/*       </div> */}
+                    {/*       <div className="flex items-center gap-6 ml-4"> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.suspicious_activity?.platform ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange("suspicious_activity", "platform", e.target.checked) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
+                    {/*         </div> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.suspicious_activity?.email ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange("suspicious_activity", "email", e.target.checked) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
+                    {/*         </div> */}
+                    {/*       </div> */}
+                    {/*     </div> */}
 
-                        {/* New Device Login */}
-                        <div className="space-y-3 pb-4 border-b">
-                          <div>
-                            <Label className="text-sm font-medium">Neue Geräteanmeldungen</Label>
-                            <p className="text-xs text-gray-600">Anmeldung von neuen Geräten</p>
-                          </div>
-                          <div className="flex items-center gap-6 ml-4">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.new_device_login?.platform ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange("new_device_login", "platform", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">In-App</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.new_device_login?.email ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange("new_device_login", "email", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">E-Mail</span>
-                            </div>
-                          </div>
-                        </div>
+                    {/*     /!* New Device Login *!/ */}
+                    {/*     <div className="space-y-3 pb-4 border-b"> */}
+                    {/*       <div> */}
+                    {/*         <Label className="text-sm font-medium">Neue Geräteanmeldungen</Label> */}
+                    {/*         <p className="text-xs text-gray-600">Anmeldung von neuen Geräten</p> */}
+                    {/*       </div> */}
+                    {/*       <div className="flex items-center gap-6 ml-4"> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.new_device_login?.platform ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange("new_device_login", "platform", e.target.checked) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
+                    {/*         </div> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.new_device_login?.email ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange("new_device_login", "email", e.target.checked) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
+                    {/*         </div> */}
+                    {/*       </div> */}
+                    {/*     </div> */}
 
-                        {/* Account Recovery */}
-                        <div className="space-y-3 pb-4 border-b">
-                          <div>
-                            <Label className="text-sm font-medium">Kontowiederherstellung</Label>
-                            <p className="text-xs text-gray-600">Informationen zur Kontowiederherstellung</p>
-                          </div>
-                          <div className="flex items-center gap-6 ml-4">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.account_recovery?.platform ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange("account_recovery", "platform", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">In-App</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.account_recovery?.email ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange("account_recovery", "email", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">E-Mail</span>
-                            </div>
-                          </div>
-                        </div>
+                    {/*     /!* Account Recovery *!/ */}
+                    {/*     <div className="space-y-3 pb-4 border-b"> */}
+                    {/*       <div> */}
+                    {/*         <Label className="text-sm font-medium">Kontowiederherstellung</Label> */}
+                    {/*         <p className="text-xs text-gray-600">Informationen zur Kontowiederherstellung</p> */}
+                    {/*       </div> */}
+                    {/*       <div className="flex items-center gap-6 ml-4"> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.account_recovery?.platform ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange("account_recovery", "platform", e.target.checked) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
+                    {/*         </div> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.account_recovery?.email ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange("account_recovery", "email", e.target.checked) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
+                    {/*         </div> */}
+                    {/*       </div> */}
+                    {/*     </div> */}
 
-                        {/* Security Settings Changes */}
-                        <div className="space-y-3">
-                          <div>
-                            <Label className="text-sm font-medium">Änderungen an Sicherheitseinstellungen</Label>
-                            <p className="text-xs text-gray-600">
-                              Benachrichtigung bei Änderungen an Sicherheitseinstellungen
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-6 ml-4">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.security_settings_changes?.platform ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange(
-                                    "security_settings_changes",
-                                    "platform",
-                                    e.target.checked,
-                                  )
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">In-App</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={securityNotificationPrefs.security_settings_changes?.email ?? true}
-                                onChange={(e) =>
-                                  handleSecurityNotificationChange(
-                                    "security_settings_changes",
-                                    "email",
-                                    e.target.checked,
-                                  )
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">E-Mail</span>
-                            </div>
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Marketing-Benachrichtigungen */}
-                    <AccordionItem value="marketing" className="border rounded-lg mb-4 px-4">
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-orange-100 rounded-lg">
-                            <TrendingUp className="h-5 w-5 text-orange-600" />
-                          </div>
-                          <div className="text-left">
-                            <h3 className="font-semibold text-base">Marketing & Updates</h3>
-                            <p className="text-xs text-gray-600">Features, Empfehlungen, Newsletter</p>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="space-y-4 pt-4">
-                        {/* Feature Announcements */}
-                        <div className="space-y-3 pb-4 border-b">
-                          <div>
-                            <Label className="text-sm font-medium">Feature-Ankündigungen</Label>
-                            <p className="text-xs text-gray-600">Neue Features und Updates</p>
-                          </div>
-                          <div className="flex items-center gap-6 ml-4">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={comprehensivePrefs.marketing.feature_announcements?.platform ?? true}
-                                onChange={(e) =>
-                                  handleMarketingNotificationChange(
-                                    "feature_announcements",
-                                    "platform",
-                                    e.target.checked,
-                                  )
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">In-App</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={comprehensivePrefs.marketing.feature_announcements?.email ?? true}
-                                onChange={(e) =>
-                                  handleMarketingNotificationChange("feature_announcements", "email", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">E-Mail</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Game Recommendations */}
-                        <div className="space-y-3 pb-4 border-b">
-                          <div>
-                            <Label className="text-sm font-medium">Spielempfehlungen</Label>
-                            <p className="text-xs text-gray-600">Personalisierte Spielempfehlungen</p>
-                          </div>
-                          <div className="flex items-center gap-6 ml-4">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={comprehensivePrefs.marketing.game_recommendations?.platform ?? true}
-                                onChange={(e) =>
-                                  handleMarketingNotificationChange(
-                                    "game_recommendations",
-                                    "platform",
-                                    e.target.checked,
-                                  )
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">In-App</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={comprehensivePrefs.marketing.game_recommendations?.email ?? true}
-                                onChange={(e) =>
-                                  handleMarketingNotificationChange("game_recommendations", "email", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">E-Mail</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Weekly Digest */}
-                        <div className="space-y-3">
-                          <div>
-                            <Label className="text-sm font-medium">Wöchentlicher Newsletter</Label>
-                            <p className="text-xs text-gray-600">Zusammenfassung der Woche</p>
-                          </div>
-                          <div className="flex items-center gap-6 ml-4">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={comprehensivePrefs.marketing.weekly_digest?.platform ?? true}
-                                onChange={(e) =>
-                                  handleMarketingNotificationChange("weekly_digest", "platform", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">In-App</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={comprehensivePrefs.marketing.weekly_digest?.email ?? true}
-                                onChange={(e) =>
-                                  handleMarketingNotificationChange("weekly_digest", "email", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">E-Mail</span>
-                            </div>
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Erweiterte Einstellungen */}
-                    <AccordionItem value="advanced" className="border rounded-lg mb-4 px-4">
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-gray-100 rounded-lg">
-                            <SettingsIcon className="h-5 w-5 text-gray-600" />
-                          </div>
-                          <div className="text-left">
-                            <h3 className="font-semibold text-base">Erweiterte Einstellungen</h3>
-                            <p className="text-xs text-gray-600">Ruhezeiten, Digest-Modus, Zustellungsmethoden</p>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="space-y-6 pt-4">
-                        {/* Quiet Hours */}
-                        <div className="space-y-3 pb-4 border-b">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-gray-600" />
-                            <Label className="text-sm font-medium">Ruhezeiten</Label>
-                          </div>
-                          <p className="text-xs text-gray-600">Keine Benachrichtigungen während dieser Zeiten</p>
-
-                          <div className="ml-4 space-y-3">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={messageNotificationPrefs.quiet_hours_enabled}
-                                onChange={(e) =>
-                                  handleMessageNotificationChange("quiet_hours_enabled", "platform", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">Ruhezeiten aktivieren</span>
-                            </div>
-
-                            {messageNotificationPrefs.quiet_hours_enabled && (
-                              <div className="flex items-center gap-4 ml-6">
-                                <div className="flex items-center gap-2">
-                                  <Label className="text-xs text-gray-600">Von:</Label>
-                                  <Input
-                                    type="time"
-                                    value={messageNotificationPrefs.quiet_hours_start}
-                                    onChange={(e) =>
-                                      handleMessageNotificationChange("quiet_hours_start", "platform", e.target.value)
-                                    }
-                                    className="w-32 h-8 text-xs"
-                                  />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Label className="text-xs text-gray-600">Bis:</Label>
-                                  <Input
-                                    type="time"
-                                    value={messageNotificationPrefs.quiet_hours_end}
-                                    onChange={(e) =>
-                                      handleMessageNotificationChange("quiet_hours_end", "platform", e.target.value)
-                                    }
-                                    className="w-32 h-8 text-xs"
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Weekend Notifications */}
-                        <div className="space-y-3 pb-4 border-b">
-                          <div>
-                            <Label className="text-sm font-medium">Wochenend-Benachrichtigungen</Label>
-                            <p className="text-xs text-gray-600">Benachrichtigungen am Wochenende erhalten</p>
-                          </div>
-                          <div className="flex items-center gap-6 ml-4">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={messageNotificationPrefs.weekend_notifications?.platform ?? true}
-                                onChange={(e) =>
-                                  handleMessageNotificationChange("weekend_notifications", "platform", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">In-App</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={messageNotificationPrefs.weekend_notifications?.email ?? true}
-                                onChange={(e) =>
-                                  handleMessageNotificationChange("weekend_notifications", "email", e.target.checked)
-                                }
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">E-Mail</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Digest Mode */}
-                        <div className="space-y-3">
-                          <div>
-                            <Label className="text-sm font-medium">Digest-Modus</Label>
-                            <p className="text-xs text-gray-600">Zusammengefasste Benachrichtigungen</p>
-                          </div>
-                          <div className="ml-4 space-y-2">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="radio"
-                                name="digest_mode"
-                                checked={messageNotificationPrefs.instant_notifications}
-                                onChange={() => {
-                                  handleMessageNotificationChange("instant_notifications", "platform", true)
-                                  handleMessageNotificationChange("daily_digest", "platform", false)
-                                  handleMessageNotificationChange("weekly_digest", "platform", false)
-                                }}
-                                className="rounded-full border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">Sofort (jede Benachrichtigung einzeln)</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="radio"
-                                name="digest_mode"
-                                checked={messageNotificationPrefs.daily_digest}
-                                onChange={() => {
-                                  handleMessageNotificationChange("instant_notifications", "platform", false)
-                                  handleMessageNotificationChange("daily_digest", "platform", true)
-                                  handleMessageNotificationChange("weekly_digest", "platform", false)
-                                }}
-                                className="rounded-full border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">Täglich (einmal pro Tag zusammengefasst)</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="radio"
-                                name="digest_mode"
-                                checked={messageNotificationPrefs.weekly_digest}
-                                onChange={() => {
-                                  handleMessageNotificationChange("instant_notifications", "platform", false)
-                                  handleMessageNotificationChange("daily_digest", "platform", false)
-                                  handleMessageNotificationChange("weekly_digest", "platform", true)
-                                }}
-                                className="rounded-full border-gray-300"
-                              />
-                              <span className="text-xs text-gray-600">
-                                Wöchentlich (einmal pro Woche zusammengefasst)
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
+                    {/*     /!* Security Settings Changes *!/ */}
+                    {/*     <div className="space-y-3"> */}
+                    {/*       <div> */}
+                    {/*         <Label className="text-sm font-medium">Änderungen an Sicherheitseinstellungen</Label> */}
+                    {/*         <p className="text-xs text-gray-600"> */}
+                    {/*           Benachrichtigung bei Änderungen an Sicherheitseinstellungen */}
+                    {/*         </p> */}
+                    {/*       </div> */}
+                    {/*       <div className="flex items-center gap-6 ml-4"> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.security_settings_changes?.platform ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange( */}
+                    {/*                 "security_settings_changes", */}
+                    {/*                 "platform", */}
+                    {/*                 e.target.checked, */}
+                    {/*               ) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
+                    {/*         </div> */}
+                    {/*         <div className="flex items-center gap-2"> */}
+                    {/*           <input */}
+                    {/*             type="checkbox" */}
+                    {/*             checked={securityNotificationPrefs.security_settings_changes?.email ?? true} */}
+                    {/*             onChange={(e) => */}
+                    {/*               handleSecurityNotificationChange( */}
+                    {/*                 "security_settings_changes", */}
+                    {/*                 "email", */}
+                    {/*                 e.target.checked, */}
+                    {/*               ) */}
+                    {/*             } */}
+                    {/*             className="rounded border-gray-300" */}
+                    {/*           /> */}
+                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
+                    {/*         </div> */}
+                    {/*       </div> */}
+                    {/*     </div> */}
+                    {/*   </AccordionContent> */}
+                    {/* </AccordionItem> */}
                   </Accordion>
                 </CardContent>
               </Card>
