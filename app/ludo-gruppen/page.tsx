@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -51,14 +51,11 @@ import { useLocationSearch } from "@/contexts/location-search-context"
 import { DistanceBadge } from "@/components/distance-badge"
 import { LocationMap } from "@/components/location-map"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
-import { ExpandableDescription } from "@/components/expandable-description"
 
 // Added for polls
 import { CreatePollDialog } from "@/components/create-poll-dialog"
 import { PollCard } from "@/components/poll-card"
 import { getCommunityPollsAction, type Poll } from "@/app/actions/community-polls"
-
-// import { createNotificationIfEnabled } from "@/app/actions/notification-helpers" // Remove this import - server actions cannot be imported in client components
 
 interface LudoGroup {
   id: string
@@ -356,17 +353,18 @@ export default function LudoGruppenPage() {
 
       const userName = user.user_metadata?.name || user.user_metadata?.preferred_username || "Ein Mitglied"
 
-      // This call is removed as createNotificationIfEnabled is not available in client components
-      // await createNotificationIfEnabled(
-      //   data.creator_id,
-      //   "group_created",
-      //   "Neue Spielgruppe erstellt",
-      //   `Deine Spielgruppe "${data.name}" wurde erfolgreich erstellt!`,
-      //   {
-      //     group_id: data.id,
-      //     group_name: data.name,
-      //   },
-      // )
+      await supabase.from("notifications").insert({
+        user_id: data.creator_id,
+        type: "group_created",
+        title: "Neue Spielgruppe erstellt",
+        message: `Deine Spielgruppe "${data.name}" wurde erfolgreich erstellt!`,
+        data: {
+          group_id: data.id,
+          group_name: data.name,
+        },
+        read: false,
+        created_at: new Date().toISOString(),
+      })
 
       toast.success("Viel Spass! Deine Spielgruppe wurde erstellt!")
       setIsCreateDialogOpen(false)
@@ -437,19 +435,20 @@ export default function LudoGruppenPage() {
         const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
         const userName = userData?.username || userData?.name || "Ein Mitglied"
 
-        // This call is removed as createNotificationIfEnabled is not available in client components
-        // await createNotificationIfEnabled(
-        //   group.creator_id,
-        //   "group_join",
-        //   "Neues Mitglied",
-        //   `${userName} ist deiner Spielgruppe "${group.name}" beigetreten`,
-        //   {
-        //     group_id: group.id,
-        //     group_name: group.name,
-        //     member_id: user.id,
-        //     member_name: userName,
-        //   },
-        // )
+        await supabase.from("notifications").insert({
+          user_id: group.creator_id,
+          type: "group_join",
+          title: "Neues Mitglied",
+          message: `${userName} ist deiner Spielgruppe "${group.name}" beigetreten`,
+          data: {
+            group_id: group.id,
+            group_name: group.name,
+            member_id: user.id,
+            member_name: userName,
+          },
+          read: false,
+          created_at: new Date().toISOString(),
+        })
 
         loadLudoGroups()
       } else {
@@ -492,19 +491,20 @@ export default function LudoGruppenPage() {
         const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
         const userName = userData?.username || userData?.name || "Ein Mitglied"
 
-        // This call is removed as createNotificationIfEnabled is not available in client components
-        // await createNotificationIfEnabled(
-        //   group.creator_id,
-        //   "group_join_request",
-        //   "Neue Beitrittsanfrage",
-        //   `${userName} möchte deiner Spielgruppe "${group.name}" beitreten`,
-        //   {
-        //     group_id: group.id,
-        //     group_name: group.name,
-        //     requester_id: user.id,
-        //     requester_name: userName,
-        //   },
-        // )
+        await supabase.from("notifications").insert({
+          user_id: group.creator_id,
+          type: "group_join_request",
+          title: "Neue Beitrittsanfrage",
+          message: `${userName} möchte deiner Spielgruppe "${group.name}" beitreten`,
+          data: {
+            group_id: group.id,
+            group_name: group.name,
+            requester_id: user.id,
+            requester_name: userName,
+          },
+          read: false,
+          created_at: new Date().toISOString(),
+        })
 
         loadJoinRequests()
       }
@@ -540,19 +540,20 @@ export default function LudoGruppenPage() {
       const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
       const userName = userData?.username || userData?.name || "Ein Mitglied"
 
-      // This call is removed as createNotificationIfEnabled is not available in client components
-      // await createNotificationIfEnabled({
-      //   userId: group.creator_id,
-      //   type: "group_leave",
-      //   title: "Mitglied hat Gruppe verlassen",
-      //   message: `${userName} hat deine Spielgruppe "${group.name}" verlassen`,
-      //   data: {
-      //     group_id: group.id,
-      //     group_name: group.name,
-      //     member_id: user.id,
-      //     member_name: userName,
-      //   },
-      // })
+      await supabase.from("notifications").insert({
+        user_id: group.creator_id,
+        type: "group_leave",
+        title: "Mitglied hat Gruppe verlassen",
+        message: `${userName} hat deine Spielgruppe "${group.name}" verlassen`,
+        data: {
+          group_id: group.id,
+          group_name: group.name,
+          member_id: user.id,
+          member_name: userName,
+        },
+        read: false,
+        created_at: new Date().toISOString(),
+      })
 
       loadLudoGroups()
     } catch (error) {
@@ -624,19 +625,20 @@ export default function LudoGruppenPage() {
           const userName = requestDetails.users.username || requestDetails.users.name || "Ein Mitglied"
           const groupName = requestDetails.communities.name || "unbekannte Gruppe"
 
-          // This call is removed as createNotificationIfEnabled is not available in client components
-          // await createNotificationIfEnabled(
-          //   requestDetails.users.id,
-          //   "group_join_approved",
-          //   "Beitritt genehmigt",
-          //   `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde genehmigt!`,
-          //   {
-          //     group_id: result.communityId, // result.communityId is now available from handleJoinRequestAction
-          //     group_name: groupName,
-          //     member_id: requestDetails.users.id,
-          //     member_name: userName,
-          //   },
-          // )
+          await supabase.from("notifications").insert({
+            user_id: requestDetails.users.id,
+            type: "group_join_approved",
+            title: "Beitritt genehmigt",
+            message: `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde genehmigt!`,
+            data: {
+              group_id: result.communityId, // result.communityId is now available from handleJoinRequestAction
+              group_name: groupName,
+              member_id: requestDetails.users.id,
+              member_name: userName,
+            },
+            read: false,
+            created_at: new Date().toISOString(),
+          })
         }
       } else {
         toast.success("Beitrittsanfrage abgelehnt.")
@@ -654,19 +656,20 @@ export default function LudoGruppenPage() {
           const userName = requestDetails.users.username || requestDetails.users.name || "Ein Mitglied"
           const groupName = requestDetails.communities.name || "unbekannte Gruppe"
 
-          // This call is removed as createNotificationIfEnabled is not available in client components
-          // await createNotificationIfEnabled(
-          //   requestDetails.users.id,
-          //   "group_join_rejected",
-          //   "Beitritt abgelehnt",
-          //   `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde abgelehnt.`,
-          //   {
-          //     group_id: result.communityId,
-          //     group_name: groupName,
-          //     member_id: requestDetails.users.id,
-          //     member_name: userName,
-          //   },
-          // )
+          await supabase.from("notifications").insert({
+            user_id: requestDetails.users.id,
+            type: "group_join_rejected",
+            title: "Beitritt abgelehnt",
+            message: `Deine Beitrittsanfrage für die Spielgruppe "${groupName}" wurde abgelehnt.`,
+            data: {
+              group_id: result.communityId,
+              group_name: groupName,
+              member_id: requestDetails.users.id,
+              member_name: userName,
+            },
+            read: false,
+            created_at: new Date().toISOString(),
+          })
         }
       }
 
@@ -1194,9 +1197,9 @@ export default function LudoGruppenPage() {
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <CardTitle className="font-handwritten text-lg text-gray-800 mb-1 group-hover:text-teal-600 transition-colors">
+                            <h3 className="text-lg font-handwritten font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">
                               {group.name}
-                            </CardTitle>
+                            </h3>
                             <div className="flex items-center gap-2 text-sm text-gray-500 mb-2"></div>
                           </div>
                           {group.distance !== undefined && <DistanceBadge distance={group.distance} className="ml-2" />}
@@ -1653,34 +1656,38 @@ export default function LudoGruppenPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                  <span className="text-sm text-gray-600">Erstellt von</span>
+                {/** rest of code here **/}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-5 w-5">
+                    <span className="text-sm text-gray-600 font-medium">Erstellt von</span>
+                    <Avatar className="h-8 w-8">
                       <AvatarImage src={selectedGroup.users?.avatar || "/placeholder.svg"} />
-                      <AvatarFallback>{selectedGroup.users?.username?.[0]?.toUpperCase()}</AvatarFallback>
+                      <AvatarFallback className="text-sm">
+                        {selectedGroup.users?.username?.[0]?.toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <UserLink userId={selectedGroup.users?.id || ""} username={selectedGroup.users?.username || ""}>
-                        <p className="text-sm hover:text-teal-600 cursor-pointer transition-colors">
-                          {selectedGroup.users?.username}
-                        </p>
-                      </UserLink>
-                    </div>
+                    <UserLink
+                      userId={selectedGroup.users?.id || ""}
+                      className="text-gray-800 hover:text-teal-600 transition-colors"
+                    >
+                      <span className="font-medium hover:text-teal-600 cursor-pointer transition-colors text-gray-600">
+                        {selectedGroup.users?.username}
+                      </span>
+                    </UserLink>
                   </div>
                 </div>
 
                 {selectedGroup.description && (
                   <div>
-                    <h4 className="text-gray-800 mb-2 font-semibold">Beschreibung</h4>
-                    <ExpandableDescription text={selectedGroup.description} />
+                    <h4 className="mb-2 font-semibold text-black">Beschreibung</h4>
+                    <p className="text-gray-600 text-sm">{selectedGroup.description}</p>
                   </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center gap-2 text-sm">
                     <Users className="h-4 w-4 text-teal-600" />
-                    <span className="text-gray-600">{formatMemberCount(selectedGroup)}</span>
+                    <span className="text-gray-600 text-sm">{formatMemberCount(selectedGroup)}</span>
                   </div>
                   {selectedGroup.location && (
                     <div className="col-span-2 flex items-center gap-2 text-sm">

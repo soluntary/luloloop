@@ -28,7 +28,7 @@ export function ExpandableDescription({ text, className = "" }: ExpandableDescri
     <div className={className}>
       <p
         ref={textRef}
-        className={`text-gray-700 leading-relaxed whitespace-pre-wrap ${
+        className={`text-gray-600 text-sm ${
           !isExpanded && showButton ? "line-clamp-2" : ""
         }`}
       >

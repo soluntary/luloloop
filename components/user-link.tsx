@@ -21,7 +21,7 @@ export function UserLink({ userId, children, className = "", showName = false }:
     <>
       <button
         onClick={() => setIsModalOpen(true)}
-        className={`text-teal-600 hover:text-teal-700 hover:underline cursor-pointer transition-colors font-normal ${className}`}
+        className={`border-foreground bg-card text-sm font-normal text-black opacity-100 leading-7 ${className}`}
       >
         {children || (showName ? displayName : userId)}
       </button>

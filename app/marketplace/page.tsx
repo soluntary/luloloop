@@ -81,6 +81,7 @@ export default function MarketplacePage() {
     language: "",
     category: "",
     style: "",
+    condition: "",
   })
 
   const [locationSearchResults, setLocationSearchResults] = useState<any[]>([])
@@ -190,6 +191,9 @@ export default function MarketplacePage() {
         (item.itemType === "offer" && item.category?.toLowerCase().includes(filters.category.toLowerCase()))
       const matchesStyle =
         !filters.style || (item.itemType === "offer" && item.style?.toLowerCase().includes(filters.style.toLowerCase()))
+      const matchesCondition =
+        !filters.condition ||
+        (item.itemType === "offer" && item.condition?.toLowerCase().includes(filters.condition.toLowerCase()))
 
       return (
         matchesSearch &&
@@ -199,7 +203,8 @@ export default function MarketplacePage() {
         matchesAge &&
         matchesLanguage &&
         matchesCategory &&
-        matchesStyle
+        matchesStyle &&
+        matchesCondition
       )
     })
     .sort((a, b) => {
@@ -569,7 +574,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
     }
 
     // For non-lending offers, return the price as is
-    return <span className="text-foreground">{priceString}</span>
+    return <span className="text-foreground font-semibold text-sm">{priceString}</span>
   }
 
   useEffect(() => {
@@ -640,8 +645,12 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
     console.log("[v0] Database connection error, showing fallback content")
   }
 
-  const getUniqueFilterValues = () => {
-    const offers = marketplaceOffers.filter((offer) => offer.itemType !== "search")
+  const getUniqueFilterValues = (offersToFilter: typeof marketplaceOffers) => {
+    const offers = offersToFilter.filter((offer) => offer.itemType !== "search")
+
+    console.log("[v0] getUniqueFilterValues - total offers:", offersToFilter.length)
+    console.log("[v0] getUniqueFilterValues - filtered offers (excluding search):", offers.length)
+    console.log("[v0] getUniqueFilterValues - sample offer:", offers[0])
 
     const playerCounts = [...new Set(offers.map((offer) => offer.players).filter(Boolean))]
     const durations = [...new Set(offers.map((offer) => offer.duration).filter(Boolean))]
@@ -649,6 +658,17 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
     const languages = [...new Set(offers.map((offer) => offer.language).filter(Boolean))]
     const categories = [...new Set(offers.map((offer) => offer.category).filter(Boolean))]
     const styles = [...new Set(offers.map((offer) => offer.style).filter(Boolean))]
+    const conditions = [...new Set(offers.map((offer) => offer.condition).filter(Boolean))]
+
+    console.log("[v0] Extracted filter values:", {
+      playerCounts,
+      durations,
+      ages,
+      languages,
+      categories,
+      styles,
+      conditions,
+    })
 
     return {
       playerCounts: playerCounts.sort(),
@@ -657,12 +677,27 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
       languages: languages.sort(),
       categories: categories.sort(),
       styles: styles.sort(),
+      conditions: conditions.sort(),
     }
   }
 
-  const dynamicFilterOptions = getUniqueFilterValues()
+  const baseFilteredOffers = marketplaceOffers.filter((offer) => {
+    const matchesSearch =
+      searchTerm === "" ||
+      offer.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      offer.description?.toLowerCase().includes(searchTerm.toLowerCase())
 
-  // Removed redundant loadSearchAds call from here as it's now handled by useEffect
+    const matchesType = selectedType === "all" || offer.type === selectedType
+
+    return matchesSearch && matchesType
+  })
+
+  console.log("[v0] baseFilteredOffers count:", baseFilteredOffers.length)
+  console.log("[v0] searchTerm:", searchTerm, "selectedType:", selectedType)
+
+  const dynamicFilterOptions = getUniqueFilterValues(baseFilteredOffers)
+
+  console.log("[v0] dynamicFilterOptions:", dynamicFilterOptions)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
@@ -827,6 +862,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         language: "",
                         category: "",
                         style: "",
+                        condition: "",
                       })
                       setShowLocationResults(false)
                       setLocationSearchResults([])
@@ -984,6 +1020,29 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         </SelectContent>
                       </Select>
                     </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Zustand</Label>
+                      <Select
+                        value={filters.condition}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({ ...prev, condition: value === "all" ? "" : value }))
+                        }
+                        disabled={!databaseConnected}
+                      >
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                          <SelectValue placeholder="Alle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Alle</SelectItem>
+                          {dynamicFilterOptions.conditions.map((condition) => (
+                            <SelectItem key={condition} value={condition}>
+                              {condition}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1040,7 +1099,9 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                           <div className="p-4">
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex-1">
-                                <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{item.title}</h3>
+                                <h3 className="text-lg font-bold font-handwritten text-gray-900 mb-1 line-clamp-1 group-hover:text-teal-600 transition-colors">
+                                  {item.title}
+                                </h3>
                                 <p className="text-gray-500 text-xs mb-3">{item.publisher}</p>
                               </div>
                               {item.distance !== undefined && (
@@ -1183,7 +1244,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 alt={selectedOffer?.title}
                 className="w-24 h-32 mx-auto rounded-lg shadow-lg mb-4"
               />
-              <h3 className="text-lg font-bold text-gray-800 mb-2 font-handwritten">{selectedOffer?.title}</h3>
+              <h3 className="font-handwritten text-2xl text-gray-800 mb-2">{selectedOffer?.title}</h3>
               <p className="text-gray-600 font-body">
                 {getTypeText(selectedOffer?.type || "")} - {selectedOffer?.price}
               </p>
@@ -1291,7 +1352,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
       <Dialog open={isOfferDetailsOpen} onOpenChange={setIsOfferDetailsOpen}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-center text-gray-900">
+            <DialogTitle className="font-handwritten text-2xl text-gray-800 mb-2">
               {selectedOfferDetails?.title}
             </DialogTitle>
           </DialogHeader>
@@ -1344,7 +1405,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 </div>
                 <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
                   <p className="text-sm text-slate-500 mb-2">Zustand</p>
-                  <p className="font-semibold text-slate-900 text-sm">
+                  <p className="font-semibold text-sm text-foreground">
                     {selectedOfferDetails.condition || "Nicht angegeben"}
                   </p>
                 </div>
@@ -1402,14 +1463,14 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               {/* Description */}
               {selectedOfferDetails.description && (
                 <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Beschreibung</h3>
+                  <h3 className="text-lg font-semibold mb-4 text-black">BESCHREIBUNG</h3>
                   <ExpandableDescription text={selectedOfferDetails.description} />
                 </div>
               )}
 
               {/* Provider */}
               <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">ANBIETER</h3>
+                <h3 className="text-lg font-semibold mb-4">ANBIETER</h3>
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 border-2 border-slate-200">
                     <img
@@ -1458,17 +1519,19 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               {/* Delivery Options */}
               {(selectedOfferDetails.pickup_available || selectedOfferDetails.shipping_available) && (
                 <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                  <h4 className="text-lg font-semibold text-slate-900 mb-4">
-                    Der/die Spielanbieter/-in bietet folgende Option(en) an:
+                  <h4 className="text-lg font-semibold mb-4 border-foreground">
+                    DER/DIE SPIELANBIETER/-IN BIETET FOLGENDE OPTION(EN) AN:
                   </h4>
                   <div className="space-y-3">
                     {selectedOfferDetails.pickup_available && (
                       <div className="bg-slate-50 p-4 rounded-xl">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-slate-900 font-medium">📍 Abholung</span>
+                          <span className="text-slate-900 text-sm font-semibold">📍 Abholung</span>
                         </div>
                         {selectedOfferDetails.pickup_address && (
-                          <p className="text-sm text-slate-600">Bei: {selectedOfferDetails.pickup_address}</p>
+                          <p className="text-slate-600 font-normal text-sm">
+                            Bei: {selectedOfferDetails.pickup_address}
+                          </p>
                         )}
                       </div>
                     )}
@@ -1480,9 +1543,9 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     {selectedOfferDetails.shipping_available && (
                       <div className="bg-slate-50 p-4 rounded-xl">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-slate-900 font-medium">📦 Versand</span>
+                          <span className="text-slate-900 font-semibold text-sm">📦 Versand</span>
                         </div>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-slate-600 text-sm">
                           Kosten zu deinen Lasten. Weitere Details mit dem/der Spielanbieter/-in besprechen.
                         </p>
                       </div>

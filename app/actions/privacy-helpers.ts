@@ -2,138 +2,114 @@
 
 import { createClient } from "@/lib/supabase/server"
 
-/**
- * Checks if a user can send a friend request to another user
- */
-export async function canSendFriendRequest(senderId: string, recipientId: string): Promise<boolean> {
+export async function canSendFriendRequest(
+  fromUserId: string,
+  toUserId: string,
+): Promise<{ allowed: boolean; reason?: string }> {
   const supabase = await createClient()
 
-  try {
-    const { data: recipientSettings, error } = await supabase
-      .from("users")
-      .select("settings")
-      .eq("id", recipientId)
-      .single()
+  // Get the target user's privacy settings
+  const { data: targetUser, error } = await supabase.from("users").select("settings").eq("id", toUserId).single()
 
-    if (error) {
-      console.error(`[v0] Error checking friend request permissions:`, error)
-      return true
-    }
-
-    const allowFriendRequests = recipientSettings?.settings?.privacy?.allow_friend_requests ?? true
-    return allowFriendRequests
-  } catch (error) {
-    console.error(`[v0] Error in canSendFriendRequest:`, error)
-    return true
+  if (error || !targetUser) {
+    return { allowed: false, reason: "Benutzer nicht gefunden" }
   }
+
+  const allowFriendRequests = targetUser.settings?.privacy?.allow_friend_requests ?? true
+
+  if (!allowFriendRequests) {
+    return { allowed: false, reason: "Dieser Benutzer akzeptiert keine Freundschaftsanfragen" }
+  }
+
+  return { allowed: true }
 }
 
-/**
- * Checks if a user can send a message to another user
- * Based on the recipient's message privacy settings
- */
-export async function canSendMessage(senderId: string, recipientId: string): Promise<boolean> {
+export async function canSendMessage(
+  fromUserId: string,
+  toUserId: string,
+): Promise<{ allowed: boolean; reason?: string }> {
   const supabase = await createClient()
 
-  try {
-    const { data: recipientSettings, error } = await supabase
-      .from("users")
-      .select("settings")
-      .eq("id", recipientId)
-      .single()
+  // Get the target user's privacy settings
+  const { data: targetUser, error } = await supabase.from("users").select("settings").eq("id", toUserId).single()
 
-    if (error) {
-      console.error(`[v0] Error checking message permissions:`, error)
-      return true
-    }
-
-    const allowMessagesFrom = recipientSettings?.settings?.privacy?.allow_messages_from || "everyone"
-
-    if (allowMessagesFrom === "everyone") {
-      return true
-    }
-
-    if (allowMessagesFrom === "nobody") {
-      return false
-    }
-
-    if (allowMessagesFrom === "friends") {
-      const { data: friendship, error: friendshipError } = await supabase
-        .from("friendships")
-        .select("id")
-        .or(`user_id.eq.${senderId},friend_id.eq.${senderId}`)
-        .or(`user_id.eq.${recipientId},friend_id.eq.${recipientId}`)
-        .eq("status", "accepted")
-        .maybeSingle()
-
-      if (friendshipError) {
-        console.error(`[v0] Error checking friendship:`, friendshipError)
-        return true
-      }
-
-      return !!friendship
-    }
-
-    return true
-  } catch (error) {
-    console.error(`[v0] Error in canSendMessage:`, error)
-    return true
+  if (error || !targetUser) {
+    return { allowed: false, reason: "Benutzer nicht gefunden" }
   }
+
+  const allowMessagesFrom = targetUser.settings?.privacy?.allow_messages_from ?? "everyone"
+
+  if (allowMessagesFrom === "nobody") {
+    return { allowed: false, reason: "Dieser Benutzer akzeptiert keine Nachrichten" }
+  }
+
+  if (allowMessagesFrom === "friends") {
+    // Check if they are friends
+    const { data: friendship } = await supabase
+      .from("friends")
+      .select("id")
+      .eq("user_id", toUserId)
+      .eq("friend_id", fromUserId)
+      .eq("status", "active")
+      .maybeSingle()
+
+    if (!friendship) {
+      return { allowed: false, reason: "Dieser Benutzer akzeptiert nur Nachrichten von Freunden" }
+    }
+  }
+
+  return { allowed: true }
 }
 
-/**
- * Checks if a user can view another user's profile
- * Based on the profile visibility settings
- */
-export async function canViewProfile(viewerId: string, profileOwnerId: string): Promise<boolean> {
-  if (viewerId === profileOwnerId) {
-    return true
-  }
-
+export async function canViewProfile(
+  viewerId: string | null,
+  profileUserId: string,
+): Promise<{ allowed: boolean; reason?: string }> {
   const supabase = await createClient()
 
-  try {
-    const { data: profileSettings, error } = await supabase
-      .from("users")
-      .select("settings")
-      .eq("id", profileOwnerId)
-      .single()
+  // Get the profile user's privacy settings
+  const { data: profileUser, error } = await supabase.from("users").select("settings").eq("id", profileUserId).single()
 
-    if (error) {
-      console.error(`[v0] Error checking profile visibility:`, error)
-      return true
-    }
-
-    const profileVisibility = profileSettings?.settings?.privacy?.profile_visibility || "public"
-
-    if (profileVisibility === "public") {
-      return true
-    }
-
-    if (profileVisibility === "private") {
-      return false
-    }
-
-    if (profileVisibility === "friends") {
-      const { data: friendship, error: friendshipError } = await supabase
-        .from("friendships")
-        .select("id")
-        .or(`user_id.eq.${viewerId},friend_id.eq.${viewerId}`)
-        .or(`user_id.eq.${profileOwnerId},friend_id.eq.${profileOwnerId}`)
-        .eq("status", "accepted")
-        .maybeSingle()
-
-      if (friendshipError) {
-        console.error(`[v0] Error checking friendship:`, friendshipError)
-        return true
-      }
-
-      return !!friendship
-    }
-
-    return true
-  } catch (error) {
-    console.error(`[v0] Error in canViewProfile:`, error)
-    return true
+  if (error || !profileUser) {
+    return { allowed: false, reason: "Benutzer nicht gefunden" }
   }
+
+  const profileVisibility = profileUser.settings?.privacy?.profile_visibility ?? "public"
+
+  // If profile is public, anyone can view
+  if (profileVisibility === "public") {
+    return { allowed: true }
+  }
+
+  // If no viewer (not logged in), can't view non-public profiles
+  if (!viewerId) {
+    return { allowed: false, reason: "Dieses Profil ist nicht öffentlich" }
+  }
+
+  // If viewing own profile, always allowed
+  if (viewerId === profileUserId) {
+    return { allowed: true }
+  }
+
+  // If profile is private, only the owner can view
+  if (profileVisibility === "private") {
+    return { allowed: false, reason: "Dieses Profil ist privat" }
+  }
+
+  // If profile is friends-only, check friendship
+  if (profileVisibility === "friends") {
+    const { data: friendship } = await supabase
+      .from("friends")
+      .select("id")
+      .eq("user_id", profileUserId)
+      .eq("friend_id", viewerId)
+      .eq("status", "active")
+      .maybeSingle()
+
+    if (!friendship) {
+      return { allowed: false, reason: "Dieses Profil ist nur für Freunde sichtbar" }
+    }
+  }
+
+  return { allowed: true }
 }

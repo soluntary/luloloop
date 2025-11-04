@@ -43,9 +43,32 @@ export async function updateSession(request: NextRequest) {
 
     // IMPORTANT: If you remove getUser() and you use server-side rendering
     // with the Supabase client, your users may be randomly logged out.
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+
+    let user = null
+    try {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser()
+      user = authUser
+    } catch (error: any) {
+      // If the error is about an invalid refresh token, clear the auth cookies
+      if (error?.message?.includes("refresh_token_not_found") || error?.message?.includes("Invalid Refresh Token")) {
+        // Clear all Supabase auth cookies
+        const authCookies = ["sb-access-token", "sb-refresh-token"]
+        authCookies.forEach((cookieName) => {
+          supabaseResponse.cookies.delete(cookieName)
+        })
+        // Also clear cookies with the Supabase project reference
+        request.cookies.getAll().forEach((cookie) => {
+          if (cookie.name.startsWith("sb-") && cookie.name.includes("auth-token")) {
+            supabaseResponse.cookies.delete(cookie.name)
+          }
+        })
+      } else {
+        // For other errors, log them but don't throw
+        console.error("[v0] Middleware: Error getting user:", error)
+      }
+    }
 
     const protectedPaths = ["/messages", "/profile"]
 

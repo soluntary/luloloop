@@ -4,7 +4,7 @@ import type React from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -13,7 +13,8 @@ import {
   Search,
   Plus,
   MapPin,
-  CalendarDaysIcon,Calendar,
+  CalendarDaysIcon,
+  Calendar,
   Clock,
   UserPlus,
   MessageCircle,
@@ -24,7 +25,8 @@ import {
   Dices,
   UserCheck,
   Spade,
-  CalendarPlus2Icon,CalendarSearch as CalendarSync,
+  CalendarPlus2Icon,
+  CalendarSearch as CalendarSync,
   ChevronDown,
   UserRoundCheck,
   UserRoundCog,
@@ -136,6 +138,53 @@ export default function LudoEventsPage() {
 
   const supabase = createClient()
 
+  const getNextUpcomingDate = (event: any, dates?: Array<{ event_date: string; start_time?: string }>) => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+
+    if (dates && dates.length > 0) {
+      const upcomingDate = dates.find((d) => {
+        const dateObj = new Date(d.event_date)
+        dateObj.setHours(0, 0, 0, 0)
+        return dateObj >= now
+      })
+
+      if (upcomingDate) {
+        return upcomingDate
+      }
+      return dates[0]
+    }
+
+    if (event.first_instance_date) {
+      const firstDate = new Date(event.first_instance_date)
+      firstDate.setHours(0, 0, 0, 0)
+
+      return {
+        event_date: event.first_instance_date,
+        start_time: event.start_time,
+      }
+    }
+
+    return null
+  }
+
+  const isNextUpcomingDate = (dateStr: string) => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+
+    const eventDate = new Date(dateStr)
+    eventDate.setHours(0, 0, 0, 0)
+
+    // Check if this is the first date that is today or in the future
+    const upcomingDate = additionalDates.find((date) => {
+      const d = new Date(date.event_date)
+      d.setHours(0, 0, 0, 0)
+      return d >= now
+    })
+
+    return upcomingDate && upcomingDate.event_date === dateStr
+  }
+
   useEffect(() => {
     loadEvents()
 
@@ -174,8 +223,6 @@ export default function LudoEventsPage() {
 
   const loadEvents = async () => {
     try {
-      console.log("[v0] Loading ludo events...")
-
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
@@ -310,8 +357,6 @@ export default function LudoEventsPage() {
 
         setEvents(eventsWithCounts)
       }
-
-      console.log("[v0] Events loaded successfully:", processedEvents.length)
     } catch (error) {
       console.error("[v0] Error in loadEvents:", error)
     } finally {
@@ -321,8 +366,6 @@ export default function LudoEventsPage() {
 
   const loadAdditionalDates = async (eventId: string) => {
     try {
-      console.log("[v0] Loading additional dates for event:", eventId)
-
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
@@ -335,9 +378,6 @@ export default function LudoEventsPage() {
 
       if (error) throw error
 
-      console.log("[v0] Loaded event instances from database:", data)
-      console.log("[v0] Number of instances loaded:", data?.length || 0)
-
       const instancesWithCounts = await Promise.all(
         (data || []).map(async (instance) => {
           const { count } = await supabase
@@ -345,8 +385,6 @@ export default function LudoEventsPage() {
             .select("*", { count: "exact", head: true })
             .eq("instance_id", instance.id)
             .eq("status", "registered")
-
-          console.log(`[v0] Instance ${instance.id} has ${count} participants`)
 
           return {
             event_date: instance.instance_date,
@@ -359,7 +397,6 @@ export default function LudoEventsPage() {
         }),
       )
 
-      console.log("[v0] All dates from ludo_event_instances (sorted):", instancesWithCounts)
       setAdditionalDates(instancesWithCounts)
     } catch (error) {
       console.error("[v0] Error loading additional dates:", error)
@@ -368,23 +405,11 @@ export default function LudoEventsPage() {
   }
 
   const handleJoinEvent = async (event: LudoEvent) => {
-    console.log("[v0] handleJoinEvent called for event:", event.id, event.title)
-
     if (!user) {
-      console.log("[v0] No user logged in, redirecting to login")
       toast.info("Bitte melde dich an, um an Events teilzunehmen")
       window.location.href = "/login"
       return
     }
-
-    console.log("[v0] User logged in:", user.id)
-    console.log("[v0] Event details:", {
-      frequency: event.frequency,
-      has_additional_dates: event.has_additional_dates,
-      approval_mode: event.approval_mode,
-      max_participants: event.max_participants,
-      participant_count: event.participant_count,
-    })
 
     const isRecurring =
       event.frequency === "regular" ||
@@ -397,35 +422,23 @@ export default function LudoEventsPage() {
       event.frequency === "andere"
 
     if (isRecurring && event.has_additional_dates) {
-      console.log("[v0] Opening date selection dialog for recurring event")
       setDateSelectionEvent(event)
       setIsDateSelectionOpen(true)
       return
     }
 
     if (event.approval_mode === "manual") {
-      console.log("[v0] Opening join dialog for manual approval event")
       setJoinEvent(event)
       setJoinMessage("")
       setIsJoinDialogOpen(true)
       return
     }
 
-    console.log("[v0] Processing direct participation for automatic approval event")
     await processJoinEvent(event, "")
   }
 
   const processJoinEvent = async (event: LudoEvent, message = "", selectedEventDates: string[] = []) => {
-    console.log("[v0] processJoinEvent called:", {
-      event_id: event.id,
-      event_title: event.title,
-      message,
-      selectedEventDates,
-      user_id: user?.id,
-    })
-
     if (!user) {
-      console.log("[v0] No user in processJoinEvent, aborting")
       return
     }
 
@@ -440,7 +453,6 @@ export default function LudoEventsPage() {
         .maybeSingle()
 
       if (existingParticipant) {
-        console.log("[v0] User is already registered for this event or has a pending status")
         toast.dismiss(loadingToast)
         if (existingParticipant.status === "approved") {
           toast.info("Du bist bereits für dieses Event angemeldet")
@@ -453,14 +465,12 @@ export default function LudoEventsPage() {
       }
 
       if (event.frequency === "single" && event.max_participants && event.participant_count >= event.max_participants) {
-        console.log("[v0] Event is full, cannot join")
         toast.dismiss(loadingToast)
         toast.error("Das Event ist bereits ausgebucht")
         return
       }
 
       if (event.approval_mode === "manual") {
-        console.log("[v0] Creating join request for manual approval")
         const { data: existingRequest } = await supabase
           .from("ludo_event_join_requests")
           .select("id")
@@ -469,7 +479,6 @@ export default function LudoEventsPage() {
           .maybeSingle()
 
         if (existingRequest) {
-          console.log("[v0] User already has a pending request for this event")
           toast.dismiss(loadingToast)
           toast.info("Du hast bereits eine Anfrage für dieses Event gestellt")
           return
@@ -496,14 +505,12 @@ export default function LudoEventsPage() {
           return
         }
 
-        console.log("[v0] Join request created successfully")
         toast.dismiss(loadingToast)
         toast.success("Anmeldung eingereicht! Warte auf Bestätigung des Organisators.")
 
         const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
         const userName = userData?.name || userData?.username || "Ein Teilnehmer"
 
-        console.log("[v0] Sending notification to organizer:", event.creator_id)
         await supabase.from("notifications").insert({
           user_id: event.creator_id,
           type: "event_join_request",
@@ -521,9 +528,7 @@ export default function LudoEventsPage() {
           created_at: new Date().toISOString(),
         })
       } else {
-        console.log("[v0] Adding participant directly (automatic approval)")
         if (selectedEventDates.length > 0) {
-          console.log("[v0] Creating participant entries for multiple dates:", selectedEventDates.length)
           const participantEntries = selectedEventDates.map((date) => ({
             event_id: event.id,
             user_id: user.id,
@@ -547,18 +552,15 @@ export default function LudoEventsPage() {
             return
           }
 
-          console.log("[v0] Participant entries created successfully")
           toast.dismiss(loadingToast)
           toast.success(`Erfolgreich für ${selectedEventDates.length} Termin(e) angemeldet!`)
         } else {
-          console.log("[v0] Creating single participant entry")
           const participantData = {
             event_id: event.id,
             user_id: user.id,
             status: "approved",
             joined_at: new Date().toISOString(),
           }
-          console.log("[v0] Participant data to insert:", participantData)
 
           const { error } = await supabase.from("ludo_event_participants").insert(participantData)
 
@@ -576,7 +578,6 @@ export default function LudoEventsPage() {
             return
           }
 
-          console.log("[v0] Participant entry created successfully")
           toast.dismiss(loadingToast)
           toast.success("Erfolgreich für das Event angemeldet!")
         }
@@ -584,7 +585,6 @@ export default function LudoEventsPage() {
         const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
         const userName = userData?.name || userData?.username || "Ein Teilnehmer"
 
-        console.log("[v0] Sending notification to organizer:", event.creator_id)
         await supabase.from("notifications").insert({
           user_id: event.creator_id,
           type: "event_participant_joined",
@@ -603,13 +603,11 @@ export default function LudoEventsPage() {
         })
       }
 
-      console.log("[v0] Closing dialogs and refreshing event list")
       setIsJoinDialogOpen(false)
       setIsDateSelectionOpen(false)
       await loadEvents()
 
       if (selectedEvent && isDetailsDialogOpen) {
-        console.log("[v0] Refreshing selected event details")
         const updatedEvent = await supabase
           .from("ludo_events")
           .select(`
@@ -623,8 +621,6 @@ export default function LudoEventsPage() {
           setSelectedEvent(updatedEvent.data as LudoEvent)
         }
       }
-
-      console.log("[v0] Event registration completed successfully")
     } catch (error) {
       console.error("[v0] Unexpected error joining event:", {
         error,
@@ -717,7 +713,7 @@ export default function LudoEventsPage() {
       event.frequency === "wöchentlich" ||
       event.frequency === "zweiwöchentlich" ||
       event.frequency === "monatlich" ||
-      event.frequency === "jährlich" || // Added jährlich to recurring check
+      event.frequency === "jährlich" || // Added yıllık to recurring check
       event.frequency === "andere"
 
     if (isRecurring) {
@@ -729,7 +725,6 @@ export default function LudoEventsPage() {
     if (e) {
       e.stopPropagation()
     }
-    console.log("[v0] Opening event management for event:", event.id, event.title)
     setManagementEvent(event)
     setIsManagementDialogOpen(true)
   }
@@ -790,19 +785,10 @@ export default function LudoEventsPage() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords
-        console.log("[v0] User location:", { latitude, longitude })
-
-        try {
-          const results = await searchEventsNearby(latitude, longitude, 50) // 50km radius
-          console.log("[v0] Nearby events found:", results)
-
-          setLocationSearchResults(results || [])
-          setShowLocationResults(true)
-          toast.success(`${results?.length || 0} Events in deiner Nähe gefunden`)
-        } catch (error) {
-          console.error("[v0] Error searching nearby events:", error)
-          toast.error("Fehler bei der Standortsuche")
-        }
+        const results = await searchEventsNearby(latitude, longitude, 50) // 50km radius
+        setLocationSearchResults(results || [])
+        setShowLocationResults(true)
+        toast.success(`${results?.length || 0} Events in deiner Nähe gefunden`)
       },
       (error) => {
         console.error("[v0] Geolocation error:", error)
@@ -922,6 +908,7 @@ export default function LudoEventsPage() {
   const formatEventDate = (dateStr: string, timeStr: string) => {
     const date = new Date(dateStr)
     const today = new Date()
+    today.setHours(0, 0, 0, 0)
     const tomorrow = new Date()
     tomorrow.setDate(today.getDate() + 1)
 
@@ -940,12 +927,6 @@ export default function LudoEventsPage() {
   }
 
   const getIntervalDisplay = (event: LudoEvent) => {
-    console.log("[v0] Event interval data:", {
-      frequency: event.frequency,
-      interval_type: event.interval_type,
-      custom_interval: event.custom_interval,
-    })
-
     const frequency = event.frequency
     const intervalType = event.interval_type
 
@@ -971,7 +952,6 @@ export default function LudoEventsPage() {
     }
 
     const result = intervalMap[event.interval_type] || event.interval_type
-    console.log("[v0] Interval display result:", result)
     return result
   }
 
@@ -1010,7 +990,7 @@ export default function LudoEventsPage() {
       wöchentlich: "Wöchentlich",
       zweiwöchentlich: "Zweiwöchentlich",
       monatlich: "Monatlich",
-      jährlich: "Jährlich", // Added jährlich to frequency map
+      jährlich: "Jährlich", // Added yıllık to frequency map
       andere: "Andere",
       einmalig: "Einmalig",
     }
@@ -1027,11 +1007,7 @@ export default function LudoEventsPage() {
           {user && (
             <Button
               onClick={() => {
-                console.log("[v0] Event erstellen button clicked")
-                console.log("[v0] User:", user)
-                console.log("[v0] Opening create dialog...")
                 setIsCreateDialogOpen(true)
-                console.log("[v0] isCreateDialogOpen state set to true")
               }}
               className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 font-handwritten"
             >
@@ -1039,7 +1015,6 @@ export default function LudoEventsPage() {
               Event erstellen
             </Button>
           )}
-          {!user && console.log("[v0] Create button not shown - user not logged in")}
         </div>
 
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg">
@@ -1282,7 +1257,7 @@ export default function LudoEventsPage() {
                           {isRecurring && (
                             <div className="absolute top-2 right-2 z-10">
                               <div className="flex items-center gap-1.5 px-2 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium text-blue-600 rounded-full border border-blue-200">
-                                <CalendarSync className="h-3.5 w-3.5" />
+                                <CalendarPlus2Icon className="h-3.5 w-3.5" />
                                 <span>Serientermine</span>
                               </div>
                             </div>
@@ -1341,9 +1316,9 @@ export default function LudoEventsPage() {
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <CardTitle className="font-handwritten text-lg text-gray-800 mb-1 group-hover:text-teal-600 transition-colors line-clamp-2">
+                            <h3 className="text-lg font-handwritten font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors line-clamp-2">
                               {event.title}
-                            </CardTitle>
+                            </h3>
                             {event.description && (
                               <p className="text-sm text-gray-600 line-clamp-2 mb-3">{event.description}</p>
                             )}
@@ -1357,9 +1332,24 @@ export default function LudoEventsPage() {
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <CalendarDaysIcon className="h-4 w-4 text-teal-600" />
                             <span>
-                              {event.first_instance_date
-                                ? formatEventDate(event.first_instance_date, event.start_time)
-                                : "Keine Termine"}
+                              {(() => {
+                                const hasMultipleDates =
+                                  event.interval_type ||
+                                  event.frequency === "wöchentlich" ||
+                                  event.frequency === "monatlich" ||
+                                  event.frequency === "jährlich"
+
+                                if (hasMultipleDates) {
+                                  const nextDate = getNextUpcomingDate(event)
+                                  if (nextDate) {
+                                    return formatEventDate(nextDate.event_date, nextDate.start_time)
+                                  }
+                                }
+
+                                return event.first_instance_date
+                                  ? formatEventDate(event.first_instance_date, event.start_time)
+                                  : "Kein Datum"
+                              })()}
                             </span>
                           </div>
 
@@ -1599,7 +1589,7 @@ export default function LudoEventsPage() {
                       userId={selectedEvent.creator.id}
                       className="text-gray-800 hover:text-teal-600 transition-colors"
                     >
-                      <span className="font-medium hover:text-teal-600 cursor-pointer transition-colors">
+                      <span className="font-medium hover:text-teal-600 cursor-pointer transition-colors text-gray-600">
                         {selectedEvent.creator.username}
                       </span>
                     </UserLink>
@@ -1641,21 +1631,29 @@ export default function LudoEventsPage() {
                     {detailViewTab === "info" && (
                       <div className="space-y-4">
                         <div className="space-y-4">
-                          <div className="flex items-center gap-3">
-                            <Calendar className="h-5 w-5 text-teal-600" />
+                          <div className="flex items-center gap-3 text-sm">
+                            <CalendarDaysIcon className="h-5 w-5 text-teal-600" />
                             <div>
-                              <div className="font-medium text-gray-600">
-                                {selectedEvent.first_instance_date
-                                  ? formatEventDate(selectedEvent.first_instance_date, selectedEvent.start_time)
-                                  : "Keine Termine"}
+                              <div className="font-medium text-gray-600 text-sm">
+                                {(() => {
+                                  const hasMultipleDates = additionalDates && additionalDates.length > 1
+                                  if (hasMultipleDates) {
+                                    const nextDate = getNextUpcomingDate(selectedEvent, additionalDates)
+                                    return nextDate && nextDate.event_date
+                                      ? formatEventDate(nextDate.event_date, nextDate.start_time)
+                                      : "Keine Termine"
+                                  } else {
+                                    return formatEventDate(selectedEvent.first_instance_date, selectedEvent.start_time)
+                                  }
+                                })()}
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 text-sm">
                             <Clock className="h-5 w-5 text-teal-600" />
                             <div>
-                              <div className="text-gray-600">
+                              <div className="text-gray-600 text-sm font-medium">
                                 {selectedEvent.start_time.slice(0, 5)}
                                 {selectedEvent.end_time && ` - ${selectedEvent.end_time.slice(0, 5)}`}
                               </div>
@@ -1663,18 +1661,20 @@ export default function LudoEventsPage() {
                           </div>
 
                           {getIntervalDisplay(selectedEvent) && (
-                            <div className="flex items-center gap-3">
-                              <CalendarSync className="h-5 w-5 text-teal-600" />
+                            <div className="flex items-center gap-3 text-sm">
+                              <CalendarPlus2Icon className="h-5 w-5 text-teal-600" />
                               <div>
-                                <div className="text-gray-600">{getIntervalDisplay(selectedEvent)}</div>
+                                <div className="text-gray-600 text-sm font-medium">
+                                  {getIntervalDisplay(selectedEvent)}
+                                </div>
                               </div>
                             </div>
                           )}
 
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 text-sm">
                             <MapPin className="h-5 w-5 text-teal-600" />
                             <div>
-                              <div className="text-gray-600">
+                              <div className="text-gray-600 text-sm font-medium">
                                 {selectedEvent.location_type === "virtual"
                                   ? "Online Event"
                                   : selectedEvent.location || "Ort wird bekannt gegeben"}
@@ -1682,20 +1682,22 @@ export default function LudoEventsPage() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 text-sm">
                             <Users className="h-5 w-5 text-teal-600" />
                             <div>
-                              <div className="text-gray-600">{formatParticipantCount(selectedEvent)}</div>
+                              <div className="text-gray-600 text-sm font-medium">
+                                {formatParticipantCount(selectedEvent)}
+                              </div>
                             </div>
                           </div>
 
                           {selectedEvent.selected_games && selectedEvent.selected_games.length > 0 && (
-                            <div className="flex items-start gap-3">
+                            <div className="flex items-start gap-3 text-sm">
                               <Dices className="h-5 w-5 text-teal-600 mt-0.5" />
                               <div>
                                 <ul className="text-gray-600 space-y-1">
                                   {selectedEvent.selected_games.map((game: any, index: number) => (
-                                    <li key={index} className="flex items-center gap-2">
+                                    <li key={index} className="flex items-center gap-2 text-sm font-medium">
                                       {(() => {
                                         if (typeof game === "string") {
                                           try {
@@ -1742,7 +1744,7 @@ export default function LudoEventsPage() {
                         {selectedEvent.additional_notes && (
                           <div>
                             <h4 className="text-gray-800 mb-2 font-semibold">Zusatzinfos</h4>
-                            <p className="text-gray-600 leading-relaxed">{selectedEvent.additional_notes}</p>
+                            <p className="text-gray-600 leading-relaxed text-sm">{selectedEvent.additional_notes}</p>
                           </div>
                         )}
 
@@ -1772,79 +1774,81 @@ export default function LudoEventsPage() {
                       <div className="space-y-4">
                         <h3 className="font-semibold text-gray-800 mb-3">Alle geplanten Termine</h3>
                         <div className="space-y-3">
-                          {console.log("[v0] Rendering schedule tab with additionalDates:", additionalDates)}
-                          {console.log("[v0] Number of dates to display:", additionalDates.length)}
-                          {additionalDates.length === 0 ? (
-                            <div className="p-4 bg-gray-50 rounded-lg text-center text-gray-600">
-                              <Calendar className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                              <p>Keine Termine verfügbar</p>
-                            </div>
-                          ) : (
-                            additionalDates.map((date, index) => (
-                              <div
-                                key={index}
-                                className={`p-3 rounded-lg border-2 ${
-                                  index === 0
+                          {additionalDates.map((date, index) => (
+                            <div
+                              key={index}
+                              className={`p-3 rounded-lg border-2 ${
+                                isNextUpcomingDate(date.event_date)
+                                  ? "bg-blue-50 border-blue-200"
+                                  : index === 0
                                     ? "bg-teal-50 border-teal-200"
                                     : index === additionalDates.length - 1
                                       ? "bg-orange-50 border-orange-200"
                                       : "bg-gray-50 border-gray-200"
-                                }`}
-                              >
-                                <div className="flex items-center gap-3 mb-2">
-                                  <Calendar className="h-5 w-5 text-gray-600" />
-                                  <div className="font-medium text-gray-600">
-                                    {formatEventDate(date.event_date, date.start_time)}
-                                  </div>
-                                  {index === 0 && (
-                                    <span className="ml-auto px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full">
-                                      Startdatum
-                                    </span>
-                                  )}
-                                  {index === additionalDates.length - 1 && index !== 0 && (
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 mb-2 text-sm">
+                                <Calendar className="text-gray-600 h-4 w-4" />
+                                <div className="font-medium text-gray-600">
+                                  {formatEventDate(date.event_date, date.start_time)}
+                                </div>
+                                {isNextUpcomingDate(date.event_date) && (
+                                  <span className="ml-auto px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-normal">
+                                    Nächster Termin
+                                  </span>
+                                )}
+                                {index === 0 && !isNextUpcomingDate(date.event_date) && (
+                                  <span className="ml-auto px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full">
+                                    Startdatum
+                                  </span>
+                                )}
+                                {index === additionalDates.length - 1 &&
+                                  index !== 0 &&
+                                  !isNextUpcomingDate(date.event_date) && (
                                     <span className="ml-auto px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
-                                      Enddatum
+                                      Letzter Termin
                                     </span>
                                   )}
+                              </div>
+                              <div className="flex items-center gap-3 text-sm">
+                                <Clock className="text-gray-600 h-4 w-4" />
+                                <div className="font-medium text-gray-600">
+                                  {date.start_time.slice(0, 5)}
+                                  {date.end_time && ` - ${date.end_time.slice(0, 5)}`}
                                 </div>
-                                <div className="flex items-center gap-3">
-                                  <Clock className="h-5 w-5 text-gray-600" />
-                                  <div className="font-medium text-gray-600">
-                                    {date.start_time.slice(0, 5)}
-                                    {date.end_time && ` - ${date.end_time.slice(0, 5)}`}
-                                  </div>
-                                </div>
-                                <div
-                                  className={`flex items-center gap-3 mt-2 pt-2 border-t ${
-                                    index === 0
+                              </div>
+                              <div
+                                className={`flex items-center gap-3 mt-2 pt-2 border-t text-sm  text-sm ${
+                                  isNextUpcomingDate(date.event_date)
+                                    ? "border-blue-200"
+                                    : index === 0
                                       ? "border-teal-200"
                                       : index === additionalDates.length - 1
                                         ? "border-orange-200"
                                         : "border-gray-200"
-                                  }`}
-                                >
-                                  <Users className="h-5 w-5 text-gray-600" />
-                                  <div className="font-medium text-gray-600">
-                                    {date.participant_count || 0} Teilnehmer
-                                    {date.max_participants && (
-                                      <span className="ml-1">
-                                        (
-                                        {date.max_participants - (date.participant_count || 0) > 0 ? (
-                                          <span className="text-green-600 font-medium">
-                                            {date.max_participants - (date.participant_count || 0)} Plätze frei
-                                          </span>
-                                        ) : (
-                                          <span className="text-red-600 font-medium">Ausgebucht</span>
-                                        )}
-                                        )
-                                      </span>
-                                    )}
-                                    {!date.max_participants && <span className="ml-1 text-gray-500">(unbegrenzt)</span>}
-                                  </div>
+                                }`}
+                              >
+                                <Users className="text-gray-600 h-4 w-4" />
+                                <div className="font-medium text-gray-600">
+                                  {date.participant_count || 0} Teilnehmer
+                                  {date.max_participants && (
+                                    <span className="ml-1">
+                                      (
+                                      {date.max_participants - (date.participant_count || 0) > 0 ? (
+                                        <span className="text-green-600 font-medium">
+                                          {date.max_participants - (date.participant_count || 0)} Plätze frei
+                                        </span>
+                                      ) : (
+                                        <span className="text-red-600 font-medium">Ausgebucht</span>
+                                      )}
+                                      )
+                                    </span>
+                                  )}
+                                  {!date.max_participants && <span className="ml-1 text-gray-500">(unbegrenzt)</span>}
                                 </div>
                               </div>
-                            ))
-                          )}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
@@ -1856,9 +1860,7 @@ export default function LudoEventsPage() {
                         <Calendar className="h-5 w-5 text-teal-600" />
                         <div>
                           <div className="font-medium text-gray-800">
-                            {selectedEvent.first_instance_date
-                              ? formatEventDate(selectedEvent.first_instance_date, selectedEvent.start_time)
-                              : "Keine Termine"}
+                            {formatEventDate(selectedEvent.first_instance_date, selectedEvent.start_time)}
                           </div>
                         </div>
                       </div>

@@ -46,6 +46,12 @@ interface MarketplaceOffer {
   longitude?: number
   avatar?: string
   owner?: string
+  players?: string
+  duration?: string
+  age?: string
+  language?: string
+  category?: string
+  style?: string
 }
 
 interface GamesContextType {
@@ -157,7 +163,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         console.log("[v0] Fetching marketplace offers from database...")
         const { data, error } = await supabase
           .from("marketplace_offers")
-          .select("*, users(username, avatar)")
+          .select("*, users(username, avatar), games(players, duration, age, language, category, style)")
           .eq("active", true)
           .order("created_at", { ascending: false })
 
@@ -173,6 +179,12 @@ export function GamesProvider({ children }: { children: ReactNode }) {
           image: offer.image || FALLBACK_IMAGE,
           avatar: offer.users?.avatar,
           owner: offer.users?.username,
+          players: offer.games?.players,
+          duration: offer.games?.duration,
+          age: offer.games?.age,
+          language: offer.games?.language,
+          category: offer.games?.category,
+          style: offer.games?.style,
         }))
 
         console.log("[v0] Marketplace offers loaded successfully:", offersWithFallback.length, "offers")

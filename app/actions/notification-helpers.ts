@@ -61,7 +61,7 @@ export async function shouldSendNotification(userId: string, notificationType: N
       group_created: { table: "social_notification_preferences", column: "community_posts", defaultValue: true },
       group_join: { table: "social_notification_preferences", column: "community_member_joins", defaultValue: true },
       group_leave: { table: "social_notification_preferences", column: "community_member_joins", defaultValue: true },
-      message: { table: "social_notification_preferences", column: "friend_requests", defaultValue: true },
+      message: { table: "social_notification_preferences", column: "friend_requests", defaultValue: true }, // Using friend_requests as proxy for messages
       poll_created: { table: "social_notification_preferences", column: "community_posts", defaultValue: true },
       event_join_request: { table: "social_notification_preferences", column: "community_events", defaultValue: true },
     }
@@ -72,6 +72,7 @@ export async function shouldSendNotification(userId: string, notificationType: N
       return true
     }
 
+    // Check if user has preferences set
     const { data, error } = await supabase
       .from(mapping.table)
       .select(mapping.column)
@@ -83,14 +84,16 @@ export async function shouldSendNotification(userId: string, notificationType: N
       return mapping.defaultValue
     }
 
+    // If no preferences found, return default value (true - send notification)
     if (!data) {
       return mapping.defaultValue
     }
 
+    // Return the user's preference
     return data[mapping.column] ?? mapping.defaultValue
   } catch (error) {
     console.error(`[v0] Error in shouldSendNotification:`, error)
-    return true
+    return true // Default to sending notification on error
   }
 }
 

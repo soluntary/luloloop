@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BarChart3, Clock, Trash2, CheckCircle2, Star, Users } from "lucide-react"
+import { Clock, Trash2, CheckCircle2, Star, Users } from "lucide-react"
 import { toast } from "sonner"
 import { voteOnPollAction, deletePollAction, type Poll } from "@/app/actions/community-polls"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -22,6 +22,7 @@ export function PollCard({ poll, currentUserId, isCreator, onPollUpdated }: Poll
   const [selectedOptions, setSelectedOptions] = useState<string[]>(poll.user_votes)
   const [isVoting, setIsVoting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isChangingVote, setIsChangingVote] = useState(false)
 
   const isExpired = poll.expires_at ? new Date(poll.expires_at) < new Date() : false
   const canVote = !isExpired && poll.is_active
@@ -43,6 +44,7 @@ export function PollCard({ poll, currentUserId, isCreator, onPollUpdated }: Poll
       }
 
       toast.success("Deine Stimme wurde erfasst!")
+      setIsChangingVote(false)
       onPollUpdated?.()
     } catch (error) {
       console.error("Error voting:", error)
@@ -121,7 +123,6 @@ export function PollCard({ poll, currentUserId, isCreator, onPollUpdated }: Poll
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-2">
             <div className="flex items-start gap-3">
-              
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-gray-900 leading-tight">{poll.question}</h3>
                 {poll.description && <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">{poll.description}</p>}
@@ -166,7 +167,7 @@ export function PollCard({ poll, currentUserId, isCreator, onPollUpdated }: Poll
       </CardHeader>
 
       <CardContent className="pb-5">
-        {canVote && !poll.user_voted ? (
+        {canVote && (!poll.user_voted || isChangingVote) ? (
           <div className="space-y-4">
             {poll.allow_multiple_votes ? (
               <div className="space-y-2">
@@ -218,21 +219,37 @@ export function PollCard({ poll, currentUserId, isCreator, onPollUpdated }: Poll
               </RadioGroup>
             )}
 
-            <Button
-              onClick={handleVote}
-              disabled={isVoting || selectedOptions.length === 0}
-              className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-medium shadow-sm hover:shadow transition-all"
-              size="lg"
-            >
-              {isVoting ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Wird abgestimmt...
-                </div>
-              ) : (
-                "Abstimmen"
+            <div className="flex gap-2">
+              {isChangingVote && (
+                <Button
+                  onClick={() => {
+                    setIsChangingVote(false)
+                    setSelectedOptions(poll.user_votes)
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Abbrechen
+                </Button>
               )}
-            </Button>
+              <Button
+                onClick={handleVote}
+                disabled={isVoting || selectedOptions.length === 0}
+                className={`${isChangingVote ? "flex-1" : "w-full"} bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-medium shadow-sm hover:shadow transition-all`}
+                size="lg"
+              >
+                {isVoting ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Wird abgestimmt...
+                  </div>
+                ) : isChangingVote ? (
+                  "Stimme aktualisieren"
+                ) : (
+                  "Abstimmen"
+                )}
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -280,8 +297,8 @@ export function PollCard({ poll, currentUserId, isCreator, onPollUpdated }: Poll
             {canVote && poll.user_voted && (
               <Button
                 onClick={() => {
+                  setIsChangingVote(true)
                   setSelectedOptions(poll.user_votes)
-                  handleVote()
                 }}
                 variant="outline"
                 className="w-full border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300 font-medium"
