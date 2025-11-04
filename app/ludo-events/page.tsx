@@ -26,7 +26,6 @@ import {
   UserCheck,
   Spade,
   CalendarPlus2Icon,
-  CalendarSearch as CalendarSync,
   ChevronDown,
   UserRoundCheck,
   UserRoundCog,
@@ -150,15 +149,13 @@ export default function LudoEventsPage() {
       })
 
       if (upcomingDate) {
-        return upcomingDate
+        return { event_date: upcomingDate.event_date, start_time: upcomingDate.start_time }
       }
-      return dates[0]
+      // If no upcoming dates found, return null (all dates are in the past)
+      return null
     }
 
     if (event.first_instance_date) {
-      const firstDate = new Date(event.first_instance_date)
-      firstDate.setHours(0, 0, 0, 0)
-
       return {
         event_date: event.first_instance_date,
         start_time: event.start_time,
@@ -198,7 +195,6 @@ export default function LudoEventsPage() {
           table: "ludo_event_participants",
         },
         (payload) => {
-          console.log("[v0] Participant change detected:", payload)
           loadEvents()
         },
       )
@@ -210,7 +206,6 @@ export default function LudoEventsPage() {
           table: "ludo_event_instance_participants",
         },
         (payload) => {
-          console.log("[v0] Instance participant change detected:", payload)
           loadEvents()
         },
       )
@@ -223,10 +218,22 @@ export default function LudoEventsPage() {
 
   const loadEvents = async () => {
     try {
+      setLoading(true)
+      const supabase = createClient()
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      console.log("[v0] Loading events for user:", user?.id || "not logged in")
+
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
-      const { data, error } = await supabase
+      console.log("[v0] Today's date for filtering:", today.toISOString().split("T")[0])
+
+      // Build the base query
+      let query = supabase
         .from("ludo_events")
         .select(`
           *,
@@ -237,32 +244,55 @@ export default function LudoEventsPage() {
         .gte("ludo_event_instances.instance_date", today.toISOString().split("T")[0])
         .order("created_at", { ascending: false })
 
+      // Only exclude user's own events if user is logged in
+      if (user?.id) {
+        query = query.neq("creator_id", user.id)
+        console.log("[v0] Excluding events created by user:", user.id)
+      }
+
+      const { data, error } = await query
+
+      console.log("[v0] Events query returned:", data?.length || 0, "events")
       if (error) {
-        console.error("[v0] Error loading events:", error)
+        console.log("[v0] Events query error:", error)
+      }
+
+      if (error) {
         toast.error("Fehler beim Laden der Events")
+        setLoading(false)
         return
       }
 
-      const processedEvents = await Promise.all(
-        (data || []).map(async (event: any) => {
-          const { data: instances } = await supabase
-            .from("ludo_event_instances")
-            .select("instance_date")
-            .eq("event_id", event.id)
-            .gte("instance_date", today.toISOString().split("T")[0])
-            .order("instance_date", { ascending: true })
-            .limit(1)
+      const processedEvents = data || []
 
-          return {
-            ...event,
-            first_instance_date: instances?.[0]?.instance_date || null,
-          }
-        }),
-      )
+      processedEvents.forEach((event, index) => {
+        console.log(`[v0] Event ${index + 1}:`, {
+          id: event.id,
+          title: event.title,
+          creator_id: event.creator_id,
+          first_instance_date: event.first_instance_date,
+        })
+      })
 
+      // If user is logged in, fetch their participation status and counts
       if (user) {
         const eventsWithStatus = await Promise.all(
           processedEvents.map(async (event) => {
+            // Fetch the first upcoming instance date for this event
+            const { data: instances } = await supabase
+              .from("ludo_event_instances")
+              .select("instance_date")
+              .eq("event_id", event.id)
+              .gte("instance_date", today.toISOString().split("T")[0])
+              .order("instance_date", { ascending: true })
+              .limit(1)
+
+            console.log(`[v0] Event "${event.title}" (${event.id}):`)
+            console.log(`[v0]   - Filtering instances >= ${today.toISOString().split("T")[0]}`)
+            console.log(`[v0]   - Found instances:`, instances)
+            console.log(`[v0]   - Setting first_instance_date to:`, instances?.[0]?.instance_date || null)
+
+            // Check event-level participation
             const { data: eventParticipation } = await supabase
               .from("ludo_event_participants")
               .select("id, status")
@@ -270,6 +300,7 @@ export default function LudoEventsPage() {
               .eq("user_id", user.id)
               .maybeSingle()
 
+            // Check instance-level participation for recurring events
             const { data: instanceRegistrations } = await supabase
               .from("ludo_event_instance_participants")
               .select("instance_id, status")
@@ -283,58 +314,58 @@ export default function LudoEventsPage() {
                   .then((res) => (res.data || []).map((i) => i.id)),
               )
 
-            // Fix participant count to use "approved" status
+            // Count approved participants for the event
             const { count: participantCount } = await supabase
               .from("ludo_event_participants")
               .select("*", { count: "exact", head: true })
               .eq("event_id", event.id)
               .eq("status", "approved")
 
+            // Check if there are more than one instance for this event
             const { data: instancesData } = await supabase
               .from("ludo_event_instances")
               .select("id")
               .eq("event_id", event.id)
 
-            // Determine user participation status based on both event and instance registrations
+            // Determine user participation status
             let userStatus = null
-
-            // First check event-level participation
             if (eventParticipation) {
-              userStatus = eventParticipation.status === "approved" ? "approved" : "pending"
-              if (eventParticipation.status === "rejected") {
-                userStatus = "rejected"
-              }
+              userStatus =
+                eventParticipation.status === "approved"
+                  ? "approved"
+                  : eventParticipation.status === "pending"
+                    ? "pending"
+                    : "rejected"
             }
 
-            // Then check instance-level participation
             if (instanceRegistrations && instanceRegistrations.length > 0) {
-              const hasRegistered = instanceRegistrations.some((r) => r.status === "registered")
-              const hasPending = instanceRegistrations.some((r) => r.status === "pending")
-              const hasRejected = instanceRegistrations.some((r) => r.status === "rejected")
+              const hasApprovedInstance = instanceRegistrations.some((r) => r.status === "approved")
+              const hasPendingInstance = instanceRegistrations.some((r) => r.status === "pending")
+              const hasRejectedInstance = instanceRegistrations.some((r) => r.status === "rejected")
 
-              if (hasRegistered) {
+              if (hasApprovedInstance) {
                 userStatus = "approved"
-              } else if (hasPending && !userStatus) {
+              } else if (hasPendingInstance && userStatus !== "approved") {
                 userStatus = "pending"
-              } else if (hasRejected && !userStatus) {
+              } else if (hasRejectedInstance && userStatus !== "approved" && userStatus !== "pending") {
                 userStatus = "rejected"
               }
             }
 
             return {
               ...event,
+              first_instance_date: instances?.[0]?.instance_date || null,
               user_participation_status: userStatus,
               participant_count: participantCount || 0,
               has_additional_dates: (instancesData?.length || 0) > 1,
             }
           }),
         )
-
         setEvents(eventsWithStatus)
       } else {
+        // If user is not logged in, just fetch counts and check for additional dates
         const eventsWithCounts = await Promise.all(
           processedEvents.map(async (event) => {
-            // Fix participant count to use "approved" status
             const { count: participantCount } = await supabase
               .from("ludo_event_participants")
               .select("*", { count: "exact", head: true })
@@ -346,19 +377,35 @@ export default function LudoEventsPage() {
               .select("id")
               .eq("event_id", event.id)
 
+            // Fetch first instance date
+            const { data: firstInstance } = await supabase
+              .from("ludo_event_instances")
+              .select("instance_date")
+              .eq("event_id", event.id)
+              .gte("instance_date", today.toISOString().split("T")[0])
+              .order("instance_date", { ascending: true })
+              .limit(1)
+              .single()
+
+            console.log(`[v0] Event "${event.title}" (${event.id}) [non-logged-in]:`)
+            console.log(`[v0]   - Filtering instances >= ${today.toISOString().split("T")[0]}`)
+            console.log(`[v0]   - Found instance:`, firstInstance)
+            console.log(`[v0]   - Setting first_instance_date to:`, firstInstance?.instance_date || null)
+
             return {
               ...event,
+              first_instance_date: firstInstance?.instance_date || null,
               user_participation_status: null,
               participant_count: participantCount || 0,
               has_additional_dates: (instancesData?.length || 0) > 1,
             }
           }),
         )
-
         setEvents(eventsWithCounts)
       }
     } catch (error) {
-      console.error("[v0] Error in loadEvents:", error)
+      console.error("Error in loadEvents:", error)
+      toast.error("Ein unerwarteter Fehler ist aufgetreten.")
     } finally {
       setLoading(false)
     }
@@ -366,14 +413,10 @@ export default function LudoEventsPage() {
 
   const loadAdditionalDates = async (eventId: string) => {
     try {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-
       const { data, error } = await supabase
         .from("ludo_event_instances")
         .select("*")
         .eq("event_id", eventId)
-        .gte("instance_date", today.toISOString().split("T")[0])
         .order("instance_date", { ascending: true })
 
       if (error) throw error
@@ -399,7 +442,7 @@ export default function LudoEventsPage() {
 
       setAdditionalDates(instancesWithCounts)
     } catch (error) {
-      console.error("[v0] Error loading additional dates:", error)
+      console.error("Error loading additional dates:", error)
       setAdditionalDates([])
     }
   }
@@ -422,11 +465,13 @@ export default function LudoEventsPage() {
       event.frequency === "andere"
 
     if (isRecurring && event.has_additional_dates) {
+      // If the event has multiple dates, open the date selection dialog
       setDateSelectionEvent(event)
       setIsDateSelectionOpen(true)
       return
     }
 
+    // For single-date events or recurring events without explicit additional dates listed
     if (event.approval_mode === "manual") {
       setJoinEvent(event)
       setJoinMessage("")
@@ -445,6 +490,7 @@ export default function LudoEventsPage() {
     const loadingToast = toast.loading("Anmeldung wird verarbeitet...")
 
     try {
+      // Check if the user is already participating in the event at the event level
       const { data: existingParticipant } = await supabase
         .from("ludo_event_participants")
         .select("id, status")
@@ -464,6 +510,7 @@ export default function LudoEventsPage() {
         return
       }
 
+      // Check for capacity on single-date events
       if (event.frequency === "single" && event.max_participants && event.participant_count >= event.max_participants) {
         toast.dismiss(loadingToast)
         toast.error("Das Event ist bereits ausgebucht")
@@ -471,6 +518,7 @@ export default function LudoEventsPage() {
       }
 
       if (event.approval_mode === "manual") {
+        // Check if a join request already exists
         const { data: existingRequest } = await supabase
           .from("ludo_event_join_requests")
           .select("id")
@@ -484,6 +532,7 @@ export default function LudoEventsPage() {
           return
         }
 
+        // Insert a new join request
         const { error } = await supabase.from("ludo_event_join_requests").insert({
           event_id: event.id,
           user_id: user.id,
@@ -508,6 +557,7 @@ export default function LudoEventsPage() {
         toast.dismiss(loadingToast)
         toast.success("Anmeldung eingereicht! Warte auf Bestätigung des Organisators.")
 
+        // Notify the organizer
         const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
         const userName = userData?.name || userData?.username || "Ein Teilnehmer"
 
@@ -519,7 +569,7 @@ export default function LudoEventsPage() {
           data: {
             event_id: event.id,
             event_title: event.title,
-            event_date: event.event_date,
+            event_date: event.event_date, // Note: event_date might not be available here, consider using first_instance_date
             event_time: event.start_time,
             requester_id: user.id,
             requester_name: userName,
@@ -528,11 +578,13 @@ export default function LudoEventsPage() {
           created_at: new Date().toISOString(),
         })
       } else {
+        // Direct approval for manual approval events or automatic approval for single events
         if (selectedEventDates.length > 0) {
+          // If specific dates are selected for a recurring event
           const participantEntries = selectedEventDates.map((date) => ({
             event_id: event.id,
             user_id: user.id,
-            status: "approved",
+            status: "approved", // Mark as approved for the selected instances
             joined_at: new Date().toISOString(),
           }))
 
@@ -555,6 +607,7 @@ export default function LudoEventsPage() {
           toast.dismiss(loadingToast)
           toast.success(`Erfolgreich für ${selectedEventDates.length} Termin(e) angemeldet!`)
         } else {
+          // For single-date events or recurring events where all dates are implicitly joined
           const participantData = {
             event_id: event.id,
             user_id: user.id,
@@ -582,6 +635,7 @@ export default function LudoEventsPage() {
           toast.success("Erfolgreich für das Event angemeldet!")
         }
 
+        // Notify the organizer about the new participant
         const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
         const userName = userData?.name || userData?.username || "Ein Teilnehmer"
 
@@ -593,7 +647,7 @@ export default function LudoEventsPage() {
           data: {
             event_id: event.id,
             event_title: event.title,
-            event_date: event.event_date,
+            event_date: event.event_date, // Note: event_date might not be available here
             event_time: event.start_time,
             participant_id: user.id,
             participant_name: userName,
@@ -603,10 +657,12 @@ export default function LudoEventsPage() {
         })
       }
 
+      // Refresh data and close dialogs
       setIsJoinDialogOpen(false)
       setIsDateSelectionOpen(false)
       await loadEvents()
 
+      // If details dialog is open, refresh the selected event data
       if (selectedEvent && isDetailsDialogOpen) {
         const updatedEvent = await supabase
           .from("ludo_events")
@@ -622,7 +678,7 @@ export default function LudoEventsPage() {
         }
       }
     } catch (error) {
-      console.error("[v0] Unexpected error joining event:", {
+      console.error("Unexpected error joining event:", {
         error,
         errorType: typeof error,
         errorString: String(error),
@@ -636,6 +692,7 @@ export default function LudoEventsPage() {
     if (!user) return
 
     try {
+      // Delete participation record from ludo_event_participants
       const { error } = await supabase
         .from("ludo_event_participants")
         .delete()
@@ -645,9 +702,11 @@ export default function LudoEventsPage() {
       if (error) throw error
 
       toast.success("Erfolgreich vom Event abgemeldet")
-      await loadEvents()
+      await loadEvents() // Refresh event list
+
+      // If the details dialog is open for this event, refresh its data
       if (selectedEvent && isDetailsDialogOpen) {
-        await loadAdditionalDates(selectedEvent.id)
+        await loadAdditionalDates(selectedEvent.id) // Potentially needed if participant counts change
       }
     } catch (error) {
       console.error("Error leaving event:", error)
@@ -660,14 +719,17 @@ export default function LudoEventsPage() {
       return { text: "Teilnehmen", disabled: false, variant: "default" as const }
     }
 
+    // If the current user is the organizer
     if (event.creator_id === user.id) {
       return { text: "Dein Event", disabled: true, variant: "secondary" as const, icon: UserRoundCog }
     }
 
+    // If the user is already participating
     if (event.user_participation_status === "approved") {
       const isOneTimeEvent = event.frequency === "single" || event.frequency === "einmalig"
 
       if (isOneTimeEvent) {
+        // For single events, provide an "Abmelden" button
         return {
           text: "Abmelden",
           disabled: false,
@@ -677,6 +739,7 @@ export default function LudoEventsPage() {
         }
       }
 
+      // For recurring events, show "Angemeldet" and allow management
       return {
         text: "Angemeldet",
         disabled: false,
@@ -686,18 +749,22 @@ export default function LudoEventsPage() {
       }
     }
 
+    // If the user's participation is pending
     if (event.user_participation_status === "pending") {
       return { text: "Warte auf Genehmigung", disabled: true, variant: "outline" as const, icon: Clock }
     }
 
+    // If the user's participation was rejected
     if (event.user_participation_status === "rejected") {
       return { text: "Abgelehnt", disabled: false, variant: "outline" as const, icon: UserX }
     }
 
+    // If the event is full
     if (event.max_participants && event.participant_count >= event.max_participants) {
       return { text: "Ausgebucht", disabled: true, variant: "secondary" as const }
     }
 
+    // Default: "Teilnehmen" button
     return { text: "Teilnehmen", disabled: false, variant: "default" as const }
   }
 
@@ -716,14 +783,15 @@ export default function LudoEventsPage() {
       event.frequency === "jährlich" || // Added yıllık to recurring check
       event.frequency === "andere"
 
-    if (isRecurring) {
+    // If it's a recurring event, load its additional dates
+    if (isRecurring && event.has_additional_dates) {
       loadAdditionalDates(event.id)
     }
   }
 
   const openEventManagement = (event: LudoEvent, e?: React.MouseEvent) => {
     if (e) {
-      e.stopPropagation()
+      e.stopPropagation() // Prevent triggering showEventDetails
     }
     setManagementEvent(event)
     setIsManagementDialogOpen(true)
@@ -731,7 +799,7 @@ export default function LudoEventsPage() {
 
   const openApprovalManagement = (event: LudoEvent, e?: React.MouseEvent) => {
     if (e) {
-      e.stopPropagation()
+      e.stopPropagation() // Prevent triggering showEventDetails
     }
     setApprovalEvent(event)
     setIsApprovalDialogOpen(true)
@@ -739,7 +807,7 @@ export default function LudoEventsPage() {
 
   const openMessageComposer = (event: LudoEvent, e?: React.MouseEvent) => {
     if (e) {
-      e.stopPropagation()
+      e.stopPropagation() // Prevent triggering showEventDetails
     }
     setMessageRecipient({
       id: event.creator_id,
@@ -761,9 +829,9 @@ export default function LudoEventsPage() {
       if (Array.isArray(results)) {
         searchResults = results
       } else if (results && typeof results === "object") {
-        searchResults = [results]
+        searchResults = [results] // Handle case where result is a single object
       } else {
-        searchResults = []
+        searchResults = [] // Ensure it's always an array
       }
       setLocationSearchResults(searchResults)
       setShowLocationResults(true)
@@ -798,9 +866,11 @@ export default function LudoEventsPage() {
   }
 
   const getFilteredEvents = () => {
+    // Use locationSearchResults if active, otherwise use the main events list
     const sourceEvents = showLocationResults ? locationSearchResults : events
 
     let filtered = sourceEvents.filter((event) => {
+      // Search term filtering
       const searchMatch =
         event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -809,11 +879,13 @@ export default function LudoEventsPage() {
 
       if (!searchMatch) return false
 
+      // Location type filter
       if (locationFilter !== "all") {
         if (locationFilter === "local" && event.location_type !== "local") return false
         if (locationFilter === "virtual" && event.location_type !== "virtual") return false
       }
 
+      // Frequency filter
       if (frequencyFilter !== "all") {
         const eventFrequency = event.frequency
 
@@ -827,12 +899,15 @@ export default function LudoEventsPage() {
         if (frequencyFilter === "andere" && eventFrequency !== "andere" && eventFrequency !== "custom") return false
       }
 
+      // Approval mode filter
       if (approvalModeFilter !== "all") {
         if (approvalModeFilter === "automatic" && event.approval_mode !== "automatic") return false
         if (approvalModeFilter === "manual" && event.approval_mode !== "manual") return false
       }
 
+      // Time period filter
       if (timePeriodFilter !== "all") {
+        // Ensure the event has a date to filter by
         if (!event.first_instance_date) return false
 
         const eventDate = new Date(event.first_instance_date)
@@ -843,32 +918,70 @@ export default function LudoEventsPage() {
         tomorrow.setDate(today.getDate() + 1)
 
         const thisWeekEnd = new Date(today)
-        thisWeekEnd.setDate(today.getDate() + (7 - today.getDay()))
+        thisWeekEnd.setDate(today.getDate() + (7 - today.getDay())) // Sunday of the current week
+        // Ensure thisWeekEnd is not in the past if today is Sunday
+        if (thisWeekEnd < today) {
+          thisWeekEnd.setDate(thisWeekEnd.getDate() + 7)
+        }
 
         const nextWeekStart = new Date(thisWeekEnd)
-        nextWeekStart.setDate(thisWeekEnd.getDate() + 1)
+        nextWeekStart.setDate(thisWeekEnd.getDate() + 1) // Monday of next week
         const nextWeekEnd = new Date(nextWeekStart)
-        nextWeekEnd.setDate(nextWeekStart.getDate() + 6)
+        nextWeekEnd.setDate(nextWeekStart.getDate() + 6) // Sunday of next week
 
-        const thisMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-        const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1)
-        const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0)
+        const thisMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0) // Last day of current month
+        const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1) // First day of next month
+        const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0) // Last day of next month
 
         const weekendStart = new Date(today)
-        weekendStart.setDate(today.getDate() + (6 - today.getDay())) // Saturday
+        weekendStart.setDate(today.getDate() + (6 - today.getDay())) // Saturday of the current week
         const weekendEnd = new Date(weekendStart)
-        weekendEnd.setDate(weekendStart.getDate() + 1) // Sunday
+        weekendEnd.setDate(weekendStart.getDate() + 1) // Sunday of the current week
 
         if (timePeriodFilter === "heute") {
           if (eventDate.toDateString() !== today.toDateString()) return false
         } else if (timePeriodFilter === "morgen") {
           if (eventDate.toDateString() !== tomorrow.toDateString()) return false
         } else if (timePeriodFilter === "wochenende") {
-          if (eventDate < weekendStart || eventDate > weekendEnd) return false
+          // Ensure we are checking against the actual weekend dates for the current or next week if today is Friday/Saturday
+          const currentDayOfWeek = today.getDay() // 0 for Sunday, 6 for Saturday
+          const targetWeekendStart = new Date(today)
+          const targetWeekendEnd = new Date(today)
+
+          if (currentDayOfWeek === 6) {
+            // Saturday
+            targetWeekendStart.setDate(today.getDate())
+            targetWeekendEnd.setDate(today.getDate() + 1)
+          } else if (currentDayOfWeek === 0) {
+            // Sunday
+            targetWeekendStart.setDate(today.getDate() - 1)
+            targetWeekendEnd.setDate(today.getDate())
+          } else {
+            // Friday or earlier in the week
+            targetWeekendStart.setDate(today.getDate() + (6 - currentDayOfWeek)) // Saturday
+            targetWeekendEnd.setDate(today.getDate() + (7 - currentDayOfWeek)) // Sunday
+          }
+          // Check if the event date falls within the calculated weekend range
+          if (eventDate < targetWeekendStart || eventDate > targetWeekendEnd) {
+            return false
+          }
         } else if (timePeriodFilter === "diese-woche") {
-          if (eventDate < today || eventDate > thisWeekEnd) return false
+          // Event date must be today or later, and on or before Sunday of this week
+          const todayDayOfWeek = today.getDay() // 0 = Sunday, 6 = Saturday
+          const daysUntilSunday = 6 - todayDayOfWeek
+          const endOfWeek = new Date(today)
+          endOfWeek.setDate(today.getDate() + daysUntilSunday)
+          endOfWeek.setHours(23, 59, 59, 999) // End of the day
+
+          if (eventDate < today || eventDate > endOfWeek) return false
         } else if (timePeriodFilter === "naechste-woche") {
-          if (eventDate < nextWeekStart || eventDate > nextWeekEnd) return false
+          const todayDayOfWeek = today.getDay()
+          const startOfNextWeek = new Date(today)
+          startOfNextWeek.setDate(today.getDate() + (7 - todayDayOfWeek)) // Monday of next week
+          const endOfNextWeek = new Date(startOfNextWeek)
+          endOfNextWeek.setDate(startOfNextWeek.getDate() + 6) // Sunday of next week
+
+          if (eventDate < startOfNextWeek || eventDate > endOfNextWeek) return false
         } else if (timePeriodFilter === "dieser-monat") {
           if (eventDate < today || eventDate > thisMonthEnd) return false
         } else if (timePeriodFilter === "naechster-monat") {
@@ -876,22 +989,27 @@ export default function LudoEventsPage() {
         }
       }
 
+      // Availability filter
       if (availabilityFilter !== "all") {
         const hasSpots = !event.max_participants || event.participant_count < event.max_participants
-        if (availabilityFilter === "available" && !hasSpots) return false
-        if (availabilityFilter === "full" && hasSpots) return false
+        if (availabilityFilter === "available" && !hasSpots) return false // Show only events with spots available
+        if (availabilityFilter === "full" && hasSpots) return false // Show only events that are full
       }
 
-      return true
+      return true // Event passes all filters
     })
 
+    // Sorting
     if (sortBy !== "all") {
       filtered = [...filtered].sort((a, b) => {
         switch (sortBy) {
           case "newest":
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           case "date":
-            return new Date(a.first_instance_date || "").getTime() - new Date(b.first_instance_date || "").getTime()
+            // Ensure we are comparing valid dates
+            const dateA = a.first_instance_date ? new Date(a.first_instance_date) : new Date(0)
+            const dateB = b.first_instance_date ? new Date(b.first_instance_date) : new Date(0)
+            return dateA.getTime() - dateB.getTime()
           case "participants":
             return b.participant_count - a.participant_count
           default:
@@ -934,6 +1052,7 @@ export default function LudoEventsPage() {
       return "Einmalig"
     }
 
+    // Direct mapping for common frequencies
     if (frequency === "täglich") return "Täglich"
     if (frequency === "wöchentlich") return "Wöchentlich"
     if (frequency === "zweiwöchentlich") return "Zweiwöchentlich"
@@ -941,22 +1060,27 @@ export default function LudoEventsPage() {
     if (frequency === "jährlich") return "Jährlich" // CHANGE: Added annually to the frequency display
     if (frequency === "andere") return "Andere"
 
-    if (event.frequency !== "regular" && event.frequency !== "recurring") return null
-    if (!event.interval_type) return null
+    // Handle regular/recurring events with interval_type
+    if ((frequency === "regular" || frequency === "recurring") && event.interval_type) {
+      const intervalMap: { [key: string]: string } = {
+        weekly: "Wöchentlich",
+        biweekly: "Zweiwöchentlich",
+        monthly: "Monatlich",
+        custom: event.custom_interval || "Benutzerdefiniert",
+      }
 
-    const intervalMap: { [key: string]: string } = {
-      weekly: "Wöchentlich",
-      biweekly: "Zweiwöchentlich",
-      monthly: "Monatlich",
-      custom: event.custom_interval || "Benutzerdefiniert",
+      // Fallback to interval_type if not found in map, or use custom_interval if provided
+      const result = intervalMap[event.interval_type] || event.interval_type
+      return result
     }
 
-    const result = intervalMap[event.interval_type] || event.interval_type
-    return result
+    // If frequency is 'regular' or 'recurring' but interval_type is missing, maybe return null or a default
+    return null
   }
 
   const formatParticipantCount = (event: LudoEvent) => {
     if (event.max_participants === null) {
+      // Unrestricted participants
       return (
         <>
           {event.participant_count} Teilnehmer <span className="text-gray-500">(unbegrenzt)</span>
@@ -966,6 +1090,7 @@ export default function LudoEventsPage() {
 
     const freeSpots = event.max_participants - event.participant_count
     if (freeSpots > 0) {
+      // Spots available
       return (
         <>
           {event.participant_count} Teilnehmer (
@@ -973,6 +1098,7 @@ export default function LudoEventsPage() {
         </>
       )
     } else {
+      // No spots available
       return (
         <>
           {event.participant_count} Teilnehmer (<span className="text-red-600 font-medium">Ausgebucht</span>)
@@ -994,7 +1120,7 @@ export default function LudoEventsPage() {
       andere: "Andere",
       einmalig: "Einmalig",
     }
-    return frequencyMap[frequency] || frequency
+    return frequencyMap[frequency] || frequency // Return mapped value or original if not found
   }
 
   return (
@@ -1104,6 +1230,8 @@ export default function LudoEventsPage() {
                       <SelectItem value="wochenende">Wochenende</SelectItem>
                       <SelectItem value="diese-woche">Diese Woche</SelectItem>
                       <SelectItem value="naechste-woche">Nächste Woche</SelectItem>
+                      <SelectItem value="dieser-monat">Dieser Monat</SelectItem>
+                      <SelectItem value="naechster-monat">Nächster Monat</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1202,6 +1330,7 @@ export default function LudoEventsPage() {
           <div className="flex-1">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {loading ? (
+                // Skeleton loader for events
                 Array.from({ length: 6 }).map((_, i) => (
                   <Card key={i} className="animate-pulse">
                     <CardHeader>
@@ -1214,6 +1343,7 @@ export default function LudoEventsPage() {
                   </Card>
                 ))
               ) : filteredEvents.length === 0 ? (
+                // Message for no events found
                 <div className="col-span-full text-center py-12">
                   <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-gray-600 mb-2">Keine Events gefunden</h3>
@@ -1231,11 +1361,13 @@ export default function LudoEventsPage() {
                   )}
                 </div>
               ) : (
+                // Render list of filtered events
                 filteredEvents.map((event) => {
                   const buttonProps = getJoinButtonProps(event)
                   const IconComponent = buttonProps.icon
                   const intervalDisplay = getIntervalDisplay(event)
 
+                  // Check if event is recurring for display purposes
                   const isRecurring =
                     event.frequency === "regular" ||
                     event.frequency === "recurring" ||
@@ -1252,6 +1384,7 @@ export default function LudoEventsPage() {
                       onClick={() => showEventDetails(event)}
                       className="group hover:shadow-lg transition-all duration-300 bg-white/80 backdrop-blur-sm border-0 cursor-pointer overflow-hidden"
                     >
+                      {/* Event Image or Placeholder */}
                       {!event.image_url && (
                         <div className="relative h-32 w-full overflow-hidden bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
                           {isRecurring && (
@@ -1332,24 +1465,9 @@ export default function LudoEventsPage() {
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <CalendarDaysIcon className="h-4 w-4 text-teal-600" />
                             <span>
-                              {(() => {
-                                const hasMultipleDates =
-                                  event.interval_type ||
-                                  event.frequency === "wöchentlich" ||
-                                  event.frequency === "monatlich" ||
-                                  event.frequency === "jährlich"
-
-                                if (hasMultipleDates) {
-                                  const nextDate = getNextUpcomingDate(event)
-                                  if (nextDate) {
-                                    return formatEventDate(nextDate.event_date, nextDate.start_time)
-                                  }
-                                }
-
-                                return event.first_instance_date
-                                  ? formatEventDate(event.first_instance_date, event.start_time)
-                                  : "Kein Datum"
-                              })()}
+                              {event.first_instance_date
+                                ? formatEventDate(event.first_instance_date, event.start_time)
+                                : "Keine bevorstehenden Termine"}
                             </span>
                           </div>
 
@@ -1377,7 +1495,7 @@ export default function LudoEventsPage() {
                                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()} // Prevent card click
                                 className="truncate text-teal-600 hover:text-teal-700 hover:underline cursor-pointer transition-colors"
                               >
                                 {event.location}
@@ -1407,9 +1525,9 @@ export default function LudoEventsPage() {
                                             )
                                           }
                                         } catch (e) {
-                                          return game
+                                          return game // Return the string if parsing fails
                                         }
-                                        return game
+                                        return game // Return the string if not an object after parsing
                                       }
 
                                       if (typeof game === "object" && game !== null) {
@@ -1421,9 +1539,9 @@ export default function LudoEventsPage() {
                                           "Unbekanntes Spiel"
                                         )
                                       }
-                                      return "Unbekanntes Spiel"
+                                      return "Unbekanntes Spiel" // Default for unexpected types
                                     })
-                                    .filter(Boolean)
+                                    .filter(Boolean) // Remove any null/undefined values
 
                                   return gameNames.length > 0 ? gameNames.join(", ") : "Keine Spiele ausgewählt"
                                 })()}
@@ -1445,6 +1563,8 @@ export default function LudoEventsPage() {
                               </AvatarFallback>
                             </Avatar>
                             <div onClick={(e) => e.stopPropagation()}>
+                              {" "}
+                              {/* Prevent card click */}
                               <UserLink
                                 userId={event.creator.id}
                                 className="text-gray-600 hover:text-teal-600 transition-colors"
@@ -1461,7 +1581,7 @@ export default function LudoEventsPage() {
                           <Button
                             size="sm"
                             onClick={(e) => {
-                              e.stopPropagation()
+                              e.stopPropagation() // Prevent card click
                               if (!user) {
                                 toast.info("Bitte melde dich an, um an Events teilzunehmen")
                                 window.location.href = "/login"
@@ -1470,10 +1590,11 @@ export default function LudoEventsPage() {
                               if (buttonProps.action === "leave") {
                                 leaveEvent(event)
                               } else if (buttonProps.action === "manage") {
+                                // For recurring events with additional dates, open date selection
                                 setDateSelectionEvent(event)
                                 setIsDateSelectionOpen(true)
                               } else {
-                                handleJoinEvent(event)
+                                handleJoinEvent(event) // Handles both single and recurring join logic
                               }
                             }}
                             disabled={buttonProps.disabled}
@@ -1483,13 +1604,13 @@ export default function LudoEventsPage() {
                                 ? "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-blue-500"
                                 : buttonProps.action === "leave"
                                   ? "bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white border-red-500"
-                                  : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:to-gray-400"
+                                  : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:from-gray-400"
                             }`}
                           >
                             {IconComponent ? (
                               <IconComponent className="h-4 w-4 mr-2" />
                             ) : (
-                              <UserPlus className="h-4 w-4 mr-2" />
+                              <UserPlus className="h-4 w-4 mr-2" /> // Default icon if none specified
                             )}
                             {buttonProps.text}
                           </Button>
@@ -1499,12 +1620,13 @@ export default function LudoEventsPage() {
                             variant="outline"
                             className="px-3 bg-transparent font-handwritten"
                             onClick={(e) => {
-                              e.stopPropagation()
+                              e.stopPropagation() // Prevent card click
                               if (!user) {
                                 toast.info("Bitte melde dich an, um Nachrichten zu senden")
                                 window.location.href = "/login"
                                 return
                               }
+                              // If user is the organizer, open management; otherwise, open message composer
                               if (user && event.creator_id === user.id) {
                                 openEventManagement(event)
                               } else {
@@ -1534,6 +1656,7 @@ export default function LudoEventsPage() {
           </div>
         </div>
 
+        {/* Event Details Dialog */}
         <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
           <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -1559,6 +1682,7 @@ export default function LudoEventsPage() {
 
             {selectedEvent && (
               <div className="space-y-6">
+                {/* Event Image or Placeholder */}
                 {!selectedEvent.image_url && (
                   <div className="w-full h-48 rounded-lg overflow-hidden bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
                     <div className="text-center">
@@ -1576,6 +1700,7 @@ export default function LudoEventsPage() {
                   </div>
                 )}
 
+                {/* Organizer Info */}
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-gray-600 font-medium">Organisiert von</span>
@@ -1596,6 +1721,7 @@ export default function LudoEventsPage() {
                   </div>
                 </div>
 
+                {/* Recurring Event Tabs */}
                 {selectedEvent.frequency === "regular" ||
                 selectedEvent.frequency === "recurring" ||
                 selectedEvent.frequency === "täglich" ||
@@ -1605,6 +1731,7 @@ export default function LudoEventsPage() {
                 selectedEvent.frequency === "jährlich" || // CHANGE: added 'jährlich'
                 selectedEvent.frequency === "andere" ? (
                   <div className="space-y-4">
+                    {/* Tabs for recurring events */}
                     <div className="flex border-b border-gray-200">
                       <button
                         onClick={() => setDetailViewTab("info")}
@@ -1628,24 +1755,17 @@ export default function LudoEventsPage() {
                       </button>
                     </div>
 
+                    {/* Content for Info Tab */}
                     {detailViewTab === "info" && (
                       <div className="space-y-4">
                         <div className="space-y-4">
                           <div className="flex items-center gap-3 text-sm">
                             <CalendarDaysIcon className="h-5 w-5 text-teal-600" />
                             <div>
-                              <div className="font-medium text-gray-600 text-sm">
-                                {(() => {
-                                  const hasMultipleDates = additionalDates && additionalDates.length > 1
-                                  if (hasMultipleDates) {
-                                    const nextDate = getNextUpcomingDate(selectedEvent, additionalDates)
-                                    return nextDate && nextDate.event_date
-                                      ? formatEventDate(nextDate.event_date, nextDate.start_time)
-                                      : "Keine Termine"
-                                  } else {
-                                    return formatEventDate(selectedEvent.first_instance_date, selectedEvent.start_time)
-                                  }
-                                })()}
+                              <div className="text-gray-600 text-sm font-medium">
+                                {selectedEvent.first_instance_date
+                                  ? formatEventDate(selectedEvent.first_instance_date, selectedEvent.start_time)
+                                  : "Keine bevorstehenden Termine"}
                               </div>
                             </div>
                           </div>
@@ -1770,6 +1890,7 @@ export default function LudoEventsPage() {
                       </div>
                     )}
 
+                    {/* Content for Schedule Tab */}
                     {detailViewTab === "schedule" && (
                       <div className="space-y-4">
                         <h3 className="font-semibold text-gray-800 mb-3">Alle geplanten Termine</h3>
@@ -1792,23 +1913,25 @@ export default function LudoEventsPage() {
                                 <div className="font-medium text-gray-600">
                                   {formatEventDate(date.event_date, date.start_time)}
                                 </div>
-                                {isNextUpcomingDate(date.event_date) && (
-                                  <span className="ml-auto px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-normal">
-                                    Nächster Termin
-                                  </span>
-                                )}
-                                {index === 0 && !isNextUpcomingDate(date.event_date) && (
-                                  <span className="ml-auto px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full">
-                                    Startdatum
-                                  </span>
-                                )}
-                                {index === additionalDates.length - 1 &&
-                                  index !== 0 &&
-                                  !isNextUpcomingDate(date.event_date) && (
-                                    <span className="ml-auto px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
-                                      Letzter Termin
+                                <div className="ml-auto flex items-center gap-2">
+                                  {index === 0 && (
+                                    <span className="px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full">
+                                      Startdatum
                                     </span>
                                   )}
+                                  {isNextUpcomingDate(date.event_date) && (
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-normal">
+                                      Nächster Termin
+                                    </span>
+                                  )}
+                                  {index === additionalDates.length - 1 &&
+                                    index !== 0 &&
+                                    !isNextUpcomingDate(date.event_date) && (
+                                      <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
+                                        Letzter Termin
+                                      </span>
+                                    )}
+                                </div>
                               </div>
                               <div className="flex items-center gap-3 text-sm">
                                 <Clock className="text-gray-600 h-4 w-4" />
@@ -1854,21 +1977,22 @@ export default function LudoEventsPage() {
                     )}
                   </div>
                 ) : (
+                  // Non-recurring event details
                   <div className="space-y-4">
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
                         <Calendar className="h-5 w-5 text-teal-600" />
                         <div>
-                          <div className="font-medium text-gray-800">
+                          <div className="font-normal text-sm text-gray-600">
                             {formatEventDate(selectedEvent.first_instance_date, selectedEvent.start_time)}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 text-sm">
                         <Clock className="h-5 w-5 text-teal-600" />
                         <div>
-                          <div className="text-gray-600">
+                          <div className="text-gray-600 text-sm">
                             {selectedEvent.start_time.slice(0, 5)}
                             {selectedEvent.end_time && ` - ${selectedEvent.end_time.slice(0, 5)}`}
                           </div>
@@ -1877,9 +2001,9 @@ export default function LudoEventsPage() {
 
                       {getIntervalDisplay(selectedEvent) && (
                         <div className="flex items-center gap-3">
-                          <CalendarSync className="h-5 w-5 text-teal-600" />
+                          <CalendarPlus2Icon className="h-5 w-5 text-teal-600" />
                           <div>
-                            <div className="text-gray-600">{getIntervalDisplay(selectedEvent)}</div>
+                            <div className="text-gray-600 text-sm">{getIntervalDisplay(selectedEvent)}</div>
                           </div>
                         </div>
                       )}
@@ -1898,7 +2022,7 @@ export default function LudoEventsPage() {
                       <div className="flex items-center gap-3">
                         <Users className="h-5 w-5 text-teal-600" />
                         <div>
-                          <div className="text-gray-600">{formatParticipantCount(selectedEvent)}</div>
+                          <div className="text-gray-600 text-sm">{formatParticipantCount(selectedEvent)}</div>
                         </div>
                       </div>
 
@@ -1908,7 +2032,7 @@ export default function LudoEventsPage() {
                           <div>
                             <ul className="text-gray-600 space-y-1">
                               {selectedEvent.selected_games.map((game: any, index: number) => (
-                                <li key={index} className="flex items-center gap-2">
+                                <li key={index} className="text-gray-600">
                                   {(() => {
                                     if (typeof game === "string") {
                                       try {
@@ -1958,8 +2082,8 @@ export default function LudoEventsPage() {
                             userId={selectedEvent.creator.id}
                             className="text-gray-600 hover:text-teal-600 transition-colors"
                           >
-                            <span className="hover:text-teal-600 cursor-pointer transition-colors">
-                              {selectedEvent.creator.name || selectedEvent.creator.username}
+                            <span className="hover:text-teal-600 cursor-pointer transition-colors text-sm">
+                              {selectedEvent.creator.username}
                             </span>
                           </UserLink>
                         </div>
@@ -2083,6 +2207,7 @@ export default function LudoEventsPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Join Event Dialog */}
         <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -2126,6 +2251,7 @@ export default function LudoEventsPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Date Selection Dialog */}
         {dateSelectionEvent && (
           <DateSelectionDialog
             isOpen={isDateSelectionOpen}
@@ -2144,11 +2270,12 @@ export default function LudoEventsPage() {
             }}
             user={user}
             onSuccess={() => {
-              loadEvents()
+              loadEvents() // Refresh event list on successful date selection
             }}
           />
         )}
 
+        {/* Message Composer Modal */}
         {messageRecipient && messageContext && (
           <MessageComposerModal
             isOpen={isMessageComposerOpen}
@@ -2164,18 +2291,20 @@ export default function LudoEventsPage() {
           />
         )}
 
+        {/* Ludo Event Management Dialog */}
         {managementEvent && (
           <LudoEventManagementDialog
             isOpen={isManagementDialogOpen}
             onClose={() => {
               setIsManagementDialogOpen(false)
               setManagementEvent(null)
-              loadEvents()
+              loadEvents() // Refresh event list after management actions
             }}
             event={managementEvent}
           />
         )}
 
+        {/* Create Event Dialog */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>

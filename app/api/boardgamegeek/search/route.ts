@@ -15,12 +15,6 @@ export async function GET(request: NextRequest) {
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       Accept: "application/xml, text/xml, */*",
-      "Accept-Language": "en-US,en;q=0.9",
-      "Accept-Encoding": "gzip, deflate, br",
-      Referer: "https://boardgamegeek.com/",
-      Origin: "https://boardgamegeek.com",
-      "Cache-Control": "no-cache",
-      Pragma: "no-cache",
     }
 
     // Search for games on BoardGameGeek
@@ -29,23 +23,24 @@ export async function GET(request: NextRequest) {
 
     const searchResponse = await fetch(searchUrl, {
       headers,
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      cache: "no-store", // Disable caching to avoid stale 401 responses
     })
     console.log("[v0] BGG search response status:", searchResponse.status)
 
+    if (searchResponse.status === 401 || searchResponse.status === 403) {
+      return NextResponse.json({
+        games: [],
+        error: "BoardGameGeek API is temporarily unavailable. Please enter game details manually.",
+        status: searchResponse.status,
+      })
+    }
+
     if (!searchResponse.ok) {
-      console.log("[v0] BGG search failed with status:", searchResponse.status)
-
-      if (searchResponse.status === 401 || searchResponse.status === 403) {
-        console.log("[v0] BGG API access denied, returning empty results")
-        return NextResponse.json({
-          games: [],
-          error: "BoardGameGeek API is temporarily unavailable. Please enter game details manually.",
-          status: searchResponse.status,
-        })
-      }
-
-      throw new Error("Failed to search BoardGameGeek")
+      return NextResponse.json({
+        games: [],
+        error: "Failed to search BoardGameGeek. Please try again or enter details manually.",
+        status: searchResponse.status,
+      })
     }
 
     const searchXml = await searchResponse.text()
@@ -66,12 +61,19 @@ export async function GET(request: NextRequest) {
     const detailUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${detailIds}&stats=1`
     console.log("[v0] Fetching game details from:", detailUrl)
 
-    const detailResponse = await fetch(detailUrl, { headers })
+    const detailResponse = await fetch(detailUrl, {
+      headers,
+      cache: "no-store",
+    })
     console.log("[v0] BGG detail response status:", detailResponse.status)
 
     if (!detailResponse.ok) {
       console.log("[v0] BGG detail fetch failed with status:", detailResponse.status)
-      throw new Error("Failed to get game details")
+      return NextResponse.json({
+        games: [],
+        error: "Failed to get game details. Please try again or enter details manually.",
+        status: detailResponse.status,
+      })
     }
 
     const detailXml = await detailResponse.text()
@@ -84,7 +86,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ games })
   } catch (error) {
     console.error("[v0] BoardGameGeek API error:", error)
-    return NextResponse.json({ error: "Failed to fetch game data" }, { status: 500 })
+    return NextResponse.json(
+      {
+        games: [],
+        error: "Failed to fetch game data. Please enter details manually.",
+      },
+      { status: 200 },
+    ) // Return 200 so the frontend doesn't show an error
   }
 }
 
