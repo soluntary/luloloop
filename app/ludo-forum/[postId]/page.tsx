@@ -336,10 +336,10 @@ export default function ForumThreadPage() {
                     {reply.author?.username}
                   </UserLink>
                   <span>•</span>
-                  <span>{formatTimeAgo(reply.created_at)}</span>
+                  <span className="text-gray-700 whitespace-pre-wrap text-xs mb-0">{formatTimeAgo(reply.created_at)}</span>
                 </div>
 
-                <p className="text-gray-700 text-sm mb-3 whitespace-pre-wrap">{reply.content}</p>
+                <p className="text-xs">{reply.content}</p>
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 text-sm text-gray-500">
@@ -459,8 +459,8 @@ export default function ForumThreadPage() {
                     {post.author?.username}
                   </UserLink>
                   <span>•</span>
-                  <span>{formatTimeAgo(post.created_at)}</span>
-                  <span>•</span>
+                  <span className="text-xs font-normal">{formatTimeAgo(post.created_at)}</span>
+                  
                   <Badge
                     variant="outline"
                     className="text-xs"
@@ -473,7 +473,7 @@ export default function ForumThreadPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-700 whitespace-pre-wrap mb-6">{post.content}</p>
+            <p className="text-gray-700 whitespace-pre-wrap mb-6 text-xs">{post.content}</p>
 
             <Separator className="my-4" />
 
@@ -541,7 +541,7 @@ export default function ForumThreadPage() {
         {/* Replies */}
         {topLevelReplies.length > 0 && (
           <div className="space-y-4">
-            <h3 className="font-handwritten text-xl text-gray-800 mb-4">
+            <h3 className="font-handwritten text-gray-800 mb-4 text-base">
               {post.replies_count} {post.replies_count === 1 ? "Antwort" : "Antworten"}
             </h3>
             {topLevelReplies.map((reply) => renderReply(reply))}

@@ -28,6 +28,20 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    if (user?.id && user?.avatar) {
+      console.log("[v0] AvatarContext: Initializing cache with user avatar:", {
+        userId: user.id,
+        avatar: user.avatar,
+      })
+      setAvatarCache((prev) => {
+        const newCache = new Map(prev)
+        newCache.set(user.id, user.avatar!)
+        return newCache
+      })
+    }
+  }, [user?.id, user?.avatar])
+
+  useEffect(() => {
     if (!user || !supabase) return
 
     const subscription = supabase
@@ -56,11 +70,19 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
   }, [user, supabase])
 
   const updateAvatar = (userId: string, avatarUrl: string) => {
+    console.log("[v0] AvatarContext: Updating avatar in cache:", { userId, avatarUrl })
     setAvatarCache((prev) => new Map(prev.set(userId, avatarUrl)))
   }
 
   const getAvatar = (userId: string, fallbackEmail?: string) => {
     const cachedAvatar = avatarCache.get(userId)
+    console.log("[v0] AvatarContext: Getting avatar:", {
+      userId,
+      cachedAvatar,
+      cacheSize: avatarCache.size,
+      cacheKeys: Array.from(avatarCache.keys()),
+    })
+
     if (cachedAvatar) return cachedAvatar
 
     // Generate fallback avatar

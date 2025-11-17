@@ -8,7 +8,6 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -45,6 +44,7 @@ interface Friend {
 interface CreateLudoEventFormProps {
   onSuccess: (eventData: any) => void
   onCancel: () => void
+  initialData?: any
 }
 
 interface TimeSlot {
@@ -334,7 +334,15 @@ const generateSeriesDates = (
   return dates
 }
 
-export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoEventFormProps) {
+export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }: CreateLudoEventFormProps) {
+  console.log("[v0] CreateLudoEventForm mounted, initialData:", initialData)
+  console.log("[v0] InitialData keys:", initialData ? Object.keys(initialData) : "undefined")
+  console.log("[v0] InitialData title:", initialData?.title)
+  console.log("[v0] InitialData event_date:", initialData?.event_date)
+  console.log("[v0] InitialData first_instance_date:", initialData?.first_instance_date)
+  console.log("[v0] InitialData games:", initialData?.games)
+  console.log("[v0] InitialData selected_games:", initialData?.selected_games)
+
   const { user: authUser } = useAuth() // Renamed to avoid conflict with Supabase user
   const { games: userGames } = useGames()
   const { friends } = useFriends()
@@ -357,11 +365,56 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
     additionalDates: "", // Added for manual dates validation
   })
 
+  const parseSelectedGames = (data: any) => {
+    if (!data?.selected_games) return []
+
+    if (Array.isArray(data.selected_games)) {
+      // Map through array and parse each JSON string
+      return data.selected_games
+        .map((game: any) => {
+          if (typeof game === "string") {
+            try {
+              return JSON.parse(game)
+            } catch (e) {
+              console.error("[v0] Failed to parse game:", game, e)
+              return null
+            }
+          }
+          // If already an object, return as-is
+          return game
+        })
+        .filter(Boolean) // Remove any null values from failed parsing
+    }
+
+    // If it's a single string, try to parse it
+    if (typeof data.selected_games === "string") {
+      try {
+        const parsed = JSON.parse(data.selected_games)
+        return Array.isArray(parsed) ? parsed : [parsed]
+      } catch (e) {
+        console.error("[v0] Failed to parse selected_games string:", data.selected_games, e)
+        return []
+      }
+    }
+
+    return []
+  }
+
+  const getEventDate = (data: any) => {
+    return data?.first_instance_date || data?.event_date || ""
+  }
+
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    maxPlayers: "4",
-    frequency: "einmalig" as "einmalig" | "täglich" | "wöchentlich" | "monatlich" | "jährlich" | "andere",
+    title: initialData?.title || "",
+    description: initialData?.description || "",
+    maxPlayers: initialData?.max_participants?.toString() || "4",
+    frequency: (initialData?.frequency || "einmalig") as
+      | "einmalig"
+      | "täglich"
+      | "wöchentlich"
+      | "monatlich"
+      | "jährlich"
+      | "andere",
     seriesMode: "manual" as "manual" | "series", // For recurring events: manual entry or series creation
     customIntervalNumber: "",
     customIntervalUnit: "wochen" as "tage" | "wochen" | "monate" | "jahre",
@@ -373,31 +426,31 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
     seriesEndType: "date" as "date" | "count", // How series should end
     seriesEndDate: "",
     seriesEndCount: "",
-    eventDate: "",
+    eventDate: getEventDate(initialData),
     additionalDates: [] as string[],
-    startTime: "",
-    endTime: "",
-    location: "",
-    isOnline: false,
-    onlinePlatform: "",
-    visibility: "public" as "public" | "friends_only",
-    requiresApproval: false,
-    organizerOnly: false,
-    prizeInfo: "",
-    rules: "",
-    additionalInfo: "",
-    selectedImage: "",
+    startTime: initialData?.start_time || "",
+    endTime: initialData?.end_time || "",
+    location: initialData?.location || "",
+    isOnline: initialData?.is_online || false,
+    onlinePlatform: initialData?.online_platform || "",
+    visibility: (initialData?.visibility || "public") as "public" | "friends_only",
+    requiresApproval: initialData?.requires_approval || false,
+    organizerOnly: initialData?.organizer_only || false,
+    prizeInfo: initialData?.prize_info || "",
+    rules: initialData?.rules || "",
+    additionalInfo: initialData?.additional_info || "",
+    selectedImage: initialData?.image || "",
     selectedImageFile: null as File | null,
-    invitedFriends: [] as string[],
-    selectedGames: [] as string[],
+    invitedFriends: initialData?.invited_friends || ([] as string[]),
+    selectedGames: parseSelectedGames(initialData),
     additionalStartTimes: [] as string[],
     additionalEndTimes: [] as string[],
     // Added for Supabase submission
-    date: "", // Assuming this maps to event_date
-    maxParticipants: "", // Assuming this maps to max_participants
-    gameType: "", // Not directly used in Supabase submission but kept for form state
-    difficultyLevel: "", // Not directly used in Supabase submission but kept for form state
-    isPublic: true, // Assuming this maps to visibility
+    date: getEventDate(initialData),
+    maxParticipants: initialData?.max_participants?.toString() || "", // Assuming this maps to max_participants
+    gameType: "",
+    difficultyLevel: "",
+    isPublic: initialData?.visibility === "public" || true, // Assuming this maps to visibility
     otherGames: "", // Not directly used in Supabase submission but kept for form state
   })
 
@@ -423,6 +476,64 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
   const [locationType, setLocationType] = useState<"local" | "virtual">("local")
 
   useEffect(() => {
+    // Initialize form values with initialData, including selectedGames, friends, etc.
+    if (initialData) {
+      setSelectedGames(initialData.games || parseSelectedGames(initialData))
+      setSelectedFriends(
+        (initialData.invited_friends || []).map((friendId: string) => friends.find((f) => f.id === friendId)),
+      )
+      setFriendGameRequests(initialData.friendGameRequests || {})
+      setCustomGames(initialData.customGames || [])
+      // Set frequency and series mode based on initial data
+      if (initialData.frequency && initialData.frequency !== "einmalig") {
+        if (initialData.seriesMode) {
+          handleInputChange("seriesMode", initialData.seriesMode)
+        }
+        if (initialData.frequency === "wöchentlich" && initialData.weeklyDays) {
+          handleInputChange("weeklyDays", initialData.weeklyDays)
+        }
+        if (initialData.frequency === "monatlich") {
+          if (initialData.monthlyType) handleInputChange("monthlyType", initialData.monthlyType)
+          if (initialData.monthlyDay) handleInputChange("monthlyDay", initialData.monthlyDay)
+          if (initialData.monthlyWeekday) handleInputChange("monthlyWeekday", initialData.monthlyWeekday)
+          if (initialData.monthlyWeekdayPosition)
+            handleInputChange("monthlyWeekdayPosition", initialData.monthlyWeekdayPosition)
+        }
+        if (initialData.frequency === "andere") {
+          if (initialData.customIntervalNumber)
+            handleInputChange("customIntervalNumber", initialData.customIntervalNumber.toString())
+          if (initialData.customIntervalUnit) handleInputChange("customIntervalUnit", initialData.customIntervalUnit)
+        }
+        if (initialData.seriesEndType) handleInputChange("seriesEndType", initialData.seriesEndType)
+        if (initialData.seriesEndDate) handleInputChange("seriesEndDate", initialData.seriesEndDate)
+        if (initialData.seriesEndCount) handleInputChange("seriesEndCount", initialData.seriesEndCount.toString())
+      }
+      if (initialData.additionalDates) {
+        handleInputChange("additionalDates", initialData.additionalDates)
+      }
+      if (initialData.additionalStartTimes) {
+        handleInputChange("additionalStartTimes", initialData.additionalStartTimes)
+      }
+      if (initialData.additionalEndTimes) {
+        handleInputChange("additionalEndTimes", initialData.additionalEndTimes)
+      }
+      if (initialData.locationType) {
+        setLocationType(initialData.locationType)
+        handleInputChange("isOnline", initialData.locationType === "virtual")
+      } else {
+        setLocationType(initialData.is_online ? "virtual" : "local")
+      }
+      if (initialData.gameType) handleInputChange("gameType", initialData.gameType)
+      if (initialData.difficultyLevel) handleInputChange("difficultyLevel", initialData.difficultyLevel)
+    }
+
+    // Initialize location type
+    if (initialData?.is_online) {
+      setLocationType("virtual")
+    } else {
+      setLocationType("local")
+    }
+
     if (formData.frequency === "einmalig") {
       setUseTimeSlots(false)
       setTimeSlots([])
@@ -438,7 +549,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
         }
       }
     }
-  }, [formData.frequency, formData.seriesMode])
+  }, [initialData, friends, userGames]) // Add dependencies
 
   const handleInputChange = (field: string, value: any) => {
     console.log(`[v0] Input change - Field: ${field}, Value: ${value}`)
@@ -449,15 +560,30 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
     })
   }
 
-  const handleGameToggle = (game: Game) => {
+  const handleGameShelfSelection = (game: any) => {
+    const gameForEvent = {
+      id: game.id,
+      title: game.title,
+      image: game.image,
+      publisher: game.publisher,
+      players: game.players,
+      duration: game.duration,
+      age: game.age,
+      language: game.language,
+      condition: game.condition,
+      available: game.available,
+      isBggGame: game.isBggGame, // Ensure isBggGame is passed
+    }
+
     setSelectedGames((prev) => {
-      const isSelected = prev.some((g) => g.id === game.id)
-      if (isSelected) {
-        return prev.filter((g) => g.id !== game.id)
-      } else {
-        return [...prev, game]
+      if (prev.some((g) => g.id === game.id)) {
+        return prev // Game already selected
       }
+      return [...prev, gameForEvent] // Add the game object
     })
+
+    setShowGameShelfModal(false)
+    setShowFriendGameDialog(null) // Close friend game dialog if open
   }
 
   const handleAddCustomGame = () => {
@@ -1017,30 +1143,6 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
         friend.name.toLowerCase().includes((friendSearchTerm || "").toLowerCase()),
     ) || []
 
-  const handleGameShelfSelection = (game: any) => {
-    const gameForEvent = {
-      id: game.id,
-      title: game.title,
-      image: game.image,
-      publisher: game.publisher,
-      players: game.players,
-      duration: game.duration,
-      age: game.age,
-      language: game.language,
-      condition: game.condition,
-      available: game.available,
-    }
-
-    setSelectedGames((prev) => {
-      if (prev.some((g) => g.id === game.id)) {
-        return prev // Game already selected
-      }
-      return [...prev, game]
-    })
-
-    setShowGameShelfModal(false)
-  }
-
   const handleToggleFriendGameRequest = (friendId: string, game: Game) => {
     setFriendGameRequests((prev) => {
       const currentRequests = prev[friendId] || []
@@ -1126,11 +1228,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
   }
 
   return (
-    <div className="bg-white p-8 rounded-xl shadow-lg max-w-5xl mx-auto">
-      <div className="mb-8 border-b border-gray-200 pb-6">
-        <h2 className="text-4xl font-bold text-gray-900 mb-3">Neues Event erstellen</h2>
-        <p className="text-lg text-gray-600">Organisiere dein eigenes Event und lade andere Spieler ein!</p>
-      </div>
+    <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
       <div className="mb-10">
         <div className="flex justify-between items-center">
           {[
@@ -1142,57 +1240,50 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             <div key={step.num} className="flex items-center flex-1">
               <div className="flex flex-col items-center flex-1">
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all ${
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${
                     step.num <= currentStep
-                      ? "bg-gradient-to-br from-orange-500 to-pink-500 text-white shadow-lg"
+                      ? "bg-gray-900 text-white"
                       : "bg-gray-100 text-gray-400 border-2 border-gray-200"
                   }`}
                 >
                   {step.num}
                 </div>
                 <span
-                  className={`text-sm mt-2 font-medium ${step.num <= currentStep ? "text-gray-900" : "text-gray-400"}`}
+                  className={`text-xs mt-2 font-medium ${step.num <= currentStep ? "text-gray-900" : "text-gray-400"}`}
                 >
                   {step.label}
                 </span>
               </div>
               {index < 3 && (
-                <div className="flex-1 h-1 mx-4 -mt-6">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      step.num < currentStep ? "bg-gradient-to-r from-orange-500 to-pink-500" : "bg-gray-200"
-                    }`}
-                  />
+                <div className="flex-1 h-0.5 mx-4 -mt-6">
+                  <div className={`h-full transition-all ${step.num < currentStep ? "bg-gray-900" : "bg-gray-200"}`} />
                 </div>
               )}
             </div>
           ))}
         </div>
       </div>
-      <div className="mb-8">
-        <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-          <span className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-pink-500 text-white flex items-center justify-center text-lg font-bold">
-            {currentStep}
-          </span>
-          {getStepTitle(currentStep)}
-        </h3>
+
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-900">{getStepTitle(currentStep)}</h3>
       </div>
+
       {/* Step 1: Ludo Event Details */}
       {currentStep === 1 && (
-        <div className="space-y-8">
-          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+        <div className="space-y-6">
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-2">
-              <Label htmlFor="title" className="text-base font-semibold text-gray-900">
+              <Label htmlFor="title" className="text-sm font-medium text-gray-700">
                 Event-Titel *
               </Label>
-              <span className="text-sm text-gray-500">{formData.title.length}/60</span>
+              <span className="text-xs text-gray-500">{formData.title.length}/60</span>
             </div>
             <Input
               id="title"
               placeholder="z.B. Gemütlicher CATAN Abend..."
               value={formData.title}
               onChange={(e) => handleInputChange("title", e.target.value)}
-              className="text-lg h-12 border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+              className="text-sm h-11 border-gray-300 focus:border-gray-900 focus:ring-gray-900"
               maxLength={60}
             />
             {fieldErrors.title && (
@@ -1209,45 +1300,46 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             )}
           </div>
 
-          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-            <Label className="text-base font-semibold text-gray-900 mb-2 block">Event-Bild</Label>
-            <p className="text-sm text-gray-600 mb-4">
+          {/* Simplified image upload section */}
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <Label className="text-sm font-medium text-gray-700 mb-2 block">Event-Bild</Label>
+            <p className="text-xs text-gray-600 mb-4">
               Lade ein Bild hoch, um dein Event attraktiver zu gestalten (optional)
             </p>
 
             {formData.selectedImage ? (
-              <div className="relative rounded-xl overflow-hidden">
+              <div className="relative rounded-lg overflow-hidden">
                 <img
                   src={formData.selectedImage || "/placeholder.svg"}
                   alt="Event Vorschau"
-                  className="w-full h-64 object-cover"
+                  className="w-full h-48 object-cover"
                 />
                 <button
                   type="button"
                   onClick={handleRemoveImage}
-                  className="absolute top-4 right-4 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
+                  className="absolute top-3 right-3 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             ) : (
               <div
                 onClick={handleImageUpload}
-                className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-orange-400 hover:bg-orange-50 transition-all"
+                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-900 hover:bg-gray-50 transition-all"
               >
                 <div className="flex flex-col items-center space-y-3">
                   {isUploadingImage ? (
-                    <Loader2 className="h-12 w-12 text-orange-500 animate-spin" />
+                    <Loader2 className="h-10 w-10 text-gray-900 animate-spin" />
                   ) : (
-                    <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center">
-                      <Upload className="h-8 w-8 text-orange-600" />
+                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Upload className="h-6 w-6 text-gray-700" />
                     </div>
                   )}
                   <div>
-                    <p className="text-gray-700 font-medium text-lg">
+                    <p className="text-gray-700 font-medium text-base">
                       {isUploadingImage ? "Bild wird verarbeitet..." : "Klicken zum Hochladen"}
                     </p>
-                    <p className="text-sm text-gray-500 mt-1">JPG, PNG oder WebP (max. 5MB)</p>
+                    <p className="text-xs text-gray-500 mt-1">JPG, PNG oder WebP (max. 5MB)</p>
                   </div>
                 </div>
               </div>
@@ -1269,17 +1361,16 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             )}
           </div>
 
-          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-            <Label htmlFor="description" className="text-base font-semibold text-gray-900 mb-2 block">
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <Label htmlFor="description" className="text-sm font-medium text-gray-700 mb-2 block">
               Beschreibung
             </Label>
-            <div className="flex justify-end mb-2"></div>
             <RichTextEditor
               value={formData.description}
               onChange={(value) => handleInputChange("description", value)}
               placeholder="Beschreibe dein Event: was möchtest du veranstalten?"
-              className="mt-1"
-              rows={6}
+              className="mt-1 text-sm"
+              rows={5}
               maxLength={5000}
             />
           </div>
@@ -1287,31 +1378,28 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
       )}
       {/* Step 2: Date & Location */}
       {currentStep === 2 && (
-        <div className="space-y-8">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+        <div className="space-y-6">
+          <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
             <div className="flex items-start space-x-3">
               <input
                 id="organizerOnly"
                 type="checkbox"
                 checked={formData.organizerOnly}
                 onChange={(e) => handleInputChange("organizerOnly", e.target.checked)}
-                className="w-5 h-5 mt-1 text-orange-600 bg-white border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
+                className="w-4 h-4 mt-1 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
               />
               <div className="flex-1">
-                <Label
-                  htmlFor="organizerOnly"
-                  className="text-base font-semibold text-gray-900 cursor-pointer block mb-1"
-                >
+                <Label htmlFor="organizerOnly" className="text-sm font-medium text-gray-700 cursor-pointer block mb-1">
                   Veranstalter (Ich werde nicht als Teilnehmer gezählt)
                 </Label>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs text-gray-600">
                   Aktiviere diese Option, wenn du das Event nur organisierst, aber nicht selbst teilnimmst.
                 </p>
               </div>
             </div>
           </div>
-          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-            <Label htmlFor="maxPlayers" className="text-base font-semibold text-gray-900 mb-2 block">
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <Label htmlFor="maxPlayers" className="text-sm font-medium text-gray-700 mb-2 block">
               Maximale Teilnehmeranzahl *
             </Label>
             <Input
@@ -1324,9 +1412,9 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 handleInputChange("maxPlayers", e.target.value)
                 handleInputChange("maxParticipants", e.target.value)
               }}
-              className="h-12 text-lg border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+              className="h-11 text-sm border-gray-300 focus:border-gray-900 focus:ring-gray-900"
             />
-            <p className="text-sm text-gray-500 mt-2">Leer lassen für unbegrenzte Teilnehmerzahl</p>
+            <p className="text-xs text-gray-500 mt-2">Leer lassen für unbegrenzte Teilnehmerzahl</p>
             {fieldErrors.maxPlayers && (
               <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
@@ -1340,8 +1428,8 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               </p>
             )}
           </div>
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
-            <Label htmlFor="frequency" className="text-base font-semibold text-gray-900 mb-3 block">
+          <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+            <Label htmlFor="frequency" className="text-sm font-medium text-gray-700 mb-3 block">
               Häufigkeit *
             </Label>
             <Select
@@ -1356,7 +1444,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 }
               }}
             >
-              <SelectTrigger className="h-12 text-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500 bg-white">
+              <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-gray-900 bg-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1370,8 +1458,8 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             </Select>
 
             {formData.frequency === "andere" && (
-              <div className="mt-6 space-y-4 bg-white rounded-lg p-5 border border-purple-200">
-                <Label className="text-base font-semibold text-gray-900 block">Rythmus</Label>
+              <div className="mt-5 space-y-4 bg-white rounded-lg p-5 border border-gray-300">
+                <Label className="text-sm font-medium text-gray-700 block">Rythmus</Label>
                 <div className="flex gap-3 items-center">
                   <span className="text-gray-700 font-medium">Alle</span>
                   <Input
@@ -1380,13 +1468,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                     placeholder="2"
                     value={formData.customIntervalNumber}
                     onChange={(e) => handleInputChange("customIntervalNumber", e.target.value)}
-                    className={`w-24 h-11 text-lg ${errors.customIntervalNumber ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-purple-500"}`}
+                    className={`w-24 h-11 text-sm ${errors.customIntervalNumber ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-gray-900"}`}
                   />
                   <Select
                     value={formData.customIntervalUnit}
                     onValueChange={(value) => handleInputChange("customIntervalUnit", value)}
                   >
-                    <SelectTrigger className="w-40 h-11 border-gray-300 focus:border-purple-500">
+                    <SelectTrigger className="w-40 h-11 border-gray-300 focus:border-gray-900">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1397,7 +1485,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                     </SelectContent>
                   </Select>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs text-gray-600">
                   Beispiel: "Alle 3 Wochen" bedeutet, dass sich das Event alle 3 Wochen stattfindet.
                 </p>
                 {errors.customIntervalNumber && <p className="text-red-600 text-sm">{errors.customIntervalNumber}</p>}
@@ -1405,8 +1493,8 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             )}
 
             {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) && (
-              <div className="mt-6">
-                <Label className="text-base font-semibold text-gray-900 mb-3 block">Terminplanung *</Label>
+              <div className="mt-5">
+                <Label className="text-sm font-medium text-gray-700 mb-3 block">Terminplanung *</Label>
                 <Select
                   value={formData.seriesMode}
                   onValueChange={(value) => {
@@ -1417,7 +1505,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                     }
                   }}
                 >
-                  <SelectTrigger className="h-12 text-lg border-gray-300 focus:border-purple-500 bg-white">
+                  <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-gray-900 bg-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1429,8 +1517,8 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             )}
 
             {formData.frequency === "wöchentlich" && formData.seriesMode === "series" && (
-              <div className="mt-6 bg-white rounded-lg p-5 border border-purple-200">
-                <Label className="text-base font-semibold text-gray-900 mb-4 block">Wochentage auswählen</Label>
+              <div className="mt-5 bg-white rounded-lg p-5 border border-gray-300">
+                <Label className="text-sm font-medium text-gray-700 mb-4 block">Wochentage auswählen</Label>
                 <div className="grid grid-cols-7 gap-3">
                   {["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"].map((day) => (
                     <div key={day} className="flex flex-col items-center">
@@ -1447,29 +1535,29 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                             )
                           }
                         }}
-                        className="w-6 h-6"
+                        className="w-5 h-5"
                       />
-                      <Label htmlFor={day} className="text-sm cursor-pointer mt-2 font-medium">
+                      <Label htmlFor={day} className="text-xs cursor-pointer mt-2 font-medium">
                         {day.slice(0, 2)}
                       </Label>
                     </div>
                   ))}
                 </div>
-                <p className="text-sm text-gray-600 mt-4">
+                <p className="text-xs text-gray-600 mt-4">
                   Wähle die Wochentage aus, an denen das Event stattfinden soll
                 </p>
               </div>
             )}
 
             {formData.frequency === "monatlich" && formData.seriesMode === "series" && (
-              <div className="mt-6 bg-white rounded-lg p-5 border border-purple-200 space-y-5">
+              <div className="mt-5 bg-white rounded-lg p-5 border border-gray-300 space-y-5">
                 <div>
-                  <Label className="text-base font-semibold text-gray-900 mb-3 block">Monatliches Muster</Label>
+                  <Label className="text-sm font-medium text-gray-700 mb-3 block">Monatliches Muster</Label>
                   <Select
                     value={formData.monthlyType}
                     onValueChange={(value) => handleInputChange("monthlyType", value)}
                   >
-                    <SelectTrigger className="h-12 border-gray-300 focus:border-purple-500">
+                    <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1481,7 +1569,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
 
                 {formData.monthlyType === "day" && (
                   <div>
-                    <Label className="text-base font-semibold text-gray-900 mb-3 block">Tag des Monats</Label>
+                    <Label className="text-sm font-medium text-gray-700 mb-3 block">Tag des Monats</Label>
                     <Input
                       type="number"
                       min="1"
@@ -1489,20 +1577,20 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                       placeholder="z.B. 7 für jeden 7. des Monats"
                       value={formData.monthlyDay}
                       onChange={(e) => handleInputChange("monthlyDay", e.target.value)}
-                      className="h-12 text-lg border-gray-300 focus:border-purple-500"
+                      className="h-11 text-sm border-gray-300 focus:border-gray-900"
                     />
                   </div>
                 )}
 
                 {formData.monthlyType === "weekday" && (
                   <div>
-                    <Label className="text-base font-semibold text-gray-900 mb-3 block">Wochentag auswählen</Label>
+                    <Label className="text-sm font-medium text-gray-700 mb-3 block">Wochentag auswählen</Label>
                     <div className="flex gap-3">
                       <Select
                         value={formData.monthlyWeekdayPosition}
                         onValueChange={(value) => handleInputChange("monthlyWeekdayPosition", value)}
                       >
-                        <SelectTrigger className="h-12 border-gray-300 focus:border-purple-500">
+                        <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1517,7 +1605,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                         value={formData.monthlyWeekday}
                         onValueChange={(value) => handleInputChange("monthlyWeekday", value)}
                       >
-                        <SelectTrigger className="h-12 border-gray-300 focus:border-purple-500">
+                        <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1531,7 +1619,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                         </SelectContent>
                       </Select>
                     </div>
-                    <p className="text-sm text-gray-600 mt-3">z.B. "Ersten Freitag" = jeden ersten Freitag im Monat</p>
+                    <p className="text-xs text-gray-600 mt-3">z.B. "Ersten Freitag" = jeden ersten Freitag im Monat</p>
                   </div>
                 )}
               </div>
@@ -1539,11 +1627,11 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
 
             {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) &&
               formData.seriesMode === "series" && (
-                <div className="mt-6 bg-white rounded-lg p-5 border border-purple-200 space-y-5">
-                  <Label className="text-base font-semibold text-gray-900 block">Wann soll die Serie enden?</Label>
+                <div className="mt-5 bg-white rounded-lg p-5 border border-gray-300 space-y-5">
+                  <Label className="text-sm font-medium text-gray-700 block">Wann soll die Serie enden?</Label>
 
                   <div className="space-y-4">
-                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-orange-300 transition-colors">
+                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-gray-900 transition-colors">
                       <input
                         type="radio"
                         id="endByCount"
@@ -1556,9 +1644,9 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                             handleInputChange("seriesEndDate", "")
                           }
                         }}
-                        className="w-5 h-5 text-orange-600 border-gray-300 focus:ring-orange-500"
+                        className="w-4 h-4 text-gray-900 border-gray-300 focus:ring-gray-900"
                       />
-                      <Label htmlFor="endByCount" className="text-base font-medium text-gray-900 flex-shrink-0">
+                      <Label htmlFor="endByCount" className="text-sm font-medium text-gray-700 flex-shrink-0">
                         Endet nach
                       </Label>
                       <Input
@@ -1572,13 +1660,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                             handleInputChange("seriesEndType", "count")
                           }
                         }}
-                        className={`w-24 h-11 text-lg ${formData.seriesEndType !== "count" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-orange-500"}`}
+                        className={`w-24 h-11 text-sm ${formData.seriesEndType !== "count" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-gray-900"}`}
                         disabled={formData.seriesEndType !== "count"}
                       />
-                      <Label className="text-base font-medium text-gray-900">Terminen</Label>
+                      <Label className="text-sm font-medium text-gray-700">Terminen</Label>
                     </div>
 
-                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-orange-300 transition-colors">
+                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-gray-900 transition-colors">
                       <input
                         type="radio"
                         id="endByDate"
@@ -1591,9 +1679,9 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                             handleInputChange("seriesEndCount", "")
                           }
                         }}
-                        className="w-5 h-5 text-orange-600 border-gray-300 focus:ring-orange-500"
+                        className="w-4 h-4 text-gray-900 border-gray-300 focus:ring-gray-900"
                       />
-                      <Label htmlFor="endByDate" className="text-base font-medium text-gray-900 flex-shrink-0">
+                      <Label htmlFor="endByDate" className="text-sm font-medium text-gray-700 flex-shrink-0">
                         Endet am
                       </Label>
                       <Input
@@ -1605,7 +1693,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                             handleInputChange("seriesEndType", "date")
                           }
                         }}
-                        className={`h-11 ${formData.seriesEndType !== "date" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-orange-500"}`}
+                        className={`h-11 ${formData.seriesEndType !== "date" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-gray-900"}`}
                         disabled={formData.seriesEndType !== "date"}
                       />
                     </div>
@@ -1613,8 +1701,8 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 </div>
               )}
           </div>
-          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-            <Label htmlFor="eventDate" className="text-base font-semibold text-gray-900 mb-3 block">
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <Label htmlFor="eventDate" className="text-sm font-medium text-gray-700 mb-3 block">
               {formData.frequency === "einmalig"
                 ? "Event-Datum *"
                 : formData.seriesMode === "series"
@@ -1624,7 +1712,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             <Input
               id="eventDate"
               type="date"
-              className="h-12 text-lg border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+              className="h-11 text-sm border-gray-300 focus:border-gray-900 focus:ring-gray-900"
               value={formData.eventDate}
               onChange={(e) => {
                 handleInputChange("eventDate", e.target.value)
@@ -1638,7 +1726,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 {fieldErrors.eventDate}
               </p>
             ) : (
-              <p className="text-sm text-gray-600 mt-2">Das Datum muss in der Zukunft liegen</p>
+              <p className="text-xs text-gray-600 mt-2">Das Datum muss in der Zukunft liegen</p>
             )}
             {errors.eventDate && (
               <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
@@ -1650,13 +1738,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="startTime" className="text-base font-semibold text-gray-900 mb-3 block">
+              <Label htmlFor="startTime" className="text-sm font-medium text-gray-700 mb-3 block">
                 Startzeit *
               </Label>
               <Input
                 id="startTime"
                 type="time"
-                className="h-12 text-lg border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                className="h-11 text-sm border-gray-300 focus:border-gray-900 focus:ring-gray-900"
                 value={formData.startTime}
                 onChange={(e) => handleInputChange("startTime", e.target.value)}
                 required
@@ -1675,13 +1763,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               )}
             </div>
             <div>
-              <Label htmlFor="endTime" className="text-base font-semibold text-gray-900 mb-3 block">
+              <Label htmlFor="endTime" className="text-sm font-medium text-gray-700 mb-3 block">
                 Endzeit *
               </Label>
               <Input
                 id="endTime"
                 type="time"
-                className="h-12 text-lg border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                className="h-11 text-sm border-gray-300 focus:border-gray-900 focus:ring-gray-900"
                 value={formData.endTime}
                 onChange={(e) => handleInputChange("endTime", e.target.value)}
                 required
@@ -1703,14 +1791,14 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
 
           {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) &&
             formData.seriesMode === "manual" && (
-              <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-300">
+              <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
                 <div>
-                  <Label className="text-base font-semibold text-gray-900 mb-3 block">Weitere Termine *</Label>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <Label className="text-sm font-medium text-gray-700 mb-3 block">Weitere Termine *</Label>
+                  <p className="text-xs text-gray-600 mb-4">
                     Füge alle Termine hinzu, an denen das Event stattfinden soll. Jeder Termin muss in der Zukunft und
                     nach dem vorherigen Termin liegen.
                   </p>
-                  {errors.additionalDates && <p className="text-red-600 text-sm mb-3">{errors.additionalDates}</p>}
+                  {errors.additionalDates && <p className="text-red-600 text-xs mb-3">{errors.additionalDates}</p>}
                   <div className="space-y-3 mt-3">
                     {formData.additionalDates.map((date, index) => {
                       const previousDate = index === 0 ? formData.eventDate : formData.additionalDates[index - 1]
@@ -1723,7 +1811,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                             <div className="flex-1">
                               <Input
                                 type="date"
-                                className={`h-11 text-lg ${!isDateValid || !isFutureDate ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-orange-500"}`}
+                                className={`h-11 text-sm ${!isDateValid || !isFutureDate ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-gray-900"}`}
                                 value={date}
                                 onChange={(e) => {
                                   const newDates = [...formData.additionalDates]
@@ -1744,7 +1832,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                               <>
                                 <Input
                                   type="time"
-                                  className="h-11 text-lg border-gray-300 focus:border-orange-500 w-32"
+                                  className="h-11 text-sm border-gray-300 focus:border-gray-900 w-32"
                                   placeholder="Startzeit"
                                   value={formData.additionalStartTimes?.[index] || formData.startTime}
                                   onChange={(e) => {
@@ -1755,7 +1843,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                                 />
                                 <Input
                                   type="time"
-                                  className="h-11 text-lg border-gray-300 focus:border-orange-500 w-32"
+                                  className="h-11 text-sm border-gray-300 focus:border-gray-900 w-32"
                                   placeholder="Endzeit"
                                   value={formData.additionalEndTimes?.[index] || formData.endTime}
                                   onChange={(e) => {
@@ -1794,7 +1882,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                       onClick={() => {
                         handleInputChange("additionalDates", [...formData.additionalDates, ""])
                       }}
-                      className="h-11 px-5 text-base border-2 border-dashed border-yellow-500 text-yellow-700 hover:bg-yellow-50"
+                      className="h-11 px-5 text-sm border-2 border-dashed border-yellow-500 text-yellow-700 hover:bg-yellow-50"
                     >
                       + Weiteren Termin hinzufügen
                     </Button>
@@ -1813,15 +1901,15 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               formData.startTime &&
               formData.endTime &&
               (formData.seriesEndType === "count" ? formData.seriesEndCount : formData.seriesEndDate))) && (
-            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-xl p-6">
-              <h3 className="font-bold text-blue-900 mb-4 text-lg flex items-center gap-2">
-                <span className="text-2xl">📅</span>
+            <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-6">
+              <h3 className="font-semibold text-gray-900 mb-4 text-base flex items-center gap-2">
+                <span className="text-lg">📅</span>
                 Terminvorschau
               </h3>
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {formData.frequency === "einmalig" ? (
-                  <div className="flex justify-between items-center bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm">
-                    <span className="font-semibold text-blue-800">
+                  <div className="flex justify-between items-center bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                    <span className="font-medium text-gray-800">
                       {parseLocalDate(formData.eventDate).toLocaleDateString("de-DE", {
                         weekday: "long",
                         year: "numeric",
@@ -1829,15 +1917,15 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                         day: "numeric",
                       })}
                     </span>
-                    <span className="text-blue-700 font-medium bg-blue-100 px-3 py-1 rounded-full">
+                    <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
                       {formData.startTime} - {formData.endTime}
                     </span>
                   </div>
                 ) : formData.seriesMode === "manual" ? (
                   <>
                     {formData.eventDate && (
-                      <div className="flex justify-between items-center bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm">
-                        <span className="font-semibold text-blue-800">
+                      <div className="flex justify-between items-center bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                        <span className="font-medium text-gray-800">
                           {parseLocalDate(formData.eventDate).toLocaleDateString("de-DE", {
                             weekday: "long",
                             year: "numeric",
@@ -1845,7 +1933,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                             day: "numeric",
                           })}
                         </span>
-                        <span className="text-blue-700 font-medium bg-blue-100 px-3 py-1 rounded-full">
+                        <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
                           {formData.startTime} - {formData.endTime}
                         </span>
                       </div>
@@ -1855,9 +1943,9 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                       return (
                         <div
                           key={index}
-                          className="flex justify-between items-center bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm"
+                          className="flex justify-between items-center bg-white rounded-lg p-4 border border-gray-200 shadow-sm"
                         >
-                          <span className="font-semibold text-blue-800">
+                          <span className="font-medium text-gray-800">
                             {parseLocalDate(date).toLocaleDateString("de-DE", {
                               weekday: "long",
                               year: "numeric",
@@ -1865,7 +1953,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                               day: "numeric",
                             })}
                           </span>
-                          <span className="text-blue-700 font-medium bg-blue-100 px-3 py-1 rounded-full">
+                          <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
                             {formData.additionalStartTimes?.[index] || formData.startTime} -{" "}
                             {formData.additionalEndTimes?.[index] || formData.endTime}
                           </span>
@@ -1893,9 +1981,9 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                     return seriesDates.map((date, index) => (
                       <div
                         key={index}
-                        className="flex justify-between items-center bg-white rounded-lg p-4 border-2 border-blue-200 shadow-sm"
+                        className="flex justify-between items-center bg-white rounded-lg p-4 border border-gray-200 shadow-sm"
                       >
-                        <span className="font-semibold text-blue-800">
+                        <span className="font-medium text-gray-800">
                           {parseLocalDate(date).toLocaleDateString("de-DE", {
                             weekday: "long",
                             year: "numeric",
@@ -1903,7 +1991,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                             day: "numeric",
                           })}
                         </span>
-                        <span className="text-blue-700 font-medium bg-blue-100 px-3 py-1 rounded-full">
+                        <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
                           {formData.startTime} - {formData.endTime}
                         </span>
                       </div>
@@ -1911,8 +1999,8 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                   })()
                 )}
               </div>
-              <div className="mt-5 pt-4 border-t-2 border-blue-200">
-                <p className="text-base text-blue-800 font-bold">
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-sm text-gray-800 font-semibold">
                   {" "}
                   {formData.frequency === "einmalig"
                     ? 1
@@ -1938,8 +2026,8 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             </div>
           )}
 
-          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-            <Label htmlFor="location" className="text-base font-semibold text-gray-900 mb-3 block">
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <Label htmlFor="location" className="text-sm font-medium text-gray-700 mb-3 block">
               Ort *
             </Label>
             <div className="space-y-4">
@@ -1950,7 +2038,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                   handleInputChange("isOnline", value === "virtual")
                 }}
               >
-                <SelectTrigger className="h-12 text-lg border-gray-300 focus:border-orange-500">
+                <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1966,7 +2054,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                     placeholder="Location, Adresse, PLZ oder Ort eingeben..."
                     value={formData.location}
                     onChange={(value) => handleInputChange("location", value)}
-                    className="h-12 text-lg border-gray-300 focus:border-orange-500"
+                    className="h-11 text-sm border-gray-300 focus:border-gray-900"
                     error={fieldErrors.location || errors.location}
                   />
                 </div>
@@ -1977,7 +2065,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                   placeholder="Einladungslink (Discord, Zoom, etc.)"
                   value={formData.onlinePlatform}
                   onChange={(e) => handleInputChange("onlinePlatform", e.target.value)}
-                  className="h-12 text-lg border-gray-300 focus:border-orange-500"
+                  className="h-11 text-sm border-gray-300 focus:border-gray-900"
                 />
               )}
               {errors.onlinePlatform && (
@@ -1992,20 +2080,20 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
       )}
       {/* Step 3: Games & Participants */}
       {currentStep === 3 && (
-        <div className="space-y-8">
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
-            <p className="text-gray-700 mb-6 text-base">
+        <div className="space-y-6">
+          <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+            <p className="text-gray-700 mb-6 text-sm">
               Wähle Spiele aus deinem Spieleregal oder suche gerne andere aus der Datenbank
             </p>
 
             <div className="space-y-6">
-              <div className="bg-white rounded-xl p-6 border-2 border-green-200">
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-lg font-bold text-gray-900">Dein Spielregal</h4>
+                  <h4 className="text-base font-semibold text-gray-900">Dein Spielregal</h4>
                   <Button
                     type="button"
                     onClick={() => setShowGameShelfModal(true)}
-                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                    className="bg-gray-900 text-white hover:bg-gray-800"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Aus Spielregal auswählen
@@ -2015,13 +2103,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 {selectedGames.filter((game) => !game.isBggGame).length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <Library className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">Klicke auf "Aus Spielregal auswählen", um Spiele hinzuzufügen</p>
+                    <p className="text-xs">Klicke auf "Aus Spielregal auswählen", um Spiele hinzuzufügen</p>
                   </div>
                 )}
               </div>
 
-              <div className="bg-white rounded-xl p-6 border-2 border-green-200">
-                <h4 className="text-lg font-bold text-gray-900 mb-4">Aus der Datenbank suchen</h4>
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h4 className="text-base font-semibold text-gray-900 mb-4">Aus der Datenbank suchen</h4>
                 <div className="relative mb-5">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
@@ -2032,13 +2120,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                       setBggSearchTerm(e.target.value)
                       searchBoardGameGeek(e.target.value)
                     }}
-                    className="w-full pl-12 pr-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                   />
                 </div>
 
                 {bggSearchLoading && (
                   <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-green-500 mx-auto"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-gray-900 mx-auto"></div>
                     <p className="text-gray-600 mt-4 font-medium">Durchsuche Datenbank...</p>
                   </div>
                 )}
@@ -2050,10 +2138,10 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                       return (
                         <div
                           key={game.id}
-                          className={`border-2 rounded-xl p-4 cursor-pointer transition-all hover:shadow-lg ${
+                          className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                             isSelected
-                              ? "border-green-500 bg-green-50 shadow-md"
-                              : "border-gray-200 hover:border-green-300"
+                              ? "border-gray-900 bg-gray-50 shadow-md"
+                              : "border-gray-200 hover:border-gray-400"
                           }`}
                           onClick={() => handleGameShelfSelection(game)}
                         >
@@ -2080,26 +2168,23 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                   <div className="text-center py-12 text-gray-500">
                     <Search className="w-16 h-16 mx-auto mb-4 opacity-30" />
                     <p className="font-medium">Keine Spiele gefunden für "{bggSearchTerm}"</p>
-                    <p className="text-sm mt-2">Versuche einen anderen Suchbegriff</p>
+                    <p className="text-xs mt-2">Versuche einen anderen Suchbegriff</p>
                   </div>
                 )}
               </div>
 
               {selectedGames.length > 0 && (
-                <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-6 border-2 border-teal-300">
-                  <h4 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
+                <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                  <h4 className="text-base font-semibold text-gray-900 mb-5 flex items-center gap-2">
                     Ausgewählte Spiele für das Event: {selectedGames.length}
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {selectedGames.map((game) => (
-                      <div
-                        key={game.id}
-                        className="bg-white border-2 border-teal-200 rounded-xl p-4 relative shadow-sm"
-                      >
+                      <div key={game.id} className="bg-white border border-gray-200 rounded-lg p-4 relative shadow-sm">
                         <button
                           type="button"
                           onClick={() => handleRemoveGame(game.id)}
-                          className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg z-10 font-bold"
+                          className="absolute -top-2.5 -right-2.5 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg font-bold text-xs"
                         >
                           ×
                         </button>
@@ -2122,13 +2207,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
       )}
       {/* Step 4: Settings & Publication */}
       {currentStep === 4 && (
-        <div className="space-y-8">
-          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-            <Label htmlFor="visibility" className="text-base font-semibold text-gray-900 mb-3 block">
+        <div className="space-y-6">
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <Label htmlFor="visibility" className="text-sm font-medium text-gray-700 mb-3 block">
               Sichtbarkeit *
             </Label>
             <Select value={formData.visibility} onValueChange={(value) => handleInputChange("visibility", value)}>
-              <SelectTrigger className="h-12 text-lg border-gray-300 focus:border-orange-500">
+              <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-gray-900">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -2143,10 +2228,10 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
           </div>
 
           {formData.visibility === "friends_only" && (
-            <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-6 border border-pink-200">
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
               <div>
-                <Label className="text-base font-semibold text-gray-900 mb-3 block">Freunde einladen</Label>
-                <p className="text-sm text-gray-600 mb-4">
+                <Label className="text-sm font-medium text-gray-700 mb-3 block">Freunde einladen</Label>
+                <p className="text-xs text-gray-600 mb-4">
                   Wähle Freunde aus, die du zu diesem Event einladen möchtest.
                 </p>
                 <div className="mt-2 space-y-4">
@@ -2154,29 +2239,29 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                     type="button"
                     onClick={() => setShowFriendDialog(true)}
                     variant="outline"
-                    className="h-12 w-full px-6 text-base border-2 border-dashed border-pink-300 text-pink-700 hover:bg-pink-50"
+                    className="h-11 w-full px-6 text-sm border-2 border-dashed border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <Users className="w-5 h-5 mr-2" />
                     Freunde auswählen ({selectedFriends.length} ausgewählt)
                   </Button>
 
                   {selectedFriends.length > 0 && (
-                    <div className="space-y-4 pt-4 border-t border-pink-300">
-                      <p className="text-sm font-medium text-gray-800">Ausgewählte Freunde:</p>
+                    <div className="space-y-4 pt-4 border-t border-gray-200">
+                      <p className="text-xs font-medium text-gray-800">Ausgewählte Freunde:</p>
                       <div className="flex flex-wrap gap-3">
                         {selectedFriends.map((friend) => (
                           <div
                             key={friend.id}
-                            className="flex items-center gap-2 bg-pink-100 text-pink-800 px-4 py-2 rounded-full text-sm font-medium shadow-sm"
+                            className="flex items-center gap-2 bg-gray-100 text-gray-800 px-4 py-2 rounded-full text-sm font-medium shadow-sm"
                           >
-                            <div className="w-8 h-8 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                            <div className="w-8 h-8 bg-gradient-to-r from-gray-400 to-gray-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
                               {friend.name[0].toUpperCase()}
                             </div>
                             <span>{friend.name}</span>
                             <button
                               type="button"
                               onClick={() => handleRemoveSelectedFriend(friend.id)}
-                              className="text-pink-600 hover:text-pink-800 ml-1 p-0.5 rounded-full hover:bg-pink-200 transition-colors"
+                              className="text-gray-600 hover:text-gray-800 ml-1 p-0.5 rounded-full hover:bg-gray-200 transition-colors"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -2185,8 +2270,8 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                       </div>
 
                       {/* Friend game requests section */}
-                      <div className="mt-4 space-y-3 pt-4 border-t border-pink-300">
-                        <p className="text-sm font-medium text-gray-800">Spiele von Freunden anfragen:</p>
+                      <div className="mt-4 space-y-3 pt-4 border-t border-gray-200">
+                        <p className="text-xs font-medium text-gray-800">Spiele von Freunden anfragen:</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {selectedFriends.map((friend) => (
                             <Button
@@ -2194,9 +2279,9 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                               type="button"
                               onClick={() => setShowFriendGameDialog({ friendId: friend.id, friendName: friend.name })}
                               variant="outline"
-                              className="h-14 justify-start text-left text-base border-2 border-pink-300 hover:bg-pink-50"
+                              className="h-14 justify-start text-left text-sm border-2 border-gray-300 hover:bg-gray-50"
                             >
-                              <span className="truncate font-medium text-pink-800">
+                              <span className="truncate font-medium text-gray-800">
                                 {friend.name}
                                 {friendGameRequests[friend.id]?.length > 0 && (
                                   <span className="ml-2 text-xs bg-teal-100 text-teal-800 px-1.5 py-0.5 rounded-full">
@@ -2216,15 +2301,15 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
           )}
 
           {formData.visibility !== "friends_only" && (
-            <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-              <Label htmlFor="requiresApproval" className="text-base font-semibold text-gray-900 mb-3 block">
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <Label htmlFor="requiresApproval" className="text-sm font-medium text-gray-700 mb-3 block">
                 Teilnahmemodus *
               </Label>
               <Select
                 value={formData.requiresApproval ? "manual" : "automatic"}
                 onValueChange={(value) => handleInputChange("requiresApproval", value === "manual")}
               >
-                <SelectTrigger className="h-12 text-lg border-gray-300 focus:border-orange-500">
+                <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2239,28 +2324,28 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             </div>
           )}
 
-          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-            <Label htmlFor="rules" className="text-base font-semibold text-gray-900 mb-3 block">
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <Label htmlFor="rules" className="text-sm font-medium text-gray-700 mb-3 block">
               Zusatzinfos
             </Label>
-            <Textarea
-              id="rules"
-              placeholder="z.B. Spezielle Hausregeln, Hinweise ..."
+            <RichTextEditor
               value={formData.rules}
-              onChange={(e) => handleInputChange("rules", e.target.value)}
-              className="min-h-[120px] text-base border-gray-300 focus:border-orange-500"
+              onChange={(value) => handleInputChange("rules", value)}
+              placeholder="z.B. Spezielle Hausregeln, Hinweise ..."
+              rows={4}
+              className="text-sm"
             />
           </div>
         </div>
       )}
       {submitError && (
-        <div className="bg-red-50 border-2 border-red-300 rounded-xl p-5 flex items-start space-x-4">
+        <div className="bg-red-50 border-2 border-red-300 rounded-lg p-5 flex items-start space-x-4">
           <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
             <AlertCircle className="w-6 h-6 text-red-600" />
           </div>
           <div className="flex-1">
-            <h4 className="font-bold text-red-900 mb-1">Fehler beim Erstellen</h4>
-            <p className="text-red-700">{submitError}</p>
+            <h4 className="font-semibold text-red-900 mb-1">Fehler beim Erstellen</h4>
+            <p className="text-red-700 text-sm">{submitError}</p>
           </div>
         </div>
       )}
@@ -2271,7 +2356,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               type="button"
               variant="outline"
               onClick={prevStep}
-              className="h-12 px-6 text-base border-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
+              className="h-11 px-6 text-sm border-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
               disabled={isSubmitting}
             >
               ← Zurück
@@ -2284,7 +2369,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             type="button"
             variant="outline"
             onClick={onCancel}
-            className="h-12 px-6 text-base border-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
+            className="h-11 px-6 text-sm border-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
             disabled={isSubmitting}
           >
             Abbrechen
@@ -2294,7 +2379,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             <Button
               type="button"
               onClick={nextStep}
-              className="h-12 px-8 text-base bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-semibold shadow-lg"
+              className="h-11 px-8 text-sm bg-gray-900 text-white font-medium shadow-sm hover:bg-gray-800"
               disabled={isSubmitting}
             >
               Weiter →
@@ -2304,7 +2389,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="h-12 px-8 text-base bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-semibold shadow-lg"
+              className="h-11 px-8 text-sm bg-green-600 text-white font-medium shadow-sm hover:bg-green-700"
             >
               {isSubmitting ? (
                 <div className="flex items-center">
@@ -2325,7 +2410,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
       <Dialog open={showFriendDialog} onOpenChange={setShowFriendDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="font-handwritten text-xl">Freunde auswählen</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Freunde auswählen</DialogTitle>
           </DialogHeader>
 
           {/* Search Field */}
@@ -2334,7 +2419,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
               placeholder="Freunde suchen..."
               value={friendSearchTerm}
               onChange={(e) => setFriendSearchTerm(e.target.value)}
-              className="border-2 border-pink-200 focus:border-pink-400 h-12 text-lg"
+              className="border-2 border-gray-300 focus:border-gray-900 h-11 text-sm"
             />
           </div>
 
@@ -2351,14 +2436,14 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                       <Checkbox
                         checked={selectedFriends.some((f) => f.id === friend.id)}
                         onChange={() => handleFriendToggle(friend)}
-                        className="w-6 h-6 border-gray-300 focus:ring-pink-500"
+                        className="w-5 h-5 border-gray-300 focus:ring-gray-900"
                       />
-                      <div className="w-12 h-12 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                      <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-white font-bold text-lg">
                         {friend.name[0].toUpperCase()}
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-medium font-body text-gray-900">{friend.name}</h4>
-                        {friend.email && <p className="text-sm text-gray-500">{friend.email}</p>}
+                        <h4 className="font-medium text-gray-900">{friend.name}</h4>
+                        {friend.email && <p className="text-xs text-gray-500">{friend.email}</p>}
                       </div>
                     </div>
                   ))}
@@ -2367,14 +2452,14 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 <div className="text-center py-12 text-gray-500">
                   <Users className="w-16 h-16 mx-auto mb-4 opacity-30" />
                   <p className="font-medium">Keine Freunde gefunden für "{friendSearchTerm}"</p>
-                  <p className="text-sm mt-2">Versuche einen anderen Suchbegriff</p>
+                  <p className="text-xs mt-2">Versuche einen anderen Suchbegriff</p>
                 </div>
               )
             ) : (
               <div className="text-center py-12 text-gray-500">
                 <Users className="w-16 h-16 mx-auto mb-4 opacity-30" />
                 <p className="font-medium">Du hast noch keine Freunde hinzugefügt</p>
-                <p className="text-sm mt-2">Füge zuerst Freunde hinzu, um sie einladen zu können</p>
+                <p className="text-xs mt-2">Füge zuerst Freunde hinzu, um sie einladen zu können</p>
               </div>
             )}
           </div>
@@ -2386,7 +2471,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 setFriendSearchTerm("") // Reset search when closing
               }}
               variant="outline"
-              className="h-12 px-6 text-base border-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="h-11 px-6 text-sm border-2 border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Abbrechen
             </Button>
@@ -2395,7 +2480,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 setShowFriendDialog(false)
                 setFriendSearchTerm("")
               }}
-              className="h-12 px-8 text-base bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold shadow-lg"
+              className="h-11 px-8 text-sm bg-gray-900 text-white font-medium shadow-sm hover:bg-gray-800"
             >
               Fertig ({selectedFriends.length} ausgewählt)
             </Button>
@@ -2405,11 +2490,11 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
       <Dialog open={!!showFriendGameDialog} onOpenChange={() => setShowFriendGameDialog(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center text-2xl font-bold gap-2">
+            <DialogTitle className="flex items-center text-xl font-bold gap-2">
               <Gamepad2 className="h-6 w-6" />
               Spiele von {showFriendGameDialog?.friendName} anfragen
             </DialogTitle>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-xs text-gray-500 mt-2">
               Wähle Spiele aus dem Regal von {showFriendGameDialog?.friendName}, die zum Event mitgebracht werden sollen
             </p>
           </DialogHeader>
@@ -2423,15 +2508,15 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 placeholder="Spiele durchsuchen..."
                 value={friendGameSearchTerm}
                 onChange={(e) => setFriendGameSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
               />
             </div>
 
             {filteredFriendGames.length === 0 ? (
               <div className="text-center py-16 text-gray-500">
                 <Gamepad2 className="w-20 h-20 mx-auto mb-5 opacity-20" />
-                <p className="font-medium text-lg">Keine Spiele gefunden</p>
-                <p className="text-sm mt-2">
+                <p className="font-medium text-base">Keine Spiele gefunden</p>
+                <p className="text-xs mt-2">
                   {friendGameSearchTerm
                     ? "Versuche einen anderen Suchbegriff"
                     : `${showFriendGameDialog?.friendName} hat noch keine Spiele im Spielregal`}
@@ -2449,14 +2534,14 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                   return (
                     <div
                       key={game.id}
-                      className={`border-2 rounded-xl p-4 relative transition-all ${
+                      className={`border-2 rounded-lg p-4 relative transition-all ${
                         isAvailable ? "hover:shadow-lg cursor-pointer" : "opacity-60 cursor-not-allowed bg-gray-50"
-                      } ${isSelected ? "border-teal-500 bg-teal-50 shadow-md" : "border-gray-200 hover:border-teal-300"}`}
+                      } ${isSelected ? "border-gray-900 bg-gray-50 shadow-md" : "border-gray-200 hover:border-gray-400"}`}
                       onClick={() => isAvailable && handleGameShelfSelection(game)}
                     >
                       <div className="absolute top-3 left-3 z-10">
                         <div
-                          className={`w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
+                          className={`w-3 h-3 rounded-full border-2 border-white shadow-sm ${
                             isAvailable ? "bg-green-500" : "bg-red-500"
                           }`}
                           title={isAvailable ? "Verfügbar" : "Nicht verfügbar"}
@@ -2494,20 +2579,17 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
       <Dialog open={showGameShelfModal} onOpenChange={setShowGameShelfModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center text-2xl font-bold gap-2">
-              <Library className="h-6 w-6" />
-              Spiele aus deinem Spielregal auswählen
-            </DialogTitle>
+            <DialogTitle className="text-xl font-bold">Spiele aus deinem Spielregal auswählen</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-5 pt-4">
-            <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <div className="flex gap-2">
                 <button
                   onClick={() => setAvailabilityFilter("all")}
-                  className={`px-4 py-2 text-sm rounded-full font-medium transition-colors ${
+                  className={`px-4 py-2 text-xs rounded-full font-medium transition-colors ${
                     availabilityFilter === "all"
-                      ? "bg-teal-600 text-white shadow-md"
+                      ? "bg-gray-900 text-white shadow-md"
                       : "bg-white text-gray-600 hover:bg-gray-100"
                   }`}
                 >
@@ -2515,24 +2597,24 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                 </button>
                 <button
                   onClick={() => setAvailabilityFilter("available")}
-                  className={`px-4 py-2 text-sm rounded-full font-medium transition-colors flex items-center gap-1 ${
+                  className={`px-4 py-2 text-xs rounded-full font-medium transition-colors flex items-center gap-1 ${
                     availabilityFilter === "available"
                       ? "bg-green-500 text-white shadow-md"
                       : "bg-white text-gray-600 hover:bg-gray-100"
                   }`}
                 >
-                  <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   Verfügbar
                 </button>
                 <button
                   onClick={() => setAvailabilityFilter("unavailable")}
-                  className={`px-4 py-2 text-sm rounded-full font-medium transition-colors flex items-center gap-1 ${
+                  className={`px-4 py-2 text-xs rounded-full font-medium transition-colors flex items-center gap-1 ${
                     availabilityFilter === "unavailable"
                       ? "bg-red-500 text-white shadow-md"
                       : "bg-white text-gray-600 hover:bg-gray-100"
                   }`}
                 >
-                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                   Nicht verfügbar
                 </button>
               </div>
@@ -2541,8 +2623,8 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
             {userGames.length === 0 ? (
               <div className="text-center py-16 text-gray-500">
                 <Gamepad2 className="w-20 h-20 mx-auto mb-5 opacity-20" />
-                <p className="font-medium text-lg">Du hast noch keine Spiele in deinem Spielregal</p>
-                <p className="text-sm mt-2">Füge zuerst Spiele zu deiner Bibliothek hinzu</p>
+                <p className="font-medium text-base">Du hast noch keine Spiele in deinem Spielregal</p>
+                <p className="text-xs mt-2">Füge zuerst Spiele zu deiner Bibliothek hinzu</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
@@ -2560,14 +2642,14 @@ export default function CreateLudoEventForm({ onSuccess, onCancel }: CreateLudoE
                     return (
                       <div
                         key={game.id}
-                        className={`border-2 rounded-xl p-4 relative transition-all ${
+                        className={`border-2 rounded-lg p-4 relative transition-all ${
                           isAvailable ? "hover:shadow-lg cursor-pointer" : "opacity-60 cursor-not-allowed bg-gray-50"
-                        } ${isSelected ? "border-teal-500 bg-teal-50 shadow-md" : "border-gray-200 hover:border-teal-300"}`}
+                        } ${isSelected ? "border-gray-900 bg-gray-50 shadow-md" : "border-gray-200 hover:border-gray-400"}`}
                         onClick={() => isAvailable && handleGameShelfSelection(game)}
                       >
                         <div className="absolute top-3 left-3 z-10">
                           <div
-                            className={`w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
+                            className={`w-3 h-3 rounded-full border-2 border-white shadow-sm ${
                               isAvailable ? "bg-green-500" : "bg-red-500"
                             }`}
                             title={isAvailable ? "Verfügbar" : "Nicht verfügbar"}

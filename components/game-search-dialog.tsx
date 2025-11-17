@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Search, Loader2, Users, Clock, Calendar } from "lucide-react"
+import { Search, Loader2, Users, Clock, Calendar, AlertCircle } from "lucide-react"
 
 interface GameSearchResult {
   id: string
@@ -34,6 +34,7 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
   const [searchResults, setSearchResults] = useState<GameSearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
@@ -41,6 +42,8 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
     console.log("[v0] Starting search for:", searchQuery)
     setIsSearching(true)
     setHasSearched(true)
+    setApiError(null)
+
     try {
       const url = `/api/boardgamegeek/search?q=${encodeURIComponent(searchQuery)}`
       console.log("[v0] Fetching from:", url)
@@ -51,14 +54,18 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
       const data = await response.json()
       console.log("[v0] Response data:", data)
 
-      if (data.games) {
+      if (data.error) {
+        console.error("[v0] API returned error:", data.error)
+        setApiError(data.error)
+        setSearchResults([])
+      } else if (data.games) {
         console.log("[v0] Setting search results:", data.games.length, "games")
         setSearchResults(data.games)
-      } else if (data.error) {
-        console.error("[v0] API returned error:", data.error)
       }
     } catch (error) {
       console.error("[v0] Search error:", error)
+      setApiError("Netzwerkfehler. Bitte versuche es später erneut.")
+      setSearchResults([])
     } finally {
       setIsSearching(false)
     }
@@ -198,11 +205,21 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
             {!hasSearched && searchQuery && (
               <div className="text-center py-8 text-gray-500">
                 <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p className="font-body">Enter klicken zum Suchen</p>
+                <p className="font-body">Um eine Suche zu starten, klicken Sie auf das Suchsymbol oder drücken Sie die Enter-Taste (Eingabetaste) nach der Eingabe des Spielnamen.</p>
               </div>
             )}
 
-            {hasSearched && searchResults.length === 0 && searchQuery && !isSearching && (
+            {hasSearched && !isSearching && apiError && (
+              <div className="text-center py-8">
+                <AlertCircle className="w-12 h-12 mx-auto mb-2 text-amber-500" />
+                <p className="font-body text-gray-700 mb-2">{apiError}</p>
+                <p className="text-sm text-gray-500">
+                  Du kannst das Spiel trotzdem manuell hinzufügen, indem du diesen Dialog schließt.
+                </p>
+              </div>
+            )}
+
+            {hasSearched && searchResults.length === 0 && !apiError && searchQuery && !isSearching && (
               <div className="text-center py-8 text-gray-500">
                 <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p className="font-body">Keine Spiele gefunden für "{searchQuery}"</p>

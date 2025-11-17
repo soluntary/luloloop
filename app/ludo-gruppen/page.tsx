@@ -14,24 +14,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MessageComposerModal } from "@/components/message-composer-modal"
 import { BroadcastMessageModal } from "@/components/broadcast-message-modal"
 import {
-  Search,
-  Plus,
-  MapPin,
-  Users,
-  UserPlus,
-  MessageCircle,
-  Settings,
-  Clock,
-  CheckCircle,
-  UserCog,
-  Dices,
-  X,
-  BarChart3,
-  UserRoundMinus,
-  UserRoundCog,
-  ImageIcon,
-  UserX,
-} from "lucide-react"
+  FaSearch,
+  FaPlus,
+  FaMapMarkerAlt,
+  FaUsers,
+  FaUserPlus,
+  FaComment,
+  FaCog,
+  FaClock,
+  FaCheckCircle,
+  FaUserCog,
+  FaDice,
+  FaTimes,
+  FaChartBar,
+  FaUserMinus,
+  FaImage,
+  FaUserTimes,
+} from "react-icons/fa"
+// </CHANGE>
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
@@ -51,11 +51,14 @@ import { useLocationSearch } from "@/contexts/location-search-context"
 import { DistanceBadge } from "@/components/distance-badge"
 import { LocationMap } from "@/components/location-map"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Added for polls
 import { CreatePollDialog } from "@/components/create-poll-dialog"
 import { PollCard } from "@/components/poll-card"
 import { getCommunityPollsAction, type Poll } from "@/app/actions/community-polls"
+import { convertMarkdownToHtml } from "@/lib/utils"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 
 interface LudoGroup {
   id: string
@@ -66,7 +69,7 @@ interface LudoGroup {
   creator_id: string
   max_members: number | null
   member_count: number
-  type: string
+  type: "casual" | "competitive" // Added type for potential future use
   approval_mode: "automatic" | "manual"
   created_at: string
   users: {
@@ -99,7 +102,7 @@ interface GroupMember {
   id: string
   user_id: string
   community_id: string
-  role: string
+  role: "member" | "admin" // Added role type
   joined_at: string
   users: {
     id: string
@@ -142,8 +145,8 @@ export default function LudoGruppenPage() {
     name: "",
     description: "",
     location: "",
-    max_members: null,
-    type: "casual",
+    max_members: null as number | null,
+    type: "casual" as "casual" | "competitive",
     approval_mode: "automatic" as "automatic" | "manual",
   })
   // const [locationPLZ, setLocationPLZ] = useState("")
@@ -805,12 +808,12 @@ export default function LudoGruppenPage() {
     }
 
     if (group.creator_id === user?.id) {
-      return { text: "Deine Spielgruppe", disabled: true, variant: "secondary" as const, icon: UserRoundCog }
+      return { text: "Deine Spielgruppe", disabled: true, variant: "secondary" as const, icon: FaUserCog }
     }
 
     if (userMemberships.includes(group.id)) {
       console.log("[v0] User is member - showing 'Verlassen' button")
-      return { text: "Verlassen", disabled: false, variant: "outline" as const, action: "leave", icon: UserRoundMinus }
+      return { text: "Verlassen", disabled: false, variant: "outline" as const, action: "leave", icon: FaUserMinus }
     }
 
     if (group.max_members !== null && group.member_count >= group.max_members) {
@@ -822,11 +825,11 @@ export default function LudoGruppenPage() {
     if (joinRequest) {
       switch (joinRequest.status) {
         case "pending":
-          return { text: "Warte auf Genehmigung", disabled: true, variant: "outline" as const, icon: Clock }
+          return { text: "Warte auf Genehmigung", disabled: true, variant: "outline" as const, icon: FaClock }
         case "approved":
-          return { text: "Genehmigt", disabled: true, variant: "default" as const, icon: CheckCircle }
+          return { text: "Genehmigt", disabled: true, variant: "default" as const, icon: FaCheckCircle }
         case "rejected":
-          return { text: "Abgelehnt", disabled: true, variant: "destructive" as const, icon: UserX }
+          return { text: "Abgelehnt", disabled: true, variant: "destructive" as const, icon: FaUserTimes }
       }
     }
 
@@ -841,7 +844,7 @@ export default function LudoGruppenPage() {
     if (group.max_members === null) {
       return (
         <>
-          {group.member_count} Mitglieder <span className="text-gray-500">(unbegrenzt)</span>
+          {group.member_count} Mitglieder (<span className="text-xs text-green-600 font-medium">unbegrenzt</span>)
         </>
       )
     }
@@ -850,13 +853,13 @@ export default function LudoGruppenPage() {
     if (freeSpots > 0) {
       return (
         <>
-          {group.member_count} Mitglieder (<span className="text-green-600 font-medium">{freeSpots} Plätze frei</span>)
+          {group.member_count} Mitglieder (<span className="text-xs text-green-600 font-medium">{freeSpots} Plätze frei</span>)
         </>
       )
     } else {
       return (
         <>
-          {group.member_count} Mitglieder (<span className="text-red-600 font-medium">Voll</span>)
+          {group.member_count} Mitglieder (<span className="text-xs text-red-600 font-medium">Voll</span>)
         </>
       )
     }
@@ -967,6 +970,7 @@ export default function LudoGruppenPage() {
 
   const loadGroupPolls = async (groupId: string) => {
     setLoadingPolls(true)
+    console.log("[v0] Loading polls for group:", groupId)
     try {
       const result = await getCommunityPollsAction(groupId)
 
@@ -975,6 +979,18 @@ export default function LudoGruppenPage() {
         toast.error(result.error)
         return
       }
+
+      console.log("[v0] Loaded polls:", result.data?.length || 0)
+      console.log(
+        "[v0] Poll details:",
+        result.data?.map((p) => ({
+          id: p.id,
+          question: p.question,
+          is_active: p.is_active,
+          expires_at: p.expires_at,
+          isExpired: p.expires_at ? new Date(p.expires_at) < new Date() : false,
+        })),
+      )
 
       setGroupPolls(result.data || [])
     } catch (error) {
@@ -1014,23 +1030,24 @@ export default function LudoGruppenPage() {
               }}
               className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 font-handwritten"
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <FaPlus className="h-4 w-4 mr-2" />
               Spielgruppe erstellen
             </Button>
           )}
           {!user && console.log("[v0] Create button not shown - user not logged in")}
         </div>
 
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg">
+        {/* Search and Filter Bar */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg border border-gray-200">
           <div className="space-y-6">
             <div className="flex gap-4">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Spielgruppen durchsuchen..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-12 bg-white/80 border-gray-200 focus:border-teal-500 text-base"
+                  className="pl-10 h-12 bg-white/80 border-gray-200 focus:border-teal-500 text-xs"
                 />
               </div>
             </div>
@@ -1040,10 +1057,10 @@ export default function LudoGruppenPage() {
             </div>
 
             {showLocationResults && (
-              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <div className="flex items-center justify-between p-4 bg-teal-50 rounded-xl border border-gray-200">
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-blue-600" />
-                  <span className="text-sm text-blue-800 font-medium">
+                  <FaMapMarkerAlt className="h-5 w-5 text-teal-600" />
+                  <span className="text-xs text-teal-800 font-medium">
                     Zeige Ergebnisse in der Nähe ({locationSearchResults.length})
                   </span>
                 </div>
@@ -1054,7 +1071,7 @@ export default function LudoGruppenPage() {
                     setShowLocationResults(false)
                     setLocationSearchResults([])
                   }}
-                  className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                  className="text-teal-600 border-teal-300 hover:bg-teal-100"
                 >
                   Alle Spielgruppen zeigen
                 </Button>
@@ -1064,7 +1081,7 @@ export default function LudoGruppenPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Sortieren nach</Label>
+                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Sortieren nach</Label>
                   <Select value={sortBy} onValueChange={setSortBy}>
                     <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
                       <SelectValue />
@@ -1078,7 +1095,7 @@ export default function LudoGruppenPage() {
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Kapazität</Label>
+                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Kapazität</Label>
                   <Select value={availableSpotsFilter} onValueChange={setAvailableSpotsFilter}>
                     <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
                       <SelectValue />
@@ -1091,7 +1108,7 @@ export default function LudoGruppenPage() {
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Beitrittsmodus</Label>
+                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Beitrittsmodus</Label>
                   <Select value={approvalModeFilter} onValueChange={setApprovalModeFilter}>
                     <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
                       <SelectValue />
@@ -1142,8 +1159,8 @@ export default function LudoGruppenPage() {
                 ))
               ) : filteredGroups.length === 0 ? (
                 <div className="col-span-full text-center py-12">
-                  <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">Keine Spielgruppen gefunden</h3>
+                  <FaUsers className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-sm font-semibold text-gray-600 mb-2">Keine Spielgruppen gefunden</h3>
                   <p className="text-gray-500 mb-4">
                     {searchTerm
                       ? "Versuche einen anderen Suchbegriff"
@@ -1154,7 +1171,7 @@ export default function LudoGruppenPage() {
                       onClick={() => setIsCreateDialogOpen(true)}
                       className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 font-handwritten"
                     >
-                      <Plus className="h-4 w-4 mr-2" />
+                      <FaPlus className="h-4 w-4 mr-2" />
                       Erste Spielgruppe erstellen
                     </Button>
                   )}
@@ -1179,7 +1196,8 @@ export default function LudoGruppenPage() {
                         </Badge>
                       )}
 
-                      <div className="relative h-32 w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-teal-50 to-cyan-100">
+                      {/* Updated image container with aspect ratio and gradient */}
+                      <div className="relative aspect-[16/9] overflow-hidden flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                         {group.image ? (
                           <>
                             <img
@@ -1190,33 +1208,38 @@ export default function LudoGruppenPage() {
                             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                           </>
                         ) : (
-                          <Dices className="w-12 h-12 text-teal-400" />
+                          <FaDice className="w-12 h-12 text-teal-400" />
                         )}
                       </div>
 
-                      <CardHeader className="pb-3">
+                      <CardHeader className="pb-3 px-6 mt-2">
                         <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-handwritten font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-handwritten font-bold text-gray-900 mb-0 group-hover:text-teal-600 transition-colors text-sm truncate">
                               {group.name}
                             </h3>
-                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-2"></div>
                           </div>
                           {group.distance !== undefined && <DistanceBadge distance={group.distance} className="ml-2" />}
                         </div>
                       </CardHeader>
 
-                      <CardContent className="space-y-3 flex-1 flex flex-col">
-                        {group.description && <p className="text-sm text-gray-600 line-clamp-2">{group.description}</p>}
+                      <CardContent className="space-y-3 flex-1 flex flex-col px-6">
+                        {group.description && (
+                          // Added font-normal to paragraph
+                          <p
+                            className="text-xs text-gray-600 line-clamp-2 font-normal"
+                            dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(group.description) }}
+                          />
+                        )}
 
                         <div className="space-y-2">
-                          <div className="flex items-center gap-1 text-sm text-gray-500">
-                            <Users className="h-4 w-4 text-teal-600" />
+                          <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <FaUsers className="h-4 w-4 text-teal-600" />
                             <span>{formatMemberCount(group)}</span>
                           </div>
                           {group.location && (
-                            <div className="flex items-center gap-1 text-sm text-gray-500">
-                              <MapPin className="h-4 w-4 text-teal-600" />
+                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                              <FaMapMarkerAlt className="h-4 w-4 text-teal-600" />
                               <a
                                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(group.location)}`}
                                 target="_blank"
@@ -1230,8 +1253,8 @@ export default function LudoGruppenPage() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                          <UserCog className="h-4 w-4 text-teal-600" />
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <FaUserCog className="h-4 w-4 text-teal-600" />
                           <div className="flex items-center gap-2">
                             <Avatar className="h-4 w-4">
                               <AvatarImage src={group.users?.avatar || "/placeholder.svg"} />
@@ -1244,7 +1267,7 @@ export default function LudoGruppenPage() {
                                 userId={group.users?.id || ""}
                                 className="text-gray-600 hover:text-teal-600 transition-colors"
                               >
-                                <p className="text-sm hover:text-teal-600 cursor-pointer transition-colors">
+                                <p className="text-xs hover:text-teal-600 cursor-pointer transition-colors">
                                   {group.users?.username}
                                 </p>
                               </UserLink>
@@ -1280,7 +1303,7 @@ export default function LudoGruppenPage() {
                             {IconComponent ? (
                               <IconComponent className="h-4 w-4 mr-2" />
                             ) : (
-                              <UserPlus className="h-4 w-4 mr-2" />
+                              <FaUserPlus className="h-4 w-4 mr-2" />
                             )}
                             {buttonProps.text}
                           </Button>
@@ -1300,7 +1323,7 @@ export default function LudoGruppenPage() {
                                 handleSendGroupMessage(group)
                               }}
                             >
-                              <MessageCircle className="h-4 w-4" />
+                              <FaComment className="h-4 w-4" />
                             </Button>
                           )}
 
@@ -1315,7 +1338,7 @@ export default function LudoGruppenPage() {
                                   showMemberManagement(group)
                                 }}
                               >
-                                <Users className="h-4 w-4" />
+                                <FaUsers className="h-4 w-4" />
                               </Button>
                               <Button
                                 size="sm"
@@ -1327,7 +1350,7 @@ export default function LudoGruppenPage() {
                                 }}
                                 title="Nachricht an alle Mitglieder senden"
                               >
-                                <MessageCircle className="h-4 w-4" />
+                                <FaComment className="h-4 w-4" />
                               </Button>
                             </>
                           )}
@@ -1343,7 +1366,7 @@ export default function LudoGruppenPage() {
                               }}
                               title="Abstimmungen anzeigen"
                             >
-                              <BarChart3 className="h-4 w-4" />
+                              <FaChartBar className="h-4 w-4" />
                             </Button>
                           )}
                         </div>
@@ -1364,59 +1387,55 @@ export default function LudoGruppenPage() {
 
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="font-handwritten text-3xl text-gray-800 mb-2">
-                Neue Spielgruppe erstellen
-              </DialogTitle>
-            </DialogHeader>
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 -m-6 mb-6 z-10">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">
+                  Neue Spielgruppe erstellen
+                </DialogTitle>
+                <p className="text-xs text-gray-600">
+                  Erstelle eine Gruppe und verbinde dich mit anderen Spiel-Enthusiasten
+                </p>
+              </DialogHeader>
+            </div>
 
             <div className="space-y-6 mt-6">
-              <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-6 border-2 border-teal-200">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 text-white flex items-center justify-center text-sm font-bold">
-                    1
-                  </span>
-                  Grundinformationen
-                </h3>
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h3 className="text-sm font-semibold text-gray-900 mb-4">Grundinformationen</h3>
 
                 <div className="space-y-5">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <Label htmlFor="group-name" className="text-base font-semibold text-gray-900">
+                      <Label htmlFor="group-name" className="text-xs font-medium text-gray-700">
                         Name der Spielgruppe *
                       </Label>
-                      <span className="text-sm text-gray-500">{newGroup.name.length}/60</span>
+                      <span className="text-gray-500 text-xs">{newGroup.name.length}/60</span>
                     </div>
                     <Input
                       id="group-name"
                       value={newGroup.name}
                       onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
                       placeholder="z.B. CATAN-Freunde Zürich"
-                      className="h-12 text-base border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                      className="h-11 text-sm border-gray-300 focus:border-gray-900 focus:ring-gray-900"
                       maxLength={60}
                     />
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <Label htmlFor="group-description" className="text-base font-semibold text-gray-900">
+                      <Label htmlFor="group-description" className="text-xs font-medium text-gray-700">
                         Beschreibung
                       </Label>
-                      <span className="text-sm text-gray-500">{newGroup.description.length}/5000</span>
                     </div>
-                    <textarea
-                      id="group-description"
+                    <RichTextEditor
                       value={newGroup.description}
-                      onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
+                      onChange={(value) => setNewGroup({ ...newGroup, description: value })}
                       placeholder="Beschreibe deine Spielgruppe..."
-                      className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none text-base"
-                      rows={4}
                       maxLength={5000}
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="max-members" className="text-base font-semibold text-gray-900 mb-2 block">
+                    <Label htmlFor="max-members" className="text-xs font-medium text-gray-700 mb-2 block">
                       Maximale Mitgliederzahl
                     </Label>
                     <Input
@@ -1430,26 +1449,23 @@ export default function LudoGruppenPage() {
                         })
                       }
                       placeholder="Leer lassen für unbegrenzt"
-                      className="h-12 text-base border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                      className="h-11 text-sm border-gray-300 focus:border-gray-900 focus:ring-gray-900"
                     />
                   </div>
 
                   <div>
-                    <Label
-                      htmlFor="group-image"
-                      className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2"
-                    >
+                    <Label htmlFor="group-image" className="text-xs font-medium text-gray-700 mb-3 block">
                       Spielgruppenbild (optional)
                     </Label>
 
                     {!imagePreview ? (
                       <div
                         onClick={() => document.getElementById("group-image")?.click()}
-                        className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50/50 transition-all duration-200 bg-gray-50"
+                        className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-gray-900 hover:bg-gray-50 transition-all duration-200 bg-gray-50"
                       >
-                        <ImageIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                        <p className="text-base font-medium text-gray-700 mb-1">Klicken zum Hochladen</p>
-                        <p className="text-sm text-gray-500">JPG, PNG oder WebP (max. 5MB)</p>
+                        <FaImage className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-xs font-medium text-gray-700 mb-1">Klicken zum Hochladen</p>
+                        <p className="text-xs text-gray-500">JPG, PNG oder WebP (max. 5MB)</p>
                         <Input
                           id="group-image"
                           type="file"
@@ -1459,7 +1475,7 @@ export default function LudoGruppenPage() {
                         />
                       </div>
                     ) : (
-                      <div className="relative rounded-xl overflow-hidden border-2 border-teal-200">
+                      <div className="relative rounded-xl overflow-hidden border-2 border-gray-300">
                         <img
                           src={imagePreview || "/placeholder.svg"}
                           alt="Preview"
@@ -1473,14 +1489,14 @@ export default function LudoGruppenPage() {
                           }}
                           className="absolute top-3 right-3 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
                         >
-                          <X className="h-4 w-4" />
+                          <FaTimes className="h-4 w-4" />
                         </button>
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <Label htmlFor="group-location" className="text-base font-semibold text-gray-900 mb-2 block">
+                    <Label htmlFor="group-location" className="text-xs font-medium text-gray-700 mb-2 block">
                       Standort
                     </Label>
                     <AddressAutocomplete
@@ -1488,23 +1504,18 @@ export default function LudoGruppenPage() {
                       placeholder="Location, Adresse, PLZ oder Ort eingeben..."
                       value={newGroup.location}
                       onChange={(value) => setNewGroup({ ...newGroup, location: value })}
-                      className="h-12 text-base border-gray-300 focus:border-teal-500"
+                      className="h-11 text-sm border-gray-300 focus:border-gray-900"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-6 border-2 border-teal-200">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 text-white flex items-center justify-center text-sm font-bold">
-                    2
-                  </span>
-                  Beitrittsmodus
-                </h3>
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h3 className="text-sm font-semibold text-gray-900 mb-4">Beitrittsmodus</h3>
 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="approval-mode" className="text-base font-semibold text-gray-900 mb-2 block">
+                    <Label htmlFor="approval-mode" className="text-xs font-medium text-gray-700 mb-2 block">
                       Wie sollen neue Mitglieder beitreten können?
                     </Label>
                     <Select
@@ -1513,7 +1524,7 @@ export default function LudoGruppenPage() {
                         setNewGroup({ ...newGroup, approval_mode: value })
                       }
                     >
-                      <SelectTrigger className="h-12 text-base border-gray-300 focus:border-orange-500 focus:ring-orange-500">
+                      <SelectTrigger className="h-11 text-xs border-gray-300 focus:border-gray-900 focus:ring-gray-900">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1523,14 +1534,14 @@ export default function LudoGruppenPage() {
                     </Select>
                   </div>
 
-                  <div className="bg-white/60 rounded-lg p-4 border border-green-200">
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     {newGroup.approval_mode === "automatic" ? (
                       <div className="space-y-2">
                         <div className="flex items-start gap-2">
-                          <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                          <FaCheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="font-semibold text-gray-900 mb-1">Sofortiger Beitritt</p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-xs font-semibold text-gray-900 mb-1">Sofortiger Beitritt</p>
+                            <p className="text-xs text-gray-600">
                               Interessenten können der Spielgruppe sofort beitreten, ohne auf eine Genehmigung warten zu
                               müssen.
                             </p>
@@ -1540,10 +1551,12 @@ export default function LudoGruppenPage() {
                     ) : (
                       <div className="space-y-2">
                         <div className="flex items-start gap-2">
-                          <Clock className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <FaClock className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="font-semibold text-gray-900 mb-1">Beitritt erst nach Genehmigung</p>
-                            <p className="text-sm text-gray-600">
+                            <p className="test-xs font-semibold text-gray-900 mb-1 text-xs">
+                              Beitritt erst nach Genehmigung
+                            </p>
+                            <p className="text-xs text-gray-600">
                               Du erhältst eine Benachrichtigung für jede Beitrittsanfrage und kannst entscheiden, wer
                               Mitglied wird.
                             </p>
@@ -1555,7 +1568,7 @@ export default function LudoGruppenPage() {
                 </div>
               </div>
 
-              <div className="flex gap-4 pt-6 border-t-2 border-gray-200">
+              <div className="flex gap-4 pt-6 border-t border-gray-200">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -1571,14 +1584,14 @@ export default function LudoGruppenPage() {
                     setImageFile(null)
                     setImagePreview(null)
                   }}
-                  className="flex-1 h-12 text-base border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold"
+                  className="flex-1 h-11 text-sm border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-medium"
                 >
                   Abbrechen
                 </Button>
                 <Button
                   onClick={createLudoGroup}
                   disabled={!newGroup.name.trim() || isUploading}
-                  className="flex-1 h-12 text-base bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-semibold shadow-lg"
+                  className="flex-1 h-11 text-sm bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-medium shadow-lg disabled:bg-gray-400"
                 >
                   {isUploading ? (
                     <div className="flex items-center">
@@ -1587,7 +1600,7 @@ export default function LudoGruppenPage() {
                     </div>
                   ) : (
                     <>
-                      <Plus className="h-5 w-5 mr-2" />
+                      <FaPlus className="h-5 w-5 mr-2" />
                       Spielgruppe erstellen
                     </>
                   )}
@@ -1610,7 +1623,7 @@ export default function LudoGruppenPage() {
                       openInviteDialog(selectedGroup, e)
                     }}
                   >
-                    <UserPlus className="h-4 w-4 mr-2" />
+                    <FaUserPlus className="h-4 w-4 mr-2" />
                     Einladen
                   </Button>
                   <Button
@@ -1622,7 +1635,7 @@ export default function LudoGruppenPage() {
                       setIsCreatePollDialogOpen(true)
                     }}
                   >
-                    <BarChart3 className="h-4 w-4 mr-2" />
+                    <FaChartBar className="h-4 w-4 mr-2" />
                     Abstimmung
                   </Button>
                   <Button
@@ -1633,12 +1646,12 @@ export default function LudoGruppenPage() {
                       showMemberManagement(selectedGroup)
                     }}
                   >
-                    <Settings className="h-4 w-4 mr-2" />
+                    <FaCog className="h-4 w-4 mr-2" />
                     Verwalten
                   </Button>
                 </div>
               )}
-              <DialogTitle className="font-handwritten text-2xl text-gray-800">{selectedGroup?.name}</DialogTitle>
+              <DialogTitle className="font-handwritten text-base text-gray-800">{selectedGroup?.name}</DialogTitle>
               <DialogDescription>Spielgruppe Details und Informationen</DialogDescription>
             </DialogHeader>
 
@@ -1652,17 +1665,16 @@ export default function LudoGruppenPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <Dices className="w-16 h-16 text-teal-400" />
+                    <FaDice className="w-16 h-16 text-teal-400" />
                   )}
                 </div>
 
-                {/** rest of code here **/}
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-600 font-medium">Erstellt von</span>
-                    <Avatar className="h-8 w-8">
+                    <span className="text-xs text-gray-600 font-medium">Erstellt von</span>
+                    <Avatar className="h-5 w-5 bg-gray-50">
                       <AvatarImage src={selectedGroup.users?.avatar || "/placeholder.svg"} />
-                      <AvatarFallback className="text-sm">
+                      <AvatarFallback className="bg-gray-50 text-xs">
                         {selectedGroup.users?.username?.[0]?.toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -1670,7 +1682,7 @@ export default function LudoGruppenPage() {
                       userId={selectedGroup.users?.id || ""}
                       className="text-gray-800 hover:text-teal-600 transition-colors"
                     >
-                      <span className="font-medium hover:text-teal-600 cursor-pointer transition-colors text-gray-600">
+                      <span className="font-medium hover:text-teal-600 cursor-pointer transition-colors text-gray-600 text-xs">
                         {selectedGroup.users?.username}
                       </span>
                     </UserLink>
@@ -1679,19 +1691,22 @@ export default function LudoGruppenPage() {
 
                 {selectedGroup.description && (
                   <div>
-                    <h4 className="mb-2 font-semibold text-black">Beschreibung</h4>
-                    <p className="text-gray-600 text-sm">{selectedGroup.description}</p>
+                    <h4 className="font-semibold text-sm text-gray-900 mb-2">Beschreibung</h4>
+                    <p
+                      className="text-gray-600 text-xs"
+                      dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(selectedGroup.description) }}
+                    />
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Users className="h-4 w-4 text-teal-600" />
-                    <span className="text-gray-600 text-sm">{formatMemberCount(selectedGroup)}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2 text-xs">
+                    <FaUsers className="h-4 w-4 text-teal-600" />
+                    <span className="text-gray-600 text-xs">{formatMemberCount(selectedGroup)}</span>
                   </div>
                   {selectedGroup.location && (
-                    <div className="col-span-2 flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-teal-600" />
+                    <div className="col-span-2 flex items-center gap-2 text-xs">
+                      <FaMapMarkerAlt className="h-4 w-4 text-teal-600" />
                       <span className="text-gray-600">{selectedGroup.location}</span>
                     </div>
                   )}
@@ -1743,7 +1758,7 @@ export default function LudoGruppenPage() {
                         {IconComponent ? (
                           <IconComponent className="h-4 w-4 mr-2" />
                         ) : (
-                          <UserPlus className="h-4 w-4 mr-2" />
+                          <FaUserPlus className="h-4 w-4 mr-2" />
                         )}
                         {buttonProps.text}
                       </Button>
@@ -1774,7 +1789,7 @@ export default function LudoGruppenPage() {
                         }
                       }}
                     >
-                      <MessageCircle className="h-4 w-4 mr-2" />
+                      <FaComment className="h-4 w-4 mr-2" />
                       Nachricht
                     </Button>
                   )}
@@ -1787,7 +1802,7 @@ export default function LudoGruppenPage() {
         <Dialog open={isMemberManagementDialogOpen} onOpenChange={setIsMemberManagementDialogOpen}>
           <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-handwritten text-2xl text-gray-800">Mitglieder verwalten</DialogTitle>
+              <DialogTitle className="font-handwritten text-xl text-gray-800">Mitglieder verwalten</DialogTitle>
               <DialogDescription>
                 {selectedGroupForMembers?.name} - Verwalte die Mitglieder dieser Spielgruppe
               </DialogDescription>
@@ -1801,7 +1816,7 @@ export default function LudoGruppenPage() {
                 </div>
               ) : groupMembers.length === 0 ? (
                 <div className="text-center py-8">
-                  <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <FaUsers className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-600 mb-2">Keine Mitglieder gefunden</h3>
                   <p className="text-gray-500">Diese Spielgruppe hat noch keine Mitglieder.</p>
                 </div>
@@ -1818,7 +1833,7 @@ export default function LudoGruppenPage() {
                         onClick={() => handleBroadcastMessage(selectedGroupForMembers)}
                         className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-handwritten"
                       >
-                        <MessageCircle className="h-4 w-4 mr-2" />
+                        <FaComment className="h-4 w-4 mr-2" />
                         Nachricht an alle senden
                       </Button>
                     )}
@@ -1877,7 +1892,7 @@ export default function LudoGruppenPage() {
                                   }}
                                   className="border-red-200 text-red-600 hover:bg-red-50 text-xs"
                                 >
-                                  <X className="h-3 w-3 mr-1" />
+                                  <FaTimes className="h-3 w-3 mr-1" />
                                   Entfernen
                                 </Button>
                               )}
@@ -1898,7 +1913,7 @@ export default function LudoGruppenPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <DialogTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
-                    <BarChart3 className="h-6 w-6 text-teal-600" />
+                    <FaChartBar className="h-6 w-6 text-teal-600" />
                     Abstimmungen
                   </DialogTitle>
                   <DialogDescription>{selectedGroupForPolls?.name} - Abstimmungen und Umfragen</DialogDescription>
@@ -1912,59 +1927,133 @@ export default function LudoGruppenPage() {
                     }}
                     className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600"
                   >
-                    <BarChart3 className="h-4 w-4 mr-2" />
+                    <FaChartBar className="h-4 w-4 mr-2" />
                     Neue Abstimmung
                   </Button>
                 )}
               </div>
             </DialogHeader>
 
-            <div className="space-y-4 mt-4">
-              {loadingPolls ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
-                  <p className="text-gray-500">Lade Abstimmungen...</p>
-                </div>
-              ) : groupPolls.length === 0 ? (
-                <div className="text-center py-12">
-                  <BarChart3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">Keine Abstimmungen</h3>
-                  <p className="text-gray-500 mb-4">
-                    {user && selectedGroupForPolls && selectedGroupForPolls.creator_id === user.id
-                      ? "Erstelle die erste Abstimmung für diese Spielgruppe!"
-                      : "Diese Spielgruppe hat noch keine Abstimmungen."}
-                  </p>
-                  {user && selectedGroupForPolls && selectedGroupForPolls.creator_id === user.id && (
-                    <Button
-                      onClick={() => {
-                        setIsPollsDialogOpen(false)
-                        openCreatePollDialog(selectedGroupForPolls)
-                      }}
-                      className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600"
-                    >
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Erste Abstimmung erstellen
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {groupPolls.map((poll) => (
-                    <PollCard
-                      key={poll.id}
-                      poll={poll}
-                      currentUserId={user?.id || ""}
-                      isCreator={selectedGroupForPolls?.creator_id === user?.id}
-                      onPollUpdated={() => {
-                        if (selectedGroupForPolls) {
-                          loadGroupPolls(selectedGroupForPolls.id)
-                        }
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            <Tabs defaultValue="active" className="mt-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="active">
+                  Laufende Abstimmungen
+                  {(() => {
+                    const activePolls = groupPolls.filter((poll) => {
+                      const isExpired = poll.expires_at ? new Date(poll.expires_at) < new Date() : false
+                      return poll.is_active && !isExpired
+                    })
+                    return activePolls.length > 0 ? ` (${activePolls.length})` : ""
+                  })()}
+                </TabsTrigger>
+                <TabsTrigger value="completed">
+                  Abgeschlossene Abstimmungen
+                  {(() => {
+                    const completedPolls = groupPolls.filter((poll) => {
+                      const isExpired = poll.expires_at ? new Date(poll.expires_at) < new Date() : false
+                      return !poll.is_active || isExpired
+                    })
+                    return completedPolls.length > 0 ? ` (${completedPolls.length})` : ""
+                  })()}
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="active" className="space-y-4 mt-4">
+                {loadingPolls ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
+                    <p className="text-gray-500">Lade Abstimmungen...</p>
+                  </div>
+                ) : (
+                  (() => {
+                    const activePolls = groupPolls.filter((poll) => {
+                      const isExpired = poll.expires_at ? new Date(poll.expires_at) < new Date() : false
+                      return poll.is_active && !isExpired
+                    })
+                    return activePolls.length === 0 ? (
+                      <div className="text-center py-12">
+                        <FaChartBar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-600 mb-2">Keine laufenden Abstimmungen</h3>
+                        <p className="text-gray-500 mb-4">
+                          {user && selectedGroupForPolls && selectedGroupForPolls.creator_id === user.id
+                            ? "Erstelle die erste Abstimmung für diese Spielgruppe!"
+                            : "Diese Spielgruppe hat derzeit keine laufenden Abstimmungen."}
+                        </p>
+                        {user && selectedGroupForPolls && selectedGroupForPolls.creator_id === user.id && (
+                          <Button
+                            onClick={() => {
+                              setIsPollsDialogOpen(false)
+                              openCreatePollDialog(selectedGroupForPolls)
+                            }}
+                            className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600"
+                          >
+                            <FaChartBar className="h-4 w-4 mr-2" />
+                            Erste Abstimmung erstellen
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {activePolls.map((poll) => (
+                          <PollCard
+                            key={poll.id}
+                            poll={poll}
+                            currentUserId={user?.id || ""}
+                            isCreator={selectedGroupForPolls?.creator_id === user?.id}
+                            onPollUpdated={() => {
+                              if (selectedGroupForPolls) {
+                                loadGroupPolls(selectedGroupForPolls.id)
+                              }
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )
+                  })()
+                )}
+              </TabsContent>
+
+              <TabsContent value="completed" className="space-y-4 mt-4">
+                {loadingPolls ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
+                    <p className="text-gray-500">Lade Abstimmungen...</p>
+                  </div>
+                ) : (
+                  (() => {
+                    const completedPolls = groupPolls.filter((poll) => {
+                      const isExpired = poll.expires_at ? new Date(poll.expires_at) < new Date() : false
+                      return !poll.is_active || isExpired
+                    })
+                    return completedPolls.length === 0 ? (
+                      <div className="text-center py-12">
+                        <FaChartBar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-600 mb-2">Keine abgeschlossenen Abstimmungen</h3>
+                        <p className="text-gray-500">
+                          Abgeschlossene oder abgelaufene Abstimmungen werden hier angezeigt.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {completedPolls.map((poll) => (
+                          <PollCard
+                            key={poll.id}
+                            poll={poll}
+                            currentUserId={user?.id || ""}
+                            isCreator={selectedGroupForPolls?.creator_id === user?.id}
+                            onPollUpdated={() => {
+                              if (selectedGroupForPolls) {
+                                loadGroupPolls(selectedGroupForPolls.id)
+                              }
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )
+                  })()
+                )}
+              </TabsContent>
+            </Tabs>
           </DialogContent>
         </Dialog>
 

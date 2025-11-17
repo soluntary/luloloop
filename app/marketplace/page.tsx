@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CreateMarketplaceOfferForm } from "@/components/create-marketplace-offer-form"
 import { CreateSearchAdForm } from "@/components/create-search-ad-form"
+import { useSearchParams } from "next/navigation"
 import {
   Search,
   LogIn,
@@ -21,10 +22,11 @@ import {
   Database,
   Store,
   AlertCircle,
-  Calendar,
+  CalendarDaysIcon,
   MapPin,
   Filter,
   ChevronDown,
+  Truck,
 } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { useGames } from "@/contexts/games-context"
@@ -44,19 +46,14 @@ import { ShareButton } from "@/components/share-button"
 import { LocationMap } from "@/components/location-map"
 import { toast } from "sonner"
 import { ExpandableDescription } from "@/components/expandable-description"
+import { getPostalCodeAndCity } from "@/lib/utils"
 
 export default function MarketplacePage() {
   const { sendMessage } = useMessages()
-  const { marketplaceOffers, loading, error, databaseConnected } = useGames()
-  const { user, user: authUser } = useAuth() // Added user to useAuth context
-  console.log(
-    "[v0] Marketplace page render - loading:",
-    loading,
-    "databaseConnected:",
-    databaseConnected,
-    "authUser:",
-    !!authUser,
-  )
+  const { marketplaceOffers, loading, error, databaseConnected, games } = useGames()
+  const { user, user: authUser } = useAuth()
+  const searchParams = useSearchParams()
+
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
@@ -65,6 +62,9 @@ export default function MarketplacePage() {
   const [contactMessage, setContactMessage] = useState("")
   const [selectedDeliveryOption, setSelectedDeliveryOption] = useState<"pickup" | "shipping" | "">("")
   const [isCreateOfferOpen, setIsCreateOfferOpen] = useState(false)
+  const [preSelectedGameId, setPreSelectedGameId] = useState<string | null>(null)
+  const [preSelectedOfferType, setPreSelectedOfferType] = useState<string | null>(null)
+  const [preSelectedGame, setPreSelectedGame] = useState<any | null>(null)
   const [searchAds, setSearchAds] = useState<any[]>([])
   const [isCreateSearchAdOpen, setIsCreateSearchAdOpen] = useState(false)
   const [selectedOfferDetails, setSelectedOfferDetails] = useState<any>(null)
@@ -93,7 +93,33 @@ export default function MarketplacePage() {
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
+  // Initialize useSearchParams for handling URL query parameters
+  // const searchParams = useSearchParams() // This was duplicated, removed the second declaration
+
   const { searchByAddress, searchMarketplaceOffersNearby } = useLocationSearch()
+
+  useEffect(() => {
+    const createOffer = searchParams.get("createOffer")
+    const gameId = searchParams.get("gameId")
+    const offerType = searchParams.get("offerType")
+
+    if (createOffer === "true" && gameId && offerType) {
+      console.log("[v0] Auto-opening offer form with gameId:", gameId, "offerType:", offerType)
+      setPreSelectedGameId(gameId)
+      setPreSelectedOfferType(offerType)
+
+      const foundGame = games.find((g) => g.id === gameId)
+      if (foundGame) {
+        console.log("[v0] Found game object:", foundGame)
+        setPreSelectedGame(foundGame)
+      } else {
+        console.log("[v0] Game not found in games array, will use gameId only")
+        setPreSelectedGame(null)
+      }
+
+      setIsCreateOfferOpen(true)
+    }
+  }, [searchParams, games])
 
   const handleLocationSearch = async (address: string, radius: number) => {
     console.log("[v0] Location search initiated for:", address, "radius:", radius)
@@ -154,6 +180,8 @@ export default function MarketplacePage() {
     )
   }
 
+  // FilteredItems are now processed based on whether location results are shown or not.
+  // If location results are shown, only those are considered. Otherwise, all offers and search ads are considered.
   const allItems = showLocationResults
     ? (Array.isArray(locationSearchResults) ? locationSearchResults : []).map((item) => ({
         ...item,
@@ -543,10 +571,10 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
   const formatDailyRates = (priceString: string) => {
     if (!priceString || priceString.trim() === "") return null
 
-    if (priceString.includes("Tag:") || priceString.includes("Tage:")) {
+    if (priceString.includes("Tag:") || priceString.includes("Tage:") || priceString === "Offen für Vorschläge") {
       const rates = priceString.split(", ")
       return (
-        <div className="space-y-1 w-full">
+        <div className="w-full space-y-1 my-3.5">
           {rates.map((rate, index) => {
             // Parse the rate to separate period and price
             const parts = rate.split(":")
@@ -562,7 +590,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 </div>
               )
             }
-            // Fallback for unexpected format
+            // Fallback for unexpected format or "Offen für Vorschläge"
             return (
               <div key={index} className="text-sm w-full">
                 {rate.replace("CHF", " CHF")}
@@ -574,8 +602,34 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
     }
 
     // For non-lending offers, return the price as is
-    return <span className="text-foreground font-semibold text-sm">{priceString}</span>
+    return <span className="text-foreground text-xs font-bold my-[px]x">{priceString}</span>
   }
+
+  useEffect(() => {
+    // Initial load of marketplace offers and search ads
+    // This effect now only handles the search parameters and doesn't fetch data itself.
+    // Data fetching is now handled by the useGames() context and the loadSearchAds() function.
+    const offerId = searchParams.get("offer")
+    const type = searchParams.get("type")
+    const gameId = searchParams.get("gameId")
+
+    if (offerId) {
+      setPreSelectedGameId(gameId || null) // Store gameId if present
+      setPreSelectedOfferType(type || null) // Store type if present
+      const offer = marketplaceOffers.find((o) => o.id === offerId)
+      if (offer) {
+        handleOfferClick(offer)
+      }
+    }
+
+    const searchAdId = searchParams.get("searchad")
+    if (searchAdId) {
+      const ad = searchAds.find((a) => a.id === searchAdId)
+      if (ad) {
+        handleOfferClick(ad)
+      }
+    }
+  }, [searchParams, marketplaceOffers, searchAds]) // Depend on searchParams, marketplaceOffers, and searchAds
 
   useEffect(() => {
     if (selectedOfferDetails?.type === "lend" && rentalStartDate && rentalEndDate) {
@@ -758,7 +812,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
         <LocationPermissionBanner />
 
         {/* Search and Filter Bar */}
-        <div className="bg-white/50 rounded-lg p-4 border border-orange-200 mb-8">
+        <div className="bg-white/50 rounded-lg p-4 border border-gray-200 mb-8">
           <div className="space-y-6">
             {/* Search Bar */}
             <div className="flex gap-4">
@@ -768,7 +822,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                   placeholder="Spiele, Verlage oder Anbieter durchsuchen..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-12 bg-white/80 border-gray-200 focus:border-teal-500 text-base"
+                  className="pl-10 h-12 bg-white/80 border-gray-200 focus:border-orange-500 text-base"
                 />
               </div>
             </div>
@@ -779,10 +833,10 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
             </div>
 
             {showLocationResults && (
-              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <div className="flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-gray-200">
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-blue-600" />
-                  <span className="text-sm text-blue-800 font-medium">
+                  <MapPin className="h-5 w-5 text-orange-600" />
+                  <span className="text-sm text-orange-800 font-medium">
                     Zeige Ergebnisse in der Nähe ({locationSearchResults.length})
                   </span>
                 </div>
@@ -793,7 +847,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     setShowLocationResults(false)
                     setLocationSearchResults([])
                   }}
-                  className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                  className="text-orange-600 border-orange-300 hover:bg-orange-100"
                 >
                   Alle Angebote zeigen
                 </Button>
@@ -804,9 +858,9 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Sortieren nach</Label>
+                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Sortieren nach</Label>
                   <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
-                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -821,9 +875,9 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Anzeigeart</Label>
+                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Anzeigeart</Label>
                   <Select value={selectedType} onValueChange={setSelectedType} disabled={!databaseConnected}>
-                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
                       <SelectValue placeholder="Alle" />
                     </SelectTrigger>
                     <SelectContent>
@@ -840,7 +894,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                   <Button
                     variant="outline"
                     onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                    className="h-12 flex-1 border-2 border-teal-500 text-teal-600 hover:bg-teal-50 font-medium"
+                    className="h-12 flex-1 border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-medium"
                     disabled={!databaseConnected}
                   >
                     <Filter className="w-4 h-4 mr-2" />
@@ -878,13 +932,13 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               {/* Advanced Filters */}
               {showAdvancedFilters && (
                 <div className="pt-6 border-t border-gray-200 space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-700 flex items-center">
+                  <h3 className="text-xs font-semibold text-gray-700 flex items-center">
                     <Filter className="w-4 h-4 mr-2" />
                     Erweiterte Filter
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Spieleranzahl</Label>
+                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Spieleranzahl</Label>
                       <Select
                         value={filters.playerCount}
                         onValueChange={(value) =>
@@ -892,7 +946,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         }
                         disabled={!databaseConnected}
                       >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
                           <SelectValue placeholder="Alle" />
                         </SelectTrigger>
                         <SelectContent>
@@ -907,7 +961,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     </div>
 
                     <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Spieldauer</Label>
+                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Spieldauer</Label>
                       <Select
                         value={filters.duration}
                         onValueChange={(value) =>
@@ -915,7 +969,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         }
                         disabled={!databaseConnected}
                       >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
                           <SelectValue placeholder="Alle" />
                         </SelectTrigger>
                         <SelectContent>
@@ -930,7 +984,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     </div>
 
                     <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Altersempfehlung</Label>
+                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Altersempfehlung</Label>
                       <Select
                         value={filters.age}
                         onValueChange={(value) =>
@@ -938,7 +992,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         }
                         disabled={!databaseConnected}
                       >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
                           <SelectValue placeholder="Alle" />
                         </SelectTrigger>
                         <SelectContent>
@@ -953,7 +1007,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     </div>
 
                     <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Sprache</Label>
+                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Sprache</Label>
                       <Select
                         value={filters.language}
                         onValueChange={(value) =>
@@ -961,7 +1015,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         }
                         disabled={!databaseConnected}
                       >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
                           <SelectValue placeholder="Alle" />
                         </SelectTrigger>
                         <SelectContent>
@@ -976,7 +1030,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     </div>
 
                     <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Kategorie</Label>
+                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Kategorie</Label>
                       <Select
                         value={filters.category}
                         onValueChange={(value) =>
@@ -984,7 +1038,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         }
                         disabled={!databaseConnected}
                       >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
                           <SelectValue placeholder="Alle" />
                         </SelectTrigger>
                         <SelectContent>
@@ -999,7 +1053,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     </div>
 
                     <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Typus</Label>
+                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Typus</Label>
                       <Select
                         value={filters.style}
                         onValueChange={(value) =>
@@ -1007,7 +1061,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         }
                         disabled={!databaseConnected}
                       >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
                           <SelectValue placeholder="Alle" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1022,7 +1076,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     </div>
 
                     <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Zustand</Label>
+                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Zustand</Label>
                       <Select
                         value={filters.condition}
                         onValueChange={(value) =>
@@ -1030,7 +1084,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         }
                         disabled={!databaseConnected}
                       >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
                           <SelectValue placeholder="Alle" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1052,118 +1106,142 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
         {/* Results Count */}
         <div className="mb-6 flex items-center justify-between">
-          <p className="text-gray-600 font-body">
-            <span className="font-bold text-orange-600">{filteredItems.length}</span>{" "}
-            {filteredItems.length === 1 ? "Eintrag" : "Anzeigen"} gefunden
+          <p className="text-gray-600 font-thin text-xs">
+            <span className="text-gray-600 font-normal">{filteredItems.length}</span>{" "}
+            {filteredItems.length === 1 ? "Eintrag" : "Anzeigen"}
             {!databaseConnected && <span className="text-red-500 ml-2">(Offline-Modus)</span>}
           </p>
-          <div className="flex items-center space-x-2 text-sm text-gray-500 font-body">
-            <div className="w-2 h-2 bg-teal-400 rounded-full"></div>
-            <span>Mietangebote</span>
-            <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
-            <span>Tauschangebote</span>
-            <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
-            <span>Verkaufsangebote</span>
-            <Search className="w-4 h-4 text-purple-500" />
-            <span>Suchanzeigen</span>
-          </div>
         </div>
 
         {/* Content Grid with Sidebar */}
         <div className="flex gap-8">
           {/* Main Content */}
           <div className="flex-1">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-12">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
               {filteredItems.length > 0 ? (
                 filteredItems.map((item) => (
                   <Card
                     key={`${item.itemType}-${item.id}`}
-                    className="group bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer overflow-hidden"
+                    className="group bg-white rounded-xl border border-gray-200/60 hover:border-gray-300 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
                     onClick={() => handleOfferClick(item)}
                   >
                     <CardContent className="p-0">
                       {item.itemType === "offer" ? (
                         <>
-                          {/* Minimalist image section */}
-                          <div className="relative">
+                          {/* Image section */}
+                          <div className="relative aspect-[4/3] overflow-hidden bg-gray-50">
                             <img
                               src={item.image || "/images/ludoloop-placeholder.png"}
                               alt={item.title}
-                              className="w-full h-32 object-cover"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
-                            <div className="absolute top-2 right-2">
-                              <div className={`w-3 h-3 ${getTypeColor(item.type)} rounded-full`}></div>
+                            <div className="absolute top-2 right-2 z-20">
+                              <div
+                                className={`${getTypeColor(item.type)} text-white text-[10px] px-2 py-1 rounded-full shadow-sm font-medium bg-opacity-90`}
+                              >
+                                {item.type === "lend" && "Mietangebot"}
+                                {item.type === "trade" && "Tauschangebot"}
+                                {item.type === "sell" && "Verkaufsangebot"}
+                              </div>
                             </div>
+                            {/* Distance badge overlay */}
+                            {item.distance !== undefined && (
+                              <div className="absolute bottom-3 left-3 z-10">
+                                <DistanceBadge distance={item.distance} />
+                              </div>
+                            )}
                           </div>
 
                           <div className="p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1">
-                                <h3 className="text-lg font-bold font-handwritten text-gray-900 mb-1 line-clamp-1 group-hover:text-teal-600 transition-colors">
-                                  {item.title}
-                                </h3>
-                                <p className="text-gray-500 text-xs mb-3">{item.publisher}</p>
-                              </div>
-                              {item.distance !== undefined && (
-                                <DistanceBadge distance={item.distance} className="ml-2" />
-                              )}
-                            </div>
+                            <h3 className="font-handwritten font-bold text-gray-900 mb-1.5 truncate group-hover:text-gray-700 transition-colors text-xs">
+                              {item.title}
+                            </h3>
 
+                            {/* Type label */}
+
+                            {/* Delivery options */}
                             {(item.pickup_available || item.shipping_available) && (
-                              <div className="mb-2">
-                                <div className="flex flex-wrap gap-1">
-                                  {item.pickup_available && (
-                                    <span className="text-xs text-black-600 bg-indigo-50 px-2 py-1 rounded flex items-center gap-1">
-                                      📍 Abholung
-                                    </span>
-                                  )}
-                                  {item.shipping_available && (
-                                    <span className="text-xs text-black-600 bg-indigo-50 px-2 py-1 rounded flex items-center gap-1">
-                                      📦 Versand
-                                    </span>
-                                  )}
-                                </div>
+                              <div className="flex items-center gap-2 mb-3">
+                                {item.pickup_available && (
+                                  <div className="flex items-center gap-1 text-xs text-gray-600">
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    <span>Abholung möglich</span>
+                                  </div>
+                                )}
+                                {item.pickup_available && item.shipping_available && (
+                                  <span className="text-gray-300">•</span>
+                                )}
+                                {item.shipping_available && (
+                                  <div className="flex items-center gap-1 text-xs text-gray-600">
+                                    <Truck className="w-3.5 h-3.5" />
+                                    <span>Versand möglich</span>
+                                  </div>
+                                )}
                               </div>
                             )}
 
-                            <div className="flex items-center justify-between">
-                              <div className="font-bold text-orange-600 text-sm">{formatDailyRates(item.price)}</div>
+                            {/* Price */}
+                            <div className="pt-3 border-t border-gray-100">
+                              <p className="font-semibold text-gray-900 text-xs">
+                                {item.type === "trade" && item.price
+                                  ? item.price === "Offen für Vorschläge"
+                                    ? "Offen für Vorschläge"
+                                    : `Tausch gegen ${item.price}`
+                                  : formatDailyRates(item.price)}
+                              </p>
                             </div>
                           </div>
                         </>
                       ) : (
-                        /* Minimalist search ad card */
+                        /* Search ad card */
                         <>
-                          {/* Image section for search ads */}
-                          <div className="relative">
-                            <img
-                              src="/images/ludoloop-placeholder.png"
-                              alt={item.title}
-                              className="w-full h-32 object-cover"
-                            />
-                            <div className="absolute top-2 right-2">
-                              <Search className="w-4 h-4 text-purple-500" />
+                          {/* Image section for search ads (placeholder) */}
+                          <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-orange-50 to-orange-100">
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Search className="w-16 h-16 text-orange-300" />
                             </div>
+                            <div className="absolute top-2 right-2 z-20">
+                              <div className="bg-orange-500 bg-opacity-90 text-white text-[10px] px-2 py-1 rounded-full shadow-sm font-medium">
+                                Suchanzeige
+                              </div>
+                            </div>
+                            {/* Distance badge overlay */}
+                            {item.distance !== undefined && (
+                              <div className="absolute bottom-3 left-3 z-10">
+                                <DistanceBadge distance={item.distance} />
+                              </div>
+                            )}
                           </div>
 
-                          {/* Content section */}
                           <div className="p-4">
-                            <h3 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">{item.title}</h3>
-                            <div className="flex justify">
-                              {item.type === "buy" && (
-                                <Badge className="bg-purple-500 hover:bg-purple-500 text-white text-xs px-2 py-1 border-0 pointer-events-none">
-                                  Suche zum Kaufen
-                                </Badge>
+                            <h3 className="font-handwritten font-bold text-gray-900 mb-1.5 truncate group-hover:text-gray-700 transition-colors text-xs">
+                              {item.title}
+                            </h3>
+
+                            <p className="text-xs text-gray-500 mb-2">
+                              {item.type === "buy" && "Gesucht zum Kaufen"}
+                              {item.type === "rent" && "Gesucht zum Mieten"}
+                              {item.type === "trade" && "Gesucht zum Tauschen"}
+                            </p>
+
+                            <div className="pt-3 border-t border-gray-100">
+                              {item.type === "rent" && item.rental_duration && (
+                                <p className="text-xs flex items-center gap-1.5 font-semibold text-black">
+                                  Gewünschte Mietdauer: {item.rental_duration}
+                                </p>
                               )}
-                              {item.type === "rent" && (
-                                <Badge className="bg-purple-500 hover:bg-purple-500 text-white text-xs px-2 py-1 border-0 pointer-events-none">
-                                  Suche zum Mieten
-                                </Badge>
+                              {item.type === "buy" && item.max_price && (
+                                <p className="text-xs flex items-center gap-1.5 font-semibold text-black">
+                                  Vorbehaltspreis: bis {item.max_price} CHF
+                                </p>
                               )}
-                              {item.type === "trade" && (
-                                <Badge className="bg-purple-500 hover:bg-purple-500 text-white text-xs px-2 py-1 border-0 pointer-events-none">
-                                  Suche zum Tauschen
-                                </Badge>
+                              {item.type === "trade" && item.trade_game_title && (
+                                <p className="text-xs flex items-center gap-1.5 font-semibold text-black">
+                                  Tauschspiel: {item.trade_game_title}
+                                </p>
+                              )}
+                              {!item.rental_duration && !item.max_price && !item.trade_game_title && (
+                                <p className="text-xs text-gray-400">Details auf Anfrage</p>
                               )}
                             </div>
                           </div>
@@ -1206,7 +1284,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
             </p>
             <div className="flex gap-4 justify-center">
               <Button
-                className="bg-white text-teal-600 hover:bg-gray-100 font-handwritten text-lg px-8 py-3 transform hover:scale-105 transition-all shadow-lg rounded-lg"
+                className="bg-white text-orange-600 hover:bg-gray-100 font-handwritten text-lg px-8 py-3 transform hover:scale-105 transition-all shadow-lg rounded-lg"
                 onClick={() => {
                   window.location.href = "/register"
                 }}
@@ -1216,7 +1294,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               </Button>
               <Button
                 variant="outline"
-                className="border-2 border-white text-white hover:bg-white hover:text-teal-600 font-handwritten text-lg px-8 py-3 transform hover:scale-105 transition-all bg-white/10 backdrop-blur-sm rounded-lg"
+                className="border-2 border-white text-white hover:bg-white hover:text-orange-600 font-handwritten text-lg px-8 py-3 transform hover:scale-105 transition-all bg-white/10 backdrop-blur-sm rounded-lg"
                 onClick={() => {
                   window.location.href = "/login"
                 }}
@@ -1244,25 +1322,22 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 alt={selectedOffer?.title}
                 className="w-24 h-32 mx-auto rounded-lg shadow-lg mb-4"
               />
-              <h3 className="font-handwritten text-2xl text-gray-800 mb-2">{selectedOffer?.title}</h3>
-              <p className="text-gray-600 font-body">
-                {getTypeText(selectedOffer?.type || "")} - {selectedOffer?.price}
-              </p>
+              <h3 className="font-handwritten text-gray-800 mb-2 text-base">{selectedOffer?.title}</h3>
 
               {selectedOffer?.type === "lend" && rentalStartDate && rentalEndDate && (
-                <div className="mt-3 p-3 bg-teal-50 rounded-lg border border-teal-200">
-                  <p className="text-sm text-teal-700 font-medium">
+                <div className="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                  <p className="text-xs text-orange-700 font-medium">
                     Gewünschter Zeitraum: {new Date(rentalStartDate).toLocaleDateString("de-DE")} -{" "}
                     {new Date(rentalEndDate).toLocaleDateString("de-DE")}
                   </p>
-                  {calculatedPrice && <p className="text-sm text-teal-800 font-bold mt-1">{calculatedPrice}</p>}
+                  {calculatedPrice && <p className="text-xs text-orange-800 font-bold mt-1">{calculatedPrice}</p>}
                 </div>
               )}
             </div>
 
             {selectedOffer?.pickup_available && selectedOffer?.shipping_available && (
               <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
-                <h4 className="text-sm font-semibold text-indigo-800 mb-3">Welche Option bevorzugst du?</h4>
+                <h4 className="text-xs font-semibold text-indigo-800 mb-3">Welche Option bevorzugst du?</h4>
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
                     <input
@@ -1277,7 +1352,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                       }}
                       className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 focus:ring-indigo-500 focus:ring-2"
                     />
-                    <Label htmlFor="pickup-option" className="text-sm font-medium text-indigo-800 cursor-pointer">
+                    <Label htmlFor="pickup-option" className="text-xs font-medium text-indigo-800 cursor-pointer">
                       Abholung
                     </Label>
                   </div>
@@ -1292,20 +1367,17 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         setSelectedDeliveryOption("shipping")
                         updateMessageWithDeliveryOption("shipping")
                       }}
-                      className="w-4 h-4 text-teal-600 bg-gray-100 border-gray-300 focus:ring-indigo-500 focus:ring-2"
+                      className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 focus:ring-orange-500 focus:ring-2"
                     />
-                    <Label htmlFor="shipping-option" className="text-sm font-medium text-indigo-800 cursor-pointer">
-                      Versand (Kosten zu deinen Lasten)
+                    <Label htmlFor="shipping-option" className="text-xs font-medium text-indigo-800 cursor-pointer">
+                      Postversand (Kosten zu deinen Lasten)
                     </Label>
                   </div>
                 </div>
 
                 {selectedDeliveryOption === "pickup" && (
-                  <div className="mt-3 p-3 bg-teal-50 rounded-lg border border-blue-200"></div>
-                )}
-                {selectedDeliveryOption === "shipping" && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-700">Weitere Details mit dem/der Spielanbieter/-in besprechen.</p>
+                  <div className="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                    <p className="text-xs text-orange-700">Weitere Details mit dem/der Spielanbieter/-in besprechen.</p>
                   </div>
                 )}
               </div>
@@ -1348,11 +1420,11 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
       </Dialog>
 
       {/* Detailed Offer View Modal */}
-      {/* Redesigning the offer details dialog with a cleaner, more cohesive design */}
+      {/* Redesigned the offer details dialog with a cleaner, more cohesive design */}
       <Dialog open={isOfferDetailsOpen} onOpenChange={setIsOfferDetailsOpen}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-handwritten text-2xl text-gray-800 mb-2">
+            <DialogTitle className="font-handwritten text-base text-gray-800 mb-2">
               {selectedOfferDetails?.title}
             </DialogTitle>
           </DialogHeader>
@@ -1371,7 +1443,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                   </div>
                   <div className="absolute top-6 right-6">
                     <Badge
-                      className={`${getTypeColor(selectedOfferDetails.type)} text-white border-0 px-4 py-2 text-sm font-medium shadow-sm`}
+                      className={`${getTypeColor(selectedOfferDetails.type)} text-white border-0 px-4 py-2 text-xs font-medium shadow-sm`}
                     >
                       {getTypeText(selectedOfferDetails.type)}
                     </Badge>
@@ -1390,22 +1462,24 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               {/* Price and Condition */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
-                  <p className="text-sm text-slate-500 mb-2">
+                  <p className="text-slate-500 mb-2 text-sm">
                     {selectedOfferDetails.type === "lend"
                       ? "Mietgebühr"
                       : selectedOfferDetails.type === "sell"
                         ? "Preis"
                         : selectedOfferDetails.type === "trade"
-                          ? "Angebot"
+                          ? "Wunschspiel"
                           : "Preis"}
                   </p>
-                  <div className="text-lg font-bold text-slate-900">
-                    {formatDailyRates(selectedOfferDetails.price || "Auf Anfrage")}
+                  <div className="text-xs font-bold text-slate-900">
+                    {formatDailyRates(selectedOfferDetails.price) || (
+                      <span className="font-bold text-slate-900 text-xs">Auf Anfrage</span>
+                    )}
                   </div>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
-                  <p className="text-sm text-slate-500 mb-2">Zustand</p>
-                  <p className="font-semibold text-sm text-foreground">
+                  <p className="text-slate-500 mb-2 text-sm">Zustand</p>
+                  <p className="font-bold text-slate-900 text-xs">
                     {selectedOfferDetails.condition || "Nicht angegeben"}
                   </p>
                 </div>
@@ -1413,47 +1487,47 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
               {/* Game Details */}
               <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                <h2 className="text-xl font-bold mb-6">SPIELDETAILS</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <h2 className="font-bold mb-6 text-base">Spieldetails</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   <div className="text-center p-4 rounded-xl bg-slate-50">
                     <p className="mb-2 font-normal text-xs text-slate-500">Verlag</p>
-                    <p className="text-sm font-semibold text-black">
+                    <p className="font-semibold text-black text-xs">
                       {selectedOfferDetails.publisher || "Nicht angegeben"}
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
                     <p className="text-xs text-slate-500 mb-2">Sprache</p>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="font-semibold text-slate-900 text-xs">
                       {selectedOfferDetails.language || "Nicht angegeben"}
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
                     <p className="text-xs text-slate-500 mb-2">Spieleranzahl</p>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="font-semibold text-slate-900 text-xs">
                       {selectedOfferDetails.players || "Nicht angegeben"}
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
                     <p className="text-xs text-slate-500 mb-2">Spieldauer</p>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="font-semibold text-slate-900 text-xs">
                       {selectedOfferDetails.duration || "Nicht angegeben"}
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
                     <p className="text-xs text-slate-500 mb-2">Altersempfehlung</p>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="font-semibold text-slate-900 text-xs">
                       {selectedOfferDetails.age || "Nicht angegeben"}
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
                     <p className="text-xs text-slate-500 mb-2">Kategorie</p>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="font-semibold text-slate-900 text-xs">
                       {selectedOfferDetails.category || "Nicht angegeben"}
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
                     <p className="text-xs text-slate-500 mb-2">Typus</p>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="font-semibold text-slate-900 text-xs">
                       {selectedOfferDetails.game_types || selectedOfferDetails.style || "Nicht angegeben"}
                     </p>
                   </div>
@@ -1463,16 +1537,16 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               {/* Description */}
               {selectedOfferDetails.description && (
                 <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold mb-4 text-black">BESCHREIBUNG</h3>
+                  <h3 className="font-semibold mb-4 text-black text-base">Beschreibung</h3>
                   <ExpandableDescription text={selectedOfferDetails.description} />
                 </div>
               )}
 
               {/* Provider */}
               <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold mb-4">ANBIETER</h3>
+                <h3 className="font-semibold mb-4 text-black text-sm">Anbieter</h3>
                 <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 border-2 border-slate-200">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200">
                     <img
                       src={
                         selectedOfferDetails.users?.avatar ||
@@ -1502,14 +1576,14 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                   <div className="flex-1">
                     <UserLink
                       userId={selectedOfferDetails.user_id}
-                      className="text-slate-900 font-semibold text-lg block hover:text-blue-600"
+                      className="text-slate-900 font-semibold text-lg block hover:text-teal-600"
                     >
                       {selectedOfferDetails.users?.username || selectedOfferDetails.owner || "Unbekannter Nutzer"}
                     </UserLink>
                     {selectedOfferDetails.rating && (
                       <div className="flex items-center mt-2">
                         <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                        <span className="text-sm text-slate-600 ml-1 font-medium">{selectedOfferDetails.rating}</span>
+                        <span className="text-xs text-slate-600 ml-1 font-medium">{selectedOfferDetails.rating}</span>
                       </div>
                     )}
                   </div>
@@ -1519,18 +1593,22 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               {/* Delivery Options */}
               {(selectedOfferDetails.pickup_available || selectedOfferDetails.shipping_available) && (
                 <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                  <h4 className="text-lg font-semibold mb-4 border-foreground">
-                    DER/DIE SPIELANBIETER/-IN BIETET FOLGENDE OPTION(EN) AN:
+                  <h4 className="font-semibold mb-4 text-foreground text-sm">
+                    Der Spielanbieter bietet folgende Option(en) an:
                   </h4>
                   <div className="space-y-3">
                     {selectedOfferDetails.pickup_available && (
                       <div className="bg-slate-50 p-4 rounded-xl">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-slate-900 text-sm font-semibold">📍 Abholung</span>
+                        <div className="flex items-center gap-2 mb-2 text-xs">
+                          <MapPin className="w-4 h-4 text-slate-700" />
+                          <span className="text-slate-900 text-sm font-normal">Abholung</span>
                         </div>
                         {selectedOfferDetails.pickup_address && (
-                          <p className="text-slate-600 font-normal text-sm">
-                            Bei: {selectedOfferDetails.pickup_address}
+                          <p className="text-slate-600 font-normal text-xs">
+                            In:{" "}
+                            {selectedOfferDetails.show_full_address
+                              ? selectedOfferDetails.pickup_address
+                              : getPostalCodeAndCity(selectedOfferDetails.pickup_address)}
                           </p>
                         )}
                       </div>
@@ -1543,9 +1621,10 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     {selectedOfferDetails.shipping_available && (
                       <div className="bg-slate-50 p-4 rounded-xl">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-slate-900 font-semibold text-sm">📦 Versand</span>
+                          <Truck className="w-4 h-4 text-slate-700" />
+                          <span className="text-slate-900 text-sm font-normal">Postversand</span>
                         </div>
-                        <p className="text-slate-600 text-sm">
+                        <p className="text-slate-600 text-xs">
                           Kosten zu deinen Lasten. Weitere Details mit dem/der Spielanbieter/-in besprechen.
                         </p>
                       </div>
@@ -1555,67 +1634,64 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               )}
 
               <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                {selectedOfferDetails.pickup_address || selectedOfferDetails.location ? (
-                  <div className="space-y-4">
-                    <LocationMap
-                      location={selectedOfferDetails.pickup_address || selectedOfferDetails.location}
-                      className="h-64 w-full rounded-lg"
-                    />
-                  </div>
-                ) : (
-                  <div className="bg-slate-50 p-4 rounded-xl">
-                    <p className="text-sm text-slate-600">
-                      Kein Standort angegeben. Der/die Spielanbieter/-in hat keinen Standort für dieses Angebot
-                      hinterlegt.
-                    </p>
-                  </div>
-                )}
+                <div className="space-y-4">
+                  <LocationMap
+                    location={
+                      selectedOfferDetails.pickup_address
+                        ? selectedOfferDetails.show_full_address
+                          ? selectedOfferDetails.pickup_address
+                          : getPostalCodeAndCity(selectedOfferDetails.pickup_address)
+                        : selectedOfferDetails.location
+                    }
+                    className="h-64 w-full rounded-lg"
+                  />
+                </div>
               </div>
 
               {/* Rental Period Selection for Lending */}
               {selectedOfferDetails.type === "lend" && (
-                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
-                    <Calendar className="w-5 h-5" />
-                    Mietzeitraum wählen
+                <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                  <h3 className="mb-4 flex items-center gap-2 text-black text-sm font-semibold">
+                    <CalendarDaysIcon className="w-5 h-5" />
+                    Mietdauer auswählen
                   </h3>
-                  <div className="grid md:grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                      <label className="text-sm font-medium text-blue-800 mb-2 block">Von</label>
+                      <label className="mb-2 block text-foreground font-normal text-xs">Von</label>
                       <input
                         type="date"
                         value={rentalStartDate}
                         onChange={(e) => setRentalStartDate(e.target.value)}
                         min={new Date().toISOString().split("T")[0]}
-                        className="w-full p-3 border border-blue-200 rounded-xl focus:border-blue-400 focus:outline-none bg-white"
+                        className="w-full p-3 border rounded-xl focus:border-orange-400 focus:outline-none bg-white text-sm border-slate-200"
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-blue-800 mb-2 block">Bis</label>
+                      <label className="mb-2 block text-foreground font-normal text-xs">Bis</label>
                       <input
                         type="date"
                         value={rentalEndDate}
                         onChange={(e) => setRentalEndDate(e.target.value)}
                         min={rentalStartDate || new Date().toISOString().split("T")[0]}
-                        className="w-full p-3 border border-blue-200 rounded-xl focus:border-blue-400 focus:outline-none bg-white"
+                        className="w-full p-3 border rounded-xl focus:border-orange-400 focus:outline-none bg-white text-sm border-slate-200"
                       />
                     </div>
                   </div>
 
                   {calculatedPrice && (
-                    <div className="bg-white p-4 rounded-xl border border-blue-200 mb-4">
+                    <div className="bg-white p-4 rounded-xl border border-orange-200 mb-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-blue-800 font-medium">Gesamt-Mietgebühr:</span>
-                        <span className="text-xl font-bold text-blue-900">{calculatedPrice}</span>
+                        <span className="text-xs text-orange-800 font-semibold">Gesamt-Mietgebühr:</span>
+                        <span className="text-orange-900 text-xs font-semibold">{calculatedPrice}</span>
                       </div>
                     </div>
                   )}
 
                   {rentalStartDate && rentalEndDate && !calculatedPrice && (
-                    <div className="bg-blue-100 p-4 rounded-xl border border-blue-200 mb-4">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-blue-700" />
-                        <p className="text-sm text-blue-800">
+                    <div className="bg-orange-100 p-4 rounded-xl border border-orange-200 mb-4">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-orange-700" />
+                        <p className="text-xs text-orange-800">
                           Für den gewählten Zeitraum ist keine automatische Preisberechnung möglich. Der Anbieter wird
                           Ihnen ein individuelles Angebot unterbreiten.
                         </p>
@@ -1636,7 +1712,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                       }
                     }}
                     disabled={selectedOfferDetails.type === "lend" && (!rentalStartDate || !rentalEndDate)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
+                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
                   >
                     <MessageCircle className="w-5 h-5 mr-2" />
                     {selectedOfferDetails.type === "lend"
@@ -1663,101 +1739,156 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
       {/* Search Ad Details Modal */}
       <Dialog open={isSearchAdDetailsOpen} onOpenChange={setIsSearchAdDetailsOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-handwritten text-base text-gray-800 mb-2">
+              {selectedSearchAdDetails?.title}
+            </DialogTitle>
+          </DialogHeader>
+
           {selectedSearchAdDetails && (
-            <div className="relative">
-              <div className="relative h-48 bg-gradient-to-br from-purple-100 to-pink-100 overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <img
-                    src="/images/ludoloop-placeholder.png"
-                    alt={selectedSearchAdDetails.title}
-                    className="h-40 w-auto object-contain rounded-lg shadow-lg mb-4"
-                  />
-                </div>
-                <div className="absolute top-4 right-4">
-                  <Search className="w-6 h-6 text-purple-500" />
-                </div>
-                <div className="absolute top-4 left-4">
-                  <ShareButton
-                    title={selectedSearchAdDetails.title}
-                    url={`${typeof window !== "undefined" ? window.origin : ""}/marketplace?searchad=${selectedSearchAdDetails.id}`}
-                    description={selectedSearchAdDetails.description || ""}
-                    className="bg-white/90 hover:bg-white"
-                  />
+            <div className="space-y-8">
+              {/* Hero Section */}
+              <div className="relative">
+                <div className="relative h-56 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl overflow-hidden border border-purple-200">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center shadow-lg">
+                      <Search className="w-16 h-16 text-purple-400" />
+                    </div>
+                  </div>
+                  <div className="absolute top-6 right-6">
+                    <Badge className="bg-purple-500 hover:bg-purple-500 text-white border-0 px-4 py-2 text-xs font-medium shadow-sm">
+                      Suchanzeige
+                    </Badge>
+                  </div>
+                  <div className="absolute top-6 left-6">
+                    <ShareButton
+                      title={selectedSearchAdDetails.title}
+                      url={`${typeof window !== "undefined" ? window.location.origin : ""}/marketplace?searchad=${selectedSearchAdDetails.id}`}
+                      description={selectedSearchAdDetails.description || ""}
+                      className="bg-white/90 hover:bg-white"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="p-8 space-y-6">
-                {/* Title and type */}
-                <div className="text-center space-y-2">
-                  <h1 className="text-3xl font-bold text-gray-900">{selectedSearchAdDetails.title}</h1>
-                  <Badge
-                    className={`${
-                      selectedSearchAdDetails.type === "buy"
-                        ? "bg-purple-500 hover:bg-purple-500"
-                        : selectedSearchAdDetails.type === "rent"
-                          ? "bg-purple-500 hover:bg-purple-500"
-                          : "bg-purple-500 hover:bg-purple-500"
-                    } text-white px-4 py-2 border-0 pointer-events-none`}
-                  >
+              {/* Type and Details */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
+                  <p className="text-slate-500 mb-2 text-sm">Gesucht zum</p>
+                  <p className="font-bold text-slate-900 text-xs">
                     {selectedSearchAdDetails.type === "buy"
-                      ? "Suche zum Kaufen"
+                      ? "Kaufen"
                       : selectedSearchAdDetails.type === "rent"
-                        ? "Suche zum Mieten"
-                        : "Suche zum Tauschen"}
-                  </Badge>
+                        ? "Mieten"
+                        : "Tauschen"}
+                  </p>
                 </div>
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
+                  <p className="text-slate-500 mb-2 text-sm">
+                    {selectedSearchAdDetails.type === "buy"
+                      ? "Vorbehaltspreis"
+                      : selectedSearchAdDetails.type === "rent"
+                        ? "Gewünschte Mietdauer"
+                        : "Tauschspiel"}
+                  </p>
+                  <p className="font-bold text-slate-900 text-xs">
+                    {selectedSearchAdDetails.type === "buy" && selectedSearchAdDetails.max_price
+                      ? `bis CHF ${selectedSearchAdDetails.max_price}`
+                      : selectedSearchAdDetails.type === "rent" && selectedSearchAdDetails.rental_duration
+                        ? selectedSearchAdDetails.rental_duration
+                        : selectedSearchAdDetails.type === "trade" && selectedSearchAdDetails.trade_game_title
+                          ? selectedSearchAdDetails.trade_game_title
+                          : "Nicht angegeben"}
+                  </p>
+                </div>
+              </div>
 
-                {/* Description */}
-                {selectedSearchAdDetails.description && (
-                  <div className="bg-white border border-gray-100 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Beschreibung</h3>
-                    <p className="text-gray-700 leading-relaxed">{selectedSearchAdDetails.description}</p>
-                  </div>
-                )}
+              {/* Description */}
+              {selectedSearchAdDetails.description && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                  <h3 className="font-semibold mb-4 text-black text-base">Beschreibung</h3>
+                  <ExpandableDescription text={selectedSearchAdDetails.description} />
+                </div>
+              )}
 
-                {/* User info */}
-                <div className="bg-white border border-gray-100 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Erstellt von</h3>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center">
-                      <span className="text-purple-600 font-bold text-lg">
+              {/* Creator */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                <h3 className="font-semibold mb-4 text-black text-xs">Gesucht von</h3>
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 relative">
+                    <img
+                      src={
+                        selectedSearchAdDetails.users?.avatar ||
+                        `/placeholder.svg?height=64&width=64&query=avatar+${encodeURIComponent(selectedSearchAdDetails.users?.username || "User")}`
+                      }
+                      alt={`${selectedSearchAdDetails.users?.username || "User"} Avatar`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement
+                        target.style.display = "none"
+                        const fallback = target.nextElementSibling as HTMLElement
+                        if (fallback) fallback.style.display = "flex"
+                      }}
+                    />
+                    <div
+                      className="w-full h-full rounded-full flex items-center justify-center"
+                      style={{ display: "none" }}
+                    >
+                      <span className="text-slate-600 font-bold text-xl">
                         {(selectedSearchAdDetails.users?.username || "U").charAt(0).toUpperCase()}
                       </span>
                     </div>
-                    <div>
-                      <UserLink userId={selectedSearchAdDetails.user_id} className="text-gray-900 font-semibold block">
-                        {selectedSearchAdDetails.users?.username || "Unbekannter Nutzer"}
-                      </UserLink>
-                      <p className="text-sm text-gray-500">
-                        Erstellt am {new Date(selectedSearchAdDetails.created_at).toLocaleDateString("de-DE")}
-                      </p>
-                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <UserLink
+                      userId={selectedSearchAdDetails.user_id}
+                      className="text-slate-900 font-semibold text-lg block hover:text-teal-600"
+                    >
+                      {selectedSearchAdDetails.users?.username || "Unbekannter Nutzer"}
+                    </UserLink>
+                    {selectedSearchAdDetails.users?.rating && (
+                      <div className="flex items-center mt-2">
+                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                        <span className="text-xs text-slate-600 ml-1 font-medium">
+                          {selectedSearchAdDetails.users.rating}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
+              </div>
 
-                {/* Action buttons */}
-                <div className="flex gap-4 pt-6 border-t border-gray-100">
-                  {selectedSearchAdDetails.user_id !== user?.id && (
-                    <Button
-                      onClick={() => {
-                        setIsSearchAdDetailsOpen(false)
-                        handleContactSearchAdCreator(selectedSearchAdDetails)
-                      }}
-                      className="flex-1 bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
-                    >
-                      <MessageCircle className="w-5 h-5 mr-2" />
-                      Antworten
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsSearchAdDetailsOpen(false)}
-                    className="px-8 py-3 rounded-xl border-gray-200 hover:bg-gray-50 font-medium"
-                  >
-                    Schliessen
-                  </Button>
+              {/* Map */}
+              {selectedSearchAdDetails.location && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                  <div className="space-y-4">
+                    <LocationMap location={selectedSearchAdDetails.location} className="h-64 w-full rounded-lg" />
+                  </div>
                 </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex gap-4 pt-6 border-t border-slate-200">
+                {selectedSearchAdDetails.user_id !== user?.id && (
+                  <Button
+                    onClick={() => {
+                      setIsSearchAdDetailsOpen(false)
+                      handleContactSearchAdCreator(selectedSearchAdDetails)
+                    }}
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
+                  >
+                    <MessageCircle className="w-5 h-5 mr-2" />
+                    Antworten
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => setIsSearchAdDetailsOpen(false)}
+                  className="ml-auto px-8 py-3 rounded-xl border-slate-300 hover:bg-slate-50 font-medium"
+                >
+                  Schliessen
+                </Button>
               </div>
             </div>
           )}
@@ -1765,14 +1896,27 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
       </Dialog>
 
       {/* Create Marketplace Offer Dialog */}
-      <CreateMarketplaceOfferForm
-        isOpen={isCreateOfferOpen}
-        onClose={() => setIsCreateOfferOpen(false)}
-        onSuccess={() => {
-          // Refresh the page or show success message
-          window.location.reload()
-        }}
-      />
+      <Dialog open={isCreateOfferOpen} onOpenChange={setIsCreateOfferOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b border-gray-200 p-6 -m-6 mb-6 z-10">
+            <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">Angebot erstellen</DialogTitle>
+            <p className="text-sm text-gray-600">
+              Erstelle ein Angebot zum Verkaufen, Vermieten oder Tauschen deiner Spiele
+            </p>
+          </div>
+          <CreateMarketplaceOfferForm
+            isOpen={isCreateOfferOpen}
+            onClose={() => setIsCreateOfferOpen(false)}
+            onSuccess={() => {
+              window.location.reload()
+            }}
+            preselectedGame={preSelectedGame}
+            preselectedOfferType={preSelectedOfferType}
+            /* Pass initialStep=2 to skip step 1 when coming from library */
+            initialStep={preSelectedGame ? 2 : 1}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Create Search Ad Dialog */}
       <CreateSearchAdForm

@@ -385,15 +385,15 @@ export default function LudoMitgliederPage() {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center mb-8">
             <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Mitglieder</h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-gray-600 max-w-2xl mx-auto text-sm">
               Entdecke andere Brettspiel-Enthusiasten, knüpfe neue Freundschaften und erweitere dein Spielernetzwerk!
             </p>
           </div>
 
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 mb-8 shadow-lg text-center max-w-md mx-auto">
             <UserPlus className="h-16 w-16 text-teal-500 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">Anmeldung erforderlich</h3>
-            <p className="text-gray-600 mb-6">
+            <h3 className="font-semibold text-gray-800 mb-2 text-base">Anmeldung erforderlich</h3>
+            <p className="text-gray-600 mb-6 text-xs">
               Um die Mitglieder zu sehen und Freundschaftsanfragen zu senden, musst du dich anmelden.
             </p>
             <div className="flex gap-3 justify-center">

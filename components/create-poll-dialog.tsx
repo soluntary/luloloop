@@ -10,6 +10,7 @@ import { Plus, X, BarChart3 } from "lucide-react"
 import { toast } from "sonner"
 import { createPollAction } from "@/app/actions/community-polls"
 import { Checkbox } from "@/components/ui/checkbox"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 
 interface CreatePollDialogProps {
   isOpen: boolean
@@ -136,13 +137,11 @@ export function CreatePollDialog({
             <Label htmlFor="poll-description" className="text-base font-semibold text-gray-900 mb-2 block">
               Beschreibung (optional)
             </Label>
-            <textarea
-              id="poll-description"
+            <RichTextEditor
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={setDescription}
               placeholder="Zusätzliche Informationen zur Abstimmung..."
-              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none text-base"
-              rows={3}
+              minHeight="120px"
             />
           </div>
 

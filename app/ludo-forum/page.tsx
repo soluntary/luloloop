@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Search, Plus, MessageSquare, Heart, Eye, Pin, Lock } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
@@ -149,47 +149,49 @@ export default function LudoForumPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Forum</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Stelle Fragen, teile deine Gedanken und diskutiere mit der Community!
-          </p>
+          <div className="mt-6">
+            {user && (
+              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                <DialogTrigger asChild>
+                  <Button className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 font-handwritten">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Neue Diskussion
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <div className="sticky top-0 bg-white border-b border-gray-200 p-6 -m-6 mb-6 z-10">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">
+                        Neue Diskussion erstellen
+                      </DialogTitle>
+                      <p className="text-xs text-gray-600">Starte eine neue Diskussion in der Community</p>
+                    </DialogHeader>
+                  </div>
+                  <CreateForumPostForm onSuccess={handlePostCreated} onCancel={() => setShowCreateDialog(false)} />
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
         </div>
 
         {/* Search and Filter Section */}
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg">
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Diskussionen durchsuchen..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-white/80 border-gray-200 focus:border-teal-500"
-                />
-              </div>
-
-              <div className="flex justify-center md:justify-end">
-                {user && (
-                  <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                    <DialogTrigger asChild>
-                      <Button className="playful-button">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Neue Diskussion
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                      <CreateForumPostForm onSuccess={handlePostCreated} onCancel={() => setShowCreateDialog(false)} />
-                    </DialogContent>
-                  </Dialog>
-                )}
-              </div>
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Diskussionen durchsuchen..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-white/80 border-gray-200 focus:border-teal-500"
+              />
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4">
-              <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Sortieren nach:</span>
+              <span className="text-xs font-medium text-gray-700 whitespace-nowrap">Sortieren nach:</span>
               <div className="flex flex-wrap gap-2">
                 <Button
-                  size="sm"
+                  size="xs"
                   variant={sortBy === "recent" ? "default" : "outline"}
                   onClick={() => setSortBy("recent")}
                   className={sortBy === "recent" ? "bg-teal-600 hover:bg-teal-700" : "bg-white/80 hover:bg-teal-50"}
@@ -197,7 +199,7 @@ export default function LudoForumPage() {
                   Neueste
                 </Button>
                 <Button
-                  size="sm"
+                  size="xs"
                   variant={sortBy === "unanswered" ? "default" : "outline"}
                   onClick={() => setSortBy("unanswered")}
                   className={sortBy === "unanswered" ? "bg-teal-600 hover:bg-teal-700" : "bg-white/80 hover:bg-teal-50"}
@@ -205,7 +207,7 @@ export default function LudoForumPage() {
                   Unbeantwortet
                 </Button>
                 <Button
-                  size="sm"
+                  size="xs"
                   variant={sortBy === "popular" ? "default" : "outline"}
                   onClick={() => setSortBy("popular")}
                   className={sortBy === "popular" ? "bg-teal-600 hover:bg-teal-700" : "bg-white/80 hover:bg-teal-50"}
@@ -213,7 +215,7 @@ export default function LudoForumPage() {
                   Meist gelikt
                 </Button>
                 <Button
-                  size="sm"
+                  size="xs"
                   variant={sortBy === "replies" ? "default" : "outline"}
                   onClick={() => setSortBy("replies")}
                   className={sortBy === "replies" ? "bg-teal-600 hover:bg-teal-700" : "bg-white/80 hover:bg-teal-50"}
@@ -221,7 +223,7 @@ export default function LudoForumPage() {
                   Meist beantwortet
                 </Button>
                 <Button
-                  size="sm"
+                  size="xs"
                   variant={sortBy === "views" ? "default" : "outline"}
                   onClick={() => setSortBy("views")}
                   className={sortBy === "views" ? "bg-teal-600 hover:bg-teal-700" : "bg-white/80 hover:bg-teal-50"}
@@ -235,7 +237,7 @@ export default function LudoForumPage() {
 
         {/* Results Summary */}
         <div className="mb-6">
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-xs">
             {loading ? "Lade Diskussionen..." : `${filteredPosts.length} Diskussionen gefunden`}
             {searchTerm && ` für "${searchTerm}"`}
           </p>
@@ -263,8 +265,8 @@ export default function LudoForumPage() {
               ) : filteredPosts.length === 0 ? (
                 <div className="text-center py-12">
                   <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">Keine Diskussionen gefunden</h3>
-                  <p className="text-gray-500 mb-4">
+                  <h3 className="text-sm font-semibold text-gray-600 mb-2">Keine Diskussionen gefunden</h3>
+                  <p className="text-gray-500 text-xs mb-4">
                     {searchTerm
                       ? "Versuche einen anderen Suchbegriff"
                       : "Sei der Erste und starte eine neue Diskussion!"}
@@ -291,12 +293,12 @@ export default function LudoForumPage() {
                               <div className="flex items-center gap-2 mb-1">
                                 {post.is_pinned && <Pin className="h-4 w-4 text-orange-500" />}
                                 {post.is_locked && <Lock className="h-4 w-4 text-gray-500" />}
-                                <h3 className="font-handwritten text-lg text-gray-800 group-hover:text-teal-600 transition-colors line-clamp-1">
+                                <h3 className="font-handwritten text-gray-800 group-hover:text-teal-600 transition-colors line-clamp-1 text-xs">
                                   {post.title}
                                 </h3>
                               </div>
 
-                              <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                              <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
                                 <Avatar className="h-5 w-5">
                                   <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
                                   <AvatarFallback className="text-xs">
@@ -310,15 +312,15 @@ export default function LudoForumPage() {
                                   {post.author?.username}
                                 </UserLink>
                                 <span>•</span>
-                                <span>{formatTimeAgo(post.created_at)}</span>
+                                <span className="text-xs">{formatTimeAgo(post.created_at)}</span>
                               </div>
 
-                              <p className="text-gray-600 text-sm line-clamp-2 mb-3">{post.content}</p>
+                              <p className="text-gray-600 text-xs line-clamp-2 mb-3">{post.content}</p>
                             </div>
                           </div>
 
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
+                            <div className="flex items-center gap-4 text-xs text-gray-500">
                               <div className="flex items-center gap-1">
                                 <MessageSquare className="h-4 w-4" />
                                 <span>{post.replies_count}</span>
@@ -334,7 +336,7 @@ export default function LudoForumPage() {
                             </div>
 
                             <Button
-                              size="sm"
+                              size="xs"
                               variant="outline"
                               className="bg-transparent hover:bg-teal-50 hover:border-teal-300"
                               onClick={(e) => {

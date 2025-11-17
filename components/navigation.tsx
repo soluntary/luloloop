@@ -1,29 +1,30 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
-  Home,
-  LibraryBig,
-  UserPlus,
-  LogIn,
-  Users,
-  Store,
-  MessageCircle,
-  LogOut,
-  Menu,
-  Settings,
-  X,
-  Info,
-  Star,
-  ChevronDown,
-  Calendar,
-  UserCheck,
-  MessagesSquare,
-} from "lucide-react"
+  FaHome,
+  FaBook,
+  FaUserPlus,
+  FaSignInAlt,
+  FaUsers,
+  FaStore,
+  FaComments,
+  FaSignOutAlt,
+  FaBars,
+  FaCog,
+  FaTimes,
+  FaInfoCircle,
+  FaUsers,
+  FaChevronDown,
+  FaCalendar,
+  FaStar,
+  FaUserCheck,
+  FaComment,
+} from "react-icons/fa"
 import { useAuth } from "@/contexts/auth-context"
 import { useMessages } from "@/contexts/messages-context"
 import { useAvatar } from "@/contexts/avatar-context"
@@ -51,48 +52,48 @@ interface NavItem {
 function Navigation({ currentPage }: NavigationProps) {
   const pathname = usePathname()
   const { user, signOut } = useAuth() || { user: null, signOut: null }
-  const { getAvatar, avatarCache } = useAvatar()
+  const { getAvatar } = useAvatar()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { getUnreadCount } = useMessages()
 
   const loggedInNavItems: NavItem[] = [
-    { href: "/", label: "Home", icon: Home, key: "home" },
-    { href: "/library", label: "Ludothek", icon: LibraryBig, key: "library" },
+    { href: "/", label: "Home", icon: FaHome, key: "home" },
+    { href: "/library", label: "Ludothek", icon: FaBook, key: "library" },
     {
       label: "Community",
-      icon: Star,
+      icon: FaUsers,
       key: "community",
       dropdown: {
         items: [
-          { href: "/ludo-gruppen", label: "Spielgruppen", icon: Users, key: "ludo-gruppen" },
-          { href: "/ludo-mitglieder", label: "Mitglieder", icon: UserCheck, key: "ludo-mitglieder" },
-          { href: "/ludo-events", label: "Events", icon: Calendar, key: "ludo-events" },
-          { href: "/ludo-forum", label: "Forum", icon: MessagesSquare, key: "ludo-forum" },
+          { href: "/ludo-gruppen", label: "Spielgruppen", icon: FaUsers, key: "ludo-gruppen" },
+          { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
+          { href: "/ludo-events", label: "Events", icon: FaCalendar, key: "ludo-events" },
+          { href: "/ludo-forum", label: "Forum", icon: FaComment, key: "ludo-forum" },
         ],
       },
     },
-    { href: "/marketplace", label: "Spielemarkt", icon: Store, key: "spielemarkt" },
-    { href: "/messages", label: "Nachrichten", icon: MessageCircle, key: "messages" },
-    { href: "/about", label: "Über uns", icon: Info, key: "about" },
+    { href: "/marketplace", label: "Spielemarkt", icon: FaStore, key: "spielemarkt" },
+    { href: "/messages", label: "Nachrichten", icon: FaComments, key: "messages" },
+    { href: "/about", label: "Über uns", icon: FaInfoCircle, key: "about" },
   ]
 
   const publicNavItems: NavItem[] = [
-    { href: "/", label: "Home", icon: Home, key: "home" },
+    { href: "/", label: "Home", icon: FaHome, key: "home" },
     {
       label: "Community",
-      icon: Star,
+      icon: FaUsers,
       key: "community",
       dropdown: {
         items: [
-          { href: "/ludo-gruppen", label: "Spielgruppen", icon: Users, key: "ludo-gruppen" },
-          { href: "/ludo-mitglieder", label: "Mitglieder", icon: UserCheck, key: "ludo-mitglieder" },
-          { href: "/ludo-events", label: "Events", icon: Calendar, key: "ludo-events" },
-          { href: "/ludo-forum", label: "Forum", icon: MessagesSquare, key: "ludo-forum" },
+          { href: "/ludo-gruppen", label: "Spielgruppen", icon: FaUsers, key: "ludo-gruppen" },
+          { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
+          { href: "/ludo-events", label: "Events", icon: FaCalendar, key: "ludo-events" },
+          { href: "/ludo-forum", label: "Forum", icon: FaComment, key: "ludo-forum" },
         ],
       },
     },
-    { href: "/marketplace", label: "Spielemarkt", icon: Store, key: "spielemarkt" },
-    { href: "/about", label: "Über uns", icon: Info, key: "about" },
+    { href: "/marketplace", label: "Spielemarkt", icon: FaStore, key: "spielemarkt" },
+    { href: "/about", label: "Über uns", icon: FaInfoCircle, key: "about" },
   ]
 
   const navItems = user ? loggedInNavItems : publicNavItems
@@ -130,7 +131,16 @@ function Navigation({ currentPage }: NavigationProps) {
   }
 
   const unreadCount = user ? getUnreadCount() : 0
-  const userAvatar = user ? getAvatar(user.id, user.email) : null
+
+  const userAvatar = useMemo(() => {
+    if (!user) return null
+    // First priority: user.avatar from database
+    if (user.avatar) return user.avatar
+    // Second priority: cached avatar
+    return getAvatar(user.id, user.email)
+  }, [user])
+
+  const avatarSrc = userAvatar || "/placeholder.svg"
 
   return (
     <nav className="bg-white shadow-lg border-b-4 border-teal-400 sticky top-0 z-50">
@@ -156,7 +166,7 @@ function Navigation({ currentPage }: NavigationProps) {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
-                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-base transform hover:scale-105 hover:rotate-1 ${
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${
                           active
                             ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
                             : "text-gray-700 hover:bg-teal-400 hover:text-white"
@@ -164,7 +174,7 @@ function Navigation({ currentPage }: NavigationProps) {
                       >
                         <Icon className="w-5 h-5" />
                         <span>{item.label}</span>
-                        <ChevronDown className="w-4 h-4" />
+                        <FaChevronDown className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-48 font-body">
@@ -190,7 +200,7 @@ function Navigation({ currentPage }: NavigationProps) {
                 <Link key={item.href} href={item.href!}>
                   <Button
                     variant="ghost"
-                    className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-base transform hover:scale-105 hover:rotate-1 ${
+                    className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${
                       active
                         ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
                         : "text-gray-700 hover:bg-teal-400 hover:text-white"
@@ -199,7 +209,7 @@ function Navigation({ currentPage }: NavigationProps) {
                     <Icon className="w-5 h-5" />
                     <span>{item.label}</span>
                     {item.key === "messages" && unreadCount > 0 && (
-                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
+                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-sm rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
                         {unreadCount > 99 ? "99+" : unreadCount}
                       </div>
                     )}
@@ -222,27 +232,28 @@ function Navigation({ currentPage }: NavigationProps) {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 font-handwritten text-base transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent"
+                    className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 font-handwritten text-sm transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent"
                   >
                     <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-teal-400">
                       <img
-                        src={userAvatar || "/placeholder.svg"}
+                        src={avatarSrc || "/placeholder.svg"}
                         alt={user.username || user.name}
                         className="w-full h-full object-cover"
+                        key={avatarSrc}
                       />
                     </div>
                     <span className="text-gray-700 font-medium">{user.username || user.name || "Benutzer"}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 font-body">
+                <DropdownMenuContent align="end" className="w-48 text-sm font-body">
                   <DropdownMenuItem asChild>
                     <Link href="/profile" className="flex items-center space-x-2 cursor-pointer">
-                      <Settings className="w-4 h-4" />
+                      <FaCog className="w-4 h-4" />
                       <span>Profil</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center space-x-2 cursor-pointer">
-                    <LogOut className="w-4 h-4" />
+                    <FaSignOutAlt className="w-4 h-4" />
                     <span>Abmelden</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -255,7 +266,7 @@ function Navigation({ currentPage }: NavigationProps) {
                   className="border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all bg-white flex items-center space-x-2"
                 >
                   <Link href="/login">
-                    <LogIn className="w-4 h-4" />
+                    <FaSignInAlt className="w-4 h-4" />
                     <span>Anmelden</span>
                   </Link>
                 </Button>
@@ -264,7 +275,7 @@ function Navigation({ currentPage }: NavigationProps) {
                   className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all flex items-center space-x-2"
                 >
                   <Link href="/register">
-                    <UserPlus className="w-4 h-4" />
+                    <FaUserPlus className="w-4 h-4" />
                     <span>Registrieren</span>
                   </Link>
                 </Button>
@@ -280,7 +291,7 @@ function Navigation({ currentPage }: NavigationProps) {
               </>
             )}
             <Button variant="ghost" size="sm" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2">
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isMobileMenuOpen ? <FaTimes className="w-6 h-6" /> : <FaBars className="w-6 h-6" />}
             </Button>
           </div>
         </div>
@@ -313,7 +324,7 @@ function Navigation({ currentPage }: NavigationProps) {
                           >
                             <Button
                               variant="ghost"
-                              className={`w-full justify-start flex items-center space-x-3 px-8 py-3 rounded-lg font-handwritten text-base transform hover:scale-105 hover:rotate-1 transition-all ${
+                              className={`w-full justify-start flex items-center space-x-3 px-8 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${
                                 active
                                   ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
                                   : "text-gray-700 hover:bg-teal-400 hover:text-white"
@@ -335,7 +346,7 @@ function Navigation({ currentPage }: NavigationProps) {
                   <Link key={item.href} href={item.href!} onClick={() => setIsMobileMenuOpen(false)}>
                     <Button
                       variant="ghost"
-                      className={`relative w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-base transform hover:scale-105 hover:rotate-1 transition-all ${
+                      className={`relative w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${
                         active
                           ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
                           : "text-gray-700 hover:bg-teal-400 hover:text-white"
@@ -344,7 +355,7 @@ function Navigation({ currentPage }: NavigationProps) {
                       <Icon className="w-5 h-5" />
                       <span>{item.label}</span>
                       {item.key === "messages" && unreadCount > 0 && (
-                        <div className="absolute right-4 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
+                        <div className="absolute right-4 bg-red-500 text-white text-sm rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
                           {unreadCount > 99 ? "99+" : unreadCount}
                         </div>
                       )}
@@ -360,13 +371,14 @@ function Navigation({ currentPage }: NavigationProps) {
                     <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button
                         variant="ghost"
-                        className="w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-base text-gray-700 hover:bg-teal-50 hover:text-teal-600 transform hover:scale-105 hover:rotate-1 transition-all"
+                        className="w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transform hover:scale-105 hover:rotate-1 transition-all"
                       >
                         <div className="w-5 h-5 rounded-full overflow-hidden border border-teal-400">
                           <img
-                            src={userAvatar || "/placeholder.svg"}
+                            src={avatarSrc || "/placeholder.svg"}
                             alt={user.username || user.name}
                             className="w-full h-full object-cover"
+                            key={avatarSrc}
                           />
                         </div>
                         <span>Profil ({user.username || user.name || "Benutzer"})</span>
@@ -378,9 +390,9 @@ function Navigation({ currentPage }: NavigationProps) {
                         handleLogout()
                         setIsMobileMenuOpen(false)
                       }}
-                      className="w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-base text-gray-700 hover:bg-teal-50 hover:text-teal-600 transform hover:scale-105 hover:rotate-1 transition-all"
+                      className="w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transform hover:scale-105 hover:rotate-1 transition-all"
                     >
-                      <LogOut className="w-5 h-5" />
+                      <FaSignOutAlt className="w-5 h-5" />
                       <span>Abmelden</span>
                     </Button>
                   </div>
@@ -393,7 +405,7 @@ function Navigation({ currentPage }: NavigationProps) {
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <Link href="/login">
-                        <LogIn className="w-4 h-4" />
+                        <FaSignInAlt className="w-4 h-4" />
                         Anmelden
                       </Link>
                     </Button>
@@ -403,7 +415,7 @@ function Navigation({ currentPage }: NavigationProps) {
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <Link href="/register">
-                        <UserPlus className="w-4 h-4" />
+                        <FaUserPlus className="w-4 h-4" />
                         Registrieren
                       </Link>
                     </Button>

@@ -321,7 +321,7 @@ export default function NotificationDropdown({ className }: NotificationDropdown
           </div>
 
           {notifications.length === 0 ? (
-            <div className="p-4 text-center text-gray-500 text-sm">Zurzeit keine Benachrichtigung</div>
+            <div className="p-4 text-gray-500 text-left text-xs">Zurzeit keine Benachrichtigung</div>
           ) : (
             <div className="max-h-80 overflow-y-auto">
               {notifications.map((notification, index) => (

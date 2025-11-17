@@ -21,20 +21,20 @@ export default function CookiesPage() {
 
           <div className="space-y-8">
             {/* What are Cookies */}
-            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-blue-200">
+            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
                   <Cookie className="w-6 h-6 text-blue-400" />
                   Was sind Cookies?
                 </CardTitle>
               </CardHeader>
-              <CardContent className="font-body text-gray-600 space-y-4">
+              <CardContent className="font-body text-xs text-gray-600 space-y-4">
                 <p>
                   Cookies sind kleine Textdateien, die auf deinem Gerät gespeichert werden, wenn du unsere Website
                   besuchst. Sie helfen uns dabei, deine Präferenzen zu speichern und die Website-Funktionalität zu
                   verbessern.
                 </p>
-                <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-4 rounded-lg">
                   <p>
                     <strong>Wichtig:</strong> Cookies enthalten keine persönlichen Daten wie Passwörter oder
                     Kreditkarteninformationen.
@@ -44,22 +44,22 @@ export default function CookiesPage() {
             </Card>
 
             {/* Essential Cookies */}
-            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-green-200">
+            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
                   <Shield className="w-6 h-6 text-green-400" />
                   Notwendige Cookies
                 </CardTitle>
               </CardHeader>
-              <CardContent className="font-body text-gray-600 space-y-4">
+              <CardContent className="font-body text-xs text-gray-600 space-y-4">
                 <p>
                   Diese Cookies sind für die Grundfunktionen der Website erforderlich und können nicht deaktiviert
                   werden.
                 </p>
 
                 <div className="space-y-3">
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">Authentifizierung</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-sm text-gray-800 mb-2">Authentifizierung</h4>
                     <p>
                       <strong>Zweck:</strong> Anmeldestatus und Sitzungsverwaltung
                     </p>
@@ -71,8 +71,8 @@ export default function CookiesPage() {
                     </p>
                   </div>
 
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">Sicherheit</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-sm text-gray-800 mb-2">Sicherheit</h4>
                     <p>
                       <strong>Zweck:</strong> Schutz vor CSRF-Angriffen und Spam
                     </p>
@@ -84,8 +84,8 @@ export default function CookiesPage() {
                     </p>
                   </div>
 
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">Funktionalität</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-sm text-gray-800 mb-2">Funktionalität</h4>
                     <p>
                       <strong>Zweck:</strong> Warenkorb, Spracheinstellungen, Theme
                     </p>
@@ -101,19 +101,19 @@ export default function CookiesPage() {
             </Card>
 
             {/* Functional Cookies */}
-            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-orange-200">
+            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
                   <Settings className="w-6 h-6 text-orange-400" />
                   Funktionale Cookies
                 </CardTitle>
               </CardHeader>
-              <CardContent className="font-body text-gray-600 space-y-4">
+              <CardContent className="font-body text-xs text-gray-600 space-y-4">
                 <p>Diese Cookies verbessern deine Nutzererfahrung, sind aber nicht zwingend erforderlich.</p>
 
                 <div className="space-y-3">
-                  <div className="bg-orange-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">Personalisierung</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-sm text-gray-800 mb-2">Personalisierung</h4>
                     <p>
                       <strong>Zweck:</strong> Gespeicherte Suchfilter, Favoriten, Layout-Präferenzen
                     </p>
@@ -125,8 +125,8 @@ export default function CookiesPage() {
                     </p>
                   </div>
 
-                  <div className="bg-orange-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">Standort</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-sm text-gray-800 mb-2">Standort</h4>
                     <p>
                       <strong>Zweck:</strong> Lokale Suchergebnisse und Events
                     </p>
@@ -139,7 +139,7 @@ export default function CookiesPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between bg-orange-100 p-4 rounded-lg">
+                <div className="flex items-center justify-between bg-gray-100 p-4 rounded-lg">
                   <span className="font-semibold">Funktionale Cookies aktiviert</span>
                   <Button variant="outline" size="sm" className="font-handwritten bg-transparent">
                     Einstellungen ändern
@@ -149,19 +149,19 @@ export default function CookiesPage() {
             </Card>
 
             {/* Analytics Cookies */}
-            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-pink-200">
+            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
                   <BarChart3 className="w-6 h-6 text-pink-400" />
                   Analyse-Cookies
                 </CardTitle>
               </CardHeader>
-              <CardContent className="font-body text-gray-600 space-y-4">
+              <CardContent className="font-body text-xs text-gray-600 space-y-4">
                 <p>Diese Cookies helfen uns zu verstehen, wie die Website genutzt wird, um sie zu verbessern.</p>
 
                 <div className="space-y-3">
-                  <div className="bg-pink-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">Website-Analyse</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-sm text-gray-800 mb-2">Website-Analyse</h4>
                     <p>
                       <strong>Zweck:</strong> Seitenaufrufe, Verweildauer, beliebte Inhalte
                     </p>
@@ -176,8 +176,8 @@ export default function CookiesPage() {
                     </p>
                   </div>
 
-                  <div className="bg-pink-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">Performance-Monitoring</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-sm text-gray-800 mb-2">Performance-Monitoring</h4>
                     <p>
                       <strong>Zweck:</strong> Ladezeiten, Fehleranalyse, Optimierung
                     </p>
@@ -193,7 +193,7 @@ export default function CookiesPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between bg-pink-100 p-4 rounded-lg">
+                <div className="flex items-center justify-between bg-gray-100 p-4 rounded-lg">
                   <span className="font-semibold">Analyse-Cookies aktiviert</span>
                   <Button variant="outline" size="sm" className="font-handwritten bg-transparent">
                     Deaktivieren
@@ -203,21 +203,21 @@ export default function CookiesPage() {
             </Card>
 
             {/* Third Party Cookies */}
-            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-purple-200">
+            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
                   <Eye className="w-6 h-6 text-purple-400" />
                   Drittanbieter-Cookies
                 </CardTitle>
               </CardHeader>
-              <CardContent className="font-body text-gray-600 space-y-4">
+              <CardContent className="font-body text-xs text-gray-600 space-y-4">
                 <p>
                   Einige Funktionen unserer Website nutzen Dienste von Drittanbietern, die eigene Cookies setzen können.
                 </p>
 
                 <div className="space-y-3">
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">Karten & Standorte</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-sm text-gray-800 mb-2">Karten & Standorte</h4>
                     <p>
                       <strong>Anbieter:</strong> Google Maps
                     </p>
@@ -232,8 +232,8 @@ export default function CookiesPage() {
                     </p>
                   </div>
 
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">Zahlungsabwicklung</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-sm text-gray-800 mb-2">Zahlungsabwicklung</h4>
                     <p>
                       <strong>Anbieter:</strong> Stripe
                     </p>
@@ -248,8 +248,8 @@ export default function CookiesPage() {
                     </p>
                   </div>
 
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">Support-Chat</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-sm text-gray-800 mb-2">Support-Chat</h4>
                     <p>
                       <strong>Anbieter:</strong> Intercom
                     </p>
@@ -268,15 +268,15 @@ export default function CookiesPage() {
             </Card>
 
             {/* Cookie Management */}
-            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-teal-200">
+            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
                   <Trash2 className="w-6 h-6 text-teal-400" />
                   Cookie-Verwaltung
                 </CardTitle>
               </CardHeader>
-              <CardContent className="font-body text-gray-600 space-y-4">
-                <h4 className="font-semibold text-gray-800">Browser-Einstellungen</h4>
+              <CardContent className="font-body text-xs text-gray-600 space-y-4">
+                <h4 className="font-semibold text-sm text-gray-800">Browser-Einstellungen</h4>
                 <p>Du kannst Cookies in deinem Browser verwalten:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>
@@ -293,8 +293,8 @@ export default function CookiesPage() {
                   </li>
                 </ul>
 
-                <h4 className="font-semibold text-gray-800">Unsere Cookie-Einstellungen</h4>
-                <div className="bg-teal-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-sm text-gray-800">Unsere Cookie-Einstellungen</h4>
+                <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Button className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten">
                       Cookie-Einstellungen öffnen
@@ -305,7 +305,7 @@ export default function CookiesPage() {
                   </div>
                 </div>
 
-                <div className="bg-yellow-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-4 rounded-lg">
                   <p>
                     <strong>Hinweis:</strong> Das Deaktivieren von Cookies kann die Funktionalität der Website
                     beeinträchtigen.
@@ -315,14 +315,14 @@ export default function CookiesPage() {
             </Card>
 
             {/* Contact & Updates */}
-            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-red-200">
+            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardContent className="p-8 text-center">
                 <h3 className="font-handwritten text-2xl text-gray-800 mb-4">Fragen zu Cookies?</h3>
-                <p className="font-body text-gray-600 mb-6">
+                <p className="font-body text-xs text-gray-600 mb-6">
                   Bei Fragen zu unserer Cookie-Nutzung kontaktiere uns gerne.
                 </p>
-                <div className="bg-red-50 p-4 rounded-lg mb-6">
-                  <p className="font-body">
+                <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                  <p className="font-body text-xs">
                     <strong>Datenschutz-Team:</strong>
                     <br />
                     E-Mail: privacy@ludoloop.com
@@ -330,7 +330,7 @@ export default function CookiesPage() {
                     Telefon: +41 44 123 45 67
                   </p>
                 </div>
-                <p className="font-body text-sm text-gray-500">
+                <p className="font-body text-xs text-gray-500">
                   Diese Cookie-Richtlinie wurde zuletzt im Januar 2025 aktualisiert.
                   <br />
                   Wir informieren dich über wesentliche Änderungen per E-Mail oder Website-Banner.

@@ -2,6 +2,28 @@
 import { useState, useEffect } from "react"
 import type React from "react"
 
+import {
+  FaSearch,
+  FaPlus,
+  FaMapMarkerAlt,
+  FaCalendarAlt,
+  FaCalendar,
+  FaClock,
+  FaUserCheck,
+  FaUserPlus,
+  FaComment,
+  FaCog,
+  FaFilter,
+  FaUsers,
+  FaUserCog,
+  FaDice,
+  FaCalendarPlus,
+  FaChevronDown,
+  FaUserTimes,
+  FaUserMinus,
+} from "react-icons/fa"
+// </CHANGE>
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -9,29 +31,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Search,
-  Plus,
-  MapPin,
-  CalendarDaysIcon,
-  Calendar,
-  Clock,
-  UserPlus,
-  MessageCircle,
-  Settings,
-  Filter,
-  Users,
-  UserCog,
-  Dices,
-  UserCheck,
-  Spade,
-  CalendarPlus2Icon,
-  ChevronDown,
-  UserRoundCheck,
-  UserRoundCog,
-  UserX,
-  UserRoundMinus,
-} from "lucide-react"
+// </CHANGE> REMOVED lucide-react imports
+// import { Search, Plus, MapPin, CalendarDaysIcon, Calendar, Clock, UserCheckIcon, UserPlus, MessageCircle, Settings, Filter, Users, UserCog, Dices, UserCheck, Spade, CalendarPlus2Icon, ChevronDown, UserRoundCheck, UserRoundCog, UserX, UserRoundMinus } from 'lucide-react'
+// </CHANGE>
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
@@ -48,6 +50,7 @@ import { DistanceBadge } from "@/components/distance-badge"
 import { LocationMap } from "@/components/location-map"
 import CreateLudoEventForm from "@/components/create-ludo-event-form-advanced"
 import { ExpandableDescription } from "@/components/expandable-description"
+import { convertMarkdownToHtml } from "@/lib/utils"
 
 interface LudoEvent {
   id: string
@@ -228,12 +231,15 @@ export default function LudoEventsPage() {
       console.log("[v0] Loading events for user:", user?.id || "not logged in")
 
       const today = new Date()
-      today.setHours(0, 0, 0, 0)
+      const year = today.getFullYear()
+      const month = String(today.getMonth() + 1).padStart(2, "0")
+      const day = String(today.getDate()).padStart(2, "0")
+      const todayString = `${year}-${month}-${day}`
 
-      console.log("[v0] Today's date for filtering:", today.toISOString().split("T")[0])
+      console.log("[v0] Today's date for filtering:", todayString)
 
       // Build the base query
-      let query = supabase
+      const query = supabase
         .from("ludo_events")
         .select(`
           *,
@@ -241,14 +247,12 @@ export default function LudoEventsPage() {
           ludo_event_instances!inner(instance_date)
         `)
         .eq("visibility", "public")
-        .gte("ludo_event_instances.instance_date", today.toISOString().split("T")[0])
+        .gte("ludo_event_instances.instance_date", todayString)
         .order("created_at", { ascending: false })
 
-      // Only exclude user's own events if user is logged in
-      if (user?.id) {
-        query = query.neq("creator_id", user.id)
-        console.log("[v0] Excluding events created by user:", user.id)
-      }
+      // </CHANGE> Removed the filter that excludes user's own events so users can see all events including their own
+      // Users should be able to see and manage their own events
+      // The following line was removed: .neq("creator_id", user.id)
 
       const { data, error } = await query
 
@@ -283,12 +287,12 @@ export default function LudoEventsPage() {
               .from("ludo_event_instances")
               .select("instance_date")
               .eq("event_id", event.id)
-              .gte("instance_date", today.toISOString().split("T")[0])
+              .gte("instance_date", todayString)
               .order("instance_date", { ascending: true })
               .limit(1)
 
             console.log(`[v0] Event "${event.title}" (${event.id}):`)
-            console.log(`[v0]   - Filtering instances >= ${today.toISOString().split("T")[0]}`)
+            console.log(`[v0]   - Filtering instances >= ${todayString}`)
             console.log(`[v0]   - Found instances:`, instances)
             console.log(`[v0]   - Setting first_instance_date to:`, instances?.[0]?.instance_date || null)
 
@@ -382,13 +386,13 @@ export default function LudoEventsPage() {
               .from("ludo_event_instances")
               .select("instance_date")
               .eq("event_id", event.id)
-              .gte("instance_date", today.toISOString().split("T")[0])
+              .gte("instance_date", todayString)
               .order("instance_date", { ascending: true })
               .limit(1)
               .single()
 
             console.log(`[v0] Event "${event.title}" (${event.id}) [non-logged-in]:`)
-            console.log(`[v0]   - Filtering instances >= ${today.toISOString().split("T")[0]}`)
+            console.log(`[v0]   - Filtering instances >= ${todayString}`)
             console.log(`[v0]   - Found instance:`, firstInstance)
             console.log(`[v0]   - Setting first_instance_date to:`, firstInstance?.instance_date || null)
 
@@ -721,7 +725,7 @@ export default function LudoEventsPage() {
 
     // If the current user is the organizer
     if (event.creator_id === user.id) {
-      return { text: "Dein Event", disabled: true, variant: "secondary" as const, icon: UserRoundCog }
+      return { text: "Dein Event", disabled: true, variant: "secondary" as const, icon: FaUserCog }
     }
 
     // If the user is already participating
@@ -735,7 +739,7 @@ export default function LudoEventsPage() {
           disabled: false,
           variant: "destructive" as const,
           action: "leave",
-          icon: UserRoundMinus,
+          icon: FaUserMinus,
         }
       }
 
@@ -745,18 +749,18 @@ export default function LudoEventsPage() {
         disabled: false,
         variant: "outline" as const,
         action: "manage",
-        icon: UserRoundCheck,
+        icon: FaUserCheck,
       }
     }
 
     // If the user's participation is pending
     if (event.user_participation_status === "pending") {
-      return { text: "Warte auf Genehmigung", disabled: true, variant: "outline" as const, icon: Clock }
+      return { text: "Warte auf Genehmigung", disabled: true, variant: "outline" as const, icon: FaClock }
     }
 
     // If the user's participation was rejected
     if (event.user_participation_status === "rejected") {
-      return { text: "Abgelehnt", disabled: false, variant: "outline" as const, icon: UserX }
+      return { text: "Abgelehnt", disabled: false, variant: "outline" as const, icon: FaUserTimes }
     }
 
     // If the event is full
@@ -1083,7 +1087,7 @@ export default function LudoEventsPage() {
       // Unrestricted participants
       return (
         <>
-          {event.participant_count} Teilnehmer <span className="text-gray-500">(unbegrenzt)</span>
+          {event.participant_count} Teilnehmer (<span className="text-green-600 font-medium">unbegrenzt</span>)
         </>
       )
     }
@@ -1137,17 +1141,18 @@ export default function LudoEventsPage() {
               }}
               className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 font-handwritten"
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <FaPlus className="h-4 w-4 mr-2" /> {/* Changed to FaPlus */}
               Event erstellen
             </Button>
           )}
         </div>
 
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg">
+        {/* Search and Filter Bar */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-gray-200 shadow-none">
           <div className="space-y-6">
             <div className="flex gap-4">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" /> {/* Changed to FaSearch */}
                 <Input
                   placeholder="Events durchsuchen..."
                   value={searchTerm}
@@ -1162,13 +1167,14 @@ export default function LudoEventsPage() {
             </div>
 
             {showLocationResults && (
-              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <div className="flex items-center justify-between p-4 bg-teal-50 rounded-xl border border-gray-200">
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-blue-600" />
-                  <span className="text-sm text-blue-800 font-medium">
+                  <FaMapMarkerAlt className="h-5 w-5 text-teal-600" /> {/* Changed to FaMapMarkerAlt */}
+                  <span className="text-sm text-teal-800 font-medium">
                     Zeige Ergebnisse in der Nähe ({locationSearchResults.length})
                   </span>
                 </div>
+                {/* Changed blue to teal for clear location button */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -1176,7 +1182,7 @@ export default function LudoEventsPage() {
                     setShowLocationResults(false)
                     setLocationSearchResults([])
                   }}
-                  className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                  className="text-teal-600 border-teal-300 hover:bg-teal-100"
                 >
                   Alle Events zeigen
                 </Button>
@@ -1186,7 +1192,7 @@ export default function LudoEventsPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Sortieren nach</Label>
+                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Sortieren nach</Label>
                   <Select value={sortBy} onValueChange={setSortBy}>
                     <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
                       <SelectValue />
@@ -1201,7 +1207,7 @@ export default function LudoEventsPage() {
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Häufigkeit</Label>
+                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Häufigkeit</Label>
                   <Select value={frequencyFilter} onValueChange={setFrequencyFilter}>
                     <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
                       <SelectValue />
@@ -1212,13 +1218,13 @@ export default function LudoEventsPage() {
                       <SelectItem value="täglich">Täglich</SelectItem>
                       <SelectItem value="wöchentlich">Wöchentlich</SelectItem>
                       <SelectItem value="monatlich">Monatlich</SelectItem>
-                      <SelectItem value="jährlich">Jährlich</SelectItem> {/* Added jährlich option */}
+                      <SelectItem value="jährlich">Jährlich</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Zeitpunkt</Label>
+                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Zeitpunkt</Label>
                   <Select value={timePeriodFilter} onValueChange={setTimePeriodFilter}>
                     <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
                       <SelectValue />
@@ -1242,11 +1248,11 @@ export default function LudoEventsPage() {
                     onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                     className="h-12 w-full border-2 border-teal-500 text-teal-600 hover:bg-teal-50 font-medium"
                   >
-                    <Filter className="w-4 h-4 mr-2" />
+                    <FaFilter className="w-4 h-4 mr-2" /> {/* Changed to FaFilter */}
                     Erweiterte Filter
-                    <ChevronDown
+                    <FaChevronDown
                       className={`w-4 h-4 ml-2 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
-                    />
+                    /> {/* Changed to FaChevronDown */}
                   </Button>
                 </div>
               </div>
@@ -1254,12 +1260,12 @@ export default function LudoEventsPage() {
               {showAdvancedFilters && (
                 <div className="pt-6 border-t border-gray-200 space-y-4">
                   <h3 className="text-sm font-semibold text-gray-700 flex items-center">
-                    <Filter className="w-4 h-4 mr-2" />
+                    <FaFilter className="w-4 h-4 mr-2" /> {/* Changed to FaFilter */}
                     Erweiterte Filter
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Ort</Label>
+                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Ort</Label>
                       <Select value={locationFilter} onValueChange={setLocationFilter}>
                         <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
                           <SelectValue />
@@ -1273,7 +1279,7 @@ export default function LudoEventsPage() {
                     </div>
 
                     <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Kapazität</Label>
+                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Kapazität</Label>
                       <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
                         <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
                           <SelectValue />
@@ -1287,7 +1293,7 @@ export default function LudoEventsPage() {
                     </div>
 
                     <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Teilnahmemodus</Label>
+                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Teilnahmemodus</Label>
                       <Select value={approvalModeFilter} onValueChange={setApprovalModeFilter}>
                         <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
                           <SelectValue />
@@ -1345,7 +1351,7 @@ export default function LudoEventsPage() {
               ) : filteredEvents.length === 0 ? (
                 // Message for no events found
                 <div className="col-span-full text-center py-12">
-                  <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <FaCalendar className="h-16 w-16 text-gray-300 mx-auto mb-4" /> {/* Changed to FaCalendar */}
                   <h3 className="text-xl font-semibold text-gray-600 mb-2">Keine Events gefunden</h3>
                   <p className="text-gray-500 mb-4">
                     {searchTerm ? "Versuche einen anderen Suchbegriff" : "Sei der Erste und erstelle ein neues Event!"}
@@ -1355,7 +1361,7 @@ export default function LudoEventsPage() {
                       onClick={() => setIsCreateDialogOpen(true)}
                       className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 font-handwritten"
                     >
-                      <Plus className="h-4 w-4 mr-2" />
+                      <FaPlus className="h-4 w-4 mr-2" /> {/* Changed to FaPlus */}
                       Erstes Event erstellen
                     </Button>
                   )}
@@ -1382,40 +1388,42 @@ export default function LudoEventsPage() {
                     <Card
                       key={event.id}
                       onClick={() => showEventDetails(event)}
-                      className="group hover:shadow-lg transition-all duration-300 bg-white/80 backdrop-blur-sm border-0 cursor-pointer overflow-hidden"
+                      className="group hover:shadow-lg transition-all duration-300 bg-white/80 backdrop-blur-sm border-0 cursor-pointer overflow-hidden flex flex-col"
                     >
                       {/* Event Image or Placeholder */}
                       {!event.image_url && (
                         <div className="relative h-32 w-full overflow-hidden bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
                           {isRecurring && (
                             <div className="absolute top-2 right-2 z-10">
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium text-blue-600 rounded-full border border-blue-200">
-                                <CalendarPlus2Icon className="h-3.5 w-3.5" />
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200">
+                                <FaCalendarPlus className="h-3.5 w-3.5" /> {/* Changed to FaCalendarPlus */}
                                 <span>Serientermine</span>
                               </div>
                             </div>
                           )}
                           <div className="absolute top-2 left-2 z-10">
                             {event.approval_mode === "automatic" ? (
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 backdrop-blur-sm text-xs font-medium text-green-700 rounded-full border border-green-300">
-                                <UserCheck className="h-3.5 w-3.5" />
+                              // Changed green badge to teal
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200">
+                                <FaUserCheck className="h-3.5 w-3.5" /> {/* Changed to FaUserCheck */}
                                 <span>Direkte Teilnahme</span>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-100 backdrop-blur-sm text-xs font-medium text-orange-700 rounded-full border border-orange-300">
-                                <Clock className="h-3.5 w-3.5" />
+                              // Changed orange badge to teal
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-100 backdrop-blur-sm text-xs font-medium text-teal-700 rounded-full border border-teal-300">
+                                <FaClock className="h-3.5 w-3.5" /> {/* Changed to FaClock */}
                                 <span>Genehmigung erforderlich</span>
                               </div>
                             )}
                           </div>
                           <div className="text-center">
-                            <Spade className="h-12 w-12 text-teal-400 mx-auto mb-1" />
+                            <FaDice className="h-12 w-12 text-teal-400 mx-auto mb-1" /> {/* Changed to FaDice */}
                           </div>
                         </div>
                       )}
 
                       {event.image_url && (
-                        <div className="relative h-32 w-full overflow-hidden">
+                        <div className="relative aspect-[16/9] w-full overflow-hidden">
                           <img
                             src={event.image_url || "/placeholder.svg"}
                             alt={event.title}
@@ -1424,21 +1432,23 @@ export default function LudoEventsPage() {
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                           {isRecurring && (
                             <div className="absolute top-2 right-2 z-10">
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium text-blue-600 rounded-full border border-blue-200">
-                                <CalendarPlus2Icon className="h-3.5 w-3.5" />
-                                <span>Serientermine</span>
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200">
+                                <FaCalendarPlus className="h-3.5 w-3.5" /> {/* Changed to FaCalendarPlus */}
+                                <span className="">Serientermine</span>
                               </div>
                             </div>
                           )}
                           <div className="absolute top-2 left-2 z-10">
                             {event.approval_mode === "automatic" ? (
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 backdrop-blur-sm text-xs font-medium text-green-700 rounded-full border border-green-300">
-                                <UserPlus className="h-3.5 w-3.5" />
+                              // Changed green badge to teal
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200">
+                                <FaUserCheck className="h-3.5 w-3.5" /> {/* Changed to FaUserCheck */}
                                 <span>Direkte Teilnahme</span>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-100 backdrop-blur-sm text-xs font-medium text-orange-700 rounded-full border border-orange-300">
-                                <Clock className="h-3.5 w-3.5" />
+                              // Changed orange badge to teal
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-100 backdrop-blur-sm text-xs font-medium text-teal-700 rounded-full border border-teal-300">
+                                <FaClock className="h-3.5 w-3.5" /> {/* Changed to FaClock */}
                                 <span>Genehmigung erforderlich</span>
                               </div>
                             )}
@@ -1446,48 +1456,59 @@ export default function LudoEventsPage() {
                         </div>
                       )}
 
-                      <CardHeader className="pb-3">
+                      <CardHeader className="pb-3 px-6 mt-2">
                         <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-handwritten font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors line-clamp-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-handwritten font-bold text-gray-900 mb-0 group-hover:text-teal-600 transition-colors text-sm truncate">
                               {event.title}
                             </h3>
-                            {event.description && (
-                              <p className="text-sm text-gray-600 line-clamp-2 mb-3">{event.description}</p>
-                            )}
                           </div>
                           {event.distance !== undefined && <DistanceBadge distance={event.distance} className="ml-2" />}
                         </div>
                       </CardHeader>
 
-                      <CardContent className="space-y-3">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <CalendarDaysIcon className="h-4 w-4 text-teal-600" />
-                            <span>
-                              {event.first_instance_date
-                                ? formatEventDate(event.first_instance_date, event.start_time)
-                                : "Keine bevorstehenden Termine"}
+                      <CardContent className="space-y-3 flex-1 flex flex-col px-6">
+                        {event.description && (
+                          <p
+                            className="text-xs text-gray-600 line-clamp-2 font-normal"
+                            dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(event.description) }}
+                          />
+                        )}
+                        <div className="space-y-2 mt-auto">
+                          <div className="flex items-center gap-2 text-xs text-gray-600">
+                            <FaCalendarAlt className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarAlt */}
+                            <span className="text-xs">
+                              {(() => {
+                                console.log(`[v0] Card view for event "${event.title}":`, {
+                                  first_instance_date: event.first_instance_date,
+                                  formatted: event.first_instance_date
+                                    ? formatEventDate(event.first_instance_date, event.start_time)
+                                    : "Keine bevorstehenden Termine",
+                                })
+                                return event.first_instance_date
+                                  ? formatEventDate(event.first_instance_date, event.start_time)
+                                  : "Keine bevorstehenden Termine"
+                              })()}
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Clock className="h-4 w-4 text-teal-600" />
-                            <span>
+                          <div className="flex items-center gap-2 text-xs text-gray-600">
+                            <FaClock className="h-4 w-4 text-teal-600" /> {/* Changed to FaClock */}
+                            <span className="text-xs">
                               {event.start_time.slice(0, 5)}
                               {event.end_time && ` - ${event.end_time.slice(0, 5)}`}
                             </span>
                           </div>
 
                           {intervalDisplay && (
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <CalendarPlus2Icon className="h-4 w-4 text-teal-600" />
-                              <span>{intervalDisplay}</span>
+                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                              <FaCalendarPlus className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
+                              <span className="text-xs">{intervalDisplay}</span>
                             </div>
                           )}
 
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <MapPin className="h-4 w-4 text-teal-600" />
+                          <div className="flex items-center gap-2 text-xs text-gray-600">
+                            <FaMapMarkerAlt className="h-4 w-4 text-teal-600" /> {/* Changed to FaMapMarkerAlt */}
                             {event.location_type === "virtual" ? (
                               <span className="truncate">Online Event</span>
                             ) : event.location ? (
@@ -1506,8 +1527,8 @@ export default function LudoEventsPage() {
                           </div>
 
                           {event.selected_games && event.selected_games.length > 0 && (
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Dices className="h-4 w-4 text-teal-600" />
+                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                              <FaDice className="h-4 w-4 text-teal-600" /> {/* Changed to FaDice */}
                               <span className="truncate">
                                 {(() => {
                                   const gameNames = event.selected_games
@@ -1549,13 +1570,13 @@ export default function LudoEventsPage() {
                             </div>
                           )}
 
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Users className="h-4 w-4 text-teal-600" />
+                          <div className="flex items-center gap-2 text-xs text-gray-600">
+                            <FaUsers className="h-4 w-4 text-teal-600" /> {/* Changed to FaUsers */}
                             <span>{formatParticipantCount(event)}</span>
                           </div>
 
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <UserCog className="h-4 w-4 text-teal-600" />
+                          <div className="flex items-center gap-2 text-xs text-gray-600">
+                            <FaUserCog className="h-4 w-4 text-teal-600" /> {/* Changed to FaUserCog */}
                             <Avatar className="h-4 w-4">
                               <AvatarImage src={event.creator.avatar || "/placeholder.svg"} />
                               <AvatarFallback className="text-xs">
@@ -1569,7 +1590,7 @@ export default function LudoEventsPage() {
                                 userId={event.creator.id}
                                 className="text-gray-600 hover:text-teal-600 transition-colors"
                               >
-                                <span className="text-sm hover:text-teal-600 cursor-pointer transition-colors">
+                                <span className="hover:text-teal-600 cursor-pointer transition-colors text-xs">
                                   {event.creator.username}
                                 </span>
                               </UserLink>
@@ -1610,7 +1631,7 @@ export default function LudoEventsPage() {
                             {IconComponent ? (
                               <IconComponent className="h-4 w-4 mr-2" />
                             ) : (
-                              <UserPlus className="h-4 w-4 mr-2" /> // Default icon if none specified
+                              <FaUserPlus className="h-4 w-4 mr-2" /> // Default icon if none specified // Changed to FaUserPlus
                             )}
                             {buttonProps.text}
                           </Button>
@@ -1635,9 +1656,9 @@ export default function LudoEventsPage() {
                             }}
                           >
                             {user && event.creator_id === user.id ? (
-                              <Settings className="h-4 w-4" />
+                              <FaCog className="h-4 w-4" /> // Changed to FaCog
                             ) : (
-                              <MessageCircle className="h-4 w-4" />
+                              <FaComment className="h-4 w-4 mr-2" /> // Changed to FaComment
                             )}
                           </Button>
                         </div>
@@ -1660,11 +1681,11 @@ export default function LudoEventsPage() {
         <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
           <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-handwritten text-2xl text-gray-800 flex items-center justify-between">
+              <DialogTitle className="font-handwritten text-base text-gray-800 flex items-center justify-between">
                 {selectedEvent?.title}
                 {user && selectedEvent && selectedEvent.creator_id === user.id && (
                   <Button
-                    size="sm"
+                    size="xs"
                     variant="outline"
                     onClick={(e) => {
                       e.stopPropagation()
@@ -1672,7 +1693,7 @@ export default function LudoEventsPage() {
                     }}
                     className="ml-2"
                   >
-                    <Settings className="h-4 w-4 mr-2" />
+                    <FaCog className="h-4 w-4 mr-2" /> {/* Changed to FaCog */}
                     Verwalten
                   </Button>
                 )}
@@ -1686,7 +1707,7 @@ export default function LudoEventsPage() {
                 {!selectedEvent.image_url && (
                   <div className="w-full h-48 rounded-lg overflow-hidden bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
                     <div className="text-center">
-                      <Spade className="h-16 w-16 text-teal-400 mx-auto mb-2" />
+                      <FaDice className="h-16 w-16 text-teal-400 mx-auto mb-2" /> {/* Changed to FaDice */}
                     </div>
                   </div>
                 )}
@@ -1703,10 +1724,10 @@ export default function LudoEventsPage() {
                 {/* Organizer Info */}
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-600 font-medium">Organisiert von</span>
-                    <Avatar className="h-8 w-8">
+                    <span className="text-gray-600 font-medium text-xs">Organisiert von</span>
+                    <Avatar className="h-5 w-5">
                       <AvatarImage src={selectedEvent.creator.avatar || "/placeholder.svg"} />
-                      <AvatarFallback className="text-sm">
+                      <AvatarFallback className="bg-gray-50 text-xs">
                         {selectedEvent.creator.username?.[0]?.toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -1714,7 +1735,7 @@ export default function LudoEventsPage() {
                       userId={selectedEvent.creator.id}
                       className="text-gray-800 hover:text-teal-600 transition-colors"
                     >
-                      <span className="font-medium hover:text-teal-600 cursor-pointer transition-colors text-gray-600">
+                      <span className="font-medium hover:text-teal-600 cursor-pointer transition-colors text-gray-600 text-xs">
                         {selectedEvent.creator.username}
                       </span>
                     </UserLink>
@@ -1732,7 +1753,7 @@ export default function LudoEventsPage() {
                 selectedEvent.frequency === "andere" ? (
                   <div className="space-y-4">
                     {/* Tabs for recurring events */}
-                    <div className="flex border-b border-gray-200">
+                    <div className="flex border-b border-gray-200 text-xs">
                       <button
                         onClick={() => setDetailViewTab("info")}
                         className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
@@ -1759,10 +1780,10 @@ export default function LudoEventsPage() {
                     {detailViewTab === "info" && (
                       <div className="space-y-4">
                         <div className="space-y-4">
-                          <div className="flex items-center gap-3 text-sm">
-                            <CalendarDaysIcon className="h-5 w-5 text-teal-600" />
+                          <div className="flex items-center gap-3 text-xs">
+                            <FaCalendarAlt className="text-teal-600 h-4 w-4" /> {/* Changed to FaCalendarAlt */}
                             <div>
-                              <div className="text-gray-600 text-sm font-medium">
+                              <div className="text-gray-600 text-xs font-medium">
                                 {selectedEvent.first_instance_date
                                   ? formatEventDate(selectedEvent.first_instance_date, selectedEvent.start_time)
                                   : "Keine bevorstehenden Termine"}
@@ -1770,10 +1791,10 @@ export default function LudoEventsPage() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3 text-sm">
-                            <Clock className="h-5 w-5 text-teal-600" />
+                          <div className="flex items-center gap-3 text-xs">
+                            <FaClock className="text-teal-600 h-4 w-4" /> {/* Changed to FaClock */}
                             <div>
-                              <div className="text-gray-600 text-sm font-medium">
+                              <div className="text-gray-600 text-xs font-medium">
                                 {selectedEvent.start_time.slice(0, 5)}
                                 {selectedEvent.end_time && ` - ${selectedEvent.end_time.slice(0, 5)}`}
                               </div>
@@ -1781,20 +1802,20 @@ export default function LudoEventsPage() {
                           </div>
 
                           {getIntervalDisplay(selectedEvent) && (
-                            <div className="flex items-center gap-3 text-sm">
-                              <CalendarPlus2Icon className="h-5 w-5 text-teal-600" />
+                            <div className="flex items-center gap-3 text-xs">
+                              <FaCalendarPlus className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
                               <div>
-                                <div className="text-gray-600 text-sm font-medium">
+                                <div className="text-gray-600 text-xs font-medium">
                                   {getIntervalDisplay(selectedEvent)}
                                 </div>
                               </div>
                             </div>
                           )}
 
-                          <div className="flex items-center gap-3 text-sm">
-                            <MapPin className="h-5 w-5 text-teal-600" />
+                          <div className="flex items-center gap-3 text-xs">
+                            <FaMapMarkerAlt className="text-teal-600 h-4 w-4" /> {/* Changed to FaMapMarkerAlt */}
                             <div>
-                              <div className="text-gray-600 text-sm font-medium">
+                              <div className="text-gray-600 font-medium text-xs">
                                 {selectedEvent.location_type === "virtual"
                                   ? "Online Event"
                                   : selectedEvent.location || "Ort wird bekannt gegeben"}
@@ -1802,22 +1823,22 @@ export default function LudoEventsPage() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3 text-sm">
-                            <Users className="h-5 w-5 text-teal-600" />
+                          <div className="flex items-center gap-3 text-xs">
+                            <FaUsers className="text-teal-600 h-4 w-4" /> {/* Changed to FaUsers */}
                             <div>
-                              <div className="text-gray-600 text-sm font-medium">
+                              <div className="text-gray-600 text-xs font-medium">
                                 {formatParticipantCount(selectedEvent)}
                               </div>
                             </div>
                           </div>
 
                           {selectedEvent.selected_games && selectedEvent.selected_games.length > 0 && (
-                            <div className="flex items-start gap-3 text-sm">
-                              <Dices className="h-5 w-5 text-teal-600 mt-0.5" />
+                            <div className="flex items-start gap-3 text-xs">
+                              <FaDice className="text-teal-600 h-4 w-4 mt-0.5" /> {/* Changed to FaDice */}
                               <div>
                                 <ul className="text-gray-600 space-y-1">
                                   {selectedEvent.selected_games.map((game: any, index: number) => (
-                                    <li key={index} className="flex items-center gap-2 text-sm font-medium">
+                                    <li key={index} className="flex items-center gap-2 font-medium text-xs">
                                       {(() => {
                                         if (typeof game === "string") {
                                           try {
@@ -1857,27 +1878,28 @@ export default function LudoEventsPage() {
 
                         {selectedEvent.description && (
                           <div>
-                            <h4 className="text-gray-800 mb-2 font-semibold">Beschreibung</h4>
+                            <h4 className="text-gray-800 mb-2 font-semibold text-sm">Beschreibung</h4>
                             <ExpandableDescription text={selectedEvent.description} />
                           </div>
                         )}
                         {selectedEvent.additional_notes && (
                           <div>
-                            <h4 className="text-gray-800 mb-2 font-semibold">Zusatzinfos</h4>
-                            <p className="text-gray-600 leading-relaxed text-sm">{selectedEvent.additional_notes}</p>
+                            <h4 className="text-gray-800 mb-2 font-semibold text-sm">Zusatzinfos</h4>
+                            <ExpandableDescription text={selectedEvent.additional_notes} />
                           </div>
                         )}
 
                         <div className="bg-white border border-slate-200 rounded-2xl p-6">
                           {selectedEvent.location_type === "virtual" ? (
-                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                              <p className="text-blue-800 text-sm">
+                            // Changed blue info boxes to teal
+                            <div className="p-4 bg-teal-50 rounded-lg border border-teal-200">
+                              <p className="text-teal-800 text-xs">
                                 Dies ist ein virtuelles Event (Online). Keine Karte verfügbar.
                               </p>
                             </div>
                           ) : !selectedEvent.location ? (
                             <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                              <p className="text-yellow-800 text-sm">
+                              <p className="text-yellow-800 text-xs">
                                 Kein Standort angegeben. Karte kann nicht angezeigt werden.
                               </p>
                             </div>
@@ -1893,85 +1915,98 @@ export default function LudoEventsPage() {
                     {/* Content for Schedule Tab */}
                     {detailViewTab === "schedule" && (
                       <div className="space-y-4">
-                        <h3 className="font-semibold text-gray-800 mb-3">Alle geplanten Termine</h3>
+                        <h3 className="font-semibold text-gray-800 mb-3 text-sm">Alle geplanten Termine</h3>
                         <div className="space-y-3">
-                          {additionalDates.map((date, index) => (
-                            <div
-                              key={index}
-                              className={`p-3 rounded-lg border-2 ${
-                                isNextUpcomingDate(date.event_date)
-                                  ? "bg-blue-50 border-blue-200"
-                                  : index === 0
-                                    ? "bg-teal-50 border-teal-200"
-                                    : index === additionalDates.length - 1
-                                      ? "bg-orange-50 border-orange-200"
-                                      : "bg-gray-50 border-gray-200"
-                              }`}
-                            >
-                              <div className="flex items-center gap-3 mb-2 text-sm">
-                                <Calendar className="text-gray-600 h-4 w-4" />
-                                <div className="font-medium text-gray-600">
-                                  {formatEventDate(date.event_date, date.start_time)}
-                                </div>
-                                <div className="ml-auto flex items-center gap-2">
-                                  {index === 0 && (
-                                    <span className="px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full">
-                                      Startdatum
-                                    </span>
-                                  )}
-                                  {isNextUpcomingDate(date.event_date) && (
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-normal">
-                                      Nächster Termin
-                                    </span>
-                                  )}
-                                  {index === additionalDates.length - 1 &&
-                                    index !== 0 &&
-                                    !isNextUpcomingDate(date.event_date) && (
-                                      <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
+                          {additionalDates.map((date, index) => {
+                            const isStartDate = index === 0
+                            const isNextDate = isNextUpcomingDate(date.event_date)
+                            const isLastDate = index === additionalDates.length - 1 && index !== 0 && !isNextDate
+
+                            let bgColor = "bg-white"
+                            let borderColor = "border-gray-200"
+                            let badgeBg = ""
+                            let badgeText = ""
+                            let dividerColor = "border-gray-200"
+
+                            if (isStartDate) {
+                              bgColor = "bg-blue-50"
+                              borderColor = "border-blue-200"
+                              badgeBg = "bg-blue-100"
+                              badgeText = "text-blue-700"
+                              dividerColor = "border-blue-200"
+                            } else if (isNextDate) {
+                              bgColor = "bg-teal-50"
+                              borderColor = "border-teal-200"
+                              badgeBg = "bg-teal-100"
+                              badgeText = "text-teal-700"
+                              dividerColor = "border-teal-200"
+                            } else if (isLastDate) {
+                              bgColor = "bg-amber-50"
+                              borderColor = "border-amber-200"
+                              badgeBg = "bg-amber-100"
+                              badgeText = "text-amber-700"
+                              dividerColor = "border-amber-200"
+                            }
+
+                            return (
+                              <div key={index} className={`p-3 rounded-lg border-2 ${bgColor} ${borderColor}`}>
+                                <div className="flex items-center gap-3 mb-2 text-xs">
+                                  <FaCalendar className="text-gray-600 h-4 w-4" /> {/* Changed to FaCalendar */}
+                                  <div className="font-medium text-gray-600 text-xs">
+                                    {formatEventDate(date.event_date, date.start_time)}
+                                  </div>
+                                  <div className="ml-auto flex items-center gap-2">
+                                    {isStartDate && (
+                                      <span className={`px-2 py-1 ${badgeBg} ${badgeText} text-xs rounded-full`}>
+                                        Startdatum
+                                      </span>
+                                    )}
+                                    {isNextDate && (
+                                      <span
+                                        className={`px-2 py-1 text-green-600 bg-green-200 ${badgeBg} ${badgeText} text-xs rounded-full font-normal`}
+                                      >
+                                        Nächster Termin
+                                      </span>
+                                    )}
+                                    {isLastDate && (
+                                      <span className={`px-2 py-1 ${badgeBg} ${badgeText} text-xs rounded-full`}>
                                         Letzter Termin
                                       </span>
                                     )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs">
+                                  <FaClock className="text-gray-600 h-4 w-4" /> {/* Changed to FaClock */}
+                                  <div className="font-medium text-gray-600 text-xs">
+                                    {date.start_time.slice(0, 5)}
+                                    {date.end_time && ` - ${date.end_time.slice(0, 5)}`}
+                                  </div>
+                                </div>
+                                <div className={`flex items-center gap-3 mt-2 pt-2 border-t text-xs ${dividerColor}`}>
+                                  <FaUsers className="text-gray-600 h-4 w-4" /> {/* Changed to FaUsers */}
+                                  <div className="font-medium text-gray-600 text-xs">
+                                    {date.participant_count || 0} Teilnehmer
+                                    {date.max_participants && (
+                                      <span className="ml-1">
+                                        (
+                                        {date.max_participants - (date.participant_count || 0) > 0 ? (
+                                          <span className="text-green-600 font-medium">
+                                            {date.max_participants - (date.participant_count || 0)} Plätze frei
+                                          </span>
+                                        ) : (
+                                          <span className="text-red-600 font-medium">Ausgebucht</span>
+                                        )}
+                                        )
+                                      </span>
+                                    )}
+                                    {!date.max_participants && (
+                                      <span className="ml-1 text-green-600 font-medium">unbegrenzt</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3 text-sm">
-                                <Clock className="text-gray-600 h-4 w-4" />
-                                <div className="font-medium text-gray-600">
-                                  {date.start_time.slice(0, 5)}
-                                  {date.end_time && ` - ${date.end_time.slice(0, 5)}`}
-                                </div>
-                              </div>
-                              <div
-                                className={`flex items-center gap-3 mt-2 pt-2 border-t text-sm  text-sm ${
-                                  isNextUpcomingDate(date.event_date)
-                                    ? "border-blue-200"
-                                    : index === 0
-                                      ? "border-teal-200"
-                                      : index === additionalDates.length - 1
-                                        ? "border-orange-200"
-                                        : "border-gray-200"
-                                }`}
-                              >
-                                <Users className="text-gray-600 h-4 w-4" />
-                                <div className="font-medium text-gray-600">
-                                  {date.participant_count || 0} Teilnehmer
-                                  {date.max_participants && (
-                                    <span className="ml-1">
-                                      (
-                                      {date.max_participants - (date.participant_count || 0) > 0 ? (
-                                        <span className="text-green-600 font-medium">
-                                          {date.max_participants - (date.participant_count || 0)} Plätze frei
-                                        </span>
-                                      ) : (
-                                        <span className="text-red-600 font-medium">Ausgebucht</span>
-                                      )}
-                                      )
-                                    </span>
-                                  )}
-                                  {!date.max_participants && <span className="ml-1 text-gray-500">(unbegrenzt)</span>}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     )}
@@ -1981,18 +2016,18 @@ export default function LudoEventsPage() {
                   <div className="space-y-4">
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
-                        <Calendar className="h-5 w-5 text-teal-600" />
+                        <FaCalendarAlt className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarAlt */}
                         <div>
-                          <div className="font-normal text-sm text-gray-600">
+                          <div className="font-normal text-xs text-gray-600">
                             {formatEventDate(selectedEvent.first_instance_date, selectedEvent.start_time)}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 text-sm">
-                        <Clock className="h-5 w-5 text-teal-600" />
+                      <div className="flex items-center gap-3 text-xs">
+                        <FaClock className="h-4 w-4 text-teal-600" /> {/* Changed to FaClock */}
                         <div>
-                          <div className="text-gray-600 text-sm">
+                          <div className="text-gray-600 text-xs">
                             {selectedEvent.start_time.slice(0, 5)}
                             {selectedEvent.end_time && ` - ${selectedEvent.end_time.slice(0, 5)}`}
                           </div>
@@ -2001,17 +2036,17 @@ export default function LudoEventsPage() {
 
                       {getIntervalDisplay(selectedEvent) && (
                         <div className="flex items-center gap-3">
-                          <CalendarPlus2Icon className="h-5 w-5 text-teal-600" />
+                          <FaCalendarPlus className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
                           <div>
-                            <div className="text-gray-600 text-sm">{getIntervalDisplay(selectedEvent)}</div>
+                            <div className="text-gray-600 text-xs">{getIntervalDisplay(selectedEvent)}</div>
                           </div>
                         </div>
                       )}
 
                       <div className="flex items-center gap-3">
-                        <MapPin className="h-5 w-5 text-teal-600" />
+                        <FaMapMarkerAlt className="h-4 w-4 text-teal-600" /> {/* Changed to FaMapMarkerAlt */}
                         <div>
-                          <div className="text-gray-600">
+                          <div className="text-gray-600 text-xs">
                             {selectedEvent.location_type === "virtual"
                               ? "Online Event"
                               : selectedEvent.location || "Ort wird bekannt gegeben"}
@@ -2020,19 +2055,19 @@ export default function LudoEventsPage() {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <Users className="h-5 w-5 text-teal-600" />
+                        <FaUsers className="h-4 w-4 text-teal-600" /> {/* Changed to FaUsers */}
                         <div>
-                          <div className="text-gray-600 text-sm">{formatParticipantCount(selectedEvent)}</div>
+                          <div className="text-gray-600 text-xs">{formatParticipantCount(selectedEvent)}</div>
                         </div>
                       </div>
 
                       {selectedEvent.selected_games && selectedEvent.selected_games.length > 0 && (
                         <div className="flex items-start gap-3">
-                          <Dices className="h-5 w-5 text-teal-600 mt-0.5" />
+                          <FaDice className="h-4 w-4 text-teal-600 mt-0.5" /> {/* Changed to FaDice */}
                           <div>
                             <ul className="text-gray-600 space-y-1">
                               {selectedEvent.selected_games.map((game: any, index: number) => (
-                                <li key={index} className="text-gray-600">
+                                <li key={index} className="text-gray-600 text-xs">
                                   {(() => {
                                     if (typeof game === "string") {
                                       try {
@@ -2070,7 +2105,7 @@ export default function LudoEventsPage() {
                       )}
 
                       <div className="flex items-center gap-3">
-                        <UserCog className="h-5 w-5 text-teal-600" />
+                        <FaUserCog className="h-4 w-4 text-teal-600" /> {/* Changed to FaUserCog */}
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
                             <AvatarImage src={selectedEvent.creator.avatar || "/placeholder.svg"} />
@@ -2082,7 +2117,7 @@ export default function LudoEventsPage() {
                             userId={selectedEvent.creator.id}
                             className="text-gray-600 hover:text-teal-600 transition-colors"
                           >
-                            <span className="hover:text-teal-600 cursor-pointer transition-colors text-sm">
+                            <span className="hover:text-teal-600 cursor-pointer transition-colors text-xs">
                               {selectedEvent.creator.username}
                             </span>
                           </UserLink>
@@ -2100,20 +2135,21 @@ export default function LudoEventsPage() {
                     {selectedEvent.additional_notes && (
                       <div>
                         <h4 className="text-gray-800 mb-2 font-semibold">Zusatzinfos</h4>
-                        <p className="text-gray-600 leading-relaxed">{selectedEvent.additional_notes}</p>
+                        <ExpandableDescription text={selectedEvent.additional_notes} />
                       </div>
                     )}
 
                     <div className="bg-white border border-slate-200 rounded-2xl p-6">
                       {selectedEvent.location_type === "virtual" ? (
-                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                          <p className="text-blue-800 text-sm">
+                        // Changed blue info boxes to teal
+                        <div className="p-4 bg-teal-50 rounded-lg border border-teal-200">
+                          <p className="text-teal-800 text-xs">
                             Dies ist ein virtuelles Event (Online). Keine Karte verfügbar.
                           </p>
                         </div>
                       ) : !selectedEvent.location ? (
                         <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                          <p className="text-yellow-800 text-sm">
+                          <p className="text-yellow-800 text-xs">
                             Kein Standort angegeben. Karte kann nicht angezeigt werden.
                           </p>
                         </div>
@@ -2132,6 +2168,7 @@ export default function LudoEventsPage() {
                     const IconComponent = buttonProps.icon
 
                     return (
+                      // Changed blue gradient buttons to teal
                       <Button
                         onClick={() => {
                           if (!user) {
@@ -2152,7 +2189,7 @@ export default function LudoEventsPage() {
                         variant={buttonProps.variant}
                         className={`flex-1 font-handwritten ${
                           buttonProps.action === "manage"
-                            ? "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-blue-500"
+                            ? "bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white border-teal-500"
                             : buttonProps.action === "leave"
                               ? "bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white border-red-500"
                               : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:to-gray-400"
@@ -2161,7 +2198,7 @@ export default function LudoEventsPage() {
                         {IconComponent ? (
                           <IconComponent className="h-4 w-4 mr-2" />
                         ) : (
-                          <UserPlus className="h-4 w-4 mr-2" />
+                          <FaUserPlus className="h-4 w-4 mr-2" /> // Changed to FaUserPlus
                         )}
                         {buttonProps.text}
                       </Button>
@@ -2193,10 +2230,10 @@ export default function LudoEventsPage() {
                     }}
                   >
                     {user && selectedEvent.creator_id === user.id ? (
-                      <Settings className="h-4 w-4" />
+                      <FaCog className="h-4 w-4" /> // Changed to FaCog
                     ) : (
                       <>
-                        <MessageCircle className="h-4 w-4 mr-2" />
+                        <FaComment className="h-4 w-4 mr-2" /> {/* Changed to FaComment */}
                         Nachricht
                       </>
                     )}
@@ -2211,14 +2248,14 @@ export default function LudoEventsPage() {
         <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="font-handwritten text-xl text-gray-800">Event beitreten</DialogTitle>
+              <DialogTitle className="font-handwritten text-base text-gray-800">Event beitreten</DialogTitle>
               <DialogDescription>Dieses Event erfordert eine Genehmigung des Organisators.</DialogDescription>
             </DialogHeader>
 
             {joinEvent && (
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="join-message" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="join-message" className="text-xs font-medium text-gray-700">
                     Nachricht an den Organisator (optional)
                   </Label>
                   <textarea
@@ -2307,10 +2344,12 @@ export default function LudoEventsPage() {
         {/* Create Event Dialog */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="font-handwritten text-2xl text-gray-800">Neues Event erstellen</DialogTitle>
-              <DialogDescription>Erstelle ein neues Spielevent und lade andere Spieler ein</DialogDescription>
-            </DialogHeader>
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 -m-6 mb-6 z-10">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">Neues Event erstellen</DialogTitle>
+                <p className="text-sm text-gray-600">Erstelle ein neues Spielevent und finde Gleichgesinnte</p>
+              </DialogHeader>
+            </div>
 
             <CreateLudoEventForm
               onSuccess={() => {

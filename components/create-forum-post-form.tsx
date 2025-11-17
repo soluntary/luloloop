@@ -6,8 +6,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare, Send, X } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Send, X } from "lucide-react"
 import { toast } from "sonner"
 import { createForumPost } from "@/app/actions/forum-posts"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
@@ -88,14 +88,8 @@ export default function CreateForumPostForm({ onSuccess, onCancel }: CreateForum
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 font-handwritten text-2xl text-gray-800">
-          <MessageSquare className="h-6 w-6 text-teal-600" />
-          Neue Diskussion erstellen
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Card className="w-full border border-gray-200">
+      <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title Field */}
           <div className="space-y-2">
@@ -107,7 +101,7 @@ export default function CreateForumPostForm({ onSuccess, onCancel }: CreateForum
               value={formData.title}
               onChange={(e) => handleInputChange("title", e.target.value)}
               placeholder="Gib deiner Diskussion einen aussagekräftigen Titel..."
-              className={`playful-input ${errors.title ? "border-red-500" : ""}`}
+              className={`h-11 border-gray-300 focus:border-gray-900 ${errors.title ? "border-red-500" : ""}`}
               maxLength={200}
             />
             {errors.title && (
@@ -128,7 +122,7 @@ export default function CreateForumPostForm({ onSuccess, onCancel }: CreateForum
               value={formData.content}
               onChange={(value) => handleInputChange("content", value)}
               placeholder="Beschreibe dein Anliegen ausführlich. Je detaillierter, desto besser können andere dir helfen..."
-              className={`playful-input ${errors.content ? "border-red-500" : ""}`}
+              className={`${errors.content ? "border-red-500" : ""}`}
               maxLength={5000}
               rows={4}
             />
@@ -146,7 +140,7 @@ export default function CreateForumPostForm({ onSuccess, onCancel }: CreateForum
               type="button"
               variant="outline"
               onClick={onCancel}
-              className="flex-1 bg-transparent"
+              className="flex-1 border-gray-300 bg-transparent"
               disabled={isSubmitting}
             >
               Abbrechen

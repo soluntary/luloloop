@@ -83,7 +83,7 @@ export default function LoginPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="font-body">
+                  <Label htmlFor="email" className="font-body text-xs">
                     E-Mail
                   </Label>
                   <Input
@@ -99,7 +99,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="font-body">
+                  <Label htmlFor="password" className="font-body text-xs">
                     Passwort
                   </Label>
                   <div className="relative">
@@ -141,13 +141,13 @@ export default function LoginPage() {
 
               <div className="mt-6 space-y-4">
                 <div className="text-center">
-                  <Link href="/reset-password" className="text-sm text-teal-600 hover:text-teal-700 font-body">
+                  <Link href="/reset-password" className="text-teal-600 hover:text-teal-700 font-body text-xs">
                     Passwort vergessen?
                   </Link>
                 </div>
 
                 <div className="text-center">
-                  <p className="text-sm text-gray-600 font-body">
+                  <p className="text-gray-600 font-body text-xs">
                     Noch kein Konto?{" "}
                     <Link href="/register" className="text-teal-600 hover:text-teal-700 font-medium">
                       Hier registrieren

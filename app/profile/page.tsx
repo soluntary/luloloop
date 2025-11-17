@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { useAvatar } from "@/contexts/avatar-context"
 import { useGames } from "@/contexts/games-context"
@@ -16,23 +16,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Globe,
-  Twitter,
-  Instagram,
-  Upload,
-  Shuffle,
-  RefreshCw,
-  Check,
-  X,
-  Calendar,
-  Users,
-  Clock,
-  Trash2,
-  Store,
-  Search,
-} from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Globe, Twitter, Instagram, Upload, Shuffle, RefreshCw, Check, X, CalendarDaysIcon, Calendar, Users, Trash2, MapPin, Eye, UserX, MessageSquare, Shield, Tag, DicesIcon, Gamepad2, Edit2, BanknoteIcon, DollarSign, Building, Clock, RepeatIcon } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { createClient } from "@/lib/supabase/client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/components/ui/use-toast" // Assuming useToast is available
@@ -67,16 +52,25 @@ import {
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Mail, Bell } from "lucide-react"
+import { Mail, Bell } from 'lucide-react'
+
+// Import new form components
+import { EditCommunityForm } from "@/components/edit-community-form" // Fixed import path
+import { CreateLudoEventFormDialog } from "@/components/forms/create-ludo-event-form-dialog" // Assuming this handles editing as well
+import { EditMarketplaceOfferForm } from "@/components/forms/edit-marketplace-offer-form"
+import { EditSearchAdForm } from "@/components/forms/edit-search-ad-form"
 
 export default function ProfilePage() {
   const { user, updateProfile, signOut } = useAuth()
   const { updateAvatar } = useAvatar()
-  const { marketplaceOffers, deleteMarketplaceOffer, refreshData } = useGames()
+  const { marketplaceOffers, deleteMarketplaceOffer, refreshData: refreshMarketplace } = useGames() // Renamed refreshData
   const { syncProfile, invalidateUserData } = useProfileSync()
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast() // Initialize toast
+
+  const [editingEvent, setEditingEvent] = useState<any>(null)
+  const [editingCommunity, setEditingCommunity] = useState<any>(null)
 
   const [userOffers, setUserOffers] = useState<any[]>([])
   const [userSearchAds, setUserSearchAds] = useState<any[]>([])
@@ -91,7 +85,7 @@ export default function ProfilePage() {
   const [createdEvents, setCreatedEvents] = useState<any[]>([])
   const [createdCommunities, setCreatedCommunities] = useState<any[]>([])
 
-  const [participatingEvents, setParticipatingEvents] = useState<any[]>([])
+  const [participatingEvents, setParticipatingEvents] = useState<any[]>([]) // Renamed from userParticipations
   const [pendingJoinRequests, setPendingJoinRequests] = useState<any[]>([])
   const [joinedCommunities, setJoinedCommunities] = useState<any[]>([])
   const [loadingActivities, setLoadingActivities] = useState(true)
@@ -226,6 +220,10 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [selectedAvatarStyle, setSelectedAvatarStyle] = useState<string>("adventurer")
 
+  const joinedCommunitiesFiltered = useMemo(() => {
+    return joinedCommunities.filter((membership) => membership.community?.creator_id !== user?.id)
+  }, [joinedCommunities, user?.id])
+
   const generateAvatarPreview = async (style?: string) => {
     if (!user?.id) return
 
@@ -296,9 +294,13 @@ export default function ProfilePage() {
       setLoadingActivities(true)
       console.log("[v0] Fetching user activities for user:", user.id)
 
+      // Fetch created events with participant count
       const { data: eventsCreated, error: eventsCreatedError } = await supabase
         .from("ludo_events")
-        .select("*")
+        .select(`
+          *,
+          participants:ludo_event_participants(count)
+        `)
         .eq("creator_id", user.id)
         .order("created_at", { ascending: false })
 
@@ -309,14 +311,18 @@ export default function ProfilePage() {
         setCreatedEvents(eventsCreated || [])
       }
 
-      // Fetch events user is participating in
+      // Fetch events user is participating in with participant count
       const { data: participations, error: participationsError } = await supabase
         .from("ludo_event_participants")
         .select(`
           *,
-          event:ludo_events(*)
+          event:ludo_events!inner(
+            *,
+            participants:ludo_event_participants(count)
+          )
         `)
         .eq("user_id", user.id)
+        .neq("event.creator_id", user.id)
         .order("joined_at", { ascending: false })
 
       if (participationsError) {
@@ -344,9 +350,13 @@ export default function ProfilePage() {
         setPendingJoinRequests(requests || [])
       }
 
+      // Fetch created communities with member count
       const { data: communitiesCreated, error: communitiesCreatedError } = await supabase
         .from("communities")
-        .select("*")
+        .select(`
+          *,
+          members:community_members(count)
+        `)
         .eq("creator_id", user.id)
         .order("created_at", { ascending: false })
 
@@ -357,12 +367,15 @@ export default function ProfilePage() {
         setCreatedCommunities(communitiesCreated || [])
       }
 
-      // Fetch communities user is a member of
+      // Fetch communities user is a member of with member count
       const { data: communities, error: communitiesError } = await supabase
         .from("community_members")
         .select(`
           *,
-          community:communities(*)
+          community:communities(
+            *,
+            members:community_members(count)
+          )
         `)
         .eq("user_id", user.id)
         .order("joined_at", { ascending: false })
@@ -389,9 +402,17 @@ export default function ProfilePage() {
   }, [user?.id])
 
   useEffect(() => {
-    if (!user?.id) return
+    if (user?.id && marketplaceOffers) {
+      console.log("[v0] Filtering marketplace offers for user:", user.id)
+      console.log("[v0] Total marketplace offers:", marketplaceOffers.length)
+      const userMarketplaceOffers = marketplaceOffers.filter((offer) => offer.creator_id === user.id)
+      console.log("[v0] User's marketplace offers:", userMarketplaceOffers.length)
+      setUserOffers(userMarketplaceOffers)
+    }
+  }, [user?.id, marketplaceOffers])
 
-    const eventsChannel = supabase
+  useEffect(() => {
+    const eventChannel = supabase
       .channel("user-events-changes")
       .on(
         "postgres_changes",
@@ -399,7 +420,7 @@ export default function ProfilePage() {
           event: "*",
           schema: "public",
           table: "ludo_events",
-          filter: `creator_id=eq.${user.id}`,
+          filter: `creator_id=eq.${user?.id}`,
         },
         () => {
           console.log("[v0] Events changed, refreshing...")
@@ -408,7 +429,7 @@ export default function ProfilePage() {
       )
       .subscribe()
 
-    const participationsChannel = supabase
+    const participationChannel = supabase
       .channel("user-participations-changes")
       .on(
         "postgres_changes",
@@ -416,7 +437,7 @@ export default function ProfilePage() {
           event: "*",
           schema: "public",
           table: "ludo_event_participants",
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${user?.id}`,
         },
         () => {
           console.log("[v0] Participations changed, refreshing...")
@@ -425,7 +446,7 @@ export default function ProfilePage() {
       )
       .subscribe()
 
-    const requestsChannel = supabase
+    const requestChannel = supabase
       .channel("user-requests-changes")
       .on(
         "postgres_changes",
@@ -433,7 +454,7 @@ export default function ProfilePage() {
           event: "*",
           schema: "public",
           table: "ludo_event_join_requests",
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${user?.id}`,
         },
         () => {
           console.log("[v0] Join requests changed, refreshing...")
@@ -442,7 +463,7 @@ export default function ProfilePage() {
       )
       .subscribe()
 
-    const communitiesChannel = supabase
+    const communityChannel = supabase
       .channel("user-communities-changes")
       .on(
         "postgres_changes",
@@ -450,7 +471,7 @@ export default function ProfilePage() {
           event: "*",
           schema: "public",
           table: "communities",
-          filter: `creator_id=eq.${user.id}`,
+          filter: `creator_id=eq.${user?.id}`,
         },
         () => {
           console.log("[v0] Communities changed, refreshing...")
@@ -467,7 +488,7 @@ export default function ProfilePage() {
           event: "*",
           schema: "public",
           table: "community_members",
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${user?.id}`,
         },
         () => {
           console.log("[v0] Community memberships changed, refreshing...")
@@ -476,7 +497,7 @@ export default function ProfilePage() {
       )
       .subscribe()
 
-    const offersChannel = supabase
+    const offerChannel = supabase
       .channel("user-offers-changes")
       .on(
         "postgres_changes",
@@ -484,7 +505,7 @@ export default function ProfilePage() {
           event: "*",
           schema: "public",
           table: "marketplace_offers",
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${user?.id}`,
         },
         () => {
           console.log("[v0] Marketplace offers changed, refreshing...")
@@ -501,7 +522,7 @@ export default function ProfilePage() {
           event: "*",
           schema: "public",
           table: "search_ads",
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${user?.id}`,
         },
         () => {
           console.log("[v0] Search ads changed, refreshing...")
@@ -511,12 +532,12 @@ export default function ProfilePage() {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(eventsChannel)
-      supabase.removeChannel(participationsChannel)
-      supabase.removeChannel(requestsChannel)
-      supabase.removeChannel(communitiesChannel)
+      supabase.removeChannel(eventChannel)
+      supabase.removeChannel(participationChannel)
+      supabase.removeChannel(requestChannel)
+      supabase.removeChannel(communityChannel)
       supabase.removeChannel(membershipChannel)
-      supabase.removeChannel(offersChannel)
+      supabase.removeChannel(offerChannel)
       supabase.removeChannel(searchAdsChannel)
     }
   }, [user?.id])
@@ -574,22 +595,28 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      setProfileData((prev) => ({
-        ...prev,
-        name: user.name || "",
-        username: user.username || "",
-        email: user.email || "",
-        birthDate: user.birthDate || "",
-        showBirthDate: user.showBirthDate || false,
-        phone: user.phone || "",
-        address: user.address || "",
-        bio: user.bio || "",
-        favoriteGames: user.favoriteGames || "",
-        website: user.website || "",
-        twitter: user.twitter || "",
-        instagram: user.instagram || "",
-        avatar: user.avatar || "",
-      }))
+      setProfileData((prev) => {
+        // If prev.avatar differs from user.avatar and is not empty, keep prev.avatar
+        // This prevents overwriting freshly uploaded avatars
+        const shouldKeepCurrentAvatar = prev.avatar && prev.avatar !== user.avatar
+
+        return {
+          ...prev,
+          name: user.name || "",
+          username: user.username || "",
+          email: user.email || "",
+          birthDate: user.birthDate || "",
+          showBirthDate: user.showBirthDate || false,
+          phone: user.phone || "",
+          address: user.address || "",
+          bio: user.bio || "",
+          favoriteGames: user.favoriteGames || "",
+          website: user.website || "",
+          twitter: user.twitter || "",
+          instagram: user.instagram || "",
+          avatar: shouldKeepCurrentAvatar ? prev.avatar : user.avatar || "",
+        }
+      })
     }
   }, [user])
 
@@ -845,7 +872,7 @@ export default function ProfilePage() {
     const file = event.target.files?.[0]
     if (!file || !user?.id) return
 
-    console.log("[v0] Starting photo upload:", { fileName: file.name, fileSize: file.size, userId: user.id })
+    console.log("[v0] Starting avatar upload:", { fileName: file.name, fileSize: file.size, userId: user.id })
 
     try {
       setIsLoading(true)
@@ -855,7 +882,7 @@ export default function ProfilePage() {
       formData.append("file", file)
       formData.append("userId", user.id)
 
-      console.log("[v0] FormData created, sending to API...")
+      console.log("[v0] FormData created, sending to /api/upload-avatar...")
 
       // Upload to Vercel Blob via API route
       const response = await fetch("/api/upload-avatar", {
@@ -867,24 +894,53 @@ export default function ProfilePage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.log("[v0] Upload error:", errorData)
+        console.error("[v0] Upload error:", errorData)
         throw new Error(errorData.error || "Upload failed")
       }
 
       const { url } = await response.json()
-      console.log("[v0] Upload successful, URL:", url)
+      console.log("[v0] Upload successful, new avatar URL:", url)
 
-      setProfileData((prev) => ({ ...prev, avatar: url }))
+      console.log("[v0] Calling updateUserProfile to save avatar to database...")
+      const result = await updateUserProfile(user.id, { avatar: url })
+
+      if (!result.success) {
+        console.error("[v0] Failed to save avatar to database:", result.error)
+        throw new Error(result.error || "Failed to save avatar")
+      }
+
+      console.log("[v0] Avatar saved to database successfully, result:", result)
+
+      console.log("[v0] Updating avatar cache with new URL")
       updateAvatar(user.id, url)
+
+      console.log("[v0] Updating local state with new avatar URL")
+      setProfileData((prev) => ({ ...prev, avatar: url }))
+
+      console.log("[v0] Updating auth context")
+      await updateProfile({ avatar: url })
+
+      // Trigger platform-wide synchronization
+      console.log("[v0] Broadcasting profile sync event")
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("profileSync", {
+            detail: { userId: user.id, changes: { avatar: url } },
+          }),
+        )
+      }
+
       toast({
-        title: "Avatar hochgeladen",
-        description: "Dein Profilbild wurde erfolgreich aktualisiert.",
+        title: "Erfolg",
+        description: "Profilbild wurde aktualisiert",
       })
-    } catch (error) {
-      console.error("[v0] Error uploading avatar:", error)
+
+      console.log("[v0] Avatar upload complete!")
+    } catch (error: any) {
+      console.error("[v0] Avatar upload failed:", error)
       toast({
         title: "Fehler",
-        description: "Fehler beim Hochladen des Avatars.",
+        description: error.message || "Fehler beim Hochladen des Profilbildes",
         variant: "destructive",
       })
     } finally {
@@ -908,7 +964,7 @@ export default function ProfilePage() {
         phone: profileData.phone,
         address: profileData.address,
         bio: profileData.bio,
-        favorite_games: profileData.favoriteGames,
+        favoriteGames: profileData.favoriteGames,
         // preferred_game_types: profileData.preferredGameTypes, // This field seems to be missing in profileData state
         website: profileData.website,
         twitter: profileData.twitter,
@@ -931,6 +987,8 @@ export default function ProfilePage() {
         // Trigger platform-wide synchronization
         syncProfile(user.id, result.data)
 
+        setMessage("Profil erfolgreich gespeichert")
+
         toast({
           title: "Profil aktualisiert",
           description: "Dein Profil wurde erfolgreich gespeichert.",
@@ -941,6 +999,7 @@ export default function ProfilePage() {
       }
     } catch (error) {
       console.error("Error updating profile:", error)
+      setMessage("Fehler beim Aktualisieren des Profils")
       toast({
         title: "Fehler",
         description: "Fehler beim Aktualisieren des Profils.",
@@ -991,65 +1050,20 @@ export default function ProfilePage() {
     }
   }
 
-  const handleDeleteOffer = async (offerId: string) => {
-    try {
-      await deleteMarketplaceOffer(offerId)
-      await loadUserListings()
-      setDeleteConfirm(null)
-      toast({
-        title: "Angebot gelöscht",
-        description: "Dein Marktplatz-Angebot wurde erfolgreich entfernt.",
-      })
-    } catch (error) {
-      console.error("Error deleting offer:", error)
-      toast({
-        title: "Fehler",
-        description: "Das Angebot konnte nicht gelöscht werden.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleDeleteSearchAd = async (searchAdId: string) => {
-    try {
-      const { error } = await supabase.from("search_ads").delete().eq("id", searchAdId)
-
-      if (error) {
-        console.error("Error deleting search ad:", error)
-        throw error
-      }
-
-      await loadUserListings()
-      setDeleteConfirm(null)
-      toast({
-        title: "Suchanzeige gelöscht",
-        description: "Deine Suchanzeige wurde erfolgreich entfernt.",
-      })
-    } catch (error) {
-      console.error("Error deleting search ad:", error)
-      toast({
-        title: "Fehler",
-        description: "Die Suchanzeige konnte nicht gelöscht werden.",
-        variant: "destructive",
-      })
-    }
-  }
-
   const handleDeleteEvent = async (eventId: string) => {
+    if (!confirm("Möchten Sie dieses Event wirklich löschen?")) return
+
     try {
-      const { error } = await supabase.from("ludo_events").delete().eq("id", eventId).eq("creator_id", user?.id)
+      const { error } = await supabase.from("ludo_events").delete().eq("id", eventId)
 
-      if (error) {
-        console.error("Error deleting event:", error)
-        throw error
-      }
+      if (error) throw error
 
-      fetchUserEvents() // Re-fetch events created by the user
-      setDeleteConfirm(null)
+      setMessage("Event erfolgreich gelöscht!")
       toast({
         title: "Event gelöscht",
         description: "Dein Event wurde erfolgreich entfernt.",
       })
+      fetchUserActivities()
     } catch (error) {
       console.error("Error deleting event:", error)
       toast({
@@ -1057,11 +1071,94 @@ export default function ProfilePage() {
         description: "Das Event konnte nicht gelöscht werden.",
         variant: "destructive",
       })
+      setMessage("Fehler beim Löschen des Events.")
     }
   }
 
-  const handleEditSuccess = async () => {
-    await refreshData()
+  const handleDeleteCommunity = async (communityId: string) => {
+    if (!confirm("Möchten Sie diese Spielgruppe wirklich löschen?")) return
+
+    try {
+      const { error } = await supabase.from("communities").delete().eq("id", communityId)
+
+      if (error) throw error
+
+      setMessage("Spielgruppe erfolgreich gelöscht!")
+      toast({
+        title: "Spielgruppe gelöscht",
+        description: "Deine Spielgruppe wurde erfolgreich entfernt.",
+      })
+      fetchUserActivities()
+    } catch (error) {
+      console.error("Error deleting community:", error)
+      toast({
+        title: "Fehler",
+        description: "Die Spielgruppe konnte nicht gelöscht werden.",
+        variant: "destructive",
+      })
+      setMessage("Fehler beim Löschen der Spielgruppe.")
+    }
+  }
+
+  const handleDeleteOffer = async (offerId: string) => {
+    if (!confirm("Möchten Sie dieses Angebot wirklich löschen?")) return
+
+    try {
+      const { error } = await supabase.from("marketplace_offers").delete().eq("id", offerId)
+
+      if (error) throw error
+
+      setMessage("Angebot erfolgreich gelöscht!")
+      toast({
+        title: "Angebot gelöscht",
+        description: "Dein Marktplatz-Angebot wurde erfolgreich entfernt.",
+      })
+      refreshMarketplace()
+    } catch (error) {
+      console.error("Error deleting offer:", error)
+      toast({
+        title: "Fehler",
+        description: "Das Angebot konnte nicht gelöscht werden.",
+        variant: "destructive",
+      })
+      setMessage("Fehler beim Löschen des Angebots.")
+    }
+  }
+
+  const handleDeleteSearchAd = async (adId: string) => {
+    if (!confirm("Möchten Sie diese Suchanzeige wirklich löschen?")) return
+
+    try {
+      const { error } = await supabase.from("search_ads").delete().eq("id", adId)
+
+      if (error) {
+        console.error("Error deleting search ad:", error)
+        throw error
+      }
+
+      setMessage("Suchanzeige erfolgreich gelöscht!")
+      toast({
+        title: "Suchanzeige gelöscht",
+        description: "Deine Suchanzeige wurde erfolgreich entfernt.",
+      })
+      loadUserListings()
+    } catch (error) {
+      console.error("Error deleting search ad:", error)
+      toast({
+        title: "Fehler",
+        description: "Die Suchanzeige konnte nicht gelöscht werden.",
+        variant: "destructive",
+      })
+      setMessage("Fehler beim Löschen der Suchanzeige.")
+    }
+  }
+
+  const handleEditOfferSuccess = async () => {
+    await refreshMarketplace() // Use renamed function
+    await loadUserListings()
+  }
+
+  const handleEditSearchAdSuccess = async () => {
     await loadUserListings()
   }
 
@@ -1117,6 +1214,7 @@ export default function ProfilePage() {
   }
 
   const handleLeaveEvent = async (participationId: string) => {
+    // Renamed from handleCancelParticipation
     try {
       const { error } = await supabase
         .from("ludo_event_participants")
@@ -1237,7 +1335,7 @@ export default function ProfilePage() {
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 md:mb-8">
             <h1 className="text-2xl md:text-3xl font-bold font-handwritten text-gray-800 mb-2">Profil</h1>
-            <p className="text-gray-600 font-body text-sm md:text-base">
+            <p className="text-gray-600 font-body text-sm md:text-sm">
               Verwalte deine Kontoinformationen und Einstellungen
             </p>
           </div>
@@ -1252,7 +1350,7 @@ export default function ProfilePage() {
                 <span className="sm:hidden">Aktivitäten</span>
               </TabsTrigger>
               <TabsTrigger value="notifications" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
-                <span className="hidden sm:inline">Benachrichtigungen</span>
+                <span className="font-semibold textBenachrichtigungenext-xs">Benachrichtigungen</span>
                 <span className="sm:hidden">Benachr.</span>
               </TabsTrigger>
               <TabsTrigger value="privacy" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
@@ -1288,7 +1386,7 @@ export default function ProfilePage() {
                         <Button
                           type="button"
                           variant="outline"
-                          size="sm"
+                          size="xs"
                           onClick={() => document.getElementById("avatar-upload")?.click()}
                           disabled={isLoading}
                         >
@@ -1299,7 +1397,7 @@ export default function ProfilePage() {
                         <Button
                           type="button"
                           variant="outline"
-                          size="sm"
+                          size="xs"
                           onClick={() => generateAvatarPreview()}
                           disabled={isLoading}
                         >
@@ -1370,18 +1468,18 @@ export default function ProfilePage() {
                       {/* Basic Profile Information */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="name" className="text-sm md:text-base">
+                          <Label htmlFor="name" className="text-xs">
                             Vollständiger Name
                           </Label>
                           <Input
                             id="name"
                             value={profileData.name}
                             onChange={(e) => handleInputChange("name", e.target.value)}
-                            className="text-sm md:text-base"
+                            className="text-xs"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="username" className="text-sm md:text-base">
+                          <Label htmlFor="username" className="text-xs">
                             Benutzername
                           </Label>
                           <Input
@@ -1389,16 +1487,16 @@ export default function ProfilePage() {
                             name="username"
                             value={profileData.username}
                             onChange={(e) => handleInputChange("username", e.target.value)}
-                            className="text-sm md:text-base"
+                            className="text-xs"
                           />
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             Dieser Name wird auf der Plattform angezeigt und ist für andere Nutzer sichtbar.
                           </p>
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="email" className="text-sm md:text-base">
+                        <Label htmlFor="email" className="text-xs">
                           E-Mail-Adresse
                         </Label>
                         <Input
@@ -1406,17 +1504,17 @@ export default function ProfilePage() {
                           type="email"
                           value={profileData.email}
                           onChange={(e) => handleInputChange("email", e.target.value)}
-                          className="text-sm md:text-base"
+                          className="text-xs"
                           disabled
                         />
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           Die E-Mail-Adresse kann im Sicherheits-Tab geändert werden.
                         </p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="birthDate" className="text-sm md:text-base">
+                          <Label htmlFor="birthDate" className="text-xs">
                             Geburtsdatum
                           </Label>
                           <Input
@@ -1424,11 +1522,11 @@ export default function ProfilePage() {
                             type="date"
                             value={profileData.birthDate}
                             onChange={(e) => handleInputChange("birthDate", e.target.value)}
-                            className="text-sm md:text-base"
+                            className="text-xs"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="phone" className="text-sm md:text-base">
+                          <Label htmlFor="phone" className="text-xs">
                             Telefonnummer
                           </Label>
                           <Input
@@ -1436,14 +1534,14 @@ export default function ProfilePage() {
                             value={profileData.phone}
                             onChange={(e) => handleInputChange("phone", e.target.value)}
                             placeholder="+41 XX XXX XX XX"
-                            className="text-sm md:text-base"
+                            className="text-xs"
                           />
                         </div>
                       </div>
 
                       {/* Lieblingsspiele */}
                       <div className="space-y-2">
-                        <Label htmlFor="favoriteGames" className="text-sm md:text-base">
+                        <Label htmlFor="favoriteGames" className="text-xs">
                           Lieblingsspiele
                         </Label>
                         <Input
@@ -1451,13 +1549,13 @@ export default function ProfilePage() {
                           value={profileData.favoriteGames}
                           onChange={(e) => handleInputChange("favoriteGames", e.target.value)}
                           placeholder="z.B. Catan, Azul, Wingspan"
-                          className="text-sm md:text-base"
+                          className="text-xs"
                         />
                       </div>
 
                       {/* Bio */}
                       <div className="space-y-2">
-                        <Label htmlFor="bio" className="text-sm md:text-base">
+                        <Label htmlFor="bio" className="text-xs">
                           Bio
                         </Label>
                         <Textarea
@@ -1465,17 +1563,17 @@ export default function ProfilePage() {
                           value={profileData.bio}
                           onChange={(e) => handleInputChange("bio", e.target.value)}
                           placeholder="Erzähle etwas über dich..."
-                          className="text-sm md:text-base"
+                          className="text-xs"
                           rows={3}
                         />
                       </div>
 
                       {/* Social Media */}
                       <div className="space-y-2">
-                        <Label className="text-sm md:text-base font-medium">Social Media</Label>
+                        <Label className="text-xs font-medium">Social Media</Label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="website" className="text-sm md:text-base flex items-center gap-2">
+                            <Label htmlFor="website" className="text-xs flex items-center gap-2">
                               <Globe className="w-4 h-4" />
                               Website
                             </Label>
@@ -1484,11 +1582,11 @@ export default function ProfilePage() {
                               value={profileData.website}
                               onChange={(e) => handleInputChange("website", e.target.value)}
                               placeholder="https://..."
-                              className="text-sm md:text-base"
+                              className="text-xs"
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="twitter" className="text-sm md:text-base flex items-center gap-2">
+                            <Label htmlFor="twitter" className="text-xs flex items-center gap-2">
                               <Twitter className="w-4 h-4" />
                               Twitter/X
                             </Label>
@@ -1497,11 +1595,11 @@ export default function ProfilePage() {
                               value={profileData.twitter}
                               onChange={(e) => handleInputChange("twitter", e.target.value)}
                               placeholder="@username"
-                              className="text-sm md:text-base"
+                              className="text-xs"
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="instagram" className="text-sm md:text-base flex items-center gap-2">
+                            <Label htmlFor="instagram" className="text-xs flex items-center gap-2">
                               <Instagram className="w-4 h-4" />
                               Instagram
                             </Label>
@@ -1510,7 +1608,7 @@ export default function ProfilePage() {
                               value={profileData.instagram}
                               onChange={(e) => handleInputChange("instagram", e.target.value)}
                               placeholder="@username"
-                              className="text-sm md:text-base"
+                              className="text-xs"
                             />
                           </div>
                         </div>
@@ -1519,16 +1617,16 @@ export default function ProfilePage() {
 
                     {/* Address Section */}
                     <div className="space-y-4">
-                      <Label className="text-sm md:text-base font-medium">Adresse</Label>
+                      <Label className="text-xs font-medium">Adresse</Label>
                       {!isEditingAddress ? (
                         <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
-                          <span className="text-sm md:text-base text-slate-700">
+                          <span className="text-xs text-slate-700">
                             {profileData.address || "Keine Adresse angegeben"}
                           </span>
                           <Button
                             type="button"
                             variant="outline"
-                            size="sm"
+                            size="xs"
                             onClick={() => {
                               setTempAddress(profileData.address || "")
                               setIsEditingAddress(true)
@@ -1544,7 +1642,7 @@ export default function ProfilePage() {
                             placeholder="Adresse eingeben..."
                             value={tempAddress}
                             onChange={(value) => setTempAddress(value)}
-                            className="text-sm md:text-base"
+                            className="text-xs"
                           />
                           <div className="flex gap-2">
                             <Button
@@ -1577,7 +1675,7 @@ export default function ProfilePage() {
 
                     {/* Submit Button */}
                     <div className="flex justify-end">
-                      <Button type="submit" disabled={isLoading} className="min-w-32">
+                      <Button type="submit" disabled={isLoading} className="min-w-32 text-xs">
                         {isLoading ? "Speichern..." : "Profil speichern"}
                       </Button>
                     </div>
@@ -1608,11 +1706,11 @@ export default function ProfilePage() {
                   <Tabs defaultValue="events-participating" className="w-full">
                     <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6 gap-1">
                       <TabsTrigger value="events-participating" className="text-xs md:text-sm px-1">
-                        <span className="hidden sm:inline">Events (Teilnahme)</span>
+                        <span className="text-gray-600 text-sm mb-2 md:text-sm">Events (Teilnahme)</span>
                         <span className="sm:hidden">📅 Teil.</span>
                       </TabsTrigger>
                       <TabsTrigger value="events-created" className="text-xs md:text-sm px-1">
-                        <span className="hidden sm:inline">Events (Erstellt)</span>
+                        <span className="hidden sm:inline text-sm">Events (Erstellt)</span>
                         <span className="sm:hidden">📅 Erst.</span>
                       </TabsTrigger>
                       <TabsTrigger value="requests" className="text-xs md:text-sm px-1">
@@ -1633,11 +1731,10 @@ export default function ProfilePage() {
                       </TabsTrigger>
                     </TabsList>
 
-                    {/* Events Participating Tab */}
+                    {/* Events Participating Tab - Updated */}
                     <TabsContent value="events-participating" className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
-                        <Calendar className="w-5 h-5 text-blue-600" />
-                        <h3 className="font-semibold text-base md:text-lg">
+                        <h3 className="font-semibold text-base md:text-sm">
                           Events, an denen ich teilnehme ({participatingEvents.length})
                         </h3>
                       </div>
@@ -1647,7 +1744,7 @@ export default function ProfilePage() {
                         </div>
                       ) : participatingEvents.length === 0 ? (
                         <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm md:text-base mb-2">
+                          <p className="text-gray-600 text-sm mb-2">
                             Du nimmst derzeit an keinen Events teil.
                           </p>
                           <Button size="sm" onClick={() => router.push("/ludo-events")}>
@@ -1657,50 +1754,40 @@ export default function ProfilePage() {
                       ) : (
                         <div className="space-y-3">
                           {participatingEvents.map((participation) => (
-                            <div key={participation.id} className="border rounded-lg p-3 md:p-4 bg-blue-50/50 w-full">
-                              <div className="flex flex-col gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm md:text-base text-blue-900 truncate">
-                                    {participation.event?.title || "Event"}
-                                  </h4>
-                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
-                                    {participation.event?.description}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📍 {participation.event?.location || "Kein Ort angegeben"}
-                                    </span>
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      🕐 {participation.event?.start_time || "Zeit nicht angegeben"}
-                                    </span>
-                                    <span
-                                      className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                                        participation.status === "confirmed"
-                                          ? "bg-green-100 text-green-800"
-                                          : "bg-yellow-100 text-yellow-800"
-                                      }`}
-                                    >
-                                      {participation.status === "confirmed" ? "Bestätigt" : participation.status}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="flex gap-2 justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => router.push(`/ludo-events/${participation.event?.id}`)}
-                                    className="text-xs"
-                                  >
-                                    Details
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => handleLeaveEvent(participation.id)}
-                                    className="text-xs"
-                                  >
-                                    Verlassen
-                                  </Button>
+                            <div
+                              key={participation.id}
+                              className="border-2 border-blue-200 rounded-xl p-3 bg-white hover:border-blue-400 transition-colors cursor-pointer"
+                              onClick={() => router.push(`/ludo-events/${participation.event?.id}`)}
+                            >
+                              <div className="space-y-2">
+                                <h4 className="font-semibold text-sm text-gray-900">
+                                  {participation.event?.title || "Event"}
+                                </h4>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="w-3.5 h-3.5" />
+                                    {participation.event?.event_date // Corrected to event_date based on actual data structure
+                                      ? new Date(participation.event.event_date).toLocaleDateString("de-DE", {
+                                          day: "2-digit",
+                                          month: "2-digit",
+                                          year: "numeric",
+                                        })
+                                      : "Datum nicht angegeben"}
+                                    {participation.event?.event_time && ` • ${participation.event.event_time}`}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    {participation.event?.location || "Kein Ort"}
+                                  </span>
+                                  {participation.event?.selected_games &&
+                                    participation.event.selected_games.length > 0 && (
+                                      <span className="flex items-center gap-1">
+                                        <Gamepad2 className="w-3.5 h-3.5" />
+                                        {participation.event.selected_games
+                                          .map((g: any) => g.title || g.name)
+                                          .join(", ")}
+                                      </span>
+                                    )}
                                 </div>
                               </div>
                             </div>
@@ -1711,18 +1798,18 @@ export default function ProfilePage() {
 
                     <TabsContent value="events-created" className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
-                        <Calendar className="w-5 h-5 text-indigo-600" />
-                        <h3 className="font-semibold text-base md:text-lg">
+                        
+                        <h3 className="text-sm mb-2 md:text-sm font-semibold text-foreground">
                           Events, die ich erstellt habe ({createdEvents.length})
                         </h3>
                       </div>
                       {loadingActivities ? (
                         <div className="flex items-center justify-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                         </div>
                       ) : createdEvents.length === 0 ? (
                         <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm md:text-base mb-2">Du hast noch keine Events erstellt.</p>
+                          <p className="text-gray-600 text-sm mb-2">Du hast noch keine Events erstellt.</p>
                           <Button size="sm" onClick={() => router.push("/ludo-events")}>
                             Erstes Event erstellen
                           </Button>
@@ -1730,47 +1817,72 @@ export default function ProfilePage() {
                       ) : (
                         <div className="space-y-3">
                           {createdEvents.map((event) => (
-                            <div key={event.id} className="border rounded-lg p-3 md:p-4 bg-indigo-50/50 w-full">
-                              <div className="flex flex-col gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm md:text-base text-indigo-900 truncate">
-                                    {event.title}
-                                  </h4>
-                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
-                                    {event.description}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📍 {event.location || "Kein Ort angegeben"}
-                                    </span>
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      🕐 {event.start_time || "Zeit nicht angegeben"}
-                                    </span>
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📅{" "}
-                                      {event.event_date
-                                        ? new Date(event.event_date).toLocaleDateString("de-DE")
-                                        : "Datum nicht angegeben"}
-                                    </span>
+                            <div
+                              key={event.id}
+                              className="border-2 border-green-200 rounded-xl p-3 bg-white hover:border-green-400 transition-colors cursor-pointer"
+                              onClick={() => router.push(`/ludo-events/${event.id}`)}
+                            >
+                              <div className="space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <h4 className="font-semibold text-sm text-gray-900 flex-1">{event.title}</h4>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="text-blue-500 hover:text-blue-700"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        console.log("[v0] Edit event button clicked, event:", event.id)
+                                        setEditingEvent(event)
+                                      }}
+                                    >
+                                      <Edit2 className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="text-red-500 hover:text-red-700"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteEvent(event.id)
+                                      }}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
                                   </div>
                                 </div>
-                                <div className="flex gap-2 justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => router.push(`/ludo-events/${event.id}`)}
-                                    className="text-xs"
-                                  >
-                                    Verwalten
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setDeleteConfirm({ type: "event", id: event.id })}
-                                    className="text-xs"
-                                  >
-                                    Löschen
-                                  </Button>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                                  <span className="flex items-center gap-1">
+                                    <CalendarDaysIcon className="w-3.5 h-3.5" />
+                                    {event.frequency && event.frequency !== "once" ? (
+                                      "Serientermine"
+                                    ) : (
+                                      <>
+                                        {event.event_date
+                                          ? new Date(event.event_date).toLocaleDateString("de-DE", {
+                                              day: "2-digit",
+                                              month: "2-digit",
+                                              year: "numeric",
+                                            })
+                                          : "Datum nicht angegeben"}
+                                        {event.event_time && ` • ${event.event_time}`}
+                                      </>
+                                    )}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    {event.location || "Kein Ort"}
+                                  </span>
+                                  {event.selected_games && event.selected_games.length > 0 && (
+                                    <span className="flex items-center gap-1">
+                                      <DicesIcon className="w-3.5 h-3.5" />
+                                      {event.selected_games.map((g: any) => g.title || g.name).join(", ")}
+                                    </span>
+                                  )}
+                                  <span className="flex items-center gap-1">
+                                    <Users className="w-3.5 h-3.5" />
+                                    {event.participants?.[0]?.count || 0} Teilnehmer
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -1781,8 +1893,7 @@ export default function ProfilePage() {
 
                     <TabsContent value="requests" className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
-                        <Clock className="w-5 h-5 text-orange-600" />
-                        <h3 className="font-semibold text-base md:text-lg">
+                        <h3 className="font-semibold text-base md:text-sm">
                           Ausstehende Teilnahmeanfragen ({pendingJoinRequests.length})
                         </h3>
                       </div>
@@ -1792,46 +1903,52 @@ export default function ProfilePage() {
                         </div>
                       ) : pendingJoinRequests.length === 0 ? (
                         <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm md:text-base">Keine ausstehenden Anfragen.</p>
+                          <p className="text-gray-600 text-sm">Keine ausstehenden Anfragen.</p>
                         </div>
                       ) : (
                         <div className="space-y-3">
                           {pendingJoinRequests.map((request) => (
-                            <div key={request.id} className="border rounded-lg p-3 md:p-4 bg-orange-50/50 w-full">
+                            <div
+                              key={request.id}
+                              className="border-2 border-orange-200 rounded-xl p-4 bg-white hover:shadow-md transition-shadow"
+                            >
                               <div className="flex flex-col gap-3">
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm md:text-base text-orange-900 truncate">
+                                  <h4 className="font-semibold text-base text-orange-900 mb-2">
                                     {request.event?.title || "Event"}
                                   </h4>
-                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
+                                  <p className="text-gray-600 text-sm line-clamp-2 mb-2">
                                     {request.event?.description}
                                   </p>
                                   {request.message && (
-                                    <p className="text-gray-500 text-xs italic mt-1">
-                                      Deine Nachricht: "{request.message}"
-                                    </p>
+                                    <div className="flex items-start gap-2 mb-3 p-2 bg-orange-50 rounded">
+                                      <MessageSquare className="w-4 h-4 text-orange-600 mt-0.5" />
+                                      <p className="text-gray-700 text-xs italic">"{request.message}"</p>
+                                    </div>
                                   )}
-                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📅 Angefragt am{" "}
+                                  <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                                    <span className="flex items-center gap-1.5">
+                                      <Calendar className="w-4 h-4" />
+                                      Angefragt am{" "}
                                       {new Date(request.created_at).toLocaleDateString("de-DE", {
                                         day: "2-digit",
                                         month: "2-digit",
                                         year: "numeric",
                                       })}
                                     </span>
-                                    <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 whitespace-nowrap">
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                       Ausstehend
                                     </span>
                                   </div>
                                 </div>
-                                <div className="flex gap-2 justify-end">
+                                <div className="flex gap-2 justify-end pt-2 border-t border-orange-100">
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={() => router.push(`/ludo-events/${request.event?.id}`)}
                                     className="text-xs"
                                   >
+                                    <Eye className="w-3.5 h-3.5 mr-1" />
                                     Details
                                   </Button>
                                   <Button
@@ -1840,6 +1957,7 @@ export default function ProfilePage() {
                                     onClick={() => handleCancelJoinRequest(request.id)}
                                     className="text-xs"
                                   >
+                                    <UserX className="w-3.5 h-3.5 mr-1" />
                                     Stornieren
                                   </Button>
                                 </div>
@@ -1852,8 +1970,7 @@ export default function ProfilePage() {
 
                     <TabsContent value="groups-created" className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
-                        <Users className="w-5 h-5 text-pink-600" />
-                        <h3 className="font-semibold text-base md:text-lg">
+                        <h3 className="font-semibold text-base md:text-sm">
                           Spielgruppen, die ich erstellt habe ({createdCommunities.length})
                         </h3>
                       </div>
@@ -1873,41 +1990,58 @@ export default function ProfilePage() {
                       ) : (
                         <div className="space-y-3">
                           {createdCommunities.map((community) => (
-                            <div key={community.id} className="border rounded-lg p-3 md:p-4 bg-pink-50/50 w-full">
-                              <div className="flex flex-col gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm md:text-base text-pink-900 truncate">
-                                    {community.name}
-                                  </h4>
-                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
-                                    {community.description}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📍 {community.location || "Kein Ort angegeben"}
-                                    </span>
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📅 Erstellt am{" "}
-                                      {new Date(community.created_at).toLocaleDateString("de-DE", {
-                                        day: "2-digit",
-                                        month: "2-digit",
-                                        year: "numeric",
-                                      })}
-                                    </span>
-                                    <span className="px-2 py-1 rounded text-xs font-medium bg-pink-100 text-pink-800 whitespace-nowrap">
-                                      Ersteller
-                                    </span>
+                            <div
+                              key={community.id}
+                              className="border-2 border-pink-200 rounded-xl p-3 bg-white hover:border-pink-400 transition-colors cursor-pointer"
+                              onClick={() => router.push(`/ludo-gruppen/${community.id}`)}
+                            >
+                              <div className="space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <h4 className="font-semibold text-sm text-gray-900 flex-1">{community.name}</h4>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="text-blue-500 hover:text-blue-700"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        console.log("[v0] Edit community button clicked, community:", community.id)
+                                        setEditingCommunity(community)
+                                      }}
+                                    >
+                                      <Edit2 className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="text-red-500 hover:text-red-700"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteCommunity(community.id)
+                                      }}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
                                   </div>
                                 </div>
-                                <div className="flex gap-2 justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => router.push(`/ludo-gruppen/${community.id}`)}
-                                    className="text-xs"
-                                  >
-                                    Verwalten
-                                  </Button>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                                  <span className="flex items-center gap-1">
+                                    <CalendarDaysIcon className="w-3.5 h-3.5" />
+                                    {new Date(community.created_at).toLocaleDateString("de-DE", {
+                                      day: "2-digit",
+                                      month: "2-digit",
+                                      year: "numeric",
+                                    })}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    {community.location || "Kein Ort"}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Users className="w-3.5 h-3.5" />
+                                    {community.members?.[0]?.count || 0} Mitglied
+                                    {(community.members?.[0]?.count || 0) !== 1 ? "er" : ""}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -1918,16 +2052,15 @@ export default function ProfilePage() {
 
                     <TabsContent value="groups-joined" className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
-                        <Users className="w-5 h-5 text-purple-600" />
-                        <h3 className="font-semibold text-base md:text-lg">
-                          Spielgruppen, denen ich beigetreten bin ({joinedCommunities.length})
+                        <h3 className="font-semibold text-base md:text-sm">
+                          Spielgruppen, in denen ich Mitglied bin ({joinedCommunitiesFiltered.length})
                         </h3>
                       </div>
                       {loadingActivities ? (
                         <div className="flex items-center justify-center py-8">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                         </div>
-                      ) : joinedCommunities.length === 0 ? (
+                      ) : joinedCommunitiesFiltered.length === 0 ? (
                         <div className="text-center py-8 bg-gray-50 rounded-lg">
                           <p className="text-gray-600 text-sm md:text-base mb-2">
                             Du bist noch keiner Spielgruppe beigetreten.
@@ -1938,52 +2071,52 @@ export default function ProfilePage() {
                         </div>
                       ) : (
                         <div className="space-y-3">
-                          {joinedCommunities.map((membership) => (
-                            <div key={membership.id} className="border rounded-lg p-3 md:p-4 bg-purple-50/50 w-full">
-                              <div className="flex flex-col gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm md:text-base text-purple-900 truncate">
-                                    {membership.community?.name || "Spielgruppe"}
+                          {joinedCommunitiesFiltered.map((membership) => (
+                            <div
+                              key={membership.id}
+                              className="border-2 border-purple-200 rounded-xl p-3 bg-white hover:border-purple-400 transition-colors cursor-pointer"
+                              onClick={() => router.push(`/ludo-gruppen/${membership.community?.id}`)}
+                            >
+                              <div className="space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <h4 className="font-semibold text-gray-900 flex-1 text-xs">
+                                    {membership.community?.name}
                                   </h4>
-                                  <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
-                                    {membership.community?.description}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📍 {membership.community?.location || "Kein Ort angegeben"}
+                                  {membership.role === "admin" && (
+                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 whitespace-nowrap">
+                                      Admin
                                     </span>
-                                    <span className="flex items-center gap-1 whitespace-nowrap">
-                                      📅 Beigetreten am{" "}
-                                      {new Date(membership.joined_at).toLocaleDateString("de-DE", {
-                                        day: "2-digit",
-                                        month: "2-digit",
-                                        year: "numeric",
-                                      })}
-                                    </span>
-                                    {membership.role && (
-                                      <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 whitespace-nowrap">
-                                        {membership.role === "admin" ? "Admin" : "Mitglied"}
-                                      </span>
-                                    )}
-                                  </div>
+                                  )}
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-red-500 hover:text-red-700 ml-auto"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleLeaveCommunity(membership.id)
+                                    }}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
                                 </div>
-                                <div className="flex gap-2 justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => router.push(`/ludo-gruppen/${membership.community?.id}`)}
-                                    className="text-xs"
-                                  >
-                                    Anzeigen
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => handleLeaveCommunity(membership.id)}
-                                    className="text-xs"
-                                  >
-                                    Verlassen
-                                  </Button>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                                  <span className="flex items-center gap-1">
+                                    <CalendarDaysIcon className="w-3.5 h-3.5" />
+                                    {new Date(membership.joined_at).toLocaleDateString("de-DE", {
+                                      day: "2-digit",
+                                      month: "2-digit",
+                                      year: "numeric",
+                                    })}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    {membership.community?.location || "Kein Ort"}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Users className="w-3.5 h-3.5" />
+                                    {membership.community?.members?.[0]?.count || 0} Mitglied
+                                    {(membership.community?.members?.[0]?.count || 0) !== 1 ? "er" : ""}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -1996,7 +2129,6 @@ export default function ProfilePage() {
                       {/* Marketplace Offers Section */}
                       <div>
                         <div className="flex items-center gap-2 mb-4">
-                          <Store className="w-5 h-5 text-teal-600" />
                           <h3 className="font-semibold text-base md:text-lg">
                             Marktplatz-Angebote ({userOffers.length})
                           </h3>
@@ -2013,58 +2145,55 @@ export default function ProfilePage() {
                         ) : (
                           <div className="space-y-3">
                             {userOffers.map((offer) => (
-                              <div key={offer.id} className="border rounded-lg p-3 md:p-4 bg-teal-50/50 w-full">
-                                <div className="flex flex-col gap-3">
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-sm md:text-base text-teal-900 truncate">
-                                      {offer.title}
-                                    </h4>
-                                    <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
-                                      {offer.description}
-                                    </p>
-                                    <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                      <span className="flex items-center gap-1 whitespace-nowrap">
-                                        💰 {offer.price}
-                                      </span>
-                                      <span className="flex items-center gap-1 whitespace-nowrap">
-                                        📍 {offer.location}
-                                      </span>
-                                      <span
-                                        className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                                          offer.type === "sell"
-                                            ? "bg-green-100 text-green-800"
-                                            : offer.type === "lend"
-                                              ? "bg-blue-100 text-blue-800"
-                                              : "bg-purple-100 text-purple-800"
-                                        }`}
-                                      >
-                                        {offer.type === "sell"
-                                          ? "Verkaufen"
-                                          : offer.type === "lend"
-                                            ? "Verleihen"
-                                            : "Tauschen"}
-                                      </span>
+                              <div
+                                key={offer.id}
+                                className="border-2 border-purple-200 rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer bg-white/80"
+                                onClick={() => router.push(`/marketplace?offerId=${offer.id}`)}
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold text-gray-900 mb-2">{offer.game_title}</h4>
+                                    <div className="space-y-1 text-xs text-gray-600">
+                                      {offer.publisher && (
+                                        <p className="flex items-center gap-2">
+                                          <Building className="h-4 w-4" />
+                                          {offer.publisher}
+                                        </p>
+                                      )}
+                                      <p className="flex items-center gap-2">
+                                        <Tag className="h-4 w-4" />
+                                        {offer.offer_type === "sell" && "Verkaufen"}
+                                        {offer.offer_type === "lend" && "Verleihen"}
+                                        {offer.offer_type === "trade" && "Tauschen"}
+                                      </p>
+                                      {offer.price && (
+                                        <p className="flex items-center gap-2">
+                                          <DollarSign className="h-4 w-4" />
+                                          {offer.price} CHF
+                                        </p>
+                                      )}
+                                      {offer.rental_price && (
+                                        <p className="flex items-center gap-2">
+                                          <DollarSign className="h-4 w-4" />
+                                          {offer.rental_price} CHF / Tag
+                                        </p>
+                                      )}
                                     </div>
                                   </div>
-                                  <div className="flex gap-2 justify-end">
+                                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                                     <Button
+                                      variant="ghost"
                                       size="sm"
-                                      variant="outline"
                                       onClick={() => {
+                                        console.log("[v0] Edit offer button clicked, offer:", offer.id)
                                         setEditingOffer(offer)
                                         setIsEditOfferOpen(true)
                                       }}
-                                      className="text-xs"
                                     >
-                                      Bearbeiten
+                                      <Edit2 className="h-4 w-4" />
                                     </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() => setDeleteConfirm({ type: "offer", id: offer.id })}
-                                      className="text-xs"
-                                    >
-                                      Löschen
+                                    <Button variant="ghost" size="sm" onClick={() => handleDeleteOffer(offer.id)}>
+                                      <Trash2 className="h-4 w-4 text-red-500" />
                                     </Button>
                                   </div>
                                 </div>
@@ -2077,7 +2206,6 @@ export default function ProfilePage() {
                       {/* Search Ads Section */}
                       <div>
                         <div className="flex items-center gap-2 mb-4">
-                          <Search className="w-5 h-5 text-amber-600" />
                           <h3 className="font-semibold text-base md:text-lg">Suchanzeigen ({userSearchAds.length})</h3>
                         </div>
                         {userSearchAds.length === 0 ? (
@@ -2091,57 +2219,70 @@ export default function ProfilePage() {
                           </div>
                         ) : (
                           <div className="space-y-3">
-                            {userSearchAds.map((searchAd) => (
-                              <div key={searchAd.id} className="border rounded-lg p-3 md:p-4 bg-amber-50/50 w-full">
-                                <div className="flex flex-col gap-3">
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-sm md:text-base text-amber-900 truncate">
-                                      {searchAd.title}
-                                    </h4>
-                                    <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mt-1">
-                                      {searchAd.description}
-                                    </p>
-                                    <div className="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-gray-500 mt-2">
-                                      <span
-                                        className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                                          searchAd.type === "buy"
-                                            ? "bg-green-100 text-green-800"
-                                            : searchAd.type === "rent"
-                                              ? "bg-blue-100 text-blue-800"
-                                              : "bg-purple-100 text-purple-800"
-                                        }`}
+                            {userSearchAds.map((ad) => (
+                              <div
+                                key={ad.id}
+                                className="border-2 border-amber-200 rounded-xl p-3 bg-white hover:border-amber-400 transition-colors cursor-pointer"
+                                onClick={() => router.push(`/marketplace?searchAdId=${ad.id}`)}
+                              >
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <h4 className="font-semibold text-sm text-gray-900 flex-1">{ad.title}</h4>
+                                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="text-blue-500 hover:text-blue-700"
+                                        onClick={() => {
+                                          console.log("[v0] Edit search ad button clicked, ad:", ad.id)
+                                          setEditingSearchAd(ad)
+                                          setIsEditSearchAdOpen(true)
+                                        }}
                                       >
-                                        {searchAd.type === "buy"
-                                          ? "Suche zu kaufen"
-                                          : searchAd.type === "rent"
-                                            ? "Suche zu mieten"
-                                            : "Suche zu tauschen"}
-                                      </span>
-                                      <span className="flex items-center gap-1 whitespace-nowrap">
-                                        📅 {new Date(searchAd.created_at).toLocaleDateString("de-DE")}
-                                      </span>
+                                        <Edit2 className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="text-red-500 hover:text-red-700"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleDeleteSearchAd(ad.id)
+                                        }}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
                                     </div>
                                   </div>
-                                  <div className="flex gap-2 justify-end">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        setEditingSearchAd(searchAd)
-                                        setIsEditSearchAdOpen(true)
-                                      }}
-                                      className="text-xs"
-                                    >
-                                      Bearbeiten
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() => setDeleteConfirm({ type: "searchAd", id: searchAd.id })}
-                                      className="text-xs"
-                                    >
-                                      Löschen
-                                    </Button>
+                                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                                    {ad.publisher && (
+                                      <p className="flex items-center gap-2">
+                                        <Building className="h-4 w-4" />
+                                        {ad.publisher}
+                                      </p>
+                                    )}
+                                    <p className="flex items-center gap-2">
+                                      <Tag className="h-4 w-4" />
+                                      {ad.type === "buy" ? "Gesucht zum Kaufen" : ad.type === "rent" ? "Gesucht zum Mieten" : "Gesucht zum Tauschen"}
+                                    </p>
+                                    {ad.type === "rent" && ad.rental_duration && (
+                                      <p className="flex items-center gap-2">
+                                        <Clock className="h-4 w-4" />
+                                        {ad.rental_duration}
+                                      </p>
+                                    )}
+                                    {ad.type === "buy" && ad.max_price && (
+                                      <p className="flex items-center gap-2">
+                                        <BanknoteIcon className="h-4 w-4" />
+                                        bis {ad.max_price} CHF
+                                      </p>
+                                    )}
+                                    {ad.type === "trade" && ad.trade_game_title && (
+                                      <p className="flex items-center gap-2">
+                                        <RepeatIcon className="h-4 w-4" />
+                                        Biete: {ad.trade_game_title}
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -2166,14 +2307,12 @@ export default function ProfilePage() {
                 <CardContent className="space-y-6 p-4 md:p-6">
                   <Accordion type="single" collapsible className="w-full">
                     {/* Soziale Benachrichtigungen */}
-                    <AccordionItem value="social" className="border rounded-lg mb-4 px-4">
+                    <AccordionItem value="social" className="border-2 border-teal-200 rounded-xl mb-4 px-4">
                       <AccordionTrigger className="hover:no-underline">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-teal-100 rounded-lg">
-                            <Bell className="h-5 w-5 text-teal-600" />
-                          </div>
+                          
                           <div className="text-left">
-                            <h3 className="font-semibold text-base">Soziale Benachrichtigungen</h3>
+                            <h3 className="font-semibold text-sm">Soziale Benachrichtigungen</h3>
                             <p className="text-xs text-gray-600">Freunde, Forum, Community</p>
                           </div>
                         </div>
@@ -2182,7 +2321,7 @@ export default function ProfilePage() {
                         {/* Friend Requests */}
                         <div className="space-y-3 pb-4 border-b">
                           <div>
-                            <Label className="text-sm font-medium">Freundschaftsanfragen</Label>
+                            <Label className="text-xs font-medium">Freundschaftsanfragen</Label>
                             <p className="text-xs text-gray-600">Benachrichtigung bei neuen Freundschaftsanfragen</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
@@ -2214,7 +2353,7 @@ export default function ProfilePage() {
                         {/* Friend Accepts */}
                         <div className="space-y-3 pb-4 border-b">
                           <div>
-                            <Label className="text-sm font-medium">Freundschaftsannahmen</Label>
+                            <Label className="text-xs font-medium">Freundschaftsannahmen</Label>
                             <p className="text-xs text-gray-600">Wenn jemand deine Anfrage annimmt</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
@@ -2246,7 +2385,7 @@ export default function ProfilePage() {
                         {/* Friend Declines */}
                         <div className="space-y-3 pb-4 border-b">
                           <div>
-                            <Label className="text-sm font-medium">Freundschaftsablehnungen</Label>
+                            <Label className="text-xs font-medium">Freundschaftsablehnungen</Label>
                             <p className="text-xs text-gray-600">Wenn jemand deine Anfrage ablehnt</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
@@ -2278,7 +2417,7 @@ export default function ProfilePage() {
                         {/* Forum Replies */}
                         <div className="space-y-3 pb-4 border-b">
                           <div>
-                            <Label className="text-sm font-medium">Forum-Antworten</Label>
+                            <Label className="text-xs font-medium">Forum-Antworten</Label>
                             <p className="text-xs text-gray-600">Antworten auf deine Beiträge</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
@@ -2310,7 +2449,7 @@ export default function ProfilePage() {
                         {/* Forum Comment Replies */}
                         <div className="space-y-3 pb-4 border-b">
                           <div>
-                            <Label className="text-sm font-medium">Kommentar-Antworten</Label>
+                            <Label className="text-xs font-medium">Kommentar-Antworten</Label>
                             <p className="text-xs text-gray-600">
                               Benachrichtigung bei Antworten auf Kommentare, auf die du geantwortet hast
                             </p>
@@ -2344,7 +2483,7 @@ export default function ProfilePage() {
                         {/* Shelf Access Requests */}
                         <div className="space-y-3">
                           <div>
-                            <Label className="text-sm font-medium">Spielregal-Anfragen</Label>
+                            <Label className="text-xs font-medium">Spielregal-Anfragen</Label>
                             <p className="text-xs text-gray-600">Zugangsanfragen zu deinem Spielregal</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
@@ -2376,14 +2515,12 @@ export default function ProfilePage() {
                     </AccordionItem>
 
                     {/* Nachrichten-Benachrichtigungen */}
-                    <AccordionItem value="messages" className="border rounded-lg mb-4 px-4">
+                    <AccordionItem value="messages" className="border-2 border-blue-200 rounded-xl mb-4 px-4">
                       <AccordionTrigger className="hover:no-underline">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <Mail className="h-5 w-5 text-blue-600" />
-                          </div>
+                          
                           <div className="text-left">
-                            <h3 className="font-semibold text-base">Nachrichten</h3>
+                            <h3 className="font-semibold text-sm">Nachrichten</h3>
                             <p className="text-xs text-gray-600">Direktnachrichten, Anfragen</p>
                           </div>
                         </div>
@@ -2392,7 +2529,7 @@ export default function ProfilePage() {
                         {/* Direct Messages */}
                         <div className="space-y-3 pb-4 border-b">
                           <div>
-                            <Label className="text-sm font-medium">Direktnachrichten</Label>
+                            <Label className="text-xs font-medium">Direktnachrichten</Label>
                             <p className="text-xs text-gray-600">Private Nachrichten von anderen Nutzern</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
@@ -2424,7 +2561,7 @@ export default function ProfilePage() {
                         {/* Game Inquiries */}
                         <div className="space-y-3 pb-4 border-b">
                           <div>
-                            <Label className="text-sm font-medium">Spielanfragen</Label>
+                            <Label className="text-xs font-medium">Spielanfragen</Label>
                             <p className="text-xs text-gray-600">Anfragen zu deinen Spielen</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
@@ -2456,7 +2593,7 @@ export default function ProfilePage() {
                         {/* Event Inquiries */}
                         <div className="space-y-3 pb-4 border-b">
                           <div>
-                            <Label className="text-sm font-medium">Event-Anfragen</Label>
+                            <Label className="text-xs font-medium">Event-Anfragen</Label>
                             <p className="text-xs text-gray-600">Anfragen zu deinen Events</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
@@ -2488,7 +2625,7 @@ export default function ProfilePage() {
                         {/* Group Inquiries */}
                         <div className="space-y-3 pb-4 border-b">
                           <div>
-                            <Label className="text-sm font-medium">Spielgruppen-Anfragen</Label>
+                            <Label className="text-xs font-medium">Spielgruppen-Anfragen</Label>
                             <p className="text-xs text-gray-600">Anfragen zu deinen Spielgruppen</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
@@ -2520,7 +2657,7 @@ export default function ProfilePage() {
                         {/* Marketplace Messages */}
                         <div className="space-y-3">
                           <div>
-                            <Label className="text-sm font-medium">Marktplatz-Nachrichten</Label>
+                            <Label className="text-xs font-medium">Marktplatz-Nachrichten</Label>
                             <p className="text-xs text-gray-600">Nachrichten zu Marktplatz-Angeboten</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
@@ -2552,14 +2689,11 @@ export default function ProfilePage() {
                     </AccordionItem>
 
                     {/* Event-Benachrichtigungen */}
-                    <AccordionItem value="events" className="border rounded-lg mb-4 px-4">
+                    <AccordionItem value="events" className="border-2 border-purple-200 rounded-xl mb-4 px-4">
                       <AccordionTrigger className="hover:no-underline">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-purple-100 rounded-lg">
-                            <Bell className="h-5 w-5 text-purple-600" />
-                          </div>
                           <div className="text-left">
-                            <h3 className="font-semibold text-base">Events</h3>
+                            <h3 className="font-semibold text-sm">Events</h3>
                             <p className="text-xs text-gray-600">Einladungen, Updates, Erinnerungen</p>
                           </div>
                         </div>
@@ -2568,7 +2702,7 @@ export default function ProfilePage() {
                         {/* Event Invitations */}
                         <div className="space-y-3 pb-4 border-b">
                           <div>
-                            <Label className="text-sm font-medium">Event-Einladungen</Label>
+                            <Label className="text-xs font-medium">Event-Einladungen</Label>
                             <p className="text-xs text-gray-600">Wenn du zu einem Event eingeladen wirst</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
@@ -2600,7 +2734,7 @@ export default function ProfilePage() {
                         {/* Event Reminders */}
                         <div className="space-y-3 pb-4 border-b">
                           <div>
-                            <Label className="text-sm font-medium">Event-Erinnerungen</Label>
+                            <Label className="text-xs font-medium">Event-Erinnerungen</Label>
                             <p className="text-xs text-gray-600">Erinnerungen vor Events</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
@@ -2632,7 +2766,7 @@ export default function ProfilePage() {
                         {/* Group Invites */}
                         <div className="space-y-3">
                           <div>
-                            <Label className="text-sm font-medium">Spielgruppen-Einladungen</Label>
+                            <Label className="text-xs font-medium">Spielgruppen-Einladungen</Label>
                             <p className="text-xs text-gray-600">Einladungen zu Spielgruppen</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
@@ -2662,256 +2796,6 @@ export default function ProfilePage() {
                         </div>
                       </AccordionContent>
                     </AccordionItem>
-
-                    {/* Security - REMOVED AS PER UPDATES */}
-                    {/* <AccordionItem value="security" className="border rounded-lg mb-4 px-4"> */}
-                    {/*   <AccordionTrigger className="hover:no-underline"> */}
-                    {/*     <div className="flex items-center gap-3"> */}
-                    {/*       <div className="p-2 bg-red-100 rounded-lg"> */}
-                    {/*         <Shield className="h-5 w-5 text-red-600" /> */}
-                    {/*       </div> */}
-                    {/*       <div className="text-left"> */}
-                    {/*         <h3 className="font-semibold text-base">Sicherheit</h3> */}
-                    {/*         <p className="text-xs text-gray-600">Login, Passwort, verdächtige Aktivitäten</p> */}
-                    {/*       </div> */}
-                    {/*     </div> */}
-                    {/*   </AccordionTrigger> */}
-                    {/*   <AccordionContent className="space-y-4 pt-4"> */}
-                    {/*     /!* Login Attempts *!/ */}
-                    {/*     <div className="space-y-3 pb-4 border-b"> */}
-                    {/*       <div> */}
-                    {/*         <Label className="text-sm font-medium">Anmeldeversuche</Label> */}
-                    {/*         <p className="text-xs text-gray-600">Benachrichtigung bei Anmeldeversuchen</p> */}
-                    {/*       </div> */}
-                    {/*       <div className="flex items-center gap-6 ml-4"> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.login_attempts?.platform ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange("login_attempts", "platform", e.target.checked) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
-                    {/*         </div> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.login_attempts?.email ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange("login_attempts", "email", e.target.checked) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
-                    {/*         </div> */}
-                    {/*       </div> */}
-                    {/*     </div> */}
-
-                    {/*     /!* Password Changes *!/ */}
-                    {/*     <div className="space-y-3 pb-4 border-b"> */}
-                    {/*       <div> */}
-                    {/*         <Label className="text-sm font-medium">Passwortänderungen</Label> */}
-                    {/*         <p className="text-xs text-gray-600">Benachrichtigung bei Passwortänderungen</p> */}
-                    {/*       </div> */}
-                    {/*       <div className="flex items-center gap-6 ml-4"> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.password_changes?.platform ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange("password_changes", "platform", e.target.checked) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
-                    {/*         </div> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.password_changes?.email ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange("password_changes", "email", e.target.checked) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
-                    {/*         </div> */}
-                    {/*       </div> */}
-                    {/*     </div> */}
-
-                    {/*     /!* Email Changes *!/ */}
-                    {/*     <div className="space-y-3 pb-4 border-b"> */}
-                    {/*       <div> */}
-                    {/*         <Label className="text-sm font-medium">E-Mail-Änderungen</Label> */}
-                    {/*         <p className="text-xs text-gray-600">Benachrichtigung bei E-Mail-Änderungen</p> */}
-                    {/*       </div> */}
-                    {/*       <div className="flex items-center gap-6 ml-4"> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.email_changes?.platform ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange("email_changes", "platform", e.target.checked) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
-                    {/*         </div> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.email_changes?.email ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange("email_changes", "email", e.target.checked) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
-                    {/*         </div> */}
-                    {/*       </div> */}
-                    {/*     </div> */}
-
-                    {/*     /!* Suspicious Activity *!/ */}
-                    {/*     <div className="space-y-3 pb-4 border-b"> */}
-                    {/*       <div> */}
-                    {/*         <Label className="text-sm font-medium">Verdächtige Aktivitäten</Label> */}
-                    {/*         <p className="text-xs text-gray-600">Warnung bei verdächtigen Aktivitäten</p> */}
-                    {/*       </div> */}
-                    {/*       <div className="flex items-center gap-6 ml-4"> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.suspicious_activity?.platform ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange("suspicious_activity", "platform", e.target.checked) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
-                    {/*         </div> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.suspicious_activity?.email ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange("suspicious_activity", "email", e.target.checked) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
-                    {/*         </div> */}
-                    {/*       </div> */}
-                    {/*     </div> */}
-
-                    {/*     /!* New Device Login *!/ */}
-                    {/*     <div className="space-y-3 pb-4 border-b"> */}
-                    {/*       <div> */}
-                    {/*         <Label className="text-sm font-medium">Neue Geräteanmeldungen</Label> */}
-                    {/*         <p className="text-xs text-gray-600">Anmeldung von neuen Geräten</p> */}
-                    {/*       </div> */}
-                    {/*       <div className="flex items-center gap-6 ml-4"> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.new_device_login?.platform ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange("new_device_login", "platform", e.target.checked) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
-                    {/*         </div> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.new_device_login?.email ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange("new_device_login", "email", e.target.checked) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
-                    {/*         </div> */}
-                    {/*       </div> */}
-                    {/*     </div> */}
-
-                    {/*     /!* Account Recovery *!/ */}
-                    {/*     <div className="space-y-3 pb-4 border-b"> */}
-                    {/*       <div> */}
-                    {/*         <Label className="text-sm font-medium">Kontowiederherstellung</Label> */}
-                    {/*         <p className="text-xs text-gray-600">Informationen zur Kontowiederherstellung</p> */}
-                    {/*       </div> */}
-                    {/*       <div className="flex items-center gap-6 ml-4"> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.account_recovery?.platform ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange("account_recovery", "platform", e.target.checked) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
-                    {/*         </div> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.account_recovery?.email ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange("account_recovery", "email", e.target.checked) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
-                    {/*         </div> */}
-                    {/*       </div> */}
-                    {/*     </div> */}
-
-                    {/*     /!* Security Settings Changes *!/ */}
-                    {/*     <div className="space-y-3"> */}
-                    {/*       <div> */}
-                    {/*         <Label className="text-sm font-medium">Änderungen an Sicherheitseinstellungen</Label> */}
-                    {/*         <p className="text-xs text-gray-600"> */}
-                    {/*           Benachrichtigung bei Änderungen an Sicherheitseinstellungen */}
-                    {/*         </p> */}
-                    {/*       </div> */}
-                    {/*       <div className="flex items-center gap-6 ml-4"> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.security_settings_changes?.platform ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange( */}
-                    {/*                 "security_settings_changes", */}
-                    {/*                 "platform", */}
-                    {/*                 e.target.checked, */}
-                    {/*               ) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">In-App</span> */}
-                    {/*         </div> */}
-                    {/*         <div className="flex items-center gap-2"> */}
-                    {/*           <input */}
-                    {/*             type="checkbox" */}
-                    {/*             checked={securityNotificationPrefs.security_settings_changes?.email ?? true} */}
-                    {/*             onChange={(e) => */}
-                    {/*               handleSecurityNotificationChange( */}
-                    {/*                 "security_settings_changes", */}
-                    {/*                 "email", */}
-                    {/*                 e.target.checked, */}
-                    {/*               ) */}
-                    {/*             } */}
-                    {/*             className="rounded border-gray-300" */}
-                    {/*           /> */}
-                    {/*           <span className="text-xs text-gray-600">E-Mail</span> */}
-                    {/*         </div> */}
-                    {/*       </div> */}
-                    {/*     </div> */}
-                    {/*   </AccordionContent> */}
-                    {/* </AccordionItem> */}
                   </Accordion>
                 </CardContent>
               </Card>
@@ -2929,7 +2813,7 @@ export default function ProfilePage() {
                   <div className="space-y-6">
                     <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
                       <div>
-                        <Label className="text-sm font-medium">Wer kann dein Profil sehen?</Label>
+                        <Label className="text-xs font-medium">Wer kann dein Profil sehen?</Label>
                         <div className="mt-2 space-y-2">
                           <label className="flex items-center space-x-2">
                             <input
@@ -2941,7 +2825,7 @@ export default function ProfilePage() {
                               className="rounded border-gray-300"
                             />
                             <div>
-                              <span className="text-sm font-medium">Öffentlich</span>
+                              <span className="text-xs font-medium">Öffentlich</span>
                               <p className="text-xs text-gray-600">Jeder kann dein Profil sehen</p>
                             </div>
                           </label>
@@ -2955,7 +2839,7 @@ export default function ProfilePage() {
                               className="rounded border-gray-300"
                             />
                             <div>
-                              <span className="text-sm font-medium">Nur Freunde</span>
+                              <span className="text-xs font-medium">Nur Freunde</span>
                               <p className="text-xs text-gray-600">Nur deine Freunde können dein Profil sehen</p>
                             </div>
                           </label>
@@ -2969,7 +2853,7 @@ export default function ProfilePage() {
                               className="rounded border-gray-300"
                             />
                             <div>
-                              <span className="text-sm font-medium">Privat</span>
+                              <span className="text-xs font-medium">Privat</span>
                               <p className="text-xs text-gray-600">Nur du kannst dein Profil sehen</p>
                             </div>
                           </label>
@@ -2978,7 +2862,7 @@ export default function ProfilePage() {
 
                       <div className="flex items-center justify-between pt-4 border-t">
                         <div>
-                          <Label className="text-sm font-medium">Freundschaftsanfragen erlauben</Label>
+                          <Label className="text-xs font-medium">Freundschaftsanfragen erlauben</Label>
                           <p className="text-xs text-gray-600">Andere können dir Freundschaftsanfragen senden</p>
                         </div>
                         <input
@@ -2990,7 +2874,7 @@ export default function ProfilePage() {
                       </div>
 
                       <div className="pt-4 border-t">
-                        <Label className="text-sm font-medium">Wer kann dir Nachrichten senden?</Label>
+                        <Label className="text-xs font-medium">Wer kann dir Nachrichten senden?</Label>
                         <div className="mt-2 space-y-2">
                           <label className="flex items-center space-x-2">
                             <input
@@ -3001,7 +2885,7 @@ export default function ProfilePage() {
                               onChange={(e) => handlePrivacySettingChange("allow_messages_from", e.target.value)}
                               className="rounded border-gray-300"
                             />
-                            <span className="text-sm">Jeder</span>
+                            <span className="text-xs">Jeder</span>
                           </label>
                           <label className="flex items-center space-x-2">
                             <input
@@ -3012,7 +2896,7 @@ export default function ProfilePage() {
                               onChange={(e) => handlePrivacySettingChange("allow_messages_from", e.target.value)}
                               className="rounded border-gray-300"
                             />
-                            <span className="text-sm">Nur Freunde</span>
+                            <span className="text-xs">Nur Freunde</span>
                           </label>
                           <label className="flex items-center space-x-2">
                             <input
@@ -3023,14 +2907,14 @@ export default function ProfilePage() {
                               onChange={(e) => handlePrivacySettingChange("allow_messages_from", e.target.value)}
                               className="rounded border-gray-300"
                             />
-                            <span className="text-sm">Niemand</span>
+                            <span className="text-xs">Niemand</span>
                           </label>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex justify-end pt-4 border-t">
-                      <Button onClick={handleSubmit} disabled={isLoading} className="min-w-32">
+                      <Button onClick={handleSubmit} disabled={isLoading} className="min-w-32 text-xs">
                         {isLoading ? "Speichern..." : "Einstellungen speichern"}
                       </Button>
                     </div>
@@ -3063,10 +2947,10 @@ export default function ProfilePage() {
                       <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
                         {/* Email Change Section */}
                         <div className="space-y-4">
-                          <h5 className="font-medium text-sm">E-Mail-Adresse ändern</h5>
+                          <h5 className="font-medium text-xs">E-Mail-Adresse ändern</h5>
                           <form onSubmit={handleEmailChange} className="space-y-4">
                             <div className="space-y-2">
-                              <Label htmlFor="newEmail" className="text-sm md:text-base">
+                              <Label htmlFor="newEmail" className="text-xs">
                                 Neue E-Mail-Adresse
                               </Label>
                               <Input
@@ -3075,11 +2959,11 @@ export default function ProfilePage() {
                                 value={emailChangeData.newEmail}
                                 onChange={(e) => setEmailChangeData((prev) => ({ ...prev, newEmail: e.target.value }))}
                                 placeholder="neue@email.com"
-                                className="text-sm md:text-base"
+                                className="text-xs"
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="currentPassword" className="text-sm md:text-base">
+                              <Label htmlFor="currentPassword" className="text-xs">
                                 Aktuelles Passwort bestätigen
                               </Label>
                               <Input
@@ -3089,10 +2973,10 @@ export default function ProfilePage() {
                                 onChange={(e) =>
                                   setEmailChangeData((prev) => ({ ...prev, currentPassword: e.target.value }))
                                 }
-                                className="text-sm md:text-base"
+                                className="text-xs"
                               />
                             </div>
-                            <Button type="submit" disabled={isEmailChanging} className="w-full">
+                            <Button type="submit" disabled={isEmailChanging} className="w-full text-xs">
                               {isEmailChanging ? "Wird geändert..." : "E-Mail ändern"}
                             </Button>
                             {emailChangeMessage && (
@@ -3113,7 +2997,7 @@ export default function ProfilePage() {
                         <div className="pt-4 border-t">
                           <div className="flex items-center justify-between">
                             <div>
-                              <Label className="text-sm font-medium">Sicherheitsereignisse</Label>
+                              <Label className="text-xs font-medium">Sicherheitsereignisse</Label>
                               <p className="text-xs text-gray-600">
                                 Benachrichtigungen über wichtige Sicherheitsereignisse
                               </p>
@@ -3135,8 +3019,8 @@ export default function ProfilePage() {
                     <div className="border-t pt-6">
                       <div className="space-y-4">
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-2">Konto löschen</h3>
-                          <p className="text-sm text-muted-foreground mb-4">
+                          <h3 className="font-semibold text-gray-900 mb-2 text-xs">Konto löschen</h3>
+                          <p className="text-xs text-muted-foreground mb-4">
                             Das Löschen deines Kontos ist dauerhaft und kann nicht rückgängig gemacht werden. Alle deine
                             Daten, einschliesslich Profil, Spielesammlung, Nachrichten und Aktivitäten werden permanent
                             gelöscht.
@@ -3145,7 +3029,7 @@ export default function ProfilePage() {
 
                         <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                           <DialogTrigger asChild>
-                            <Button variant="destructive" className="w-full md:w-auto text-white">
+                            <Button variant="destructive" className="w-full md:w-auto text-white text-xs">
                               <Trash2 className="w-4 h-4 mr-2" />
                               Konto löschen
                             </Button>
@@ -3156,7 +3040,7 @@ export default function ProfilePage() {
                               <DialogDescription className="space-y-3 pt-2">
                                 <p className="font-semibold">Diese Aktion kann nicht rückgängig gemacht werden!</p>
                                 <p>Folgende Daten werden permanent gelöscht:</p>
-                                <ul className="list-disc list-inside space-y-1 text-sm">
+                                <ul className="list-disc list-inside text-xs">
                                   <li>Dein Profil und alle persönlichen Informationen</li>
                                   <li>Deine Spielesammlung</li>
                                   <li>Alle Nachrichten und Konversationen</li>
@@ -3173,7 +3057,7 @@ export default function ProfilePage() {
                                 placeholder="LÖSCHEN eingeben"
                                 value={deleteConfirmation}
                                 onChange={(e) => setDeleteConfirmation(e.target.value)}
-                                className="text-center font-semibold"
+                                className="text-center font-semibold text-xs"
                               />
                               <div className="flex gap-2">
                                 <Button
@@ -3203,7 +3087,7 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex justify-end pt-4 border-t">
-                      <Button onClick={handleSubmit} disabled={isLoading} className="min-w-32">
+                      <Button onClick={handleSubmit} disabled={isLoading} className="min-w-32 text-xs">
                         {isLoading ? "Speichern..." : "Einstellungen speichern"}
                       </Button>
                     </div>
@@ -3224,6 +3108,67 @@ export default function ProfilePage() {
               </div>
             </TabsContent>
           </Tabs>
+
+          {/* Edit Community Dialog */}
+          <Dialog open={!!editingCommunity} onOpenChange={() => setEditingCommunity(null)}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Spielgruppe bearbeiten</DialogTitle>
+              </DialogHeader>
+              {editingCommunity && (
+                <EditCommunityForm
+                  community={editingCommunity}
+                  onClose={() => setEditingCommunity(null)}
+                  onSuccess={() => {
+                    setEditingCommunity(null)
+                    fetchUserActivities() // Changed from fetchActivities to fetchUserActivities
+                    toast({
+                      title: "Spielgruppe aktualisiert",
+                      description: "Die Spielgruppe wurde erfolgreich aktualisiert",
+                    })
+                  }}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Event Dialog - using CreateLudoEventFormDialog */}
+          {editingEvent && (
+            <CreateLudoEventFormDialog
+              event={editingEvent}
+              onClose={() => setEditingEvent(null)}
+              onSuccess={() => {
+                setEditingEvent(null)
+                fetchUserEvents() // Changed from fetchUserActivities to fetchUserEvents
+                toast({
+                  title: "Event aktualisiert",
+                  description: "Das Event wurde erfolgreich aktualisiert",
+                })
+              }}
+            />
+          )}
+
+          {/* Edit Marketplace Offer Dialog */}
+          <EditMarketplaceOfferForm
+            isOpen={isEditOfferOpen}
+            onClose={() => {
+              setIsEditOfferOpen(false)
+              setEditingOffer(null)
+            }}
+            onSuccess={handleEditOfferSuccess}
+            offer={editingOffer}
+          />
+
+          {/* Edit Search Ad Dialog */}
+          <EditSearchAdForm
+            isOpen={isEditSearchAdOpen}
+            onClose={() => {
+              setIsEditSearchAdOpen(false)
+              setEditingSearchAd(null)
+            }}
+            onSuccess={handleEditSearchAdSuccess}
+            searchAd={editingSearchAd}
+          />
         </div>
       </div>
     </div>

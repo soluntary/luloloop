@@ -9,35 +9,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  Upload,
-  X,
-  ImageIcon,
-  AlertCircle,
-  Check,
-  Camera,
-  Tag,
-  Users,
-  Plus,
-  Dices,
-  ChevronDown,
-  Info,
-  MapPin,
-  Trash2,
-  Package,
-  Eye,
-  ArrowLeft,
-  ArrowRight,
-  Search,
-} from "lucide-react"
+import { Upload, ImageIcon, AlertCircle, Check, Camera, Plus, ChevronDown, Info, MapPin, Trash2, TruckIcon, ArrowLeft, ArrowRight, Search } from 'lucide-react'
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
 
 import { GameSearchDialog } from "./game-search-dialog"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
+import { getPostalCodeAndCity } from "@/lib/utils"
 
 const GAME_TYPE_OPTIONS = [
   "Aktions- und Reaktionsspiel",
@@ -135,6 +115,7 @@ interface CreateMarketplaceOfferFormProps {
   onSuccess?: () => void
   preselectedGame?: any | null
   preselectedOfferType?: string
+  initialStep?: number
 }
 
 export function CreateMarketplaceOfferForm({
@@ -143,18 +124,19 @@ export function CreateMarketplaceOfferForm({
   onSuccess,
   preselectedGame = null,
   preselectedOfferType = "",
+  initialStep = 1,
 }: CreateMarketplaceOfferFormProps) {
   const { games, addMarketplaceOffer, addGame } = useGames()
   const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState(initialStep)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [isGameSearchOpen, setIsGameSearchOpen] = useState(false)
 
   // Form data
-  const [selectedGame, setSelectedGame] = useState<string>("")
+  const [selectedGame, setSelectedGame] = useState<string>(preselectedGame?.id || "")
   const [customGameTitle, setCustomGameTitle] = useState("")
   const [customGamePublisher, setCustomGamePublisher] = useState("")
 
@@ -188,11 +170,14 @@ export function CreateMarketplaceOfferForm({
   const [deliveryShipping, setDeliveryShipping] = useState(false)
   // REMOVED: const [shippingOption, setShippingOption] = useState("")
   const [pickupAddress, setPickupAddress] = useState("")
+  const [showFullAddress, setShowFullAddress] = useState(false)
   const [condition, setCondition] = useState("")
   const [price, setPrice] = useState("")
   const [openToSuggestions, setOpenToSuggestions] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [databaseConnected, setDatabaseConnected] = useState(true)
+
+  const [isManualEntry, setIsManualEntry] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -200,15 +185,23 @@ export function CreateMarketplaceOfferForm({
         setSelectedGame(preselectedGame.id || "")
         setImagePreview(preselectedGame.image || "")
         setCurrentStep(2)
+        setIsManualEntry(false)
+
+        // If condition is not set when starting at step 2, initialize it
+        // This prevents validation errors when going back to step 1
+        if (!condition) {
+          // Don't set a default value, but ensure it's required in step 2
+        }
       } else {
-        setCurrentStep(1)
+        setCurrentStep(initialStep)
+        setIsManualEntry(false)
       }
 
       if (preselectedOfferType) {
         setOfferType(preselectedOfferType as "lend" | "trade" | "sell")
       }
     }
-  }, [isOpen, preselectedGame, preselectedOfferType])
+  }, [isOpen, preselectedGame, preselectedOfferType, initialStep])
 
   useEffect(() => {
     if (deliveryPickup && user) {
@@ -398,6 +391,7 @@ export function CreateMarketplaceOfferForm({
 
     // Clear any existing game selection and enable custom game mode
     setSelectedGame("")
+    setIsManualEntry(true) // Ensure manual entry is active after BGG search
 
     // Clear validation errors
     setErrors({})
@@ -419,6 +413,7 @@ export function CreateMarketplaceOfferForm({
         // Clear any uploaded file since we're using the game's image
         setImage(null)
       }
+      setIsManualEntry(false) // Reset manual entry when a game is selected from the list
     } else {
       // If no game selected, clear the image preview
       setImagePreview("")
@@ -457,11 +452,13 @@ export function CreateMarketplaceOfferForm({
     setDeliveryShipping(false)
     // REMOVED: setShippingOption("")
     setPickupAddress("")
-    setCurrentStep(1)
+    setShowFullAddress(false) // Reset the new state
+    setCurrentStep(initialStep) // Reset to initial step
     setErrors({})
     setCondition("")
     setPrice("")
     setOpenToSuggestions(false)
+    setIsManualEntry(false) // Reset manual entry state on form reset
   }
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -505,30 +502,18 @@ export function CreateMarketplaceOfferForm({
 
     if (step === 1) {
       console.log("[v0] Validating step 1 - selectedGame:", selectedGame, "customGameTitle:", customGameTitle)
-      newErrors = {}
 
-      if (!selectedGame && !customGameTitle.trim()) {
-        newErrors.game = "Bitte wähle ein Spiel aus oder gib einen Spieltitel ein"
-      }
-
-      if (!selectedGame && customGameTitle.trim()) {
-        console.log("[v0] Validating custom game fields")
-
+      if (isManualEntry) {
         if (!customGameTitle.trim()) {
-          newErrors.customGameTitle = "Bitte gib einen Spielnamen ein."
+          newErrors.customGameTitle = "Spieltitel ist erforderlich"
         }
-        if (!customGamePublisher.trim() || customGamePublisher === "custom") {
+
+        if (customGamePublisher === "Andere" && !customGameCustomPublisher.trim()) {
+          newErrors.customGameCustomPublisher = "Bitte gib den Verlag an."
+        } else if (customGamePublisher !== "Andere" && !customGamePublisher) {
           newErrors.customGamePublisher = "Verlag ist erforderlich"
         }
-        if (!customGameLanguage || customGameLanguage === "custom") {
-          newErrors.customGameLanguage = "Sprache ist erforderlich"
-        }
-        if (customGameType.length === 0) {
-          newErrors.customGameType = "Bitte wähle mindestens eine Kategorie."
-        }
-        if (customGameStyle.length === 0) {
-          newErrors.customGameStyle = "Bitte wähle mindestens einen Typus."
-        }
+
         if (!customGamePlayerCount) {
           newErrors.customGamePlayerCount = "Spieleranzahl ist erforderlich"
         }
@@ -538,8 +523,21 @@ export function CreateMarketplaceOfferForm({
         if (!customGameAge) {
           newErrors.customGameAge = "Altersempfehlung ist erforderlich"
         }
+        if (customGameLanguage === "Andere" && !customGameCustomLanguage.trim()) {
+          newErrors.customGameCustomLanguage = "Bitte gib die Sprache an."
+        } else if (customGameLanguage !== "Andere" && !customGameLanguage) {
+          newErrors.customGameLanguage = "Sprache ist erforderlich"
+        }
+
         if (!condition) {
           newErrors.condition = "Zustand ist erforderlich"
+        }
+      } else if (!isManualEntry && selectedGame) {
+        // It will be required in step 2 instead
+        // This allows users to skip step 1 when starting at step 2 with preselected game
+      } else {
+        if (!selectedGame && !isManualEntry) {
+          newErrors.selectedGame = "Bitte wähle ein Spiel aus oder erstelle ein neues"
         }
       }
 
@@ -667,7 +665,8 @@ export function CreateMarketplaceOfferForm({
       let gamePublisher = ""
       let gameId = selectedGame
 
-      if (!selectedGame && customGameTitle) {
+      // Adjust submission logic for custom game creation
+      if (isManualEntry && !selectedGame && customGameTitle) {
         console.log("[v0] Creating new custom game:", customGameTitle)
         const newGameData = {
           title: customGameTitle,
@@ -722,6 +721,12 @@ export function CreateMarketplaceOfferForm({
         finalPrice = openToSuggestions ? "Offen für Vorschläge" : price
       }
 
+      const finalPickupAddress = deliveryPickup
+        ? showFullAddress
+          ? pickupAddress
+          : getPostalCodeAndCity(pickupAddress)
+        : ""
+
       const offerData = {
         game_id: gameId,
         title: gameTitle,
@@ -732,11 +737,12 @@ export function CreateMarketplaceOfferForm({
         description,
         image: imageUrl,
         active: true,
-        location: deliveryPickup ? pickupAddress : "",
+        location: finalPickupAddress,
         distance: "", // Default empty distance
         pickup_available: deliveryPickup,
         shipping_available: deliveryShipping,
-        pickup_address: deliveryPickup ? pickupAddress : null,
+        pickup_address: finalPickupAddress,
+        show_full_address: showFullAddress, // ADDED
         // REMOVED: shipping_options: deliveryShipping ? { option: shippingOption } : null,
         shipping_options: null, // Set to null as shipping details are no longer collected
         ...(offerType === "lend" && minRentalDays && { min_rental_days: Number.parseInt(minRentalDays) }),
@@ -774,9 +780,9 @@ export function CreateMarketplaceOfferForm({
   const getStepTitle = () => {
     switch (currentStep) {
       case 1:
-        return "Schritt 1: Spiel auswählen"
+        return "Schritt 1: Spielauswahl"
       case 2:
-        return "Schritt 2: Angebots-Details"
+        return "Schritt 2: Anzeigendetails"
       case 3:
         return "Schritt 3: Zusammenfassung"
       default:
@@ -812,1268 +818,1233 @@ export function CreateMarketplaceOfferForm({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-orange-50 to-white border-2 border-orange-200 shadow-2xl">
-          <div className="sticky top-0 bg-gradient-to-r from-orange-300 to-orange-300 text-white p-6 -m-6 mb-6 rounded-t-lg">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold text-center mb-4">{getStepTitle()}</DialogTitle>
-
-              <div className="flex items-center justify-center space-x-2 mb-2">
-                {[1, 2, 3].map((step) => (
-                  <div key={step} className="flex items-center">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
-                        step <= currentStep
-                          ? "bg-white text-orange-800 shadow-lg"
-                          : "bg-orange-300 text-orange-800 border-2 border-orange-800"
-                      }`}
-                    >
-                      {step < currentStep ? <Check className="w-5 h-5" /> : step}
-                    </div>
-                    {step < 3 && (
-                      <div
-                        className={`w-16 h-1 mx-2 transition-all duration-300 ${
-                          step < currentStep ? "bg-white" : "bg-orange-800"
-                        }`}
-                      />
-                    )}
+      <Card className="border-0 shadow-none bg-transparent">
+        <CardContent className="space-y-6 p-0">
+          <div className="mb-6">
+            <h3 className="font-semibold text-gray-900 mb-4 text-sm">{getStepTitle()}</h3>
+            <div className="flex items-center justify-center space-x-2">
+              {[1, 2, 3].map((step) => (
+                <div key={step} className="flex items-center">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
+                      step <= currentStep
+                        ? "bg-gray-900 text-white"
+                        : "bg-gray-100 text-gray-400 border border-gray-300"
+                    }`}
+                  >
+                    {step < currentStep ? <Check className="w-4 h-4" /> : step}
                   </div>
-                ))}
-              </div>
-
-              <p className="text-center text-orange-800 text-sm">Schritt {currentStep} von 3</p>
-            </DialogHeader>
+                  {step < 3 && (
+                    <div
+                      className={`w-12 h-0.5 mx-2 transition-all ${step < currentStep ? "bg-gray-900" : "bg-gray-200"}`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-center text-gray-600 text-xs mt-3">Schritt {currentStep} von 3</p>
           </div>
 
-          <Card className="border-0 shadow-none bg-transparent">
-            <CardContent className="space-y-6 p-0">
-              {/* Step 1: Game Selection */}
-              {currentStep === 1 && (
-                <div className="space-y-6">
-                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100 hover:shadow-xl transition-all duration-300">
-                    <h3 className="text-xl font-bold text-orange-800 mb-4 flex items-center gap-3">
-                      <Dices className="w-6 h-6 text-orange-800" />
-                      Spiel auswählen
-                    </h3>
+          {/* Step 1: Game Selection */}
+          {currentStep === 1 && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h3 className="text-gray-900 mb-4 font-normal text-xs">Spiel auswählen</h3>
 
-                    <div className="space-y-4">
+                <div className="space-y-4">
+                  <div>
+                    <Select value={selectedGame} onValueChange={handleGameSelection}>
+                      <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                        <SelectValue placeholder="Spiel aus deiner Ludothek wählen..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-lg border-gray-200">
+                        {games.map((game) => (
+                          <SelectItem key={game.id} value={game.id} className="rounded-md">
+                            <div className="flex items-center gap-3">
+                              {game.image && (
+                                <img
+                                  src={game.image || "/placeholder.svg"}
+                                  alt={game.title}
+                                  className="w-8 h-8 object-cover rounded"
+                                />
+                              )}
+                              <div>
+                                <p className="font-medium text-sm">{game.title}</p>
+                                <p className="text-xs text-gray-500">{game.publisher}</p>
+                              </div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-200" />
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-white px-4 text-gray-600 font-medium">oder</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200 text-xs">
+                      <Checkbox
+                        id="custom-game"
+                        checked={isManualEntry}
+                        onCheckedChange={(checked) => {
+                          setIsManualEntry(checked === true)
+                          if (checked) {
+                            setSelectedGame("")
+                            setImagePreview("")
+                            setImage(null)
+                          }
+                        }}
+                        className="border-gray-400 data-[state=checked]:bg-gray-900"
+                      />
+                      <Label htmlFor="custom-game" className="font-medium text-sm text-gray-900 cursor-pointer">
+                        Neues Spiel erfassen
+                      </Label>
+                    </div>
+
+                    {isManualEntry && (
+                      <div className="space-y-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            console.log("[v0] BoardGameGeek search button clicked")
+                            console.log("[v0] selectedGame:", selectedGame)
+                            console.log("[v0] Setting isGameSearchOpen to true")
+                            setIsGameSearchOpen(true)
+                          }}
+                          className="w-full h-11 border-gray-300 text-gray-800 hover:bg-gray-100 hover:border-gray-900 transition-colors rounded-lg font-medium"
+                        >
+                          <Search className="w-4 h-4 mr-2" />
+                          Spiel in der Datenbank suchen
+                        </Button>
+
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-200" />
+                          </div>
+                          <div className="relative flex justify-center text-xs">
+                            <span className="bg-white px-4 text-gray-600 font-medium">oder manuell erfassen</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom Game Form */}
+              {isManualEntry && (
+                <div className="space-y-6">
+                  {/* Game Cover Section */}
+                  <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                    <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">Spiel Cover</h3>
+                    <div className="text-center">
+                      <div className="w-40 h-52 mx-auto mb-4 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-gray-50 overflow-hidden hover:border-gray-400 transition-all duration-300 shadow-sm hover:shadow-md">
+                        {customGameImage ? (
+                          <img
+                            src={customGameImage || "/placeholder.svg"}
+                            alt="Spiel Cover"
+                            className="w-full h-full object-cover rounded-xl"
+                          />
+                        ) : (
+                          <div className="text-center">
+                            <Camera className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                            <p className="text-xs text-gray-600 font-medium">Cover hochladen</p>
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleCustomGameImageUpload}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full h-11 border-gray-300 text-gray-800 hover:bg-gray-100 hover:border-gray-900 transition-colors rounded-lg font-medium"
+                        disabled={!!selectedGame}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Bild hochladen
+                      </Button>
+                    </div>
+                    {errors.customGameImage && (
+                      <div className="flex items-center space-x-2 text-red-600 text-sm mt-3 bg-red-50 p-2 rounded-lg">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>{errors.customGameImage}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Basic Information */}
+                  <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                    <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      Grundinformationen
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-sm font-semibold text-gray-700 mb-2 block">
-                          Aus deiner Ludothek wählen
-                        </Label>
-                        <Select value={selectedGame} onValueChange={handleGameSelection}>
-                          <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
-                            <SelectValue placeholder="Spiel aus Ludothek wählen..." />
+                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">Spielname *</Label>
+                        <Input
+                          value={customGameTitle}
+                          onChange={(e) => setCustomGameTitle(e.target.value)}
+                          placeholder="z.B. Die Siedler von Catan"
+                          className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                          disabled={!!selectedGame}
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">Verlag *</Label>
+                        <Select
+                          value={customGamePublisher}
+                          onValueChange={setCustomGamePublisher}
+                          disabled={!!selectedGame}
+                        >
+                          <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                            <SelectValue placeholder="Verlag wählen..." />
                           </SelectTrigger>
-                          <SelectContent className="rounded-xl border-orange-200">
-                            {games.map((game) => (
-                              <SelectItem key={game.id} value={game.id} className="rounded-lg hover:bg-orange-50">
-                                <div className="flex items-center gap-3">
-                                  {game.image && (
-                                    <img
-                                      src={game.image || "/placeholder.svg"}
-                                      alt={game.title}
-                                      className="w-8 h-8 object-cover rounded"
-                                    />
-                                  )}
-                                  <div>
-                                    <p className="font-medium">{game.title}</p>
-                                    <p className="text-xs text-gray-500">{game.publisher}</p>
-                                  </div>
-                                </div>
+                          <SelectContent className="rounded-lg">
+                            {publisherOptions.map((publisher) => (
+                              <SelectItem key={publisher} value={publisher} className="rounded-md">
+                                {publisher}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="custom" className="font-bold text-blue-600 rounded-md">
+                              Eigenen Verlag eingeben...
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {customGamePublisher === "custom" && (
+                          <div className="mt-3 flex gap-2">
+                            <Input
+                              value={customGameCustomPublisher}
+                              onChange={(e) => setCustomGameCustomPublisher(e.target.value)}
+                              placeholder="Verlag eingeben..."
+                              className="h-10 border-gray-300 rounded-lg bg-white"
+                              onKeyPress={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  handleAddCustomPublisher()
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleAddCustomPublisher}
+                              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">Sprache *</Label>
+                        <Select
+                          value={customGameLanguage}
+                          onValueChange={setCustomGameLanguage}
+                          disabled={!!selectedGame}
+                        >
+                          <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                            <SelectValue placeholder="Sprache wählen..." />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-lg">
+                            {LANGUAGE_OPTIONS.map((language) => (
+                              <SelectItem
+                                key={language}
+                                value={language === "Andere" ? "custom" : language}
+                                className="rounded-md"
+                              >
+                                {language}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {customGameLanguage === "custom" && (
+                          <div className="mt-3 flex gap-2">
+                            <Input
+                              value={customGameCustomLanguage}
+                              onChange={(e) => setCustomGameCustomLanguage(e.target.value)}
+                              placeholder="Sprache eingeben..."
+                              className="h-10 border-gray-300 rounded-lg bg-white"
+                              onKeyPress={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  handleAddCustomLanguage()
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleAddCustomLanguage}
+                              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {(errors.customGamePublisher || errors.customGameLanguage) && (
+                      <div className="mt-3 space-y-1">
+                        {errors.customGamePublisher && (
+                          <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-2 rounded-lg">
+                            <AlertCircle className="w-4 h-4" />
+                            <span>{errors.customGamePublisher}</span>
+                          </div>
+                        )}
+                        {errors.customGameLanguage && (
+                          <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-2 rounded-lg">
+                            <AlertCircle className="w-4 h-4" />
+                            <span>{errors.customGameLanguage}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Game Details Section */}
+                  <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                    <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">Spieldetails</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">Spieleranzahl *</Label>
+                        <Select
+                          value={customGamePlayerCount}
+                          onValueChange={setCustomGamePlayerCount}
+                          disabled={!!selectedGame}
+                        >
+                          <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                            <SelectValue placeholder="Spieleranzahl wählen..." />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-lg">
+                            {PLAYER_COUNT_OPTIONS.map((count) => (
+                              <SelectItem key={count} value={count} className="rounded-md">
+                                {count}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
-
-                      <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                          <div className="w-full border-t border-orange-200" />
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                          <span className="bg-white px-4 text-orange-600 font-medium">oder</span>
-                        </div>
+                      <div>
+                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">Spieldauer *</Label>
+                        <Select
+                          value={customGameDuration}
+                          onValueChange={setCustomGameDuration}
+                          disabled={!!selectedGame}
+                        >
+                          <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                            <SelectValue placeholder="Spieldauer wählen..." />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-lg">
+                            {DURATION_OPTIONS.map((duration) => (
+                              <SelectItem key={duration} value={duration} className="rounded-md">
+                                {duration}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-
-                      <div className="space-y-4">
-                        <div className="flex items-center space-x-3 p-4 bg-orange-50 rounded-xl border border-orange-200">
-                          <Checkbox
-                            id="custom-game"
-                            checked={!selectedGame}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedGame("")
-                                setImagePreview("")
-                                setImage(null)
-                              }
-                            }}
-                            className="border-orange-400 data-[state=checked]:bg-orange-600"
-                          />
-                          <Label htmlFor="custom-game" className="font-medium text-black-800 cursor-pointer">
-                            Neues Spiel erfassen
-                          </Label>
-                        </div>
-
-                        {!selectedGame && (
-                          <div className="space-y-4">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => {
-                                console.log("[v0] BoardGameGeek search button clicked")
-                                console.log("[v0] selectedGame:", selectedGame)
-                                console.log("[v0] Setting isGameSearchOpen to true")
-                                setIsGameSearchOpen(true)
-                              }}
-                              className="w-full h-12 border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white transition-all duration-200 rounded-xl font-medium"
-                            >
-                              <Search className="w-4 h-4 mr-2" />
-                              Spiel in der Datenbank suchen
-                            </Button>
-
-                            <div className="relative">
-                              <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-orange-200" />
-                              </div>
-                              <div className="relative flex justify-center text-sm">
-                                <span className="bg-white px-4 text-orange-600 font-medium">oder manuell erfassen</span>
-                              </div>
-                            </div>
+                      <div>
+                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">Altersempfehlung *</Label>
+                        <Select value={customGameAge} onValueChange={setCustomGameAge} disabled={!!selectedGame}>
+                          <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                            <SelectValue placeholder="Altersempfehlung wählen..." />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-lg">
+                            {AGE_OPTIONS.map((age) => (
+                              <SelectItem key={age} value={age} className="rounded-md">
+                                {age}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    {(errors.customGamePlayerCount || errors.customGameDuration || errors.customGameAge) && (
+                      <div className="mt-3 space-y-1">
+                        {errors.customGamePlayerCount && (
+                          <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-2 rounded-lg">
+                            <AlertCircle className="w-4 h-4" />
+                            <span>{errors.customGamePlayerCount}</span>
+                          </div>
+                        )}
+                        {errors.customGameDuration && (
+                          <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-2 rounded-lg">
+                            <AlertCircle className="w-4 h-4" />
+                            <span>{errors.customGameDuration}</span>
+                          </div>
+                        )}
+                        {errors.customGameAge && (
+                          <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-2 rounded-lg">
+                            <AlertCircle className="w-4 h-4" />
+                            <span>{errors.customGameAge}</span>
                           </div>
                         )}
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Custom Game Form */}
-                  {!selectedGame && (
-                    <div className="space-y-6">
-                      {/* Game Cover Section */}
-                      <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
-                          <Camera className="w-5 h-5" />
-                          Spiel Cover
-                        </h3>
-                        <div className="text-center">
-                          <div className="w-40 h-52 mx-auto mb-4 border-2 border-dashed border-orange-300 rounded-2xl flex items-center justify-center bg-white/70 overflow-hidden hover:border-orange-400 transition-all duration-300 shadow-sm hover:shadow-md">
-                            {customGameImage ? (
-                              <img
-                                src={customGameImage || "/placeholder.svg"}
-                                alt="Spiel Cover"
-                                className="w-full h-full object-cover rounded-xl"
-                              />
-                            ) : (
-                              <div className="text-center">
-                                <Camera className="w-12 h-12 text-orange-400 mx-auto mb-3" />
-                                <p className="text-sm text-orange-600 font-medium">Cover hochladen</p>
+                  <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                    <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      Kategorien & Typus
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">
+                          Kategorie * (Mehrfachauswahl)
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-between h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                              type="button"
+                              disabled={!!selectedGame}
+                            >
+                              {customGameType.length > 0 ? (
+                                <span className="text-blue-600 font-medium">
+                                  {customGameType.length} Kategorie{customGameType.length > 1 ? "n" : ""} ausgewählt
+                                </span>
+                              ) : (
+                                "Kategorie wählen..."
+                              )}
+                              <ChevronDown className="h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 p-0">
+                            <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                              <h4 className="font-medium text-xs text-gray-700">Kategorie auswählen:</h4>
+                              {GAME_TYPE_OPTIONS.map((type) => (
+                                <div key={type} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`custom-type-${type}`}
+                                    checked={customGameType.includes(type)}
+                                    onCheckedChange={() => handleCustomGameTypeToggle(type)}
+                                    className="border-gray-400 data-[state=checked]:bg-blue-600"
+                                  />
+                                  <Label htmlFor={`custom-type-${type}`} className="text-xs cursor-pointer">
+                                    {type}
+                                  </Label>
+                                </div>
+                              ))}
+                              <div className="border-t pt-2 mt-2">
+                                <h5 className="font-medium text-xs text-gray-600 mb-2">Eigene Kategorie hinzufügen:</h5>
+                                <div className="flex gap-2">
+                                  <Input
+                                    value={customGameCustomType}
+                                    onChange={(e) => setCustomGameCustomType(e.target.value)}
+                                    placeholder="Kategorie eingeben..."
+                                    className="text-xs border-gray-300"
+                                    onKeyPress={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault()
+                                        handleAddCustomType()
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={handleAddCustomType}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-2"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                  </Button>
+                                </div>
                               </div>
-                            )}
-                          </div>
-                          <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleCustomGameImageUpload}
-                            accept="image/*"
-                            className="hidden"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white transition-all duration-200 rounded-xl px-6 py-2 font-medium"
-                            disabled={!!selectedGame}
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Bild hochladen
-                          </Button>
-                        </div>
-                        {errors.customGameImage && (
+                              {customGameType.length > 0 && (
+                                <div className="border-t pt-2 mt-2">
+                                  <h5 className="font-medium text-xs text-gray-600 mb-2">Ausgewählt:</h5>
+                                  <div className="flex flex-wrap gap-1">
+                                    {customGameType.map((type) => (
+                                      <Badge
+                                        key={type}
+                                        className="text-xs cursor-pointer bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                        onClick={() => handleCustomGameTypeToggle(type)}
+                                      >
+                                        {type} ×
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        {errors.customGameType && (
                           <div className="flex items-center space-x-2 text-red-600 text-sm mt-3 bg-red-50 p-2 rounded-lg">
                             <AlertCircle className="w-4 h-4" />
-                            <span>{errors.customGameImage}</span>
+                            <span>{errors.customGameType}</span>
                           </div>
                         )}
                       </div>
 
-                      {/* Basic Information */}
-                      <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
-                          <Info className="w-5 h-5" />
-                          Grundinformationen
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">Spielname *</Label>
-                            <Input
-                              value={customGameTitle}
-                              onChange={(e) => setCustomGameTitle(e.target.value)}
-                              placeholder="z.B. Die Siedler von Catan"
-                              className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors"
-                              disabled={!!selectedGame}
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">Verlag *</Label>
-                            <Select
-                              value={customGamePublisher}
-                              onValueChange={setCustomGamePublisher}
+                      <div>
+                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">
+                          Typus * (Mehrfachauswahl)
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-between h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                              type="button"
                               disabled={!!selectedGame}
                             >
-                              <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
-                                <SelectValue placeholder="Verlag wählen..." />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                {publisherOptions.map((publisher) => (
-                                  <SelectItem key={publisher} value={publisher} className="rounded-lg">
-                                    {publisher}
-                                  </SelectItem>
-                                ))}
-                                <SelectItem value="custom" className="font-bold text-orange-600 rounded-lg">
-                                  Eigenen Verlag eingeben...
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {customGamePublisher === "custom" && (
-                              <div className="mt-3 flex gap-2">
-                                <Input
-                                  value={customGameCustomPublisher}
-                                  onChange={(e) => setCustomGameCustomPublisher(e.target.value)}
-                                  placeholder="Verlag eingeben..."
-                                  className="h-10 border-2 border-orange-200 rounded-lg bg-white"
-                                  onKeyPress={(e) => {
-                                    if (e.key === "Enter") {
-                                      e.preventDefault()
-                                      handleAddCustomPublisher()
-                                    }
-                                  }}
-                                />
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  onClick={handleAddCustomPublisher}
-                                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-3"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="md:col-span-2">
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">Sprache *</Label>
-                            <Select
-                              value={customGameLanguage}
-                              onValueChange={setCustomGameLanguage}
-                              disabled={!!selectedGame}
-                            >
-                              <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
-                                <SelectValue placeholder="Sprache wählen..." />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                {LANGUAGE_OPTIONS.map((language) => (
-                                  <SelectItem
-                                    key={language}
-                                    value={language === "Andere" ? "custom" : language}
-                                    className="rounded-lg"
+                              {customGameStyle.length > 0 ? (
+                                <span className="text-blue-600 font-medium">
+                                  {customGameStyle.length} Typus {customGameStyle.length > 1 ? "en" : ""} ausgewählt
+                                </span>
+                              ) : (
+                                "Typus wählen..."
+                              )}
+                              <ChevronDown className="h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 p-0">
+                            <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                              <h4 className="font-medium text-xs text-gray-700">Typus auswählen:</h4>
+                              {GAME_STYLE_OPTIONS.map((style) => (
+                                <div key={style} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`custom-style-${style}`}
+                                    checked={customGameStyle.includes(style)}
+                                    onCheckedChange={() => handleCustomGameStyleToggle(style)}
+                                    className="border-gray-400 data-[state=checked]:bg-blue-600"
+                                  />
+                                  <Label htmlFor={`custom-style-${style}`} className="text-xs cursor-pointer">
+                                    {style}
+                                  </Label>
+                                </div>
+                              ))}
+                              <div className="border-t pt-2 mt-2">
+                                <h5 className="font-medium text-xs text-gray-600 mb-2">Eigenen Typus hinzufügen:</h5>
+                                <div className="flex gap-2">
+                                  <Input
+                                    value={customGameCustomStyle}
+                                    onChange={(e) => setCustomGameCustomStyle(e.target.value)}
+                                    placeholder="Typus eingeben..."
+                                    className="text-xs border-gray-300"
+                                    onKeyPress={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault()
+                                        handleAddCustomStyle()
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={handleAddCustomStyle}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-2"
                                   >
-                                    {language}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {customGameLanguage === "custom" && (
-                              <div className="mt-3 flex gap-2">
-                                <Input
-                                  value={customGameCustomLanguage}
-                                  onChange={(e) => setCustomGameCustomLanguage(e.target.value)}
-                                  placeholder="Sprache eingeben..."
-                                  className="h-10 border-2 border-orange-200 rounded-lg bg-white"
-                                  onKeyPress={(e) => {
-                                    if (e.key === "Enter") {
-                                      e.preventDefault()
-                                      handleAddCustomLanguage()
-                                    }
-                                  }}
-                                />
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  onClick={handleAddCustomLanguage}
-                                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-3"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                </Button>
+                                    <Plus className="w-3 h-3" />
+                                  </Button>
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        </div>
-                        {(errors.customGamePublisher || errors.customGameLanguage) && (
-                          <div className="mt-3 space-y-1">
-                            {errors.customGamePublisher && (
-                              <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-2 rounded-lg">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>{errors.customGamePublisher}</span>
-                              </div>
-                            )}
-                            {errors.customGameLanguage && (
-                              <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-2 rounded-lg">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>{errors.customGameLanguage}</span>
-                              </div>
-                            )}
+                              {customGameStyle.length > 0 && (
+                                <div className="border-t pt-2 mt-2">
+                                  <h5 className="font-medium text-xs text-gray-600 mb-2">Ausgewählt:</h5>
+                                  <div className="flex flex-wrap gap-1">
+                                    {customGameStyle.map((style) => (
+                                      <Badge
+                                        key={style}
+                                        className="text-xs cursor-pointer bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                        onClick={() => handleCustomGameStyleToggle(style)}
+                                      >
+                                        {style} ×
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        {errors.customGameStyle && (
+                          <div className="flex items-center space-x-2 text-red-600 text-sm mt-3 bg-red-50 p-2 rounded-lg">
+                            <AlertCircle className="w-4 h-4" />
+                            <span>{errors.customGameStyle}</span>
                           </div>
                         )}
                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
-                      {/* Game Details Section */}
-                      <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
-                          <Users className="w-5 h-5" />
-                          Spieldetails
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">Spieleranzahl *</Label>
-                            <Select
-                              value={customGamePlayerCount}
-                              onValueChange={setCustomGamePlayerCount}
-                              disabled={!!selectedGame}
-                            >
-                              <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
-                                <SelectValue placeholder="Spieleranzahl wählen..." />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                {PLAYER_COUNT_OPTIONS.map((count) => (
-                                  <SelectItem key={count} value={count} className="rounded-lg">
-                                    {count}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+          {/* Step 2: Offer Details */}
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h3 className="font-semibold text-gray-900 mb-6 text-sm">Angebots-Details</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Offer Type */}
+                  <div>
+                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Angebotsart *</Label>
+                    <Select value={offerType} onValueChange={(value: "lend" | "trade" | "sell") => setOfferType(value)}>
+                      <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-lg">
+                        <SelectItem value="lend" className="rounded-md">
+                          <div className="flex items-center gap-2">
+                            Mietangebot
                           </div>
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">Spieldauer *</Label>
-                            <Select
-                              value={customGameDuration}
-                              onValueChange={setCustomGameDuration}
-                              disabled={!!selectedGame}
-                            >
-                              <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
-                                <SelectValue placeholder="Spieldauer wählen..." />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                {DURATION_OPTIONS.map((duration) => (
-                                  <SelectItem key={duration} value={duration} className="rounded-lg">
-                                    {duration}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                        </SelectItem>
+                        <SelectItem value="trade" className="rounded-md">
+                          <div className="flex items-center gap-2">
+                            Tauschangebot
                           </div>
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">Altersempfehlung *</Label>
-                            <Select value={customGameAge} onValueChange={setCustomGameAge} disabled={!!selectedGame}>
-                              <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
-                                <SelectValue placeholder="Altersempfehlung wählen..." />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                {AGE_OPTIONS.map((age) => (
-                                  <SelectItem key={age} value={age} className="rounded-lg">
-                                    {age}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                        </SelectItem>
+                        <SelectItem value="sell" className="rounded-md">
+                          <div className="flex items-center gap-2">
+                            Verkaufsangebot
                           </div>
-                        </div>
-                        {(errors.customGamePlayerCount || errors.customGameDuration || errors.customGameAge) && (
-                          <div className="mt-3 space-y-1">
-                            {errors.customGamePlayerCount && (
-                              <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-2 rounded-lg">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>{errors.customGamePlayerCount}</span>
-                              </div>
-                            )}
-                            {errors.customGameDuration && (
-                              <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-2 rounded-lg">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>{errors.customGameDuration}</span>
-                              </div>
-                            )}
-                            {errors.customGameAge && (
-                              <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-2 rounded-lg">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>{errors.customGameAge}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.type && (
+                      <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>{errors.type}</span>
                       </div>
+                    )}
+                  </div>
 
-                      <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
-                          <Tag className="w-5 h-5" />
-                          Kategorien & Typus
-                        </h3>
-                        <div className="space-y-4">
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">
-                              Kategorie * (Mehrfachauswahl)
-                            </Label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="w-full justify-between h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors"
-                                  type="button"
-                                  disabled={!!selectedGame}
-                                >
-                                  {customGameType.length > 0 ? (
-                                    <span className="text-orange-600 font-medium">
-                                      {customGameType.length} Kategorie{customGameType.length > 1 ? "n" : ""} ausgewählt
-                                    </span>
-                                  ) : (
-                                    "Kategorie wählen..."
-                                  )}
-                                  <ChevronDown className="h-4 w-4 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-80 p-0">
-                                <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
-                                  <h4 className="font-medium text-sm text-orange-700">Kategorie auswählen:</h4>
-                                  {GAME_TYPE_OPTIONS.map((type) => (
-                                    <div key={type} className="flex items-center space-x-2">
-                                      <Checkbox
-                                        id={`custom-type-${type}`}
-                                        checked={customGameType.includes(type)}
-                                        onCheckedChange={() => handleCustomGameTypeToggle(type)}
-                                        className="border-orange-300 data-[state=checked]:bg-orange-600"
-                                      />
-                                      <Label htmlFor={`custom-type-${type}`} className="text-sm cursor-pointer">
-                                        {type}
-                                      </Label>
-                                    </div>
-                                  ))}
-                                  <div className="border-t pt-2 mt-2">
-                                    <h5 className="font-medium text-xs text-gray-600 mb-2">
-                                      Eigene Kategorie hinzufügen:
-                                    </h5>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        value={customGameCustomType}
-                                        onChange={(e) => setCustomGameCustomType(e.target.value)}
-                                        placeholder="Kategorie eingeben..."
-                                        className="text-xs border-orange-200"
-                                        onKeyPress={(e) => {
-                                          if (e.key === "Enter") {
-                                            e.preventDefault()
-                                            handleAddCustomType()
-                                          }
-                                        }}
-                                      />
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={handleAddCustomType}
-                                        className="bg-orange-500 hover:bg-orange-600 text-white px-2"
-                                      >
-                                        <Plus className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  {customGameType.length > 0 && (
-                                    <div className="border-t pt-2 mt-2">
-                                      <h5 className="font-medium text-xs text-gray-600 mb-2">Ausgewählt:</h5>
-                                      <div className="flex flex-wrap gap-1">
-                                        {customGameType.map((type) => (
-                                          <Badge
-                                            key={type}
-                                            className="text-xs cursor-pointer bg-orange-100 text-orange-700 hover:bg-orange-200"
-                                            onClick={() => handleCustomGameTypeToggle(type)}
-                                          >
-                                            {type} ×
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                            {errors.customGameType && (
-                              <div className="flex items-center space-x-2 text-red-600 text-sm mt-3 bg-red-50 p-2 rounded-lg">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>{errors.customGameType}</span>
-                              </div>
-                            )}
-                          </div>
+                  {/* Condition */}
+                  <div>
+                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Zustand *</Label>
+                    <Select value={condition} onValueChange={setCondition}>
+                      <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                        <SelectValue placeholder="Zustand auswählen..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-lg">
+                        <SelectItem value="Neu" className="rounded-md">
+                          <div className="flex items-center gap-2">Neu</div>
+                        </SelectItem>
+                        <SelectItem value="Neuwertig" className="rounded-md">
+                          <div className="flex items-center gap-2">Neuwertig</div>
+                        </SelectItem>
+                        <SelectItem value="Gut" className="rounded-md">
+                          <div className="flex items-center gap-2">Gut</div>
+                        </SelectItem>
+                        <SelectItem value="Gebraucht" className="rounded-md">
+                          <div className="flex items-center gap-2">Gebraucht</div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.condition && (
+                      <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
+                        <AlertCircle className="w-4 h-4" />
+                        <span className="text-xs">{errors.condition}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
 
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">
-                              Typus * (Mehrfachauswahl)
-                            </Label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="w-full justify-between h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors"
-                                  type="button"
-                                  disabled={!!selectedGame}
-                                >
-                                  {customGameStyle.length > 0 ? (
-                                    <span className="text-orange-600 font-medium">
-                                      {customGameStyle.length} Typus {customGameStyle.length > 1 ? "en" : ""} ausgewählt
-                                    </span>
-                                  ) : (
-                                    "Typus wählen..."
-                                  )}
-                                  <ChevronDown className="h-4 w-4 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-80 p-0">
-                                <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
-                                  <h4 className="font-medium text-sm text-orange-700">Typus auswählen:</h4>
-                                  {GAME_STYLE_OPTIONS.map((style) => (
-                                    <div key={style} className="flex items-center space-x-2">
-                                      <Checkbox
-                                        id={`custom-style-${style}`}
-                                        checked={customGameStyle.includes(style)}
-                                        onCheckedChange={() => handleCustomGameStyleToggle(style)}
-                                        className="border-orange-300 data-[state=checked]:bg-orange-600"
-                                      />
-                                      <Label htmlFor={`custom-style-${style}`} className="text-sm cursor-pointer">
-                                        {style}
-                                      </Label>
-                                    </div>
-                                  ))}
-                                  <div className="border-t pt-2 mt-2">
-                                    <h5 className="font-medium text-xs text-gray-600 mb-2">
-                                      Eigenen Typus hinzufügen:
-                                    </h5>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        value={customGameCustomStyle}
-                                        onChange={(e) => setCustomGameCustomStyle(e.target.value)}
-                                        placeholder="Typus eingeben..."
-                                        className="text-xs border-orange-200"
-                                        onKeyPress={(e) => {
-                                          if (e.key === "Enter") {
-                                            e.preventDefault()
-                                            handleAddCustomStyle()
-                                          }
-                                        }}
-                                      />
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={handleAddCustomStyle}
-                                        className="bg-orange-500 hover:bg-orange-600 text-white px-2"
-                                      >
-                                        <Plus className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  {customGameStyle.length > 0 && (
-                                    <div className="border-t pt-2 mt-2">
-                                      <h5 className="font-medium text-xs text-gray-600 mb-2">Ausgewählt:</h5>
-                                      <div className="flex flex-wrap gap-1">
-                                        {customGameStyle.map((style) => (
-                                          <Badge
-                                            key={style}
-                                            className="text-xs cursor-pointer bg-orange-100 text-orange-700 hover:bg-orange-200"
-                                            onClick={() => handleCustomGameStyleToggle(style)}
-                                          >
-                                            {style} ×
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                            {errors.customGameStyle && (
-                              <div className="flex items-center space-x-2 text-red-600 text-sm mt-3 bg-red-50 p-2 rounded-lg">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>{errors.customGameStyle}</span>
-                              </div>
-                            )}
-                          </div>
+              {/* Lending specific fields */}
+              {offerType === "lend" && (
+                <div className="bg-white rounded-lg p-6 border border-gray-200">
+                  <h4 className="font-semibold text-gray-900 mb-4 text-sm">Mietkonditionen *</h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Daily Rates */}
+                    <div>
+                      <Label className="text-xs font-semibold text-gray-700 mb-2 block">Tagespreise (CHF) *</Label>
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-xs text-gray-600 mb-1 block">1 Tag</Label>
+                          <Input
+                            placeholder="z.B. 5.00"
+                            value={dailyRate1Day}
+                            onChange={(e) => setDailyRate1Day(e.target.value)}
+                            className="h-10 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-600 mb-1 block">2-6 Tage</Label>
+                          <Input
+                            placeholder="z.B. 4.00"
+                            value={dailyRate2To6Days}
+                            onChange={(e) => setDailyRate2To6Days(e.target.value)}
+                            className="h-10 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-600 mb-1 block">7-30 Tage</Label>
+                          <Input
+                            placeholder="z.B. 3.00"
+                            value={dailyRate7To30Days}
+                            onChange={(e) => setDailyRate7To30Days(e.target.value)}
+                            className="h-10 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-600 mb-1 block">Über 30 Tage</Label>
+                          <Input
+                            placeholder="z.B. 2.00"
+                            value={dailyRateOver30Days}
+                            onChange={(e) => setDailyRateOver30Days(e.target.value)}
+                            className="h-10 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                          />
                         </div>
                       </div>
+                      {errors.dailyRates && (
+                        <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
+                          <AlertCircle className="w-4 h-4" />
+                          <span className="text-xs">{errors.dailyRates}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Rental Duration */}
+                    <div>
+                      <Label className="text-xs font-semibold text-gray-700 mb-2 block">Mietzeit</Label>
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-xs text-gray-600 mb-1 block">Mindestmietzeit (Tage)</Label>
+                          <Input
+                            placeholder="z.B. 1"
+                            value={minRentalDays}
+                            onChange={(e) => setMinRentalDays(e.target.value)}
+                            className="h-10 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                            type="number"
+                            min="1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-600 mb-1 block">Maximalmietzeit (Tage)</Label>
+                          <Input
+                            placeholder="z.B. 30"
+                            value={maxRentalDays}
+                            onChange={(e) => setMaxRentalDays(e.target.value)}
+                            className="h-10 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                            type="number"
+                            min="1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Selling specific fields */}
+              {offerType === "sell" && (
+                <div className="bg-white rounded-lg p-6 border border-gray-200">
+                  <h4 className="font-semibold text-gray-900 mb-4 text-sm">Verkaufsbedingungen</h4>
+
+                  <div>
+                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Verkaufspreis (CHF) *</Label>
+                    <Input
+                      placeholder="z.B. 25.00"
+                      value={salePrice}
+                      onChange={(e) => setSalePrice(e.target.value)}
+                      className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                    />
+                    {errors.salePrice && (
+                      <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>{errors.salePrice}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Trading specific fields */}
+              {offerType === "trade" && (
+                <div className="bg-white rounded-lg p-6 border border-gray-200">
+                  <h4 className="font-semibold text-gray-900 mb-4 text-sm">Tauschbedingung</h4>
+
+                  <div className="mb-4">
+                    <div className="flex items-center space-x-3 text-xs">
+                      <input
+                        type="checkbox"
+                        id="openToSuggestions"
+                        checked={openToSuggestions}
+                        onChange={(e) => setOpenToSuggestions(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                      <Label htmlFor="openToSuggestions" className="flex items-center gap-2 text-sm cursor-pointer">
+                        Offen für Vorschläge
+                      </Label>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1 ml-7">Ich bin offen für Tauschvorschläge</p>
+                  </div>
+
+                  {!openToSuggestions && (
+                    <div>
+                      <Label className="text-xs font-semibold text-gray-700 mb-2 block">{getPriceLabel()}</Label>
+                      <Input
+                        placeholder={getPricePlaceholder()}
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                      />
+                      {errors.price && (
+                        <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
+                          <AlertCircle className="w-4 h-4" />
+                          <span>{errors.price}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {openToSuggestions && (
+                    <div className="text-blue-800 font-medium text-xs">
+                      <p className="text-blue-800 font-medium">
+                        Du bist offen für Tauschvorschläge. Andere Mitglieder können dir Spiele zum Tausch anbieten.
+                      </p>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Step 2: Offer Details */}
-              {currentStep === 2 && (
-                <div className="space-y-6">
-                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100">
-                    <h3 className="text-xl font-bold text-orange-800 mb-6 flex items-center gap-3">Angebots-Details</h3>
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
+                  Welche Zustelloption bietest du an? *
+                </h4>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Offer Type */}
-                      <div>
-                        <Label className="text-sm font-semibold text-gray-700 mb-2 block">Angebotsart *</Label>
-                        <Select
-                          value={offerType}
-                          onValueChange={(value: "lend" | "trade" | "sell") => setOfferType(value)}
-                        >
-                          <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                            <SelectItem value="lend" className="rounded-lg">
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-teal-400 rounded-full"></div>
-                                Verleihen
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="trade" className="rounded-lg">
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
-                                Tauschen
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="sell" className="rounded-lg">
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-pink-400 rounded-full"></div>
-                                Verkaufen
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {errors.type && (
-                          <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                            <AlertCircle className="w-4 h-4" />
-                            <span>{errors.type}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Condition */}
-                      <div>
-                        <Label className="text-sm font-semibold text-gray-700 mb-2 block">Zustand *</Label>
-                        <Select value={condition} onValueChange={setCondition}>
-                          <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
-                            <SelectValue placeholder="Zustand auswählen..." />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                            <SelectItem value="Neu" className="rounded-lg">
-                              <div className="flex items-center gap-2">Neu</div>
-                            </SelectItem>
-                            <SelectItem value="Neuwertig" className="rounded-lg">
-                              <div className="flex items-center gap-2">Neuwertig</div>
-                            </SelectItem>
-                            <SelectItem value="Gut" className="rounded-lg">
-                              <div className="flex items-center gap-2">Gut</div>
-                            </SelectItem>
-                            <SelectItem value="Gebraucht" className="rounded-lg">
-                              <div className="flex items-center gap-2">Gebraucht</div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {errors.condition && (
-                          <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                            <AlertCircle className="w-4 h-4" />
-                            <span>{errors.condition}</span>
-                          </div>
-                        )}
-                      </div>
+                <div className="space-y-4">
+                  {/* Pickup Option */}
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <div className="flex items-center space-x-3 mb-3 text-xs">
+                      <Checkbox
+                        id="pickup"
+                        checked={deliveryPickup}
+                        onCheckedChange={(checked) => {
+                          console.log(
+                            "[v0] Pickup checkbox clicked - checked:",
+                            checked,
+                            "current state:",
+                            deliveryPickup,
+                          )
+                          setDeliveryPickup(checked === true)
+                        }}
+                        className="border-gray-400 data-[state=checked]:bg-blue-600"
+                      />
+                      <Label htmlFor="pickup" className="flex items-center gap-2 text-sm cursor-pointer">
+                        <MapPin className="w-4 h-4" />
+                        Abholung
+                      </Label>
                     </div>
-                  </div>
 
-                  {/* Lending specific fields */}
-                  {offerType === "lend" && (
-                    <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100">
-                      <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
-                        Mietkonditionen *
-                      </h4>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Daily Rates */}
-                        <div>
-                          <Label className="text-sm font-semibold text-gray-700 mb-2 block">Tagespreise (CHF) *</Label>
-                          <div className="space-y-3">
-                            <div>
-                              <Label className="text-xs text-gray-600 mb-1 block">1 Tag</Label>
-                              <Input
-                                placeholder="z.B. 5.00"
-                                value={dailyRate1Day}
-                                onChange={(e) => setDailyRate1Day(e.target.value)}
-                                className="h-10 border-2 border-orange-200 focus:border-orange-500 rounded-lg bg-white"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-gray-600 mb-1 block">2-6 Tage</Label>
-                              <Input
-                                placeholder="z.B. 4.00"
-                                value={dailyRate2To6Days}
-                                onChange={(e) => setDailyRate2To6Days(e.target.value)}
-                                className="h-10 border-2 border-orange-200 focus:border-orange-500 rounded-lg bg-white"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-gray-600 mb-1 block">7-30 Tage</Label>
-                              <Input
-                                placeholder="z.B. 3.00"
-                                value={dailyRate7To30Days}
-                                onChange={(e) => setDailyRate7To30Days(e.target.value)}
-                                className="h-10 border-2 border-orange-200 focus:border-orange-500 rounded-lg bg-white"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-gray-600 mb-1 block">Über 30 Tage</Label>
-                              <Input
-                                placeholder="z.B. 2.00"
-                                value={dailyRateOver30Days}
-                                onChange={(e) => setDailyRateOver30Days(e.target.value)}
-                                className="h-10 border-2 border-orange-200 focus:border-orange-500 rounded-lg bg-white"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                              />
-                            </div>
-                          </div>
-                          {errors.dailyRates && (
-                            <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                              <AlertCircle className="w-4 h-4" />
-                              <span>{errors.dailyRates}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Rental Duration */}
-                        <div>
-                          <Label className="text-sm font-semibold text-gray-700 mb-2 block">Mietzeit</Label>
-                          <div className="space-y-3">
-                            <div>
-                              <Label className="text-xs text-gray-600 mb-1 block">Mindestmietzeit (Tage)</Label>
-                              <Input
-                                placeholder="z.B. 1"
-                                value={minRentalDays}
-                                onChange={(e) => setMinRentalDays(e.target.value)}
-                                className="h-10 border-2 border-orange-200 focus:border-orange-500 rounded-lg bg-white"
-                                type="number"
-                                min="1"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-gray-600 mb-1 block">Maximalmietzeit (Tage)</Label>
-                              <Input
-                                placeholder="z.B. 30"
-                                value={maxRentalDays}
-                                onChange={(e) => setMaxRentalDays(e.target.value)}
-                                className="h-10 border-2 border-orange-200 focus:border-orange-500 rounded-lg bg-white"
-                                type="number"
-                                min="1"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Selling specific fields */}
-                  {offerType === "sell" && (
-                    <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100">
-                      <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
-                        Verkaufsbedingungen
-                      </h4>
-
-                      <div>
-                        <Label className="text-sm font-semibold text-gray-700 mb-2 block">Verkaufspreis (CHF) *</Label>
-                        <Input
-                          placeholder="z.B. 25.00"
-                          value={salePrice}
-                          onChange={(e) => setSalePrice(e.target.value)}
-                          className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                        />
-                        {errors.salePrice && (
-                          <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                            <AlertCircle className="w-4 h-4" />
-                            <span>{errors.salePrice}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Trading specific fields */}
-                  {offerType === "trade" && (
-                    <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100">
-                      <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
-                        Tauschbedingung
-                      </h4>
-
-                      <div className="mb-4">
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="checkbox"
-                            id="openToSuggestions"
-                            checked={openToSuggestions}
-                            onChange={(e) => setOpenToSuggestions(e.target.checked)}
-                            className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
-                          />
-                          <Label htmlFor="openToSuggestions" className="flex items-center gap-2 text-sm cursor-pointer">
-                            Offen für Vorschläge
-                          </Label>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1 ml-7">Ich bin offen für Tauschvorschläge</p>
-                      </div>
-
-                      {!openToSuggestions && (
-                        <div>
-                          <Label className="text-sm font-semibold text-gray-700 mb-2 block">{getPriceLabel()}</Label>
-                          <Input
-                            placeholder={getPricePlaceholder()}
-                            value={price}
-                            onChange={(e) => setPrice(e.target.value)}
-                            className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white"
-                          />
-                          {errors.price && (
-                            <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                              <AlertCircle className="w-4 h-4" />
-                              <span>{errors.price}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {openToSuggestions && (
-                        <div className="bg-orange-100 border border-orange-300 rounded-xl p-4">
-                          <p className="text-orange-800 text-sm font-medium">
-                            Du bist offen für Tauschvorschläge. Andere Mitglieder können dir Spiele zum Tausch anbieten.
+                    {deliveryPickup && (
+                      <div className="space-y-3">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+                          <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-blue-700">
+                            Standardmäßig zeigen wir nur die Postleitzahl und den Ort an. Wenn du die vollständige
+                            Adresse anzeigen lassen möchtest, setze bitte einen Haken im Kasten.
                           </p>
                         </div>
-                      )}
-                    </div>
-                  )}
 
-                  <div className="bg-white rounded-2xl p-6 border border-orange-100 shadow-sm">
-                    <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
-                      Welche Zustelloption bietest du an? *
-                    </h4>
-
-                    <div className="space-y-4">
-                      {/* Pickup Option */}
-                      <div className="bg-white p-4 rounded-xl border border-orange-200">
-                        <div className="flex items-center space-x-3 mb-3">
-                          <Checkbox
-                            id="pickup"
-                            checked={deliveryPickup}
-                            onChange={(checked) => {
-                              console.log(
-                                "[v0] Pickup checkbox clicked - checked:",
-                                checked,
-                                "current state:",
-                                deliveryPickup,
-                              )
-                              setDeliveryPickup(checked === true)
-                            }}
-                            className="border-orange-400 data-[state=checked]:bg-orange-600"
-                          />
-                          <Label
-                            htmlFor="pickup"
-                            className="flex items-center gap-2 text-sm"
-                            onClick={() => {
-                              console.log("[v0] Pickup label clicked - current state:", deliveryPickup)
-                              setDeliveryPickup(!deliveryPickup)
-                            }}
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-xs">In</span>
+                          <span
+                            className={`px-2 py-1 rounded text-xs ${
+                              pickupAddress.includes("unvollständig") || pickupAddress.includes("vervollständigen")
+                                ? "bg-red-100 text-red-700"
+                                : "bg-blue-100 text-blue-700"
+                            }`}
                           >
-                            <MapPin className="w-4 h-4" />
-                            Abholung
-                          </Label>
+                            {pickupAddress
+                              ? showFullAddress
+                                ? pickupAddress
+                                : getPostalCodeAndCity(pickupAddress)
+                              : "Adresse wird geladen..."}
+                          </span>
                         </div>
 
-                        {deliveryPickup && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <span>bei</span>
-                            <span
-                              className={`px-2 py-1 rounded text-sm ${
-                                pickupAddress.includes("unvollständig") || pickupAddress.includes("vervollständigen")
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-orange-100 text-orange-700"
-                              }`}
-                            >
-                              {pickupAddress || "Adresse wird geladen..."}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Shipping Option */}
-                      <div className="bg-white p-4 rounded-xl border border-orange-200">
-                        <div className="flex items-center space-x-3 mb-3">
+                        <div className="flex items-center space-x-2 text-xs">
                           <Checkbox
-                            id="shipping"
-                            checked={deliveryShipping}
-                            onChange={(checked) => {
-                              console.log(
-                                "[v0] Shipping checkbox clicked - checked:",
-                                checked,
-                                "current state:",
-                                deliveryShipping,
-                              )
-                              setDeliveryShipping(checked === true)
-                              // REMOVED: if (checked !== true) setShippingOption("")
-                            }}
-                            className="border-orange-400 data-[state=checked]:bg-orange-600"
+                            id="showFullAddress"
+                            checked={showFullAddress}
+                            onCheckedChange={(checked) => setShowFullAddress(checked === true)}
+                            className="border-gray-400 data-[state=checked]:bg-blue-600"
                           />
-                          <Label
-                            htmlFor="shipping"
-                            className="flex items-center gap-2 text-sm cursor-pointer flex items-center gap-2"
-                            onClick={() => {
-                              console.log("[v0] Shipping label clicked - current state:", deliveryShipping)
-                              const newState = !deliveryShipping
-                              setDeliveryShipping(newState)
-                              // REMOVED: if (!newState) setShippingOption("")
-                            }}
-                          >
-                            <Package className="w-4 h-4" />
-                            Versand (Kosten zu Lasten der{" "}
-                            {offerType === "lend"
-                              ? "Mieter*in"
-                              : offerType === "sell"
-                                ? "Käufer*in"
-                                : "Tauschpartner*in"}
-                            )
+                          <Label htmlFor="showFullAddress" className="text-sm cursor-pointer text-gray-700">
+                            Vollständige Adresse anzeigen
                           </Label>
                         </div>
-                      </div>
-                    </div>
-
-                    {errors.delivery && (
-                      <div className="flex items-center space-x-2 text-red-600 text-sm mt-4 bg-red-50 p-3 rounded-lg">
-                        <AlertCircle className="w-4 h-4" />
-                        <span>{errors.delivery}</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Description */}
-                  <div className="bg-white rounded-2xl p-6 border border-orange-100 shadow-sm">
-                    <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">Beschreibung</h4>
-                    <RichTextEditor
-                      placeholder="Zusätzliche Informationen zum Spiel oder Angebot..."
-                      value={description}
-                      onChange={setDescription}
-                      className="border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white"
-                      rows={4}
-                      maxLength={2000}
+                  {/* Shipping Option */}
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <div className="flex items-center space-x-3 mb-3 text-xs">
+                      <Checkbox
+                        id="shipping"
+                        checked={deliveryShipping}
+                        onCheckedChange={(checked) => {
+                          console.log(
+                            "[v0] Shipping checkbox clicked - checked:",
+                            checked,
+                            "current state:",
+                            deliveryShipping,
+                          )
+                          setDeliveryShipping(checked === true)
+                        }}
+                        className="border-gray-400 data-[state=checked]:bg-blue-600"
+                      />
+                      <Label
+                        htmlFor="shipping"
+                        className="flex items-center gap-2 text-sm cursor-pointer flex items-center gap-2"
+                      >
+                        <TruckIcon className="w-4 h-4" />
+                        Postversand (Kosten zu Lasten der{" "}
+                        {offerType === "lend" ? "Mieter*in" : offerType === "sell" ? "Käufer*in" : "Tauschpartner*in"})
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                {errors.delivery && (
+                  <div className="flex items-center space-x-2 text-red-600 text-sm mt-4 bg-red-50 p-3 rounded-lg">
+                    <AlertCircle className="w-4 h-4" />
+                    <span className="text-xs">{errors.delivery}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">Beschreibung</h4>
+                <RichTextEditor
+                  placeholder="Zusätzliche Informationen zum Spiel oder Angebot..."
+                  value={description}
+                  onChange={setDescription}
+                  className="border-2 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                  rows={4}
+                  maxLength={2000}
+                />
+              </div>
+
+              {selectedGame && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <div className="flex items-start gap-2">
+                    <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-blue-800 text-xs">
+                      Das Spiel-Cover wird automatisch für die Anzeige verwendet. Gerne darfst du hier ein anderes Bild
+                      hochladen.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Image Upload */}
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">Bild</h4>
+                <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-colors">
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview || "/placeholder.svg"}
+                        alt="Vorschau"
+                        className="w-full h-64 object-cover rounded-xl"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-3 right-3 rounded-full w-8 h-8 p-0 bg-white hover:bg-gray-100 shadow-lg border border-gray-200"
+                        onClick={removeImage}
+                      >
+                        <Trash2 className="w-4 h-4 text-gray-700" />
+                      </Button>
+                      {selectedGame && !image && (
+                        <div className="absolute bottom-3 left-3 bg-green-100 text-green-800 px-2 py-1 rounded-lg text-xs font-medium">
+                          Spielbild
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 font-medium mb-2">
+                        {selectedGame ? "Zusätzliches Bild hochladen" : "Bild hochladen"}
+                      </p>
+
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        id="image-upload"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById("image-upload")?.click()}
+                        className="w-full h-11 border-gray-300 text-gray-800 hover:bg-gray-100 hover:border-gray-900 transition-colors rounded-lg font-medium"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Bild auswählen
+                      </Button>
+                      <p className="text-xs text-gray-500 mt-3">JPG, PNG, WebP (max. 5MB)</p>
+                    </div>
+                  )}
+                </div>
+                {errors.image && (
+                  <div className="flex items-center space-x-2 text-red-600 text-sm mt-3 bg-red-50 p-2 rounded-lg">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{errors.image}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Summary */}
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-lg">
+                <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  Angebots-Zusammenfassung
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Game Information */}
+                  <div className="bg-white rounded-xl p-4 border border-gray-200">
+                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2 justify-start text-sm">Spiel-Informationen</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Spiel:</span>
+                        <span className="font-medium">
+                          {selectedGame ? games.find((g) => g.id === selectedGame)?.title : customGameTitle}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Verlag:</span>
+                        <span className="font-medium">
+                          {selectedGame ? games.find((g) => g.id === selectedGame)?.publisher : customGamePublisher}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Zustand:</span>
+                        <span className="font-medium">{condition}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Offer Information */}
+                  <div className="bg-white rounded-xl p-4 border border-gray-200">
+                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2 text-sm">Angebots-Informationen</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Angebotsart:</span>
+                        <span className="font-medium">
+                          {offerType === "lend"
+                            ? "Mietangebot"
+                            : offerType === "trade"
+                              ? "Tauschangebot"
+                              : "Verkaufsangebot"}
+                        </span>
+                      </div>
+
+                      {offerType === "sell" && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Verkaufspreis:</span>
+                          <span className="font-medium">CHF {salePrice}</span>
+                        </div>
+                      )}
+
+                      {offerType === "trade" && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Tauschbedingungen:</span>
+                          <span className="font-medium">{openToSuggestions ? "Offen für Vorschläge" : price}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {offerType === "lend" && (
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Mietkonditionen</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-sm text-gray-600 block mb-2">Tagespreise:</span>
+                          <div className="space-y-1 text-sm">
+                            {dailyRate1Day && <p>1 Tag: CHF {dailyRate1Day}</p>}
+                            {dailyRate2To6Days && <p>2-6 Tage: CHF {dailyRate2To6Days}</p>}
+                            {dailyRate7To30Days && <p>7-30 Tage: CHF {dailyRate7To30Days}</p>}
+                            {dailyRateOver30Days && <p>Über 30 Tage: CHF {dailyRateOver30Days}</p>}
+                            {!dailyRate1Day && !dailyRate2To6Days && !dailyRate7To30Days && !dailyRateOver30Days && (
+                              <p className="text-orange-600 font-medium">Kostenlose Miete</p>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-gray-600 block mb-2">Mietzeit:</span>
+                          <div className="space-y-1 text-sm">
+                            {minRentalDays && <p>Min: {minRentalDays} Tage</p>}
+                            {maxRentalDays && <p>Max: {maxRentalDays} Tage</p>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Delivery Options */}
+                  <div className="md:col-span-2 bg-white rounded-xl p-4 border border-gray-200">
+                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Zustellungsoptionen</h4>
+                    <div className="space-y-3">
+                      {deliveryPickup && (
+                        <div className="flex items-start gap-2">
+                          <MapPin className="w-4 h-4 text-gray-900 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              Abholung in{" "}
+                              <span className="text-blue-600 font-medium">
+                                {showFullAddress ? pickupAddress : getPostalCodeAndCity(pickupAddress)}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {deliveryShipping && (
+                        <div className="flex items-start gap-2">
+                          <TruckIcon className="w-4 h-4 text-gray-900 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              Postversand (Kosten zu Lasten der{" "}
+                              {offerType === "lend"
+                                ? "Leihnehmer*innen"
+                                : offerType === "sell"
+                                  ? "Käufer*innen"
+                                  : "Tauschpartner*innen"}
+                              )
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                {description && (
+                  <div className="mt-6 bg-white rounded-xl p-4 border border-gray-200">
+                    <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">Beschreibung</h4>
+                    <p className="text-gray-700 text-sm leading-relaxed">{description}</p>
+                  </div>
+                )}
+
+                {/* Image Preview */}
+                {imagePreview && (
+                  <div className="mt-6 bg-white rounded-xl p-4 border border-gray-200">
+                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Bild</h4>
+                    <img
+                      src={imagePreview || "/placeholder.svg"}
+                      alt="Vorschau"
+                      className="w-48 h-48 object-cover rounded-xl border border-gray-200"
                     />
                   </div>
+                )}
+              </div>
 
-                  {selectedGame && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                      <div className="flex items-start gap-2">
-                        <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                        <p className="text-sm text-blue-800">
-                          Das Spiel-Cover wird automatisch für die Anzeige verwendet. Gerne darfst du hier ein anderes
-                          Bild hochladen.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Image Upload */}
-                  <div className="bg-white rounded-2xl p-6 border border-orange-100 shadow-sm">
-                    <h4 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">Bild</h4>
-                    <div className="border-2 border-dashed border-orange-200 rounded-xl p-6 hover:border-orange-300 transition-colors">
-                      {imagePreview ? (
-                        <div className="relative">
-                          <img
-                            src={imagePreview || "/placeholder.svg"}
-                            alt="Vorschau"
-                            className="w-full h-64 object-cover rounded-xl"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute top-3 right-3 rounded-full w-8 h-8 p-0 bg-white hover:bg-gray-100 shadow-lg border border-gray-200"
-                            onClick={removeImage}
-                          >
-                            <Trash2 className="w-4 h-4 text-gray-700" />
-                          </Button>
-                          {selectedGame && !image && (
-                            <div className="absolute bottom-3 left-3 bg-green-100 text-green-800 px-2 py-1 rounded-lg text-xs font-medium">
-                              Spielbild
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <ImageIcon className="w-16 h-16 text-orange-300 mx-auto mb-4" />
-                          <p className="text-orange-600 font-medium mb-2">
-                            {selectedGame ? "Zusätzliches Bild hochladen" : "Bild hochladen"}
-                          </p>
-
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/jpg,image/png,image/webp"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                            id="image-upload"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => document.getElementById("image-upload")?.click()}
-                            className="border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white rounded-xl px-6 py-2 transition-all duration-200"
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Bild auswählen
-                          </Button>
-                          <p className="text-xs text-gray-500 mt-3">JPG, PNG, WebP (max. 5MB)</p>
-                        </div>
-                      )}
-                    </div>
-                    {errors.image && (
-                      <div className="flex items-center space-x-2 text-red-600 text-sm mt-3 bg-red-50 p-2 rounded-lg">
-                        <AlertCircle className="w-4 h-4" />
-                        <span>{errors.image}</span>
-                      </div>
-                    )}
-                  </div>
+              {errors.submit && (
+                <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-4 rounded-xl border border-red-200">
+                  <AlertCircle className="w-5 h-5" />
+                  <span>{errors.submit}</span>
                 </div>
-              )}
-
-              {/* Step 3: Summary */}
-              {currentStep === 3 && (
-                <div className="space-y-6">
-                  <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 shadow-lg">
-                    <h3 className="text-2xl font-bold text-orange-800 mb-6 flex items-center gap-3">
-                      <Eye className="w-6 h-6" />
-                      Angebots-Zusammenfassung
-                    </h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Game Information */}
-                      <div className="bg-white rounded-xl p-4 border border-orange-100">
-                        <h4 className="font-bold text-orange-700 mb-3 flex items-center gap-2">Spiel-Informationen</h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Spiel:</span>
-                            <span className="font-medium">
-                              {selectedGame ? games.find((g) => g.id === selectedGame)?.title : customGameTitle}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Verlag:</span>
-                            <span className="font-medium">
-                              {selectedGame ? games.find((g) => g.id === selectedGame)?.publisher : customGamePublisher}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Zustand:</span>
-                            <span className="font-medium">{condition}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Offer Information */}
-                      <div className="bg-white rounded-xl p-4 border border-orange-100">
-                        <h4 className="font-bold text-orange-700 mb-3 flex items-center gap-2">
-                          Angebots-Informationen
-                        </h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Angebotsart:</span>
-                            <span className="font-medium">
-                              {offerType === "lend"
-                                ? "Mietangebot"
-                                : offerType === "trade"
-                                  ? "Tauschangebot"
-                                  : "Verkaufsangebot"}
-                            </span>
-                          </div>
-
-                          {offerType === "sell" && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Verkaufspreis:</span>
-                              <span className="font-medium">CHF {salePrice}</span>
-                            </div>
-                          )}
-
-                          {offerType === "trade" && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Tauschbedingungen:</span>
-                              <span className="font-medium">{openToSuggestions ? "Offen für Vorschläge" : price}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {offerType === "lend" && (
-                        <div className="bg-white rounded-xl p-4 border border-orange-100">
-                          <h4 className="font-bold text-orange-700 mb-3 flex items-center gap-2">Mietkonditionen</h4>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <span className="text-sm text-gray-600 block mb-2">Tagespreise:</span>
-                              <div className="space-y-1 text-sm">
-                                {dailyRate1Day && <p>1 Tag: CHF {dailyRate1Day}</p>}
-                                {dailyRate2To6Days && <p>2-6 Tage: CHF {dailyRate2To6Days}</p>}
-                                {dailyRate7To30Days && <p>7-30 Tage: CHF {dailyRate7To30Days}</p>}
-                                {dailyRateOver30Days && <p>Über 30 Tage: CHF {dailyRateOver30Days}</p>}
-                                {!dailyRate1Day &&
-                                  !dailyRate2To6Days &&
-                                  !dailyRate7To30Days &&
-                                  !dailyRateOver30Days && (
-                                    <p className="text-orange-600 font-medium">Kostenlose Miete</p>
-                                  )}
-                              </div>
-                            </div>
-                            <div>
-                              <span className="text-sm text-gray-600 block mb-2">Mietzeit:</span>
-                              <div className="space-y-1 text-sm">
-                                {minRentalDays && <p>Min: {minRentalDays} Tage</p>}
-                                {maxRentalDays && <p>Max: {maxRentalDays} Tage</p>}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Delivery Options */}
-                      <div className="md:col-span-2 bg-white rounded-xl p-4 border border-orange-100">
-                        <h4 className="font-bold text-orange-700 mb-3 flex items-center gap-2">Zustellungsoptionen</h4>
-                        <div className="space-y-3">
-                          {deliveryPickup && (
-                            <div className="flex items-start gap-2">
-                              <MapPin className="w-4 h-4 text-gray-900 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">
-                                  Abholung bei <span className="text-orange-600 font-medium">{pickupAddress}</span>
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                          {deliveryShipping && (
-                            <div className="flex items-start gap-2">
-                              <Package className="w-4 h-4 text-gray-900 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">
-                                  Postversand (Kosten zu Lasten der{" "}
-                                  {offerType === "lend"
-                                    ? "Leihnehmer*innen"
-                                    : offerType === "sell"
-                                      ? "Käufer*innen"
-                                      : "Tauschpartner*innen"}
-                                  )
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    {description && (
-                      <div className="mt-6 bg-white rounded-xl p-4 border border-orange-100">
-                        <h4 className="font-bold text-orange-700 mb-2 flex items-center gap-2">Beschreibung</h4>
-                        <p className="text-gray-700 text-sm leading-relaxed">{description}</p>
-                      </div>
-                    )}
-
-                    {/* Image Preview */}
-                    {imagePreview && (
-                      <div className="mt-6 bg-white rounded-xl p-4 border border-orange-100">
-                        <h4 className="font-bold text-orange-700 mb-3 flex items-center gap-2">Bild</h4>
-                        <img
-                          src={imagePreview || "/placeholder.svg"}
-                          alt="Vorschau"
-                          className="w-48 h-48 object-cover rounded-xl border border-orange-200"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {errors.submit && (
-                    <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-4 rounded-xl border border-red-200">
-                      <AlertCircle className="w-5 h-5" />
-                      <span>{errors.submit}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-between items-center pt-6 border-t border-orange-200">
-            <div>
-              {currentStep > 1 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleBack}
-                  className="border-2 border-orange-200 text-orange-600 hover:bg-orange-50 rounded-xl px-6 py-2 font-medium transition-all duration-200 bg-transparent"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Zurück
-                </Button>
               )}
             </div>
+          )}
+        </CardContent>
+      </Card>
 
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                className="border-2 border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl px-6 py-2 font-medium transition-all duration-200 bg-transparent"
-              >
-                Abbrechen
-              </Button>
+      <div className="flex justify-between items-center pt-6 border-t border-gray-200">
+        <div>
+          {currentStep > 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg px-6 py-2 font-medium transition-all duration-200 bg-transparent"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Zurück
+            </Button>
+          )}
+        </div>
 
-              {currentStep < 3 ? (
-                <Button
-                  type="button"
-                  onClick={handleNext}
-                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-800 text-white rounded-xl px-8 py-2 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                >
-                  Weiter
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="border-2 border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg px-6 py-2 font-medium transition-all duration-200 bg-transparent"
+          >
+            Abbrechen
+          </Button>
+
+          {currentStep < 3 ? (
+            <Button
+              type="button"
+              onClick={handleNext}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-8 py-2 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              Weiter
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="bg-blue-600 hover:bg-blue-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg px-8 py-2 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Wird erstellt...
+                </>
               ) : (
-                <Button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-800 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-xl px-8 py-2 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Wird erstellt...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4 mr-2" />
-                      Angebot erstellen
-                    </>
-                  )}
-                </Button>
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Angebot erstellen
+                </>
               )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            </Button>
+          )}
+        </div>
+      </div>
 
       <GameSearchDialog open={isGameSearchOpen} onOpenChange={setIsGameSearchOpen} onGameSelect={handleGameSelect} />
     </>

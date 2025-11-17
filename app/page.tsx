@@ -5,31 +5,24 @@ import type React from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
-  Users,
-  Repeat,
-  Store,
-  Plus,
-  HandCoins,
-  Library,
-  CheckCircle,
-  Expand,
-  Heart,
-  Target,
-  Coins,
-  Leaf,
-  Shield,
-  ArrowRight,
-  MessageCircle,
-  UserPlus,
-  Bell,
-  Star,
-  CalendarDays,
-  Search,
-  MessageSquare,
-  MessagesSquare,
-  Calendar,
-  MapPin,
-} from "lucide-react"
+  FaUsers,
+  FaRedo,
+  FaStore,
+  FaPlus,
+  FaHandHoldingUsd,
+  FaBook,
+  FaCheckCircle,
+  FaExpand,
+  FaHeart,
+  FaBullseye,
+  FaCoins,
+  FaLeaf,
+  FaShieldAlt,
+  FaArrowRight,
+  FaUserPlus,
+  FaCalendarAlt,
+  FaComments,
+} from "react-icons/fa"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import "@/styles/font-handwritten.css"
@@ -445,7 +438,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 30, rotate: -1 }}
             animate={{ opacity: 1, y: 0, rotate: -1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="text-5xl font-bold text-gray-800 mb-6 transform -rotate-1 font-handwritten"
+            className="font-bold text-gray-800 mb-6 transform -rotate-1 font-handwritten text-5xl"
           >
             Bring deine Spiele ins Spiel
           </motion.h2>
@@ -453,7 +446,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 30, rotate: 1 }}
             animate={{ opacity: 1, y: 0, rotate: 1 }}
             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            className="text-xl text-gray-600 mb-8 transform rotate-1 font-body"
+            className="text-gray-600 mb-8 transform rotate-1 font-body text-base"
           >
             Entdecke, teile und geniesse Brettspiele wie nie zuvor
           </motion.p>
@@ -467,7 +460,7 @@ export default function HomePage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-4xl font-handwritten text-center text-gray-800 mb-12 transform rotate-1"
+          className="font-handwritten text-center text-gray-800 mb-12 transform rotate-1 text-2xl"
         >
           Entdecke unsere tollen Features
         </motion.h2>
@@ -476,7 +469,7 @@ export default function HomePage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-lg text-gray-600 text-center mb-12 font-body transform rotate-1"
+          className="text-gray-600 text-center font-body transform rotate-1 text-base mb-10"
         >
           Eine Plattform, unzählige Möglichkeiten für deine Brettspiel-Leidenschaft
         </motion.p>
@@ -490,27 +483,26 @@ export default function HomePage() {
         >
           {[
             {
-              icon: Library,
+              icon: FaBook,
               title: "Digitales Spielregal",
-              description:
-                "Erfasse deine gesamte Spielesammlung digital und behalte den perfekten Überblick.",
+              description: "Erfasse deine gesamte Spielesammlung digital und behalte den perfekten Überblick.",
               link: "/library",
               linkText: "Zur Ludothek",
               color: "pink",
               rotation: "rotate-1",
             },
             {
-              icon: Store,
+              icon: FaStore,
               title: "Spielemarkt",
               description:
-                "Entdecke tolle Angebote von anderen Mitgliedern und finde tolle (Brett-)Spiele zum Mieten, Kaufen oder Tauschen.",
+                "Entdecke tolle Angebote von anderen Mitgliedern und finde tolle Spiele zum Mieten, Kaufen oder Tauschen.",
               link: "/marketplace",
               linkText: "Zum Spielemarkt",
               color: "orange",
               rotation: "rotate-1",
             },
             {
-              icon: Expand,
+              icon: FaExpand,
               title: "Spiele vermieten",
               description:
                 "Vermiete deine Spiele und verdiene dabei etwas. Lass deine Sammlung für dich arbeiten - sicher, einfach und fair!",
@@ -520,7 +512,7 @@ export default function HomePage() {
               rotation: "rotate-1",
             },
             {
-              icon: Repeat,
+              icon: FaRedo,
               title: "Spiele tauschen",
               description:
                 "Tausche Spiele mit anderen Mitgliedern und entdecke ständig neue Spiele. Perfekt für Abwechslung im Spielregal!",
@@ -530,17 +522,16 @@ export default function HomePage() {
               rotation: "-rotate-1",
             },
             {
-              icon: HandCoins,
+              icon: FaHandHoldingUsd,
               title: "Spiele verkaufen",
-              description:
-                "Verkaufe Spiele, die du nicht mehr brauchst. Schnell, sicher und fair!",
+              description: "Verkaufe Spiele, die du nicht mehr brauchst. Schnell, sicher und fair!",
               link: "/marketplace?filter=sell",
               linkText: "Jetzt verkaufen",
               color: "pink",
               rotation: "rotate-1",
             },
             {
-              icon: Users,
+              icon: FaUsers,
               title: "Spielgruppen",
               description:
                 "Tritt Spielgruppen bei oder gründe deine eigene Community. Verbinde dich mit anderen Spiel-Enthusiasten und schliesse neue Freundschaften!",
@@ -550,7 +541,7 @@ export default function HomePage() {
               rotation: "-rotate-1",
             },
             {
-              icon: CalendarDays,
+              icon: FaCalendarAlt,
               title: "Events & Spielrunden",
               description:
                 "Organisiere deine nächste Spielrunde im Handumdrehen und finde Gleichgesinnte für spontane oder regelmässige Spielrunden.",
@@ -560,20 +551,18 @@ export default function HomePage() {
               rotation: "-rotate-1",
             },
             {
-              icon: UserPlus,
+              icon: FaUserPlus,
               title: "Freunde finden",
-              description:
-                "Vernetze dich mit anderen Brettspiel-Fans und baue dein Freundesnetzwerk auf.",
+              description: "Vernetze dich mit anderen Brettspielbegeisterten und baue dein Freundesnetzwerk auf.",
               link: "/ludo-mitglieder",
               linkText: "Mitglieder entdecken",
               color: "pink",
               rotation: "rotate-1",
             },
             {
-              icon: MessagesSquare,
+              icon: FaComments,
               title: "Community-Forum",
-              description:
-                "Diskutiere mit der Community. Stelle Fragen, teile Erfahrungen und lerne von anderen Spielern.",
+              description: "Stelle Fragen, teile deine Gedanken und Erfahrungen und diskutiere mit der Community!",
               link: "/ludo-forum",
               linkText: "Zum Forum",
               color: "orange",
@@ -601,17 +590,17 @@ export default function HomePage() {
                       >
                         <feature.icon className="w-8 h-8 text-white" />
                       </motion.div>
-                      <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">{feature.title}</h3>
-                      <p className="text-gray-600 font-body mb-4 text-sm leading-relaxed">{feature.description}</p>
+                      <h3 className="font-bold text-gray-800 mb-2 font-handwritten text-xs">{feature.title}</h3>
+                      <p className="text-gray-600 font-body mb-4 text-xs leading-relaxed">{feature.description}</p>
                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                         <Button
                           asChild
                           variant="outline"
                           className={`${colors.border} ${colors.text} ${colors.hover} hover:text-white font-handwritten bg-transparent group`}
                         >
-                          <Link href={feature.link} className="flex items-center justify-center gap-2">
+                          <Link href={feature.link} className="flex items-center text-xs justify-center gap-2">
                             {feature.linkText}
-                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                            <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                           </Link>
                         </Button>
                       </motion.div>
@@ -631,7 +620,7 @@ export default function HomePage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-4xl font-handwritten text-center text-gray-800 mb-4 transform -rotate-1"
+          className="font-handwritten text-center text-gray-800 mb-4 transform -rotate-1 text-2xl"
         >
           Vorteile auf einen Blick
         </motion.h2>
@@ -640,7 +629,7 @@ export default function HomePage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-lg text-gray-600 text-center mb-12 font-body transform rotate-1"
+          className="text-gray-600 text-center mb-12 font-body transform rotate-1 text-base"
         >
           Warum LudoLoop die perfekte Wahl für Brettspiel-Liebhaber ist
         </motion.p>
@@ -654,7 +643,7 @@ export default function HomePage() {
         >
           {[
             {
-              icon: Target,
+              icon: FaBullseye,
               title: "Alles an einem Ort",
               description:
                 "Digitales Spielregal, Verleih, Tausch, Verkauf und Community - alles vereint in einer Plattform.",
@@ -663,7 +652,7 @@ export default function HomePage() {
               iconRotation: "-rotate-12",
             },
             {
-              icon: Heart,
+              icon: FaHeart,
               title: "Lebende Community",
               description:
                 "Vernetze dich mit Gleichgesinnten, finde Spielpartner für spontane oder regelmässige Runden, tausche Tipps aus und knüpfe Freundschaften, die über den Spieltisch hinausgehen.",
@@ -672,7 +661,7 @@ export default function HomePage() {
               iconRotation: "rotate-12",
             },
             {
-              icon: CheckCircle,
+              icon: FaCheckCircle,
               title: "Spielvielfalt",
               description: "Einfacher Zugang zu tollen Spielen.",
               color: "teal",
@@ -680,7 +669,7 @@ export default function HomePage() {
               iconRotation: "-rotate-12",
             },
             {
-              icon: Leaf,
+              icon: FaLeaf,
               title: "Nachhaltig und kostensparend",
               description:
                 "Weniger ungenutzte Spiele im Regal, mehr Kreislauf durch Tausch und Verleih - gut für Umwelt und Geldbeutel.",
@@ -689,15 +678,15 @@ export default function HomePage() {
               iconRotation: "-rotate-12",
             },
             {
-              icon: Shield,
+              icon: FaShieldAlt,
               title: "Sicher & vertrauensvoll",
-              description: "Verifizierte Profile und sichere Transaktionen für sorgenfreies Spielen.",
+              description: "Verifizierte Profile und Klare Abläufe für ein angenehmes und vertrauenswürdiges Erlebnis.",
               color: "purple",
               rotation: "rotate-1",
               iconRotation: "-rotate-12",
             },
             {
-              icon: Coins,
+              icon: FaCoins,
               title: "Flexibel & kosteneffizient",
               description: "Spiele nur dann kaufen, wenn sie wirklich gefallen - erst testen, dann entscheiden.",
               color: "blue",
@@ -721,8 +710,8 @@ export default function HomePage() {
                     <benefit.icon className="w-6 h-6 text-white" />
                   </motion.div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-2 font-handwritten">{benefit.title}</h3>
-                    <p className="text-gray-600 font-body">{benefit.description}</p>
+                    <h3 className="font-bold text-gray-800 mb-2 font-handwritten text-xs">{benefit.title}</h3>
+                    <p className="text-gray-600 font-body text-xs">{benefit.description}</p>
                   </div>
                 </motion.div>
               </motion.div>
@@ -742,7 +731,7 @@ export default function HomePage() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="text-3xl font-bold text-white mb-6 transform rotate-1 font-handwritten"
+              className="font-bold text-white mb-6 transform rotate-1 font-handwritten text-2xl"
             >
               Bereit für dein Spiele-Abenteuer?
             </motion.h3>
@@ -751,7 +740,7 @@ export default function HomePage() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-xl text-white mb-8 transform -rotate-1 font-body"
+              className="text-white mb-8 transform -rotate-1 font-body text-base"
             >
               Schliesse dich tausenden von Brettspiel-Fans an und bringe deine Spielleidenschaft auf ein neues Level!
             </motion.p>
@@ -770,9 +759,9 @@ export default function HomePage() {
                 className="bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 text-lg transform rotate-1 transition-all font-handwritten shadow-lg hover:shadow-2xl"
               >
                 <Link href="/register" className="flex items-center gap-2">
-                  <Plus className="w-5 h-5" />
+                  <FaPlus className="w-5 h-5" />
                   Jetzt loslegen
-                  <ArrowRight className="w-5 h-5" />
+                  <FaArrowRight className="w-5 h-5" />
                 </Link>
               </Button>
             </motion.div>

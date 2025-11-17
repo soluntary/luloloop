@@ -24,6 +24,10 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [type, setType] = useState("")
+  const [rentalDuration, setRentalDuration] = useState("")
+  const [isFlexibleRental, setIsFlexibleRental] = useState(false)
+  const [maxPrice, setMaxPrice] = useState("")
+  const [tradeGameTitle, setTradeGameTitle] = useState("")
   const [image, setImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -52,7 +56,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
     const newErrors: { [key: string]: string } = {}
 
     if (!title.trim()) {
-      newErrors.title = "Bitte gib einen Titel ein."
+      newErrors.title = "Bitte gib einen Spielnamen ein."
     }
 
     if (!type) {
@@ -78,16 +82,23 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
     setIsSubmitting(true)
 
     try {
+      console.log("[v0] Creating search ad with type:", type)
+
+      const finalRentalDuration = type === "rent" ? (isFlexibleRental ? "Flexibel" : rentalDuration) : null
+
       const { error } = await supabase.from("search_ads").insert({
         title: title.trim(),
         description: description.trim() || null,
-        type,
+        type: type, // Use English value directly: 'buy', 'rent', 'trade'
+        rental_duration: finalRentalDuration,
+        max_price: type === "buy" && maxPrice ? Number.parseFloat(maxPrice) : null,
+        trade_game_title: type === "trade" ? tradeGameTitle.trim() : null,
         user_id: user.id,
       })
 
       if (error) {
         console.error("Error creating search ad:", error)
-        alert("Fehler beim Erstellen der Suchanzeige. Bitte versuche es erneut.")
+        alert(`Fehler beim Erstellen der Suchanzeige: ${error.message}`)
         return
       }
 
@@ -95,6 +106,10 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
       setTitle("")
       setDescription("")
       setType("")
+      setRentalDuration("")
+      setIsFlexibleRental(false)
+      setMaxPrice("")
+      setTradeGameTitle("")
       setImage(null)
       setImagePreview(null)
       setErrors({})
@@ -113,6 +128,10 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
     setTitle("")
     setDescription("")
     setType("")
+    setRentalDuration("")
+    setIsFlexibleRental(false)
+    setMaxPrice("")
+    setTradeGameTitle("")
     setImage(null)
     setImagePreview(null)
     setErrors({})
@@ -121,36 +140,31 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-orange-50 to-white border-2 border-orange-200 shadow-2xl">
-        <div className="sticky top-0 bg-gradient-to-r from-orange-300 to-orange-300 text-white p-6 -m-6 mb-6 rounded-t-lg z-10">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-gray-200">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 -m-6 mb-6 z-10">
           <DialogHeader>
-            <div className="flex items-center justify-center mb-4">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
-                <Search className="w-8 h-8 text-orange-600" />
-              </div>
-            </div>
-            <DialogTitle className="text-2xl font-bold text-center text-orange-800">Suchanzeige erstellen</DialogTitle>
-            <p className="text-center text-orange-800 text-sm mt-2">Teile der Community mit, welches Spiel du suchst</p>
+            <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">Suchanzeige erstellen</DialogTitle>
+            <p className="text-sm text-gray-600">Teile der Community mit, welches Spiel du suchst</p>
           </DialogHeader>
         </div>
 
         <Card className="border-0 shadow-none bg-transparent">
           <CardContent className="space-y-6 p-0">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100 hover:shadow-xl transition-all duration-300">
-                <h3 className="text-xl font-bold text-orange-800 mb-4 flex items-center gap-3">Grundinformationen</h3>
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h3 className="text-base font-semibold text-gray-900 mb-4">Grundinformationen</h3>
 
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <Label className="text-sm font-semibold text-gray-700">Titel der Suchanzeige *</Label>
-                      <span className="text-sm text-gray-500">{title.length}/60</span>
+                      <Label className="text-sm font-medium text-gray-700">Spielname *</Label>
+                      <span className="text-xs text-gray-500">{title.length}/60</span>
                     </div>
                     <Input
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder="z.B. Suche Catan Erweiterung"
-                      className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors"
+                      placeholder="z.B. Carcassonne"
+                      className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
                       required
                       maxLength={60}
                     />
@@ -163,23 +177,23 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                   </div>
 
                   <div>
-                    <Label className="text-sm font-semibold text-gray-700 mb-2 block">Was möchtest du? *</Label>
+                    <Label className="text-sm font-medium text-gray-700 mb-2 block"> Ich möchte das Spiel ...? *</Label>
                     <Select value={type} onValueChange={setType} required>
-                      <SelectTrigger className="h-12 border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white hover:border-orange-300 transition-colors">
+                      <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
                         <SelectValue placeholder="Wähle eine Option" />
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl border-orange-200">
-                        <SelectItem value="buy" className="rounded-lg hover:bg-orange-50">
+                      <SelectContent className="rounded-lg border-gray-200">
+                        <SelectItem value="buy" className="rounded-md">
                           <div className="flex items-center gap-3">
                             <span>Kaufen</span>
                           </div>
                         </SelectItem>
-                        <SelectItem value="rent" className="rounded-lg hover:bg-orange-50">
+                        <SelectItem value="rent" className="rounded-md">
                           <div className="flex items-center gap-3">
                             <span>Mieten</span>
                           </div>
                         </SelectItem>
-                        <SelectItem value="trade" className="rounded-lg hover:bg-orange-50">
+                        <SelectItem value="trade" className="rounded-md">
                           <div className="flex items-center gap-3">
                             <span>Tauschen</span>
                           </div>
@@ -193,25 +207,94 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                       </div>
                     )}
                   </div>
+
+                  {type === "rent" && (
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Mietdauer</Label>
+
+                      {/* Adding flexible checkbox option */}
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="flexibleRental"
+                          checked={isFlexibleRental}
+                          onChange={(e) => {
+                            setIsFlexibleRental(e.target.checked)
+                            if (e.target.checked) {
+                              setRentalDuration("")
+                            }
+                          }}
+                          className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                        />
+                        <Label htmlFor="flexibleRental" className="text-sm text-gray-700 font-normal cursor-pointer">
+                          Flexibel
+                        </Label>
+                      </div>
+
+                      {/* Only show input when not flexible */}
+                      {!isFlexibleRental && (
+                        <div>
+                          <Input
+                            value={rentalDuration}
+                            onChange={(e) => setRentalDuration(e.target.value)}
+                            placeholder="z.B. 1 Woche, 3 Tage, 2 Wochen"
+                            className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Gib die gewünschte Mietdauer ein</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {type === "buy" && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Vorbehaltspreis (CHF)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={maxPrice}
+                        onChange={(e) => setMaxPrice(e.target.value)}
+                        placeholder="z.B. 50.00"
+                        className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Ein Vorbehaltspreis, auch Reservationspreis genannt, ist der maximale Preis, den du bereit bist zu zahlen</p>
+                    </div>
+                  )}
+
+                  {type === "trade" && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Tauschspiel</Label>
+                      <Input
+                        value={tradeGameTitle}
+                        onChange={(e) => setTradeGameTitle(e.target.value)}
+                        placeholder="z.B. Die Siedler von Catan"
+                        maxLength={50}
+                        className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Welches Spiel bietest du zum Tausch an? (max. 50 Zeichen)
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-white rounded-2xl p-6 border border-orange-200 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <Label className="text-lg font-bold text-orange-800">Beschreibung (optional)</Label>
-                  <span className="text-sm text-gray-500">{description.replace(/<[^>]*>/g, "").length}/5000</span>
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <div className="flex items-center justify-between mb-4 text-base">
+                  <Label className="text-lg font-bold text-gray-900">Beschreibung</Label>
                 </div>
                 <RichTextEditor
                   value={description}
                   onChange={setDescription}
                   placeholder="Beschreibe genauer, was du suchst..."
-                  className="border-2 border-orange-200 focus:border-orange-500 rounded-xl bg-white"
+                  className="border-2 border-gray-200 focus:border-gray-900 rounded-lg bg-white"
                   rows={4}
                   maxLength={5000}
                 />
               </div>
 
-              <div className="flex gap-4 pt-4 sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent pb-2 -mb-2">
+              <div className="flex gap-4 pt-4 sticky bottom-0 bg-white pb-2 -mb-2">
                 <Button
                   type="button"
                   variant="outline"

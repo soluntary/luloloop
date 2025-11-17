@@ -187,13 +187,14 @@ export async function getCommunityPollsAction(communityId: string) {
       `,
       )
       .eq("community_id", communityId)
-      .eq("is_active", true)
       .order("created_at", { ascending: false })
 
     if (pollsError) {
       console.error("Error fetching polls:", pollsError)
       return { error: "Fehler beim Laden der Abstimmungen" }
     }
+
+    console.log("[v0] Fetched polls:", polls?.length || 0)
 
     // Fetch user's votes for all polls
     const pollIds = polls.map((poll) => poll.id)
@@ -376,6 +377,54 @@ export async function deletePollAction(pollId: string) {
     return { success: true }
   } catch (error) {
     console.error("Error in deletePollAction:", error)
+    return { error: "Ein unerwarteter Fehler ist aufgetreten" }
+  }
+}
+
+export async function closePollAction(pollId: string) {
+  try {
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return { error: "Nicht authentifiziert" }
+    }
+
+    console.log("[v0] Closing poll:", pollId)
+
+    // Verify user is the poll creator
+    const { data: poll, error: pollError } = await supabase
+      .from("community_polls")
+      .select("creator_id")
+      .eq("id", pollId)
+      .single()
+
+    if (pollError || !poll) {
+      console.log("[v0] Poll not found:", pollId)
+      return { error: "Abstimmung nicht gefunden" }
+    }
+
+    if (poll.creator_id !== user.id) {
+      console.log("[v0] User is not poll creator")
+      return { error: "Nur der Ersteller kann diese Abstimmung schließen" }
+    }
+
+    // Close poll by setting is_active to false
+    const { error: updateError } = await supabase.from("community_polls").update({ is_active: false }).eq("id", pollId)
+
+    if (updateError) {
+      console.error("[v0] Error closing poll:", updateError)
+      return { error: "Fehler beim Schließen der Abstimmung" }
+    }
+
+    console.log("[v0] Poll closed successfully:", pollId)
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error in closePollAction:", error)
     return { error: "Ein unerwarteter Fehler ist aufgetreten" }
   }
 }

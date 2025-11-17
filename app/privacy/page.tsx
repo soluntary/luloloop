@@ -20,21 +20,21 @@ export default function PrivacyPage() {
 
           <div className="space-y-8">
             {/* Introduction */}
-            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-blue-200">
+            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
                   <Shield className="w-6 h-6 text-blue-400" />
                   Einleitung
                 </CardTitle>
               </CardHeader>
-              <CardContent className="font-body text-gray-600 space-y-4">
+              <CardContent className="font-body text-xs text-gray-600 space-y-4">
                 <p>
                   Diese Datenschutzerklärung informiert Sie über die Art, den Umfang und Zweck der Verarbeitung von
                   personenbezogenen Daten durch LudoLoop (nachfolgend "wir" oder "uns") auf unserer Website und
                   Plattform.
                 </p>
                 <p>Verantwortlicher im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:</p>
-                <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-4 rounded-lg">
                   <p>
                     <strong>LudoLoop GmbH</strong>
                     <br />
@@ -49,15 +49,15 @@ export default function PrivacyPage() {
             </Card>
 
             {/* Data Collection */}
-            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-green-200">
+            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
                   <Database className="w-6 h-6 text-green-400" />
                   Welche Daten sammeln wir?
                 </CardTitle>
               </CardHeader>
-              <CardContent className="font-body text-gray-600 space-y-4">
-                <h4 className="font-semibold text-gray-800">Registrierungsdaten:</h4>
+              <CardContent className="font-body text-xs text-gray-600 space-y-4">
+                <h4 className="font-semibold text-sm text-gray-800">Registrierungsdaten:</h4>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>Name und E-Mail-Adresse</li>
                   <li>Gewähltes Passwort (verschlüsselt gespeichert)</li>
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
                   <li>Profilbild (optional)</li>
                 </ul>
 
-                <h4 className="font-semibold text-gray-800">Nutzungsdaten:</h4>
+                <h4 className="font-semibold text-sm text-gray-800">Nutzungsdaten:</h4>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>Informationen über deine Spiele und Angebote</li>
                   <li>Nachrichten und Kommunikation mit anderen Nutzern</li>
@@ -73,7 +73,7 @@ export default function PrivacyPage() {
                   <li>Aktivitätsdaten (Logins, Seitenaufrufe)</li>
                 </ul>
 
-                <h4 className="font-semibold text-gray-800">Technische Daten:</h4>
+                <h4 className="font-semibold text-sm text-gray-800">Technische Daten:</h4>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>IP-Adresse und Browser-Informationen</li>
                   <li>Geräteinformationen</li>
@@ -83,14 +83,14 @@ export default function PrivacyPage() {
             </Card>
 
             {/* Data Usage */}
-            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-orange-200">
+            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
                   <Eye className="w-6 h-6 text-orange-400" />
                   Wie verwenden wir deine Daten?
                 </CardTitle>
               </CardHeader>
-              <CardContent className="font-body text-gray-600 space-y-4">
+              <CardContent className="font-body text-xs text-gray-600 space-y-4">
                 <p>Wir verwenden deine Daten für folgende Zwecke:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>
@@ -110,7 +110,7 @@ export default function PrivacyPage() {
                   </li>
                 </ul>
 
-                <div className="bg-orange-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-4 rounded-lg">
                   <p>
                     <strong>Rechtsgrundlage:</strong> Die Verarbeitung erfolgt auf Basis deiner Einwilligung (Art. 6
                     Abs. 1 lit. a DSGVO) oder zur Erfüllung des Vertrags (Art. 6 Abs. 1 lit. b DSGVO).
@@ -120,14 +120,14 @@ export default function PrivacyPage() {
             </Card>
 
             {/* Data Sharing */}
-            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-pink-200">
+            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
                   <UserCheck className="w-6 h-6 text-pink-400" />
                   Datenweitergabe
                 </CardTitle>
               </CardHeader>
-              <CardContent className="font-body text-gray-600 space-y-4">
+              <CardContent className="font-body text-xs text-gray-600 space-y-4">
                 <p>Wir geben deine Daten nur in folgenden Fällen weiter:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>
@@ -141,7 +141,7 @@ export default function PrivacyPage() {
                   </li>
                 </ul>
 
-                <div className="bg-pink-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-4 rounded-lg">
                   <p>
                     <strong>Wichtig:</strong> Wir verkaufen deine Daten niemals an Dritte für Werbezwecke!
                   </p>
@@ -150,14 +150,14 @@ export default function PrivacyPage() {
             </Card>
 
             {/* Data Security */}
-            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-purple-200">
+            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
                   <Lock className="w-6 h-6 text-purple-400" />
                   Datensicherheit
                 </CardTitle>
               </CardHeader>
-              <CardContent className="font-body text-gray-600 space-y-4">
+              <CardContent className="font-body text-xs text-gray-600 space-y-4">
                 <p>Wir schützen deine Daten durch:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>SSL-Verschlüsselung für alle Datenübertragungen</li>
@@ -170,14 +170,14 @@ export default function PrivacyPage() {
             </Card>
 
             {/* Your Rights */}
-            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-teal-200">
+            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
                   <Mail className="w-6 h-6 text-teal-400" />
                   Deine Rechte
                 </CardTitle>
               </CardHeader>
-              <CardContent className="font-body text-gray-600 space-y-4">
+              <CardContent className="font-body text-xs text-gray-600 space-y-4">
                 <p>Du hast folgende Rechte bezüglich deiner Daten:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>
@@ -200,7 +200,7 @@ export default function PrivacyPage() {
                   </li>
                 </ul>
 
-                <div className="bg-teal-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-4 rounded-lg">
                   <p>
                     <strong>Kontakt:</strong> Für Anfragen zu deinen Rechten schreibe an privacy@ludoloop.com
                   </p>
@@ -209,11 +209,11 @@ export default function PrivacyPage() {
             </Card>
 
             {/* Cookies */}
-            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-yellow-200">
+            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="font-handwritten text-2xl text-gray-800">Cookies & Tracking</CardTitle>
               </CardHeader>
-              <CardContent className="font-body text-gray-600 space-y-4">
+              <CardContent className="font-body text-xs text-gray-600 space-y-4">
                 <p>Wir verwenden Cookies für:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>
@@ -237,14 +237,14 @@ export default function PrivacyPage() {
             </Card>
 
             {/* Contact */}
-            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-red-200">
+            <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
               <CardContent className="p-8 text-center">
                 <h3 className="font-handwritten text-2xl text-gray-800 mb-4">Fragen zum Datenschutz?</h3>
-                <p className="font-body text-gray-600 mb-6">
+                <p className="font-body text-xs text-gray-600 mb-6">
                   Bei Fragen oder Anliegen zum Datenschutz kontaktiere uns gerne.
                 </p>
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <p className="font-body">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="font-body text-xs">
                     <strong>Datenschutzbeauftragte:</strong>
                     <br />
                     E-Mail: privacy@ludoloop.com

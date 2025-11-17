@@ -16,8 +16,7 @@ export default function AboutPage() {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-gray-800 mb-6 transform -rotate-1 font-handwritten">Über Ludoloop</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto transform rotate-1 font-body">            
-          </p>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto transform rotate-1 font-body"></p>
         </div>
 
         {/* Mission Section */}
@@ -27,9 +26,16 @@ export default function AboutPage() {
               <div className="w-20 h-20 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-6 transform -rotate-12">
                 <Target className="w-10 h-10 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-4 font-handwritten">Unsere Mission</h2>
-              <p className="text-gray-600 font-body">
-               LudoLoop entstand aus einer einfachen Beobachtung: Viele von uns ha-ben Regale voller Brettspiele, die nur selten gespielt werden, während andere genau nach diesen Spielen suchen. Gleichzeitig ist es oft schwie-rig, Gleichgesinnte für regelmässige Spielrunden zu finden. Als begeisterte Brettspieler wollten wir eine Lösung schaffen, die mehrere Probleme gleichzeitig löst: Den Zugang zu einer grösseren Spielevielfalt ermöglichen, ohne dass jeder jedes Spiel neu kaufen muss. Eine Com-munity aufbauen, in der sich Spieler einfach finden und vernetzen kön-nen. Und dabei auch noch nachhaltig mit Ressourcen umgehen. So entstand LudoLoop - eine Plattform, die all diese Bedürfnisse vereint und das Beste aus der Sharing Economy mit der Leidenschaft für Brett-spiele verbindet.
+              <h2 className="font-bold text-gray-800 mb-4 font-handwritten text-lg">Unsere Mission</h2>
+              <p className="text-gray-600 font-body text-xs">
+                LudoLoop entstand aus einer einfachen Beobachtung: Viele von uns ha-ben Regale voller Brettspiele, die
+                nur selten gespielt werden, während andere genau nach diesen Spielen suchen. Gleichzeitig ist es oft
+                schwie-rig, Gleichgesinnte für regelmässige Spielrunden zu finden. Als begeisterte Brettspieler wollten
+                wir eine Lösung schaffen, die mehrere Probleme gleichzeitig löst: Den Zugang zu einer grösseren
+                Spielevielfalt ermöglichen, ohne dass jeder jedes Spiel neu kaufen muss. Eine Com-munity aufbauen, in
+                der sich Spieler einfach finden und vernetzen kön-nen. Und dabei auch noch nachhaltig mit Ressourcen
+                umgehen. So entstand LudoLoop - eine Plattform, die all diese Bedürfnisse vereint und das Beste aus der
+                Sharing Economy mit der Leidenschaft für Brett-spiele verbindet.
               </p>
             </CardContent>
           </Card>
@@ -39,9 +45,13 @@ export default function AboutPage() {
               <div className="w-20 h-20 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-6 transform rotate-12">
                 <Heart className="w-10 h-10 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-4 font-handwritten">Unsere Vision</h2>
-              <p className="text-gray-600 font-body">
-              Wir glauben, dass Gesellschaftsspiele mehr sind als nur Unterhaltung – sie sind Brücken zwischen Menschen. Unsere Vision ist es, die grösste digitale Gemeinschaft rund um Brett- und Gesellschaftsspiele aufzubauen, in der Spiele nicht unbenutzt im Regal verstauben, sondern immer wieder neue Freude bereiten. Wir möchten das gemeinsame Spielen fördern, den Zugang zu Spielen erleichtern und nachhaltigen Umgang mit Spielen unterstützen.
+              <h2 className="font-bold text-gray-800 mb-4 font-handwritten text-lg">Unsere Vision</h2>
+              <p className="text-gray-600 font-body text-xs">
+                Wir glauben, dass Gesellschaftsspiele mehr sind als nur Unterhaltung – sie sind Brücken zwischen
+                Menschen. Unsere Vision ist es, die grösste digitale Gemeinschaft rund um Brett- und Gesellschaftsspiele
+                aufzubauen, in der Spiele nicht unbenutzt im Regal verstauben, sondern immer wieder neue Freude
+                bereiten. Wir möchten das gemeinsame Spielen fördern, den Zugang zu Spielen erleichtern und nachhaltigen
+                Umgang mit Spielen unterstützen.
               </p>
             </CardContent>
           </Card>
@@ -49,7 +59,7 @@ export default function AboutPage() {
 
         {/* Values Section */}
         <div className="mb-16">
-          <h2 className="text-3xl font-bold text-gray-800 text-center mb-12 transform rotate-1 font-handwritten">
+          <h2 className="font-bold text-gray-800 text-center mb-12 transform rotate-1 font-handwritten text-2xl">
             Unsere Werte
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
@@ -58,8 +68,8 @@ export default function AboutPage() {
                 <div className="w-16 h-16 bg-pink-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
                   <Users className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Gemeinschaft</h3>
-                <p className="text-gray-600 text-sm font-body">
+                <h3 className="text-sm font-bold text-gray-800 mb-2 font-handwritten">Gemeinschaft</h3>
+                <p className="text-gray-600 text-xs font-body">
                   Wir verbinden Menschen durch die Liebe zu Brett- und Gesellschaftsspiele
                 </p>
               </CardContent>
@@ -70,8 +80,8 @@ export default function AboutPage() {
                 <div className="w-16 h-16 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-4 transform rotate-12">
                   <Recycle className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Nachhaltigkeit</h3>
-                <p className="text-gray-600 text-sm font-body">
+                <h3 className="text-sm font-bold text-gray-800 mb-2 font-handwritten">Nachhaltigkeit</h3>
+                <p className="text-gray-600 text-xs font-body">
                   Spiele teilen statt horten - gut für Umwelt und Geldbeutel
                 </p>
               </CardContent>
@@ -82,8 +92,8 @@ export default function AboutPage() {
                 <div className="w-16 h-16 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
                   <Heart className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2 font-handwritten">Vertrauen & Fairness</h3>
-                <p className="text-gray-600 text-sm font-body">Sichere und faire Transaktionen für alle Mitglieder</p>
+                <h3 className="text-sm font-bold text-gray-800 mb-2 font-handwritten">Vertrauen & Fairness</h3>
+                <p className="text-gray-600 text-xs font-body">Sichere und faire Transaktionen für alle Mitglieder</p>
               </CardContent>
             </Card>
           </div>
@@ -91,13 +101,14 @@ export default function AboutPage() {
 
         {/* Team Section */}
         <div className="mb-16">
-          <h2 className="text-3xl font-bold text-gray-800 text-center mb-12 transform -rotate-1 font-handwritten">
+          <h2 className="font-bold text-gray-800 text-center mb-12 transform -rotate-1 font-handwritten text-2xl">
             Das Team
           </h2>
           <div className="max-w-2xl mx-auto text-center">
-            <p className="text-lg text-gray-600 mb-8 font-body">
-              Unser kleines, aber feines Team arbeitet täglich daran, die beste Plattform für Spieleliebhaber zu schaffen. Wir sind selbst begeisterte Brettspieler und verstehen die Bedürfnisse unserer Community aus eigener Erfahrung.
-
+            <p className="text-xs text-gray-600 mb-8 font-body">
+              Unser kleines, aber feines Team arbeitet täglich daran, die beste Plattform für Spieleliebhaber zu
+              schaffen. Wir sind selbst begeisterte Brettspieler und verstehen die Bedürfnisse unserer Community aus
+              eigener Erfahrung.
             </p>
           </div>
         </div>
@@ -116,7 +127,7 @@ export default function AboutPage() {
                 <span className="font-body">Zufikon AG, Schweiz</span>
               </div>
             </div>
-            <p className="text-gray-600 mb-6 font-body">
+            <p className="text-gray-600 mb-6 font-body text-xs">
               Hast du Fragen, Feedback oder Anregungen? Wir freuen uns auf deine Nachricht und helfen dir gerne weiter!
             </p>
             <Button

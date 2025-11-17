@@ -39,7 +39,7 @@ export function LocationMap({ location, className = "" }: LocationMapProps) {
 
       <iframe
         src={embedUrl}
-        className="w-full h-full"
+        className="w-full h-full text-xs"
         style={{ border: 0 }}
         allowFullScreen
         loading="lazy"

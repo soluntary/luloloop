@@ -65,9 +65,26 @@ export function useUserAvatar(userId: string | null, email?: string) {
 
 // Hook for getting user display name with caching
 export function useUserDisplayName(userId: string | null) {
-  const { user } = useUserData(userId)
+  const { user, isLoading } = useUserData(userId)
 
-  if (!userId || !user) return "Unbekannt"
+  console.log("[v0] useUserDisplayName - userId:", userId, "user:", user, "isLoading:", isLoading)
 
-  return user.username || user.name || "Unbekannt"
+  if (!userId) {
+    console.log("[v0] useUserDisplayName - no userId, returning Unbekannter Nutzer")
+    return "Unbekannter Nutzer"
+  }
+
+  if (isLoading) {
+    console.log("[v0] useUserDisplayName - loading, returning Lädt...")
+    return "Lädt..."
+  }
+
+  if (!user) {
+    console.log("[v0] useUserDisplayName - no user found, returning Unbekannter Nutzer")
+    return "Unbekannter Nutzer"
+  }
+
+  const displayName = user.username || user.name || "Unbekannter Nutzer"
+  console.log("[v0] useUserDisplayName - returning displayName:", displayName)
+  return displayName
 }

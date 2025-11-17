@@ -89,6 +89,28 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const supabase = createClient()
 
+  useEffect(() => {
+    console.log("[v0] GamesProvider mounted")
+    console.log("[v0] Initial user:", user?.id)
+    console.log("[v0] Initial games count:", games.length)
+    return () => {
+      console.log("[v0] GamesProvider unmounting")
+    }
+  }, [])
+
+  useEffect(() => {
+    console.log("[v0] User changed in GamesProvider:", user?.id)
+    console.log("[v0] Current games count:", games.length)
+  }, [user])
+
+  useEffect(() => {
+    console.log("[v0] Games state changed, new count:", games.length)
+    console.log(
+      "[v0] Games:",
+      games.map((g) => ({ id: g.id, title: g.title })),
+    )
+  }, [games])
+
   const testDatabaseConnection = async () => {
     console.log("[v0] Testing database connection...")
     try {
@@ -421,64 +443,24 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const refreshData = useCallback(async () => {
-    if (isRefreshingRef.current) {
-      console.log("[v0] refreshData already in progress, skipping")
-      return
-    }
-
-    const currentUser = user
-    console.log("[v0] refreshData called - user:", currentUser?.id)
-    isRefreshingRef.current = true
-    setLoading(true)
-    setError(null)
-
-    try {
-      console.log("[v0] Loading marketplace offers for all users...")
-      await loadMarketplaceOffers(true)
-
-      const connected = await testDatabaseConnection()
-      console.log("[v0] Database connected:", connected)
-
-      if (currentUser && connected) {
-        console.log("[v0] Loading user games...")
-        await loadGames(connected, currentUser)
-        userIdRef.current = currentUser.id
-      } else {
-        console.log("[v0] No user or not connected, clearing games")
-        setGames([])
-        userIdRef.current = null
-      }
-    } catch (err) {
-      console.error("[v0] Error refreshing data:", err)
-      setError("Fehler beim Laden der Daten")
-      setMarketplaceOffers([])
-      if (!user) {
-        setGames([])
-      }
-    } finally {
-      console.log("[v0] refreshData completed, setting loading to false")
-      setLoading(false)
-      isRefreshingRef.current = false
-    }
-  }, [user, loadGames, loadMarketplaceOffers])
-
   const toggleGameAvailability = async (gameId: string, isAvailable: boolean) => {
     if (!user || !databaseConnected) {
       throw new Error("User not authenticated or database not connected")
     }
 
     try {
+      const availabilityStatus = isAvailable ? ["available"] : ["not_available"]
+      
       const { data, error } = await supabase
         .from("games")
-        .update({ available: isAvailable ? ["available"] : [] })
+        .update({ available: availabilityStatus })
         .eq("id", gameId)
         .eq("user_id", user.id)
         .select()
 
       if (error) {
         console.error("Error toggling game availability:", error)
-        throw new Error(`Fehler beim Ändern der Verfügbarkeit des Spiels: ${error.message}`)
+        throw new Error(`Fehler beim Aktualisieren der Verfügbarkeit: ${error.message}`)
       }
 
       if (data && data.length > 0) {
@@ -494,10 +476,61 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const refreshData = useCallback(async () => {
+    if (isRefreshingRef.current) {
+      console.log("[v0] refreshData already in progress, skipping")
+      return
+    }
+
+    console.log("[v0] refreshData called - user:", user?.id)
+    isRefreshingRef.current = true
+    setLoading(true)
+    setError(null)
+
+    try {
+      console.log("[v0] Loading marketplace offers for all users...")
+      await loadMarketplaceOffers(true)
+
+      const connected = await testDatabaseConnection()
+      console.log("[v0] Database connected:", connected)
+
+      const currentUser = user
+      console.log("[v0] Current user after connection test:", currentUser?.id)
+
+      if (currentUser && connected) {
+        console.log("[v0] Loading user games...")
+        await loadGames(connected, currentUser)
+        userIdRef.current = currentUser.id
+      } else {
+        if (currentUser === null) {
+          console.log("[v0] User logged out, clearing games")
+          setGames([])
+          userIdRef.current = null
+        } else {
+          console.log("[v0] User still loading, keeping existing games")
+        }
+      }
+    } catch (err) {
+      console.error("[v0] Error refreshing data:", err)
+      setError("Fehler beim Laden der Daten")
+      setMarketplaceOffers([])
+      if (user === null) {
+        setGames([])
+      }
+    } finally {
+      console.log("[v0] refreshData completed, setting loading to false")
+      setLoading(false)
+      isRefreshingRef.current = false
+    }
+  }, [user, loadGames, loadMarketplaceOffers])
+
   useEffect(() => {
+    console.log("[v0] Main useEffect triggered - user:", user?.id, "isRefreshing:", isRefreshingRef.current)
     if (!isRefreshingRef.current) {
       console.log("[v0] Initial load or user changed - refreshing data")
       refreshData()
+    } else {
+      console.log("[v0] Skipping refresh - already in progress")
     }
   }, [user, refreshData])
 

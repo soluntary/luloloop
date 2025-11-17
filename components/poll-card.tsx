@@ -4,12 +4,13 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Clock, Trash2, CheckCircle2, Star, Users } from "lucide-react"
+import { Clock, Trash2, CheckCircle2, Star, Users, XCircle } from "lucide-react"
 import { toast } from "sonner"
-import { voteOnPollAction, deletePollAction, type Poll } from "@/app/actions/community-polls"
+import { voteOnPollAction, deletePollAction, closePollAction, type Poll } from "@/app/actions/community-polls"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
+import { convertMarkdownToHtml } from "@/lib/utils"
 
 interface PollCardProps {
   poll: Poll
@@ -23,9 +24,11 @@ export function PollCard({ poll, currentUserId, isCreator, onPollUpdated }: Poll
   const [isVoting, setIsVoting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isChangingVote, setIsChangingVote] = useState(false)
+  const [isClosing, setIsClosing] = useState(false)
 
   const isExpired = poll.expires_at ? new Date(poll.expires_at) < new Date() : false
   const canVote = !isExpired && poll.is_active
+  const isManuallyClosed = !poll.is_active && !isExpired
 
   const handleVote = async () => {
     if (selectedOptions.length === 0) {
@@ -89,6 +92,31 @@ export function PollCard({ poll, currentUserId, isCreator, onPollUpdated }: Poll
     }
   }
 
+  const handleClose = async () => {
+    if (!confirm("Möchtest du diese Abstimmung wirklich schließen? Dies kann nicht rückgängig gemacht werden.")) {
+      return
+    }
+
+    setIsClosing(true)
+
+    try {
+      const result = await closePollAction(poll.id)
+
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+
+      toast.success("Abstimmung geschlossen")
+      onPollUpdated?.()
+    } catch (error) {
+      console.error("Error closing poll:", error)
+      toast.error("Fehler beim Schließen")
+    } finally {
+      setIsClosing(false)
+    }
+  }
+
   const getPercentage = (votes: number) => {
     if (poll.total_votes === 0) return 0
     return Math.round((votes / poll.total_votes) * 100)
@@ -124,8 +152,16 @@ export function PollCard({ poll, currentUserId, isCreator, onPollUpdated }: Poll
           <div className="flex-1 space-y-2">
             <div className="flex items-start gap-3">
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 leading-tight">{poll.question}</h3>
-                {poll.description && <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">{poll.description}</p>}
+                <h3
+                  className="text-lg font-semibold text-gray-900 leading-tight"
+                  dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(poll.question) }}
+                />
+                {poll.description && (
+                  <p
+                    className="text-sm text-gray-600 mt-1.5 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(poll.description) }}
+                  />
+                )}
               </div>
             </div>
 
@@ -134,6 +170,12 @@ export function PollCard({ poll, currentUserId, isCreator, onPollUpdated }: Poll
                 <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-50">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   Abgestimmt
+                </Badge>
+              )}
+              {isManuallyClosed && (
+                <Badge className="bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-50">
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Geschlossen
                 </Badge>
               )}
               {poll.expires_at && (
@@ -153,15 +195,30 @@ export function PollCard({ poll, currentUserId, isCreator, onPollUpdated }: Poll
           </div>
 
           {isCreator && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-1">
+              {poll.is_active && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleClose}
+                  disabled={isClosing}
+                  className="text-gray-400 hover:text-orange-600 hover:bg-orange-50 transition-colors"
+                  title="Abstimmung schließen"
+                >
+                  <XCircle className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                title="Abstimmung löschen"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </div>
       </CardHeader>

@@ -179,13 +179,13 @@ export function SecurityEventsDashboard() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-medium text-sm">{getEventTitle(event.event_type)}</h4>
+                    <h4 className="font-medium text-xs">{getEventTitle(event.event_type)}</h4>
                     <Badge variant={event.success ? "default" : "destructive"} className="text-xs">
                       {event.success ? "Erfolgreich" : "Fehlgeschlagen"}
                     </Badge>
                   </div>
 
-                  <p className="text-sm text-gray-600 mb-2">{getEventDescription(event)}</p>
+                  <p className="font-medium text-xs">{getEventDescription(event)}</p>
 
                   <div className="flex flex-wrap gap-4 text-xs text-gray-500">
                     <div className="flex items-center gap-1">

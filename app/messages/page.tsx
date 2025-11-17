@@ -242,7 +242,7 @@ function MessagesContent() {
           <h1 className="text-3xl md:text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
             Nachrichten
           </h1>
-          <p className="text-lg md:text-xl text-gray-600 transform rotate-1 font-body">
+          <p className="text-lg text-gray-600 transform rotate-1 font-body md:text-sm">
             Deine Unterhaltungen im Überblick!
           </p>
         </div>
@@ -301,7 +301,7 @@ function MessagesContent() {
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                              <h3 className="font-semibold text-sm md:text-base text-gray-800 truncate">
+                              <h3 className="font-semibold text-sm text-gray-800 truncate md:text-xs">
                                 {data.partnerName}
                               </h3>
                               <div className="flex items-center space-x-1 md:space-x-2">
@@ -360,10 +360,10 @@ function MessagesContent() {
                                 </AvatarFallback>
                               </Avatar>
                               <div>
-                                <h2 className="font-bold text-base md:text-lg text-gray-800">
+                                <h2 className="font-bold text-base text-gray-800 md:text-sm">
                                   {conversationData?.partnerName}
                                 </h2>
-                                <p className="text-xs md:text-sm text-gray-600 font-body">
+                                <p className="text-xs text-gray-600 font-body md:text-xs">
                                   {getConversationTitle(conversationData?.gameTitle, conversationData?.offerType)}
                                 </p>
                               </div>
@@ -421,7 +421,7 @@ function MessagesContent() {
                                 </span>
                               </div>
                               <p
-                                className={`text-sm md:text-base break-words ${isFromCurrentUser ? "text-gray-800" : "text-gray-800"}`}
+                                className={`text-sm break-words md:text-xs ${isFromCurrentUser ? "text-gray-800" : "text-gray-800"}`}
                               >
                                 {message.message}
                               </p>
@@ -467,8 +467,8 @@ function MessagesContent() {
                     <div className="w-20 h-20 bg-gradient-to-br from-teal-400 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                       <MessageCircle className="w-10 h-10 text-white" />
                     </div>
-                    <h3 className="text-lg md:text-xl font-bold text-gray-700 mb-2">Wähle eine Unterhaltung</h3>
-                    <p className="text-gray-500 font-body text-sm md:text-base">
+                    <h3 className="text-lg font-bold text-gray-700 mb-2 md:text-sm">Wähle eine Unterhaltung</h3>
+                    <p className="text-gray-500 font-body text-xs">
                       Klicke auf eine Unterhaltung links, um zu chatten
                     </p>
                   </div>
