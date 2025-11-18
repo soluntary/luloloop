@@ -22,6 +22,7 @@ import {
   FaUserTimes,
   FaUserMinus,
 } from "react-icons/fa"
+import { LuCalendarSync } from "react-icons/lu"
 // </CHANGE>
 
 import { Button } from "@/components/ui/button"
@@ -1396,7 +1397,7 @@ export default function LudoEventsPage() {
                           {isRecurring && (
                             <div className="absolute top-2 right-2 z-10">
                               <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200">
-                                <FaCalendarPlus className="h-3.5 w-3.5" /> {/* Changed to FaCalendarPlus */}
+                                <LuCalendarSync className="h-3.5 w-3.5" /> {/* Changed to FaCalendarPlus */}
                                 <span>Serientermine</span>
                               </div>
                             </div>
@@ -1433,7 +1434,7 @@ export default function LudoEventsPage() {
                           {isRecurring && (
                             <div className="absolute top-2 right-2 z-10">
                               <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200">
-                                <FaCalendarPlus className="h-3.5 w-3.5" /> {/* Changed to FaCalendarPlus */}
+                                <LuCalendarSync className="h-3.5 w-3.5" /> {/* Changed to FaCalendarPlus */}
                                 <span className="">Serientermine</span>
                               </div>
                             </div>
@@ -1502,7 +1503,7 @@ export default function LudoEventsPage() {
 
                           {intervalDisplay && (
                             <div className="flex items-center gap-2 text-xs text-gray-600">
-                              <FaCalendarPlus className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
+                              <LuCalendarSync className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
                               <span className="text-xs">{intervalDisplay}</span>
                             </div>
                           )}
@@ -1803,7 +1804,7 @@ export default function LudoEventsPage() {
 
                           {getIntervalDisplay(selectedEvent) && (
                             <div className="flex items-center gap-3 text-xs">
-                              <FaCalendarPlus className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
+                              <LuCalendarSync className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
                               <div>
                                 <div className="text-gray-600 text-xs font-medium">
                                   {getIntervalDisplay(selectedEvent)}
@@ -2036,7 +2037,7 @@ export default function LudoEventsPage() {
 
                       {getIntervalDisplay(selectedEvent) && (
                         <div className="flex items-center gap-3">
-                          <FaCalendarPlus className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
+                          <LuCalendarSync className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
                           <div>
                             <div className="text-gray-600 text-xs">{getIntervalDisplay(selectedEvent)}</div>
                           </div>

@@ -7,7 +7,9 @@ import type React from "react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { FaBook, FaImage, FaPlus, FaSearch, FaUpload, FaRedo, FaDice, FaHandHoldingUsd, FaExpand, FaCamera, FaInfoCircle, FaDatabase, FaEdit, FaTrash, FaChevronDown, FaTag, FaUsers, FaEyeSlash, FaCheck } from "react-icons/fa"
+import { FaBook, FaImage, FaPlus, FaSearch, FaUpload, FaRedo, FaDice, FaHandHoldingUsd, FaExpand, FaCamera, FaInfoCircle, FaDatabase, FaEdit, FaTrash, FaChevronDown, FaTag, FaUsers, FaEyeSlash, FaCheck, FaExchangeAlt } from "react-icons/fa"
+import { GiReceiveMoney, GiBackForth } from "react-icons/gi"
+import { GrSelect } from "react-icons/gr"
 import { Input } from "@/components/ui/input"
 import { Navigation } from "@/components/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -2090,7 +2092,7 @@ function LibraryContent() {
                         className="flex-1 bg-orange-400 hover:bg-orange-500 text-white font-handwritten"
                         disabled={!databaseConnected}
                       >
-                        <FaRedo className="w-4 h-4 mr-2" />
+                        <GiBackForth className="w-4 h-4 mr-2" />
                         Tauschen
                       </Button>
                       <Button
@@ -2098,7 +2100,7 @@ function LibraryContent() {
                         className="flex-1 bg-pink-400 hover:bg-pink-500 text-white font-handwritten"
                         disabled={!databaseConnected}
                       >
-                        <FaHandHoldingUsd className="w-4 h-4 mr-2" />
+                        <GiReceiveMoney className="w-4 h-4 mr-2" />
                         Verkaufen
                       </Button>
                     </div>
@@ -2122,8 +2124,8 @@ function LibraryContent() {
               <Card className="sticky top-8 transform rotate-1 hover:rotate-0 transition-all border-2 border-gray-200">
                 <CardContent className="p-6">
                   <div className="text-center">
-                    <FaExpand className="w-10 h-10 text-gray-500 mx-auto mb-4" />
-                    <h3 className="font-bold text-gray-700 mb-2 font-handwritten text-sm">Spiel auswählen</h3>
+                    <GrSelect className="w-10 h-10 text-gray-500 mx-auto mb-4" />
+                    <h3 className="font-bold mb-2 font-handwritten text-sm text-black">Spiel auswählen</h3>
                     <p className="text-gray-500 font-body text-xs">
                       Wähle ein Spiel aus deinem Spieleregal, um Details anzuzeigen
                     </p>

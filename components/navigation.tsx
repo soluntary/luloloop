@@ -19,11 +19,16 @@ import {
   FaTimes,
   FaInfoCircle,
   FaChevronDown,
-  FaCalendar,
+  FaCalendarAlt,
   FaStar,
   FaUserCheck,
-  FaComment,
 } from "react-icons/fa"
+import {
+IoLibrary
+} from "react-icons/io5"
+import { MdForum } from "react-icons/md"
+import { FaUsersRectangle } from "react-icons/fa6"
+import { RiUserCommunityFill } from "react-icons/ri"
 import { useAuth } from "@/contexts/auth-context"
 import { useMessages } from "@/contexts/messages-context"
 import { useAvatar } from "@/contexts/avatar-context"
@@ -57,17 +62,17 @@ function Navigation({ currentPage }: NavigationProps) {
 
   const loggedInNavItems: NavItem[] = [
     { href: "/", label: "Home", icon: FaHome, key: "home" },
-    { href: "/library", label: "Ludothek", icon: FaBook, key: "library" },
+    { href: "/library", label: "Ludothek", icon: IoLibrary, key: "library" },
     {
       label: "Community",
-      icon: FaUsers,
+      icon: RiUserCommunityFill,
       key: "community",
       dropdown: {
         items: [
-          { href: "/ludo-gruppen", label: "Spielgruppen", icon: FaUsers, key: "ludo-gruppen" },
+          { href: "/ludo-gruppen", label: "Spielgruppen", icon: FaUsersRectangle, key: "ludo-gruppen" },
           { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
-          { href: "/ludo-events", label: "Events", icon: FaCalendar, key: "ludo-events" },
-          { href: "/ludo-forum", label: "Forum", icon: FaComment, key: "ludo-forum" },
+          { href: "/ludo-events", label: "Events", icon: FaCalendarAlt, key: "ludo-events" },
+          { href: "/ludo-forum", label: "Forum", icon: MdForum, key: "ludo-forum" },
         ],
       },
     },
@@ -86,8 +91,8 @@ function Navigation({ currentPage }: NavigationProps) {
         items: [
           { href: "/ludo-gruppen", label: "Spielgruppen", icon: FaUsers, key: "ludo-gruppen" },
           { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
-          { href: "/ludo-events", label: "Events", icon: FaCalendar, key: "ludo-events" },
-          { href: "/ludo-forum", label: "Forum", icon: FaComment, key: "ludo-forum" },
+          { href: "/ludo-events", label: "Events", icon: FaCalendarAlt, key: "ludo-events" },
+          { href: "/ludo-forum", label: "Forum", icon: MdForum, key: "ludo-forum" },
         ],
       },
     },

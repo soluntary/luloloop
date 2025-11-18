@@ -11,23 +11,10 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CreateMarketplaceOfferForm } from "@/components/create-marketplace-offer-form"
 import { CreateSearchAdForm } from "@/components/create-search-ad-form"
-import { useSearchParams } from "next/navigation"
-import {
-  Search,
-  LogIn,
-  UserPlus,
-  Star,
-  MessageCircle,
-  ShoppingCart,
-  Database,
-  Store,
-  AlertCircle,
-  CalendarDaysIcon,
-  MapPin,
-  Filter,
-  ChevronDown,
-  Truck,
-} from "lucide-react"
+import { useSearchParams } from 'next/navigation'
+import { Search, LogIn, UserPlus, Star, MessageCircle, ShoppingCart, Database, Store, AlertCircle, CalendarDaysIcon, MapPin, Filter, ChevronDown, Truck } from 'lucide-react'
+import { FaShippingFast } from "react-icons/fa"
+import { FaLocationDot } from "react-icons/fa6"
 import { Navigation } from "@/components/navigation"
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
@@ -188,8 +175,8 @@ export default function MarketplacePage() {
         itemType: "offer",
       }))
     : [
-        ...marketplaceOffers.map((offer) => ({ ...offer, itemType: "offer" })),
-        ...searchAds.map((ad) => ({ ...ad, itemType: "search" })),
+        ...marketplaceOffers.filter((offer) => offer.active !== false).map((offer) => ({ ...offer, itemType: "offer" })),
+        ...searchAds.filter((ad) => ad.active !== false).map((ad) => ({ ...ad, itemType: "search" })),
       ]
 
   const filteredItems = allItems
@@ -835,7 +822,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
             {showLocationResults && (
               <div className="flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-gray-200">
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-orange-600" />
+                  <FaLocationDot className="h-5 w-5 text-orange-600" />
                   <span className="text-sm text-orange-800 font-medium">
                     Zeige Ergebnisse in der Nähe ({locationSearchResults.length})
                   </span>
@@ -1164,7 +1151,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                               <div className="flex items-center gap-2 mb-3">
                                 {item.pickup_available && (
                                   <div className="flex items-center gap-1 text-xs text-gray-600">
-                                    <MapPin className="w-3.5 h-3.5" />
+                                    <FaLocationDot className="w-3.5 h-3.5" />
                                     <span>Abholung möglich</span>
                                   </div>
                                 )}
@@ -1173,7 +1160,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                                 )}
                                 {item.shipping_available && (
                                   <div className="flex items-center gap-1 text-xs text-gray-600">
-                                    <Truck className="w-3.5 h-3.5" />
+                                    <FaShippingFast className="w-3.5 h-3.5" />
                                     <span>Versand möglich</span>
                                   </div>
                                 )}
@@ -1573,10 +1560,10 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                       </span>
                     </div>
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 font-normal font-normal font-normal font-normal">
                     <UserLink
                       userId={selectedOfferDetails.user_id}
-                      className="text-slate-900 font-semibold text-lg block hover:text-teal-600"
+                      className="text-slate-900 font-semibold text-xs block hover:text-teal-600"
                     >
                       {selectedOfferDetails.users?.username || selectedOfferDetails.owner || "Unbekannter Nutzer"}
                     </UserLink>
@@ -1600,7 +1587,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     {selectedOfferDetails.pickup_available && (
                       <div className="bg-slate-50 p-4 rounded-xl">
                         <div className="flex items-center gap-2 mb-2 text-xs">
-                          <MapPin className="w-4 h-4 text-slate-700" />
+                          <FaLocationDot className="w-4 h-4 text-slate-700" />
                           <span className="text-slate-900 text-sm font-normal">Abholung</span>
                         </div>
                         {selectedOfferDetails.pickup_address && (
@@ -1621,7 +1608,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     {selectedOfferDetails.shipping_available && (
                       <div className="bg-slate-50 p-4 rounded-xl">
                         <div className="flex items-center gap-2 mb-2">
-                          <Truck className="w-4 h-4 text-slate-700" />
+                          <FaShippingFast className="w-4 h-4 text-slate-700" />
                           <span className="text-slate-900 text-sm font-normal">Postversand</span>
                         </div>
                         <p className="text-slate-600 text-xs">
@@ -1843,7 +1830,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                   <div className="flex-1">
                     <UserLink
                       userId={selectedSearchAdDetails.user_id}
-                      className="text-slate-900 font-semibold text-lg block hover:text-teal-600"
+                      className="text-slate-900 text-xs block hover:text-teal-600"
                     >
                       {selectedSearchAdDetails.users?.username || "Unbekannter Nutzer"}
                     </UserLink>

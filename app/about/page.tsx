@@ -5,6 +5,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Users, Recycle, Heart, Target, Mail, MapPin } from "lucide-react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
+import { FaHeart } from "react-icons/fa"
+import { FiTarget, FiMail } from "react-icons/fi"
+import { FaUsersRectangle, FaLocationDot } from "react-icons/fa6"
 
 export default function AboutPage() {
   return (
@@ -24,7 +27,7 @@ export default function AboutPage() {
           <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-teal-200">
             <CardContent className="p-8 text-center">
               <div className="w-20 h-20 bg-teal-400 rounded-full flex items-center justify-center mx-auto mb-6 transform -rotate-12">
-                <Target className="w-10 h-10 text-white" />
+                <FiTarget className="w-10 h-10 text-white" />
               </div>
               <h2 className="font-bold text-gray-800 mb-4 font-handwritten text-lg">Unsere Mission</h2>
               <p className="text-gray-600 font-body text-xs">
@@ -43,7 +46,7 @@ export default function AboutPage() {
           <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-orange-200">
             <CardContent className="p-8 text-center">
               <div className="w-20 h-20 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-6 transform rotate-12">
-                <Heart className="w-10 h-10 text-white" />
+                <FaHeart className="w-10 h-10 text-white" />
               </div>
               <h2 className="font-bold text-gray-800 mb-4 font-handwritten text-lg">Unsere Vision</h2>
               <p className="text-gray-600 font-body text-xs">
@@ -66,7 +69,7 @@ export default function AboutPage() {
             <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-pink-200">
               <CardContent className="p-6 text-center">
                 <div className="w-16 h-16 bg-pink-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
-                  <Users className="w-8 h-8 text-white" />
+                  <FaUsersRectangle className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-sm font-bold text-gray-800 mb-2 font-handwritten">Gemeinschaft</h3>
                 <p className="text-gray-600 text-xs font-body">
@@ -90,7 +93,7 @@ export default function AboutPage() {
             <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-orange-200">
               <CardContent className="p-6 text-center">
                 <div className="w-16 h-16 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12">
-                  <Heart className="w-8 h-8 text-white" />
+                  <FaHeart className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-sm font-bold text-gray-800 mb-2 font-handwritten">Vertrauen & Fairness</h3>
                 <p className="text-gray-600 text-xs font-body">Sichere und faire Transaktionen für alle Mitglieder</p>
@@ -119,12 +122,12 @@ export default function AboutPage() {
             <h2 className="text-2xl font-bold text-gray-800 mb-6 font-handwritten">Kontakt & Support</h2>
             <div className="space-y-4 mb-6">
               <div className="flex items-center justify-center space-x-3">
-                <Mail className="w-5 h-5 text-teal-600" />
-                <span className="font-body">support@ludoloop.ch</span>
+                <FiMail className="w-5 h-5 text-teal-600" />
+                <span className="font-body text-xs">support@ludoloop.ch</span>
               </div>
               <div className="flex items-center justify-center space-x-3">
-                <MapPin className="w-5 h-5 text-teal-600" />
-                <span className="font-body">Zufikon AG, Schweiz</span>
+                <FaLocationDot className="w-5 h-5 text-teal-600" />
+                <span className="font-body text-xs">Zufikon AG, Schweiz</span>
               </div>
             </div>
             <p className="text-gray-600 mb-6 font-body text-xs">

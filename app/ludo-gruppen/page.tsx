@@ -31,6 +31,7 @@ import {
   FaImage,
   FaUserTimes,
 } from "react-icons/fa"
+import { GiRollingDices } from "react-icons/gi"
 // </CHANGE>
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
@@ -1208,7 +1209,7 @@ export default function LudoGruppenPage() {
                             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                           </>
                         ) : (
-                          <FaDice className="w-12 h-12 text-teal-400" />
+                          <GiRollingDices className="w-12 h-12 text-teal-400" />
                         )}
                       </div>
 
@@ -1665,7 +1666,7 @@ export default function LudoGruppenPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <FaDice className="w-16 h-16 text-teal-400" />
+                    <GiRollingDices className="w-16 h-16 text-teal-400" />
                   )}
                 </div>
 

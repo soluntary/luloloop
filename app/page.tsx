@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   FaUsers,
-  FaRedo,
+  FaExchangeAlt,
   FaStore,
   FaPlus,
   FaHandHoldingUsd,
@@ -23,8 +23,12 @@ import {
   FaCalendarAlt,
   FaComments,
 } from "react-icons/fa"
+import { IoLibrary } from "react-icons/io5"
+import { GiReceiveMoney, GiBackForth } from "react-icons/gi"
+import { MdForum } from "react-icons/md"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
+import { MdSavings } from "react-icons/md"
 import "@/styles/font-handwritten.css"
 import "@/styles/font-body.css"
 import { motion } from "framer-motion"
@@ -483,7 +487,7 @@ export default function HomePage() {
         >
           {[
             {
-              icon: FaBook,
+              icon: IoLibrary,
               title: "Digitales Spielregal",
               description: "Erfasse deine gesamte Spielesammlung digital und behalte den perfekten Überblick.",
               link: "/library",
@@ -512,7 +516,7 @@ export default function HomePage() {
               rotation: "rotate-1",
             },
             {
-              icon: FaRedo,
+              icon: GiBackForth,
               title: "Spiele tauschen",
               description:
                 "Tausche Spiele mit anderen Mitgliedern und entdecke ständig neue Spiele. Perfekt für Abwechslung im Spielregal!",
@@ -522,7 +526,7 @@ export default function HomePage() {
               rotation: "-rotate-1",
             },
             {
-              icon: FaHandHoldingUsd,
+              icon: GiReceiveMoney,
               title: "Spiele verkaufen",
               description: "Verkaufe Spiele, die du nicht mehr brauchst. Schnell, sicher und fair!",
               link: "/marketplace?filter=sell",
@@ -560,7 +564,7 @@ export default function HomePage() {
               rotation: "rotate-1",
             },
             {
-              icon: FaComments,
+              icon: MdForum,
               title: "Community-Forum",
               description: "Stelle Fragen, teile deine Gedanken und Erfahrungen und diskutiere mit der Community!",
               link: "/ludo-forum",
@@ -669,7 +673,7 @@ export default function HomePage() {
               iconRotation: "-rotate-12",
             },
             {
-              icon: FaLeaf,
+              icon: MdSavings,
               title: "Nachhaltig und kostensparend",
               description:
                 "Weniger ungenutzte Spiele im Regal, mehr Kreislauf durch Tausch und Verleih - gut für Umwelt und Geldbeutel.",

@@ -9,6 +9,8 @@ import { useProfileSync } from "@/contexts/profile-sync-context"
 import { updateUserProfile } from "@/app/actions/profile-sync"
 import { deleteAccountAction } from "@/app/actions/delete-account"
 
+import { toggleOfferStatus, toggleSearchAdStatus } from './actions'
+
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -59,6 +61,9 @@ import { EditCommunityForm } from "@/components/edit-community-form" // Fixed im
 import { CreateLudoEventFormDialog } from "@/components/forms/create-ludo-event-form-dialog" // Assuming this handles editing as well
 import { EditMarketplaceOfferForm } from "@/components/forms/edit-marketplace-offer-form"
 import { EditSearchAdForm } from "@/components/forms/edit-search-ad-form"
+
+// Import icons for toggling
+import { FaPlay, FaPause } from "react-icons/fa"
 
 export default function ProfilePage() {
   const { user, updateProfile, signOut } = useAuth()
@@ -223,6 +228,75 @@ export default function ProfilePage() {
   const joinedCommunitiesFiltered = useMemo(() => {
     return joinedCommunities.filter((membership) => membership.community?.creator_id !== user?.id)
   }, [joinedCommunities, user?.id])
+
+  // Function to reload marketplace offers (needed for handleToggleOfferStatus)
+  const loadUserMarketplaceOffers = async () => {
+    if (!user?.id || !marketplaceOffers) return
+    console.log("[v0] Filtering marketplace offers for user:", user.id)
+    console.log("[v0] Total marketplace offers:", marketplaceOffers.length)
+    const userMarketplaceOffers = marketplaceOffers.filter((offer) => offer.creator_id === user.id)
+    console.log("[v0] User's marketplace offers:", userMarketplaceOffers.length)
+    setUserOffers(userMarketplaceOffers)
+  }
+
+  const handleToggleOfferStatus = async (offerId: string, currentStatus: boolean) => {
+    try {
+      const result = await toggleOfferStatus(offerId, currentStatus)
+
+      if (result.error) {
+        console.error("[v0] Error toggling offer status:", result.error)
+        toast({ title: "Fehler", description: "Konnte den Status des Angebots nicht aktualisieren.", variant: "destructive" })
+        return
+      }
+
+      toast({ title: "Status aktualisiert", description: currentStatus ? "Angebot pausiert" : "Angebot aktiviert." })
+      await loadUserMarketplaceOffers()
+    } catch (error) {
+      console.error("[v0] Error in handleToggleOfferStatus:", error)
+      toast({ title: "Fehler", description: "Ein unerwarteter Fehler ist aufgetreten.", variant: "destructive" })
+    }
+  }
+
+  const handleToggleSearchAdStatus = async (adId: string, currentStatus: boolean) => {
+    try {
+      const result = await toggleSearchAdStatus(adId, currentStatus)
+
+      if (result.error) {
+        console.error("[v0] Error toggling search ad status:", result.error)
+        toast({ title: "Fehler", description: "Konnte den Status der Suchanzeige nicht aktualisieren.", variant: "destructive" })
+        return
+      }
+
+      toast({ title: "Status aktualisiert", description: currentStatus ? "Suchanzeige pausiert" : "Suchanzeige aktiviert." })
+      await loadUserSearchAds()
+    } catch (error) {
+      console.error("[v0] Error in handleToggleSearchAdStatus:", error)
+      toast({ title: "Fehler", description: "Ein unerwarteter Fehler ist aufgetreten.", variant: "destructive" })
+    }
+  }
+
+  // Function to reload search ads (needed for handleToggleSearchAdStatus)
+  const loadUserSearchAds = async () => {
+    if (!user?.id) return
+    try {
+      console.log("[v0] Loading search ads for user:", user.id)
+      
+      const { data: searchAds, error: searchAdsError } = await supabase
+        .from("search_ads")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (searchAdsError) {
+        console.error("[v0] Error loading search ads:", searchAdsError)
+      } else {
+        console.log("[v0] Search ads loaded:", searchAds?.length || 0, searchAds)
+        setUserSearchAds(searchAds || [])
+      }
+    } catch (error) {
+      console.error("[v0] Error loading user search ads:", error)
+    }
+  }
 
   const generateAvatarPreview = async (style?: string) => {
     if (!user?.id) return
@@ -403,11 +477,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user?.id && marketplaceOffers) {
-      console.log("[v0] Filtering marketplace offers for user:", user.id)
-      console.log("[v0] Total marketplace offers:", marketplaceOffers.length)
-      const userMarketplaceOffers = marketplaceOffers.filter((offer) => offer.creator_id === user.id)
-      console.log("[v0] User's marketplace offers:", userMarketplaceOffers.length)
-      setUserOffers(userMarketplaceOffers)
+      loadUserMarketplaceOffers()
     }
   }, [user?.id, marketplaceOffers])
 
@@ -509,7 +579,7 @@ export default function ProfilePage() {
         },
         () => {
           console.log("[v0] Marketplace offers changed, refreshing...")
-          loadUserListings()
+          loadUserMarketplaceOffers()
         },
       )
       .subscribe()
@@ -625,21 +695,10 @@ export default function ProfilePage() {
 
     try {
       // Load marketplace offers
-      const userMarketplaceOffers = marketplaceOffers.filter((offer) => offer.creator_id === user.id)
-      setUserOffers(userMarketplaceOffers)
+      await loadUserMarketplaceOffers()
 
       // Load search ads
-      const { data: searchAds, error: searchAdsError } = await supabase
-        .from("search_ads")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-
-      if (searchAdsError) {
-        console.error("Error loading search ads:", searchAdsError)
-      } else {
-        setUserSearchAds(searchAds || [])
-      }
+      await loadUserSearchAds() // Use the new function
     } catch (error) {
       console.error("Error loading user listings:", error)
     }
@@ -1350,7 +1409,7 @@ export default function ProfilePage() {
                 <span className="sm:hidden">Aktivitäten</span>
               </TabsTrigger>
               <TabsTrigger value="notifications" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
-                <span className="font-semibold textBenachrichtigungenext-xs">Benachrichtigungen</span>
+                <span className="textBenachrichtigungenext-xs font-medium">Benachrichtigungen</span>
                 <span className="sm:hidden">Benachr.</span>
               </TabsTrigger>
               <TabsTrigger value="privacy" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
@@ -1706,7 +1765,7 @@ export default function ProfilePage() {
                   <Tabs defaultValue="events-participating" className="w-full">
                     <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6 gap-1">
                       <TabsTrigger value="events-participating" className="text-xs md:text-sm px-1">
-                        <span className="text-gray-600 text-sm mb-2 md:text-sm">Events (Teilnahme)</span>
+                        <span className="text-gray-600 text-sm md:text-sm mb-0">Events (Teilnahme)</span>
                         <span className="sm:hidden">📅 Teil.</span>
                       </TabsTrigger>
                       <TabsTrigger value="events-created" className="text-xs md:text-sm px-1">
@@ -1997,7 +2056,7 @@ export default function ProfilePage() {
                             >
                               <div className="space-y-2">
                                 <div className="flex items-start justify-between gap-2">
-                                  <h4 className="font-semibold text-sm text-gray-900 flex-1">{community.name}</h4>
+                                  <h4 className="font-semibold text-gray-900 flex-1">{community.name}</h4>
                                   <div className="flex gap-1">
                                     <Button
                                       size="icon"
@@ -2182,8 +2241,26 @@ export default function ProfilePage() {
                                   </div>
                                   <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                                     <Button
+                                      variant={offer.active === false ? "default" : "outline"}
+                                      size="xs"
+                                      onClick={() => handleToggleOfferStatus(offer.id, offer.active !== false)}
+                                      className={offer.active === false ? "bg-green-500 hover:bg-green-600 text-white" : ""}
+                                    >
+                                      {offer.active === false ? (
+                                        <>
+                                          <FaPlay className="h-3 w-3 mr-1" />
+                                          Aktivieren
+                                        </>
+                                      ) : (
+                                        <>
+                                          <FaPause className="h-3 w-3 mr-1" />
+                                          Pausieren
+                                        </>
+                                      )}
+                                    </Button>
+                                    <Button
                                       variant="ghost"
-                                      size="sm"
+                                      size="xs"
                                       onClick={() => {
                                         console.log("[v0] Edit offer button clicked, offer:", offer.id)
                                         setEditingOffer(offer)
@@ -2192,7 +2269,7 @@ export default function ProfilePage() {
                                     >
                                       <Edit2 className="h-4 w-4" />
                                     </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => handleDeleteOffer(offer.id)}>
+                                    <Button variant="ghost" size="xs" onClick={() => handleDeleteOffer(offer.id)}>
                                       <Trash2 className="h-4 w-4 text-red-500" />
                                     </Button>
                                   </div>
@@ -2229,6 +2306,24 @@ export default function ProfilePage() {
                                   <div className="flex justify-between items-center">
                                     <h4 className="font-semibold text-sm text-gray-900 flex-1">{ad.title}</h4>
                                     <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                      <Button
+                                        variant={ad.active === false ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => handleToggleSearchAdStatus(ad.id, ad.active !== false)}
+                                        className={ad.active === false ? "bg-green-500 hover:bg-green-600 text-white" : ""}
+                                      >
+                                        {ad.active === false ? (
+                                          <>
+                                            <FaPlay className="h-3 w-3 mr-1" />
+                                            Aktivieren
+                                          </>
+                                        ) : (
+                                          <>
+                                            <FaPause className="h-3 w-3 mr-1" />
+                                            Pausieren
+                                          </>
+                                        )}
+                                      </Button>
                                       <Button
                                         size="icon"
                                         variant="ghost"
