@@ -18,7 +18,6 @@ import {
   FaCog,
   FaTimes,
   FaInfoCircle,
-  FaUsers,
   FaChevronDown,
   FaCalendar,
   FaStar,
