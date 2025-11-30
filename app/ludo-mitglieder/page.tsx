@@ -3,10 +3,13 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Search, Users, UserPlus, UserCheck, UserX, MessageCircle } from "lucide-react"
+import { Users } from "lucide-react"
+import { FaCalendarAlt, FaUserCheck, FaUserPlus, FaSignInAlt } from "react-icons/fa"
+import { MdPersonSearch } from "react-icons/md"
+import { FaUserXmark } from "react-icons/fa6"
+import { FiMessageCircle } from "react-icons/fi"
 import { useAuth } from "@/contexts/auth-context"
 import { useFriends } from "@/contexts/friends-context"
 import { useMessages } from "@/contexts/messages-context"
@@ -16,8 +19,9 @@ import { toast } from "sonner"
 import Navigation from "@/components/navigation"
 import UserLink from "@/components/user-link"
 import Link from "next/link"
-import { LogIn } from "lucide-react"
 import { MessageComposerModal } from "@/components/message-composer-modal"
+import { format } from "date-fns"
+import { de } from "date-fns/locale"
 
 interface LudoMember {
   id: string
@@ -58,6 +62,15 @@ export default function LudoMitgliederPage() {
   } | null>(null)
 
   const supabase = createClient()
+
+  const formatMemberSince = (dateString: string) => {
+    if (!dateString) return ""
+    try {
+      return format(new Date(dateString), "MMMM yyyy", { locale: de })
+    } catch (e) {
+      return ""
+    }
+  }
 
   useEffect(() => {
     loadLudoMembers()
@@ -296,7 +309,7 @@ export default function LudoMitgliederPage() {
 
     if (!user?.id || friendsLoading) {
       return (
-        <Button size="sm" disabled className="px-3 py-1 h-7 text-xs">
+        <Button size="sm" disabled className="w-full h-9 text-xs">
           Lade...
         </Button>
       )
@@ -304,7 +317,7 @@ export default function LudoMitgliederPage() {
 
     if (localState === "sending") {
       return (
-        <Button size="sm" disabled className="px-3 py-1 h-7 text-xs">
+        <Button size="sm" disabled className="w-full h-9 text-xs">
           Sende...
         </Button>
       )
@@ -312,7 +325,7 @@ export default function LudoMitgliederPage() {
 
     if (localState === "accepting") {
       return (
-        <Button size="sm" disabled className="px-3 py-1 h-7 text-xs">
+        <Button size="sm" disabled className="w-full h-9 text-xs">
           Annehme...
         </Button>
       )
@@ -320,7 +333,7 @@ export default function LudoMitgliederPage() {
 
     if (localState === "declining") {
       return (
-        <Button size="sm" disabled className="px-3 py-1 h-7 text-xs">
+        <Button size="sm" disabled className="w-full h-9 text-xs">
           Lehne ab...
         </Button>
       )
@@ -329,36 +342,36 @@ export default function LudoMitgliederPage() {
     switch (status) {
       case "friends":
         return (
-          <Badge variant="secondary" className="bg-green-100 text-green-700">
-            <UserCheck className="h-3 w-3 mr-1" />
-            befreundet
-          </Badge>
+          <Button variant="secondary" className="w-full bg-green-100 text-green-700 text-xs hover:bg-green-200 h-9">
+            <FaUserCheck className="h-4 w-4 mr-2" />
+            Befreundet
+          </Button>
         )
       case "pending":
         return (
-          <Button size="sm" disabled className="bg-yellow-100 text-yellow-700 px-3 py-1 h-7 text-xs cursor-not-allowed">
-            <UserPlus className="h-3 w-3 mr-1" />
-            Freundschaft angefragt
+          <Button size="sm" disabled className="w-full bg-yellow-100 text-yellow-700 text-xs h-9 cursor-not-allowed">
+            <FaUserPlus className="h-4 w-4 mr-2" />
+            Angefragt
           </Button>
         )
       case "received":
         return (
-          <div className="flex gap-1">
+          <div className="flex gap-2 w-full">
             <Button
               size="sm"
               onClick={() => handleAcceptFriendRequest(member.id)}
-              className="bg-green-500 hover:bg-green-600 text-white flex-1"
+              className="bg-green-500 hover:bg-green-600 text-xs text-white flex-1 h-9"
             >
-              <UserCheck className="h-3 w-3 mr-1" />
+              <FaUserCheck className="h-4 w-4 mr-1" />
               Annehmen
             </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={() => handleDeclineFriendRequest(member.id)}
-              className="flex-1"
+              className="flex-1 h-9"
             >
-              <UserX className="h-3 w-3 mr-1" />
+              <FaUserXmark className="h-4 w-4 mr-1" />
               Ablehnen
             </Button>
           </div>
@@ -368,10 +381,10 @@ export default function LudoMitgliederPage() {
           <Button
             size="sm"
             onClick={() => handleSendFriendRequest(member.id)}
-            className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white px-3 py-1 h-7 text-xs"
+            className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white h-9"
           >
-            <UserPlus className="h-3 w-3 mr-1" />
-            Freundschaft anfragen
+            <FaUserPlus className="h-4 w-4 mr-2" />
+            Vernetzen
           </Button>
         )
     }
@@ -381,31 +394,39 @@ export default function LudoMitgliederPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-teal-50">
         <Navigation currentPage="ludo-mitglieder" />
-
         <div className="container mx-auto px-4 py-8">
           <div className="text-center mb-8">
-            <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Mitglieder</h1>
-            <p className="text-gray-600 max-w-2xl mx-auto text-sm">
+            <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten flex items-center justify-center gap-4">
+              Mitglieder
+            </h1>
+            <p className="text-gray-600 transform rotate-1 font-body text-base">
               Entdecke andere Brettspiel-Enthusiasten, knüpfe neue Freundschaften und erweitere dein Spielernetzwerk!
             </p>
           </div>
 
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 mb-8 shadow-lg text-center max-w-md mx-auto">
-            <UserPlus className="h-16 w-16 text-teal-500 mx-auto mb-4" />
-            <h3 className="font-semibold text-gray-800 mb-2 text-base">Anmeldung erforderlich</h3>
+            <FaSignInAlt className="h-16 w-16 text-teal-500 mx-auto mb-4" />
+            <h3 className="font-handwritten font-semibold text-gray-800 mb-2 text-base">Anmeldung erforderlich</h3>
             <p className="text-gray-600 mb-6 text-xs">
               Um die Mitglieder zu sehen und Freundschaftsanfragen zu senden, musst du dich anmelden.
             </p>
             <div className="flex gap-3 justify-center">
-              <Button asChild className="bg-teal-500 hover:bg-teal-600">
+              <Button
+                asChild
+                variant="outline"
+                className="border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all bg-white flex items-center space-x-2"
+              >
                 <Link href="/login">
-                  <LogIn className="h-4 w-4 mr-2" />
+                  <FaSignInAlt className="h-4 w-4 mr-2" />
                   Anmelden
                 </Link>
               </Button>
-              <Button asChild variant="outline">
+              <Button
+                asChild
+                className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all flex items-center space-x-2"
+              >
                 <Link href="/register">
-                  <UserPlus className="h-4 w-4 mr-2" />
+                  <FaUserPlus className="h-4 w-4 mr-2" />
                   Registrieren
                 </Link>
               </Button>
@@ -417,61 +438,58 @@ export default function LudoMitgliederPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-teal-50">
+    <div className="min-h-screen bg-gray-50/50">
       <Navigation currentPage="ludo-mitglieder" />
-
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center mb-8">
-          <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Mitglieder</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Entdecke andere Ludo-Enthusiasten, knüpfe neue Freundschaften und erweitere dein Spielernetzwerk!
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten flex items-center justify-center gap-4">
+            Mitglieder
+          </h1>
+          <p className="text-gray-600 transform rotate-1 font-body text-base">
+            Entdecke andere Brettspiel-Begeisterte, knüpfe neue Freundschaften und erweitere dein Spielernetzwerk!
           </p>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg">
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100 shadow-sm mb-8">
           <div className="flex flex-col gap-4">
             <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <MdPersonSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Mitglieder durchsuchen..."
+                placeholder="Mitglieder suchen..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white/80 border-gray-200 focus:border-teal-500"
+                className="pl-9 bg-white/80 border-gray-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 h-9 text-xs w-full"
               />
             </div>
 
-            <div className="flex flex-wrap gap-2 justify-start">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant={activeFilter === "all" ? "default" : "outline"}
-                size="sm"
                 onClick={() => setActiveFilter("all")}
-                className={activeFilter === "all" ? "bg-gradient-to-r from-teal-500 to-cyan-500" : ""}
+                className={`h-9 text-xs px-3 ${activeFilter === "all" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
               >
-                Alle Mitglieder
+                Alle
               </Button>
               <Button
                 variant={activeFilter === "sent" ? "default" : "outline"}
-                size="sm"
                 onClick={() => setActiveFilter("sent")}
-                className={activeFilter === "sent" ? "bg-gradient-to-r from-teal-500 to-cyan-500" : ""}
+                className={`h-9 text-xs px-3 ${activeFilter === "sent" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
               >
-                Gesendete Anfragen ({sentRequests?.length || 0})
+                Gesendet ({sentRequests?.length || 0})
               </Button>
               <Button
                 variant={activeFilter === "received" ? "default" : "outline"}
-                size="sm"
                 onClick={() => setActiveFilter("received")}
-                className={activeFilter === "received" ? "bg-gradient-to-r from-teal-500 to-cyan-500" : ""}
+                className={`h-9 text-xs px-3 ${activeFilter === "received" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
               >
-                Eingegangene Anfragen ({pendingRequests?.length || 0})
+                Anfragen ({pendingRequests?.length || 0})
               </Button>
               <Button
                 variant={activeFilter === "friends" ? "default" : "outline"}
-                size="sm"
                 onClick={() => setActiveFilter("friends")}
-                className={activeFilter === "friends" ? "bg-gradient-to-r from-teal-500 to-cyan-500" : ""}
+                className={`h-9 text-xs px-3 ${activeFilter === "friends" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
               >
-                Meine Freunde ({friends?.length || 0})
+                Freunde ({friends?.length || 0})
               </Button>
             </div>
           </div>
@@ -480,7 +498,7 @@ export default function LudoMitgliederPage() {
         {user && pendingRequests && pendingRequests.length > 0 && (
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-teal-500" />
+              <FaUserPlus className="h-5 w-5 text-teal-500" />
               Eingegangene Freundschaftsanfragen ({pendingRequests.length})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -500,7 +518,7 @@ export default function LudoMitgliederPage() {
                         </Avatar>
                         <div className="flex-1">
                           <h3 className="font-semibold text-gray-800">{member.name || member.username}</h3>
-                          <p className="text-sm text-gray-600">möchte dein Freund werden</p>
+                          <p className="text-xs text-gray-600">möchte dein Freund werden</p>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -509,7 +527,7 @@ export default function LudoMitgliederPage() {
                           onClick={() => handleAcceptFriendRequest(member.id)}
                           className="bg-green-500 hover:bg-green-600 text-white flex-1"
                         >
-                          <UserCheck className="h-3 w-3 mr-1" />
+                          <FaUserCheck className="h-3 w-3 mr-1" />
                           Annehmen
                         </Button>
                         <Button
@@ -518,7 +536,7 @@ export default function LudoMitgliederPage() {
                           onClick={() => handleDeclineFriendRequest(member.id)}
                           className="flex-1"
                         >
-                          <UserX className="h-3 w-3 mr-1" />
+                          <FaUserXmark className="h-3 w-3 mr-1" />
                           Ablehnen
                         </Button>
                       </div>
@@ -531,87 +549,86 @@ export default function LudoMitgliederPage() {
         )}
 
         <div className="mb-6">
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-sm">
             {loading ? "Lade Ludo-Mitglieder..." : `${filteredMembers.length} Mitglieder gefunden`}
             {searchTerm && ` für "${searchTerm}"`}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {loading || friendsLoading ? (
-            Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 bg-gray-200 rounded-full"></div>
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                    </div>
+            Array.from({ length: 10 }).map((_, i) => (
+              <Card key={i} className="animate-pulse border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="h-16 w-16 bg-gray-200 rounded-full mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
+                    <div className="h-8 bg-gray-200 rounded w-full"></div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-16 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-8 bg-gray-200 rounded"></div>
                 </CardContent>
               </Card>
             ))
           ) : filteredMembers.length === 0 ? (
-            <div className="col-span-full text-center py-12">
+            <div className="col-span-full text-center py-16 bg-white rounded-xl border border-dashed border-gray-200">
               <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-600 mb-2">Keine Mitglieder gefunden</h3>
-              <p className="text-gray-500">
+              <p className="text-gray-500 max-w-md mx-auto">
                 {searchTerm
-                  ? "Versuche einen anderen Suchbegriff"
+                  ? "Versuche einen anderen Suchbegriff."
                   : activeFilter === "friends"
                     ? "Du hast noch keine Freunde. Sende Freundschaftsanfragen an andere Mitglieder!"
-                    : activeFilter === "sent"
-                      ? "Du hast noch keine Freundschaftsanfragen gesendet"
-                      : activeFilter === "received"
-                        ? "Du hast keine eingegangenen Freundschaftsanfragen"
-                        : "Keine öffentlichen Mitglieder verfügbar"}
+                    : "Keine Mitglieder entsprechen den aktuellen Filtern."}
               </p>
             </div>
           ) : (
             filteredMembers.map((member) => (
               <Card
                 key={member.id}
-                className="group hover:shadow-lg transition-all duration-300 bg-white/80 backdrop-blur-sm border-0"
+                className="group hover:shadow-md transition-all duration-300 border-gray-100 overflow-hidden flex flex-col"
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12">
+                <div className="h-16 bg-gradient-to-r from-teal-50 to-cyan-50 relative">
+                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                    <Avatar className="h-16 w-16 border-4 border-white shadow-sm">
                       <AvatarImage src={getAvatar(member.id, member.name) || "/placeholder.svg"} />
-                      <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-400 text-white">
+                      <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-400 text-white text-lg">
                         {member.username?.[0]?.toUpperCase() || member.name?.[0]?.toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <UserLink
-                        userId={member.id}
-                        className="font-handwritten text-lg text-gray-800 hover:text-teal-600 transition-colors"
-                      >
-                        {member.name || member.username}
-                      </UserLink>
-                      {member.name && member.username && <p className="text-sm text-gray-500">@{member.username}</p>}
-                    </div>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {member.bio && <p className="text-sm text-gray-600 line-clamp-2">{member.bio}</p>}
+                </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1">{renderFriendButton(member)}</div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="px-2 py-1 h-7 min-w-[32px] bg-transparent"
-                        onClick={() => handleSendMessage(member)}
-                      >
-                        <MessageCircle className="h-3 w-3" />
-                      </Button>
-                    </div>
+                <CardContent className="pt-10 pb-4 px-3 flex-1 flex flex-col items-center text-center">
+                  <UserLink
+                    userId={member.id}
+                    className="font-handwritten text-gray-800 text-xs hover:text-teal-600 transition-colors mb-1 truncate w-full"
+                  >
+                    {member.username}
+                  </UserLink>
+
+                  <div className="flex items-center gap-1 text-[10px] text-gray-400 mb-3">
+                    <FaCalendarAlt className="h-3 w-3" />
+                    <span>Aktiv seit {formatMemberSince(member.created_at)}</span>
+                  </div>
+
+                  {member.bio ? (
+                    <p className="text-xs text-gray-600 line-clamp-2 mb-4 min-h-[32px] text-left">{member.bio}</p>
+                  ) : (
+                    <p className="text-xs text-gray-400 mb-4 min-h-[32px]">Keine Beschreibung</p>
+                  )}
+
+                  <div className="w-full mt-auto space-y-2 text-xs">
+                    {renderFriendButton(member)}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-8 text-xs text-gray-600 hover:text-teal-600 hover:border-teal-200 bg-transparent"
+                      onClick={() => handleSendMessage(member)}
+                    >
+                      <FiMessageCircle className="h-3 w-3 mr-2" />
+                      Nachricht
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

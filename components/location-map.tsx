@@ -17,7 +17,7 @@ export function LocationMap({ location, className = "" }: LocationMapProps) {
     return (
       <div className={`flex flex-col items-center justify-center bg-slate-100 rounded-lg p-6 ${className}`}>
         <MapPin className="h-12 w-12 text-slate-400 mb-3" />
-        <p className="text-sm text-slate-600">Kein Standort angegeben</p>
+        <p className="text-xs text-slate-600">Kein Standort angegeben</p>
       </div>
     )
   }
@@ -32,7 +32,7 @@ export function LocationMap({ location, className = "" }: LocationMapProps) {
         <div className="absolute inset-0 flex items-center justify-center bg-slate-100 z-10">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin text-slate-400 mx-auto mb-2" />
-            <p className="text-sm text-slate-500">Karte wird geladen...</p>
+            <p className="text-xs text-slate-500">Karte wird geladen...</p>
           </div>
         </div>
       )}
@@ -67,7 +67,7 @@ export function LocationMap({ location, className = "" }: LocationMapProps) {
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100">
           <MapPin className="h-12 w-12 text-slate-400 mb-3" />
-          <p className="text-sm text-slate-600 mb-3">Karte konnte nicht geladen werden</p>
+          <p className="text-xs text-slate-600 mb-3">Karte konnte nicht geladen werden</p>
           <Button variant="outline" size="sm" onClick={() => window.open(mapsUrl, "_blank")} className="text-xs">
             <ExternalLink className="h-3 w-3 mr-1" />
             In Google Maps öffnen

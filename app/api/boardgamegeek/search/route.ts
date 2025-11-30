@@ -10,27 +10,37 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Query parameter is required" }, { status: 400 })
   }
 
+  const bggToken = process.env.BGG_API_TOKEN
+  if (!bggToken) {
+    console.error("[v0] BGG_API_TOKEN environment variable is not set")
+    return NextResponse.json({
+      games: [],
+      error: "BGG API Token ist nicht konfiguriert. Bitte Token in den Umgebungsvariablen setzen.",
+    })
+  }
+
   try {
     const headers = {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "User-Agent": "Ludoloop/1.0 (Board Game Community App)",
       Accept: "application/xml, text/xml, */*",
+      Authorization: `Bearer ${bggToken}`,
     }
 
-    // Search for games on BoardGameGeek
+    // Search for games on BoardGameGeek (without www.)
     const searchUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(query)}&type=boardgame`
     console.log("[v0] Fetching from BGG search URL:", searchUrl)
 
     const searchResponse = await fetch(searchUrl, {
       headers,
-      cache: "no-store", // Disable caching to avoid stale 401 responses
+      cache: "no-store",
     })
     console.log("[v0] BGG search response status:", searchResponse.status)
 
     if (searchResponse.status === 401 || searchResponse.status === 403) {
+      console.error("[v0] BGG API authentication failed")
       return NextResponse.json({
         games: [],
-        error: "BoardGameGeek API is temporarily unavailable. Please enter game details manually.",
+        error: "BoardGameGeek API Authentifizierung fehlgeschlagen. Bitte Token überprüfen.",
         status: searchResponse.status,
       })
     }
@@ -38,14 +48,13 @@ export async function GET(request: NextRequest) {
     if (!searchResponse.ok) {
       return NextResponse.json({
         games: [],
-        error: "Failed to search BoardGameGeek. Please try again or enter details manually.",
+        error: "Fehler bei der BGG-Suche. Bitte später erneut versuchen.",
         status: searchResponse.status,
       })
     }
 
     const searchXml = await searchResponse.text()
     console.log("[v0] BGG search XML length:", searchXml.length)
-    console.log("[v0] BGG search XML preview:", searchXml.substring(0, 500))
 
     // Parse XML to extract game IDs
     const gameIds = extractGameIds(searchXml)
@@ -71,7 +80,7 @@ export async function GET(request: NextRequest) {
       console.log("[v0] BGG detail fetch failed with status:", detailResponse.status)
       return NextResponse.json({
         games: [],
-        error: "Failed to get game details. Please try again or enter details manually.",
+        error: "Fehler beim Laden der Spieldetails. Bitte später erneut versuchen.",
         status: detailResponse.status,
       })
     }
@@ -81,7 +90,6 @@ export async function GET(request: NextRequest) {
 
     const games = parseGameDetails(detailXml)
     console.log("[v0] Parsed games count:", games.length)
-    console.log("[v0] First game:", games[0])
 
     return NextResponse.json({ games })
   } catch (error) {
@@ -89,10 +97,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         games: [],
-        error: "Failed to fetch game data. Please enter details manually.",
+        error: "Netzwerkfehler beim Abrufen der Spieldaten.",
       },
       { status: 200 },
-    ) // Return 200 so the frontend doesn't show an error
+    )
   }
 }
 
@@ -130,9 +138,9 @@ function parseGameDetails(xml: string): any[] {
       const yearPublished = extractValue(itemContent, /<yearpublished[^>]*value="([^"]*)"/)
       const minPlayers = extractValue(itemContent, /<minplayers[^>]*value="([^"]*)"/)
       const maxPlayers = extractValue(itemContent, /<maxplayers[^>]*value="([^"]*)"/)
-      const playingTime =
-        extractValue(itemContent, /<playingtime[^>]*value="([^"]*)"/) ||
-        extractValue(itemContent, /<maxplaytime[^>]*value="([^"]*)"/)
+      const minPlayTime = extractValue(itemContent, /<minplaytime[^>]*value="([^"]*)"/)
+      const maxPlayTime = extractValue(itemContent, /<maxplaytime[^>]*value="([^"]*)"/)
+      const playingTime = extractValue(itemContent, /<playingtime[^>]*value="([^"]*)"/)
       const minAge = extractValue(itemContent, /<minage[^>]*value="([^"]*)"/)
       const image = extractValue(itemContent, /<image[^>]*>([^<]+)<\/image>/)
       const thumbnail = extractValue(itemContent, /<thumbnail[^>]*>([^<]+)<\/thumbnail>/)
@@ -146,7 +154,7 @@ function parseGameDetails(xml: string): any[] {
       // Extract mechanics (for game style)
       const mechanics = extractMultipleValues(itemContent, /<link[^>]*type="boardgamemechanic"[^>]*value="([^"]*)"/)
 
-      console.log("[v0] Extracted data for game:", { name, yearPublished, publishers: publishers.length })
+      console.log("[v0] Extracted time data for game:", { name, minPlayTime, maxPlayTime, playingTime })
 
       if (name) {
         const gameData = {
@@ -155,6 +163,8 @@ function parseGameDetails(xml: string): any[] {
           yearPublished: yearPublished ? Number.parseInt(yearPublished) : null,
           minPlayers: minPlayers ? Number.parseInt(minPlayers) : null,
           maxPlayers: maxPlayers ? Number.parseInt(maxPlayers) : null,
+          minPlayTime: minPlayTime ? Number.parseInt(minPlayTime) : null,
+          maxPlayTime: maxPlayTime ? Number.parseInt(maxPlayTime) : null,
           playingTime: playingTime ? Number.parseInt(playingTime) : null,
           minAge: minAge ? Number.parseInt(minAge) : null,
           image: image || thumbnail,

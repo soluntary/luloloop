@@ -319,64 +319,64 @@ export default function ForumThreadPage() {
     const maxDepth = 3
     const isLiked = userLikedReplies.has(reply.id)
     const isLiking = likingReplies.has(reply.id)
-
     return (
       <div key={reply.id} className={`${depth > 0 ? "ml-8 border-l-2 border-gray-200 pl-4" : ""}`}>
         <Card className="bg-white/60 backdrop-blur-sm border-0 mb-4">
           <CardContent className="p-4">
-            <div className="flex gap-3">
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
               <Avatar className="h-5 w-5">
                 <AvatarImage src={reply.author?.avatar || "/placeholder.svg"} />
-                <AvatarFallback className="text-xs">{reply.author?.username?.[0]?.toUpperCase()}</AvatarFallback>
+                <AvatarFallback className="text-xs text-gray-500">
+                  {reply.author?.username?.[0]?.toUpperCase()}
+                </AvatarFallback>
               </Avatar>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                  <UserLink userId={reply.author_id} className="font-medium hover:text-teal-600 transition-colors">
-                    {reply.author?.username}
-                  </UserLink>
-                  <span>•</span>
-                  <span className="text-gray-700 whitespace-pre-wrap text-xs mb-0">{formatTimeAgo(reply.created_at)}</span>
-                </div>
+              <UserLink
+                userId={reply.author_id}
+                className="text-xs text-gray-500 hover:text-teal-600 transition-colors font-normal"
+              >
+                {reply.author?.username}
+              </UserLink>
+              <span>•</span>
+              <span className="text-xs text-gray-500 font-normal">{formatTimeAgo(reply.created_at)}</span>
+            </div>
 
-                <p className="text-xs">{reply.content}</p>
+            <p className="text-xs text-gray-700 whitespace-pre-wrap mb-2">{reply.content}</p>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-sm text-gray-500">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className={`h-6 px-2 text-xs ${isLiked ? "text-red-500" : "text-gray-500"} hover:text-red-500 transition-colors`}
-                      onClick={() => handleLikeReply(reply.id)}
-                      disabled={!user || isLiking}
-                    >
-                      <Heart className={`h-3 w-3 mr-1 ${isLiked ? "fill-current" : ""}`} />
-                      <span>{Math.max(0, reply.likes_count || 0)}</span>
-                    </Button>
-                  </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 text-sm text-gray-500">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={`h-6 px-2 text-xs ${isLiked ? "text-red-500" : "text-gray-500"} hover:text-red-500 transition-colors`}
+                  onClick={() => handleLikeReply(reply.id)}
+                  disabled={!user || isLiking}
+                >
+                  <Heart className={`h-3 w-3 mr-1 ${isLiked ? "fill-current" : ""}`} />
+                  <span>{Math.max(0, reply.likes_count || 0)}</span>
+                </Button>
+              </div>
 
-                  <div className="flex gap-2">
-                    {depth < maxDepth && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-xs h-7 px-2"
-                        onClick={() => {
-                          if (!user) {
-                            toast.info("Bitte melde dich an, um zu antworten")
-                            window.location.href = "/login"
-                            return
-                          }
-                          setReplyingTo(reply.id)
-                          setShowReplyForm(true)
-                        }}
-                      >
-                        <Reply className="h-3 w-3 mr-1" />
-                        Antworten
-                      </Button>
-                    )}
-                  </div>
-                </div>
+              <div className="flex gap-2">
+                {depth < maxDepth && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs h-7 px-2"
+                    onClick={() => {
+                      if (!user) {
+                        toast.info("Bitte melde dich an, um zu antworten")
+                        window.location.href = "/login"
+                        return
+                      }
+                      setReplyingTo(reply.id)
+                      setShowReplyForm(true)
+                    }}
+                  >
+                    <Reply className="h-3 w-3 mr-1" />
+                    Antworten
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
@@ -441,26 +441,30 @@ export default function ForumThreadPage() {
 
         {/* Original Post */}
         <Card className="bg-white/80 backdrop-blur-sm border-0 mb-8">
-          <CardHeader>
+          <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   {post.is_pinned && <Pin className="h-4 w-4 text-orange-500" />}
                   {post.is_locked && <Lock className="h-4 w-4 text-gray-500" />}
-                  <CardTitle className="font-handwritten text-2xl text-gray-800">{post.title}</CardTitle>
+                  <CardTitle className="font-handwritten text-xs text-gray-800">{post.title}</CardTitle>
                 </div>
-
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Avatar className="h-5 w-5">
                     <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
-                    <AvatarFallback className="text-xs">{post.author?.username?.[0]?.toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="text-xs text-gray-500">
+                      {post.author?.username?.[0]?.toUpperCase()}
+                    </AvatarFallback>
                   </Avatar>
-                  <UserLink userId={post.author_id} className="font-medium hover:text-teal-600 transition-colors">
+                  <UserLink
+                    userId={post.author_id}
+                    className="text-xs text-gray-500 hover:text-teal-600 transition-colors font-normal"
+                  >
                     {post.author?.username}
                   </UserLink>
                   <span>•</span>
-                  <span className="text-xs font-normal">{formatTimeAgo(post.created_at)}</span>
-                  
+                  <span className="text-xs text-gray-500">{formatTimeAgo(post.created_at)}</span>
+
                   <Badge
                     variant="outline"
                     className="text-xs"
@@ -473,15 +477,15 @@ export default function ForumThreadPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-700 whitespace-pre-wrap mb-6 text-xs">{post.content}</p>
+            <p className="text-gray-500 whitespace-pre-wrap text-xs mb-px">{post.content}</p>
 
             <Separator className="my-4" />
 
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 text-sm text-gray-500">
+              <div className="flex items-center gap-4 text-xs text-gray-500">
                 <div className="flex items-center gap-1">
                   <MessageSquare className="h-4 w-4" />
-                  <span>{post.replies_count} Antworten</span>
+                  <span className="text-xs">{post.replies_count} Antworten</span>
                 </div>
                 <Button
                   size="sm"
@@ -491,11 +495,11 @@ export default function ForumThreadPage() {
                   disabled={!user || likingPost}
                 >
                   <Heart className={`h-4 w-4 mr-1 ${userLikedPost ? "fill-current" : ""}`} />
-                  <span>{Math.max(0, post.likes_count || 0)} Likes</span>
+                  <span className="text-xs text-gray-500">{Math.max(0, post.likes_count || 0)} Likes</span>
                 </Button>
                 <div className="flex items-center gap-1">
                   <Eye className="h-4 w-4" />
-                  <span>{post.views_count} Aufrufe</span>
+                  <span className="text-xs">{post.views_count} Aufrufe</span>
                 </div>
               </div>
 

@@ -110,7 +110,7 @@ export function CreatePollDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
+          <DialogTitle className="font-handwritten text-xl text-gray-800 flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-teal-600" />
             Neue Abstimmung erstellen
           </DialogTitle>
@@ -128,7 +128,7 @@ export function CreatePollDialog({
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="z.B. Welches Spiel sollen wir als nächstes spielen?"
-              className="h-12 text-base"
+              className="h-12 text-xs"
             />
           </div>
 
@@ -195,14 +195,14 @@ export function CreatePollDialog({
                 checked={allowMultipleVotes}
                 onCheckedChange={(checked) => setAllowMultipleVotes(checked as boolean)}
               />
-              <Label htmlFor="multiple-votes" className="text-sm font-normal cursor-pointer">
+              <Label htmlFor="multiple-votes" className="text-xs font-normal cursor-pointer">
                 Mehrfachauswahl erlauben
               </Label>
             </div>
 
             {/* Expiration */}
             <div>
-              <Label htmlFor="expires-in" className="text-sm font-medium text-gray-900 mb-2 block">
+              <Label htmlFor="expires-in" className="text-xs font-medium text-gray-900 mb-2 block">
                 Abstimmung läuft ab in
               </Label>
               <Select value={expiresInDays} onValueChange={setExpiresInDays}>

@@ -15,11 +15,20 @@ const ProfileSyncContext = createContext<ProfileSyncContextType | undefined>(und
 
 export function ProfileSyncProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
-  const supabase = createClient()
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
   const [userSubscriptions, setUserSubscriptions] = useState<Map<string, Set<(user: any) => void>>>(new Map())
 
   useEffect(() => {
-    if (!user) return
+    try {
+      const client = createClient()
+      setSupabase(client)
+    } catch (error) {
+      console.error("[v0] Failed to initialize Supabase client:", error)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!user || !supabase) return
 
     console.log("[v0] Setting up profile synchronization...")
 

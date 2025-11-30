@@ -91,13 +91,13 @@ export function EditMarketplaceOfferForm({ isOpen, onClose, onSuccess, offer }: 
         const maxDays = Number.parseInt(formData.maxRentalDays)
 
         if (minDays < 1) {
-          newErrors.minRentalDays = "Mindestausleihdauer muss mindestens 1 Tag sein."
+          newErrors.minRentalDays = "Mindestmietdauer muss mindestens 1 Tag sein."
         }
         if (maxDays < 1) {
-          newErrors.maxRentalDays = "Maximalausleihdauer muss mindestens 1 Tag sein."
+          newErrors.maxRentalDays = "Maximalmietdauer muss mindestens 1 Tag sein."
         }
         if (minDays > maxDays) {
-          newErrors.maxRentalDays = "Maximalausleihdauer muss größer als Mindestausleihdauer sein."
+          newErrors.maxRentalDays = "Maximalmietdauer muss grösser als Mindestmietdauer sein."
         }
       }
     }
@@ -153,24 +153,24 @@ export function EditMarketplaceOfferForm({ isOpen, onClose, onSuccess, offer }: 
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
             <Edit className="w-8 h-8 text-white" />
           </div>
-          <DialogTitle className="font-handwritten text-3xl text-orange-800 font-bold">Angebot bearbeiten</DialogTitle>
+          <DialogTitle className="font-handwritten text-sm text-orange-800 font-bold">Angebot bearbeiten</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 px-2">
           <div className="space-y-2">
-            <Label className="font-body text-orange-800 font-semibold text-base">Titel *</Label>
+            <Label className="font-body text-orange-800 font-semibold text-sm">Titel *</Label>
             <Input
               value={formData.title}
               onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
               placeholder="z.B. Catan Grundspiel"
-              className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/90 rounded-xl h-12 text-base"
+              className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/90 rounded-xl h-12 text-sm"
               required
             />
             {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label className="font-body text-orange-800 font-semibold text-base">Verlag</Label>
+            <Label className="font-body text-orange-800 font-semibold text-sm">Verlag</Label>
             <Input
               value={formData.publisher}
               onChange={(e) => setFormData((prev) => ({ ...prev, publisher: e.target.value }))}
@@ -181,7 +181,7 @@ export function EditMarketplaceOfferForm({ isOpen, onClose, onSuccess, offer }: 
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="font-body text-orange-800 font-semibold text-base">Zustand *</Label>
+              <Label className="font-body text-orange-800 font-semibold text-sm">Zustand *</Label>
               <Select
                 value={formData.condition}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, condition: value }))}
@@ -209,7 +209,7 @@ export function EditMarketplaceOfferForm({ isOpen, onClose, onSuccess, offer }: 
                   <SelectValue placeholder="Wählen" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="lend">Verleihen</SelectItem>
+                  <SelectItem value="lend">Vermieten</SelectItem>
                   <SelectItem value="trade">Tauschen</SelectItem>
                   <SelectItem value="sell">Verkaufen</SelectItem>
                 </SelectContent>
@@ -219,7 +219,7 @@ export function EditMarketplaceOfferForm({ isOpen, onClose, onSuccess, offer }: 
           </div>
 
           <div className="space-y-2">
-            <Label className="font-body text-orange-800 font-semibold text-base">Preis *</Label>
+            <Label className="font-body text-orange-800 font-semibold text-sm">Preis *</Label>
             <Input
               value={formData.price}
               onChange={(e) => setFormData((prev) => ({ ...prev, price: e.target.value }))}
@@ -232,7 +232,7 @@ export function EditMarketplaceOfferForm({ isOpen, onClose, onSuccess, offer }: 
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="font-body text-orange-800 font-semibold text-base">Standort *</Label>
+              <Label className="font-body text-orange-800 font-semibold text-sm">Standort *</Label>
               <Input
                 value={formData.location}
                 onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
@@ -244,7 +244,7 @@ export function EditMarketplaceOfferForm({ isOpen, onClose, onSuccess, offer }: 
             </div>
 
             <div className="space-y-2">
-              <Label className="font-body text-orange-800 font-semibold text-base">Entfernung</Label>
+              <Label className="font-body text-orange-800 font-semibold text-sm">Entfernung</Label>
               <Input
                 value={formData.distance}
                 onChange={(e) => setFormData((prev) => ({ ...prev, distance: e.target.value }))}
@@ -257,11 +257,11 @@ export function EditMarketplaceOfferForm({ isOpen, onClose, onSuccess, offer }: 
           {formData.type === "lend" && (
             <div className="space-y-6">
               <div className="bg-teal-50 p-4 rounded-xl border border-teal-200">
-                <h4 className="font-handwritten text-lg text-teal-800 font-bold mb-3">📅 Ausleihdauer (optional)</h4>
+                <h4 className="font-handwritten text-lg text-teal-800 font-bold mb-3">📅 Mietdauer (optional)</h4>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="font-body text-teal-800 font-semibold text-sm">Mindestausleihdauer (Tage)</Label>
+                    <Label className="font-body text-teal-800 font-semibold text-sm">Mindestmietdauer (Tage)</Label>
                     <Input
                       type="number"
                       min="1"
@@ -274,7 +274,7 @@ export function EditMarketplaceOfferForm({ isOpen, onClose, onSuccess, offer }: 
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="font-body text-teal-800 font-semibold text-sm">Maximalausleihdauer (Tage)</Label>
+                    <Label className="font-body text-teal-800 font-semibold text-sm">Maximalmietdauer (Tage)</Label>
                     <Input
                       type="number"
                       min="1"
@@ -291,7 +291,7 @@ export function EditMarketplaceOfferForm({ isOpen, onClose, onSuccess, offer }: 
           )}
 
           <div className="space-y-2">
-            <Label className="font-body text-orange-800 font-semibold text-base">Beschreibung</Label>
+            <Label className="font-body text-orange-800 font-semibold text-sm">Beschreibung</Label>
             <Textarea
               value={formData.description}
               onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}

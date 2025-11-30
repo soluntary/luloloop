@@ -4,14 +4,16 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MessageCircle, Send, Search, Trash2 } from "lucide-react"
-import { Suspense, useState, useEffect } from "react"
+import { MessageCircle, Send, Search, Trash2, ArrowLeft, MoreVertical, Check, CheckCheck } from "lucide-react"
+import { RiChatSearchFill } from "react-icons/ri"
+import { Suspense, useState, useEffect, useRef } from "react"
 import { Navigation } from "@/components/navigation"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useUser } from "@/contexts/user-context"
 import { useMessages } from "@/contexts/messages-context"
 import { useAvatar } from "@/contexts/avatar-context"
 import { toast } from "react-toastify"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 function MessagesLoading() {
   return (
@@ -21,14 +23,13 @@ function MessagesLoading() {
           <MessageCircle className="w-10 h-10 text-white" />
         </div>
         <h2 className="text-3xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-          Chat wird geladen...
+          Nachrichten werden geladen...
         </h2>
-        <p className="text-xl text-gray-600 transform rotate-1 font-body">Deine Unterhaltungen werden vorbereitet!</p>
+        <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">Deine Unterhaltungen werden geholt!</p>
         <div className="mt-8 flex justify-center space-x-2">
           <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
           <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
           <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
-          <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "450ms" }}></div>
         </div>
       </div>
     </div>
@@ -43,6 +44,11 @@ function MessagesContent() {
   const [newMessage, setNewMessage] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: "message" | "conversation"; id: string } | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [selectedConversation])
 
   useEffect(() => {
     if (user) {
@@ -68,7 +74,7 @@ function MessagesContent() {
         messages: [],
         partnerName: partnerName,
         latestMessage: null,
-        partnerId: conversationPartnerId, // Store actual partner ID for messaging
+        partnerId: conversationPartnerId,
         gameTitle: message.game_title,
         offerType: message.offer_type,
       }
@@ -101,14 +107,20 @@ function MessagesContent() {
     const date = new Date(timestamp)
     const now = new Date()
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+    const diffInDays = diffInHours / 24
 
-    if (diffInHours < 1) {
+    if (diffInHours < 24) {
       return date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })
-    } else if (diffInHours < 24) {
-      return date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })
+    } else if (diffInDays < 7) {
+      return date.toLocaleDateString("de-DE", { weekday: "short" })
     } else {
       return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })
     }
+  }
+
+  const formatMessageTime = (timestamp: string) => {
+    const date = new Date(timestamp)
+    return date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })
   }
 
   const getOfferTypeText = (type: string) => {
@@ -126,59 +138,32 @@ function MessagesContent() {
       case "search_trade":
         return "Suche Tausch"
       case "event_inquiry":
-        return "Event-Anfrage"
+        return "Event"
       case "group_inquiry":
-        return "Gruppen-Anfrage"
+        return "Gruppe"
       default:
         return type
-    }
-  }
-
-  const getOfferTypeColor = (type: string) => {
-    switch (type) {
-      case "lend":
-        return "bg-teal-400"
-      case "trade":
-        return "bg-orange-400"
-      case "sell":
-        return "bg-pink-400"
-      case "search_buy":
-      case "search_rent":
-      case "search_trade":
-        return "bg-purple-400"
-      case "event_inquiry":
-        return "bg-blue-400"
-      case "group_inquiry":
-        return "bg-green-400"
-      default:
-        return "bg-gray-400"
     }
   }
 
   const getConversationTitle = (gameTitle: string, offerType: string) => {
     switch (offerType) {
       case "event_inquiry":
-        return `Event • ${gameTitle}`
+        return gameTitle
       case "group_inquiry":
-        return `Spielgruppe • ${gameTitle}`
+        return gameTitle
       default:
-        // For marketplace messages: "Spielname • Verleihen/Verkaufen/etc."
-        return `${gameTitle} • ${getOfferTypeText(offerType)}`
+        return gameTitle
     }
   }
 
   const handleSendMessage = async () => {
     if (newMessage.trim() && selectedConversation) {
       try {
-        console.log("[v0] Sending message to conversation:", selectedConversation)
-
         const conversationData = conversations[selectedConversation]
         const latestMessage = conversationData?.latestMessage
 
-        if (!latestMessage) {
-          console.error("[v0] No latest message found for conversation")
-          return
-        }
+        if (!latestMessage) return
 
         await sendMessage({
           to_user_id: conversationData.partnerId,
@@ -189,14 +174,11 @@ function MessagesContent() {
           offer_type: latestMessage.offer_type,
         })
 
-        console.log("[v0] Message sent successfully")
-        toast.success("Nachricht erfolgreich gesendet")
         setNewMessage("")
-
         await refreshMessages()
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
       } catch (error) {
-        console.error("[v0] Error sending message:", error)
-        toast.error("Fehler beim Senden der Nachricht. Bitte versuche es erneut.")
+        toast.error("Fehler beim Senden der Nachricht")
       }
     }
   }
@@ -206,9 +188,9 @@ function MessagesContent() {
       await deleteMessage(messageId)
       await refreshMessages()
       setDeleteConfirm(null)
+      toast.success("Nachricht gelöscht")
     } catch (error) {
-      console.error("Error deleting message:", error)
-      alert("Fehler beim Löschen der Nachricht.")
+      toast.error("Fehler beim Löschen der Nachricht")
     }
   }
 
@@ -221,9 +203,9 @@ function MessagesContent() {
       await refreshMessages()
       setSelectedConversation(null)
       setDeleteConfirm(null)
+      toast.success("Unterhaltung gelöscht")
     } catch (error) {
-      console.error("Error deleting conversation:", error)
-      alert("Fehler beim Löschen der Unterhaltung.")
+      toast.error("Fehler beim Löschen der Unterhaltung")
     }
   }
 
@@ -233,40 +215,44 @@ function MessagesContent() {
       )
     : []
 
+  const totalUnread = Object.values(conversations).reduce((acc: number, data: any) => {
+    return acc + data.messages.filter((m: any) => m.to_user_id === user.id && !m.read).length
+  }, 0)
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-teal-50">
       <Navigation currentPage="messages" />
 
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-            Nachrichten
-          </h1>
-          <p className="text-lg text-gray-600 transform rotate-1 font-body md:text-sm">
-            Deine Unterhaltungen im Überblick!
-          </p>
+          <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-2">Nachrichten</h1>
+          <p className="text-gray-600 font-normal text-base">Deine Unterhaltungen im Überblick!</p>
         </div>
 
-        <div className="max-w-6xl mx-auto">
-          <Card className="h-[70vh] md:h-[600px] flex flex-col md:flex-row overflow-hidden border-2 border-teal-300 shadow-xl bg-white">
-            <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-gray-200 bg-gradient-to-b from-white to-gray-50 flex-shrink-0">
-              <div className="p-3 md:p-4 border-b border-gray-200 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <Card className="h-[calc(100vh-180px)] min-h-[500px] flex flex-col md:flex-row overflow-hidden border border-gray-200 shadow-sm bg-white rounded-xl">
+            <div
+              className={`w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col ${selectedConversation ? "hidden md:flex" : "flex"}`}
+            >
+              {/* Search header */}
+              <div className="p-3 border-b border-gray-100">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <RiChatSearchFill className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
-                    placeholder="Unterhaltungen durchsuchen..."
+                    placeholder="Unterhaltungen suchen..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 font-body text-sm md:text-base border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                    className="pl-9 h-9 text-sm bg-gray-50 border-gray-200 focus:bg-white focus:border-teal-500 focus:ring-0 rounded-lg"
                   />
                 </div>
               </div>
 
-              <div className="overflow-y-auto h-48 md:h-full">
+              {/* Conversation list */}
+              <div className="flex-1 overflow-y-auto">
                 {filteredConversations.length === 0 ? (
-                  <div className="p-6 md:p-8 text-center">
-                    <MessageCircle className="w-8 h-8 md:w-12 md:h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500 font-body text-sm md:text-base">Keine Unterhaltungen gefunden</p>
+                  <div className="p-8 text-center">
+                    <MessageCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm text-gray-500">Keine Unterhaltungen</p>
                   </div>
                 ) : (
                   filteredConversations.map(([conversationKey, data]: any) => {
@@ -282,8 +268,8 @@ function MessagesContent() {
                     return (
                       <div
                         key={conversationKey}
-                        className={`p-3 md:p-4 border-b border-gray-100 cursor-pointer hover:bg-teal-50/50 transition-all duration-200 ${
-                          isSelected ? "bg-teal-50 border-l-4 border-l-teal-400 shadow-sm" : ""
+                        className={`px-3 py-3 cursor-pointer transition-colors border-l-2 ${
+                          isSelected ? "bg-teal-50 border-l-teal-500" : "border-l-transparent hover:bg-gray-50"
                         }`}
                         onClick={() => {
                           setSelectedConversation(conversationKey)
@@ -292,37 +278,43 @@ function MessagesContent() {
                           })
                         }}
                       >
-                        <div className="flex items-center space-x-3">
-                          <Avatar className="h-12 w-12 border-2 border-teal-200 shadow-sm">
-                            <AvatarImage src={partnerAvatar || "/placeholder.svg"} alt={data.partnerName} />
-                            <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-500 text-white font-semibold">
-                              {data.partnerName.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <h3 className="font-semibold text-sm text-gray-800 truncate md:text-xs">
-                                {data.partnerName}
-                              </h3>
-                              <div className="flex items-center space-x-1 md:space-x-2">
-                                {unreadCount > 0 && (
-                                  <Badge className="bg-red-500 text-white text-xs px-2 py-0.5">{unreadCount}</Badge>
-                                )}
-                                <span className="text-xs text-gray-500 font-body">
-                                  {formatTime(latestMessage.created_at)}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2 mb-1">
-                              <p className="text-xs text-gray-600 font-medium truncate">
-                                {getConversationTitle(data.gameTitle, latestMessage.offer_type)}
-                              </p>
-                            </div>
-                            <p className="text-xs text-gray-500 font-body truncate">
-                              {latestMessage.from_user_id === user.id
-                                ? `Nachricht an ${data.partnerName}: ${latestMessage.message}`
-                                : `Nachricht von ${data.partnerName}: ${latestMessage.message}`}
+                        <div className="flex flex-col gap-1">
+                          {/* First row: Avatar + Username + Time */}
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6 flex-shrink-0">
+                              <AvatarImage src={partnerAvatar || "/placeholder.svg"} alt={data.partnerName} />
+                              <AvatarFallback className="bg-gray-200 text-gray-600 text-[10px] font-medium">
+                                {data.partnerName.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <h3
+                              className={`truncate text-xs font-normal ${unreadCount > 0 ? "font-semibold text-gray-900" : "font-medium text-gray-700"}`}
+                            >
+                              {data.partnerName}
+                            </h3>
+                            <span className="text-xs text-gray-400 flex-shrink-0 ml-auto">
+                              {formatTime(latestMessage.created_at)}
+                            </span>
+                          </div>
+                          {/* Second row: Game title and offer type */}
+                          <p className="text-xs text-gray-500 truncate pl-8">
+                            {getConversationTitle(data.gameTitle, latestMessage.offer_type)}
+                            <span className="mx-1">•</span>
+                            <span className="text-gray-500">{getOfferTypeText(latestMessage.offer_type)}</span>
+                          </p>
+                          {/* Third row: Last message + unread badge */}
+                          <div className="flex items-center justify-between pl-8">
+                            <p
+                              className={`text-xs truncate pr-2 ${unreadCount > 0 ? "text-gray-700 font-medium" : "text-gray-500"}`}
+                            >
+                              {latestMessage.from_user_id === user.id && <span className="text-gray-400">Du: </span>}
+                              {latestMessage.message}
                             </p>
+                            {unreadCount > 0 && (
+                              <Badge className="bg-teal-500 text-white text-xs h-5 min-w-[20px] flex items-center justify-center rounded-full px-1.5">
+                                {unreadCount}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -332,12 +324,23 @@ function MessagesContent() {
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col bg-gradient-to-b from-gray-50 to-white min-h-0">
+            <div className={`flex-1 flex flex-col min-h-0 ${!selectedConversation ? "hidden md:flex" : "flex"}`}>
               {selectedConversation ? (
                 <>
-                  <div className="p-3 md:p-4 bg-white border-b-2 border-gray-200 flex-shrink-0 shadow-sm">
+                  {/* Chat header */}
+                  <div className="px-4 py-3 bg-white border-b border-gray-100 flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
+                        {/* Mobile back button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedConversation(null)}
+                          className="md:hidden p-1 -ml-1"
+                        >
+                          <ArrowLeft className="w-5 h-5 text-gray-600" />
+                        </Button>
+
                         {(() => {
                           const conversationData = conversations[selectedConversation]
                           const latestMessage = conversationData?.latestMessage
@@ -350,41 +353,54 @@ function MessagesContent() {
 
                           return (
                             <>
-                              <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-teal-300 shadow-md">
+                              <Avatar className="h-10 w-10">
                                 <AvatarImage
                                   src={partnerAvatar || "/placeholder.svg"}
                                   alt={conversationData?.partnerName}
                                 />
-                                <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-500 text-white font-semibold">
+                                <AvatarFallback className="bg-gray-200 text-gray-600 text-sm font-medium">
                                   {conversationData?.partnerName?.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
-                                <h2 className="font-bold text-base text-gray-800 md:text-sm">
-                                  {conversationData?.partnerName}
-                                </h2>
-                                <p className="text-xs text-gray-600 font-body md:text-xs">
+                                <h2 className="font-semibold text-gray-900 text-sm">{conversationData?.partnerName}</h2>
+                                <p className="text-xs text-gray-500">
                                   {getConversationTitle(conversationData?.gameTitle, conversationData?.offerType)}
+                                  <span className="mx-1">•</span>
+                                  {getOfferTypeText(conversationData?.offerType)}
                                 </p>
                               </div>
                             </>
                           )
                         })()}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteConfirm({ type: "conversation", id: selectedConversation! })}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-gray-700">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => setDeleteConfirm({ type: "conversation", id: selectedConversation! })}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Unterhaltung löschen
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 min-h-0">
+                  {/* Messages area */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
                     {selectedMessages.map((message: any, index: number) => {
                       const isFromCurrentUser = message.from_user_id === user.id
+                      const showAvatar =
+                        index === 0 || selectedMessages[index - 1]?.from_user_id !== message.from_user_id
+
                       const messageUserData = isFromCurrentUser ? message.from_user : message.to_user
                       const messageAvatar = getAvatar(
                         isFromCurrentUser ? user.id : conversations[selectedConversation]?.partnerId,
@@ -394,67 +410,77 @@ function MessagesContent() {
                       return (
                         <div
                           key={message.id}
-                          className={`flex items-start space-x-2 md:space-x-3 ${isFromCurrentUser ? "flex-row-reverse space-x-reverse" : ""} group`}
+                          className={`flex ${isFromCurrentUser ? "justify-end" : "justify-start"} group`}
                         >
-                          <Avatar className="h-8 w-8 md:h-10 md:w-10 border-2 border-gray-200 shadow-sm flex-shrink-0">
-                            <AvatarImage src={messageAvatar || "/placeholder.svg"} />
-                            <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-500 text-white text-xs font-semibold">
-                              {(isFromCurrentUser ? user.username : conversations[selectedConversation]?.partnerName)
-                                ?.charAt(0)
-                                .toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 relative max-w-[85%] md:max-w-[70%]">
-                            <div
-                              className={`rounded-2xl p-3 md:p-4 shadow-md border-2 ${
-                                isFromCurrentUser
-                                  ? "bg-gray-100 text-gray-800 border-gray-300 ml-4 md:ml-8"
-                                  : "bg-white text-gray-800 border-gray-200 mr-4 md:mr-8"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-medium text-gray-600">
-                                  {getConversationTitle(message.game_title, message.offer_type)}
-                                </span>
-                                <span className={`text-xs ${isFromCurrentUser ? "text-gray-500" : "text-gray-500"}`}>
-                                  {formatTime(message.created_at)}
-                                </span>
-                              </div>
-                              <p
-                                className={`text-sm break-words md:text-xs ${isFromCurrentUser ? "text-gray-800" : "text-gray-800"}`}
+                          <div
+                            className={`flex items-center space-x-2 max-w-[80%] ${isFromCurrentUser ? "flex-row-reverse space-x-reverse" : ""}`}
+                          >
+                            {showAvatar && !isFromCurrentUser ? (
+                              <Avatar className="h-7 w-7 flex-shrink-0">
+                                <AvatarImage src={messageAvatar || "/placeholder.svg"} />
+                                <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
+                                  {conversations[selectedConversation]?.partnerName?.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                            ) : !isFromCurrentUser ? (
+                              <div className="w-7 flex-shrink-0" />
+                            ) : null}
+
+                            <div className="relative">
+                              <div
+                                className={`px-3 py-2 rounded-2xl ${
+                                  isFromCurrentUser
+                                    ? "bg-teal-500 text-white rounded-br-md"
+                                    : "bg-white text-gray-800 border border-gray-200 rounded-bl-md shadow-sm"
+                                }`}
                               >
-                                {message.message}
-                              </p>
+                                <p className="whitespace-pre-wrap break-words text-xs">{message.message}</p>
+                              </div>
+                              <div
+                                className={`flex items-center mt-1 space-x-1 ${isFromCurrentUser ? "justify-end" : "justify-start"}`}
+                              >
+                                <span className="text-xs text-gray-400">{formatMessageTime(message.created_at)}</span>
+                                {isFromCurrentUser &&
+                                  (message.read ? (
+                                    <CheckCheck className="w-3 h-3 text-teal-500" />
+                                  ) : (
+                                    <Check className="w-3 h-3 text-gray-400" />
+                                  ))}
+                              </div>
+
+                              {/* Delete button on hover */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeleteConfirm({ type: "message", id: message.id })}
+                                className={`absolute -top-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6 rounded-full bg-white shadow-sm border border-gray-200 hover:bg-red-50 ${
+                                  isFromCurrentUser ? "-left-8" : "-right-8"
+                                }`}
+                              >
+                                <Trash2 className="w-3 h-3 text-gray-400 hover:text-red-500" />
+                              </Button>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeleteConfirm({ type: "message", id: message.id })}
-                              className={`absolute top-1 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50 w-6 h-6 p-0 ${
-                                isFromCurrentUser ? "left-0" : "right-0"
-                              }`}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
                           </div>
                         </div>
                       )
                     })}
+                    <div ref={messagesEndRef} />
                   </div>
 
-                  <div className="p-3 md:p-4 bg-white border-t-2 border-gray-200 flex-shrink-0 shadow-lg">
-                    <div className="flex items-center space-x-2 md:space-x-3">
+                  {/* Message input */}
+                  <div className="p-3 bg-white border-t border-gray-100 flex-shrink-0">
+                    <div className="flex items-center space-x-2">
                       <Input
                         placeholder="Nachricht schreiben..."
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                        className="flex-1 font-body text-sm md:text-base border-2 border-gray-300 focus:border-teal-500 focus:ring-teal-500 rounded-xl"
+                        onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+                        className="flex-1 h-10 text-sm bg-gray-50 border-gray-200 focus:bg-white focus:border-teal-500 focus:ring-0 rounded-full px-4"
                       />
                       <Button
                         onClick={handleSendMessage}
                         disabled={!newMessage.trim()}
-                        className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-semibold px-4 md:px-6 py-2 rounded-xl shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="h-10 w-10 rounded-full bg-teal-500 hover:bg-teal-600 text-white p-0 disabled:opacity-50"
                       >
                         <Send className="w-4 h-4" />
                       </Button>
@@ -462,15 +488,14 @@ function MessagesContent() {
                   </div>
                 </>
               ) : (
-                <div className="flex-1 flex items-center justify-center p-4">
+                // Empty state
+                <div className="flex-1 flex items-center justify-center p-4 bg-gray-50">
                   <div className="text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-teal-400 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                      <MessageCircle className="w-10 h-10 text-white" />
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <MessageCircle className="w-8 h-8 text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-700 mb-2 md:text-sm">Wähle eine Unterhaltung</h3>
-                    <p className="text-gray-500 font-body text-xs">
-                      Klicke auf eine Unterhaltung links, um zu chatten
-                    </p>
+                    <h3 className="text-gray-500 font-bold text-base">Wähle eine Unterhaltung</h3>
+                    <p className="text-gray-500 text-xs">Klicke links auf eine Unterhaltung, um sie zu öffnen</p>
                   </div>
                 </div>
               )}
@@ -478,23 +503,20 @@ function MessagesContent() {
           </Card>
         </div>
 
+        {/* Delete confirmation modal */}
         {deleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <Card className="p-6 md:p-8 max-w-md w-full mx-4 shadow-2xl border-2 border-gray-200">
-              <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-4">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="p-6 max-w-sm w-full shadow-xl border-0 rounded-xl">
+              <h3 className="font-semibold text-gray-900 mb-2 text-sm">
                 {deleteConfirm.type === "message" ? "Nachricht löschen?" : "Unterhaltung löschen?"}
               </h3>
-              <p className="text-gray-600 font-body mb-6 text-sm md:text-base">
+              <p className="text-gray-600 mb-5 text-xs">
                 {deleteConfirm.type === "message"
-                  ? "Diese Nachricht wird dauerhaft gelöscht und kann nicht wiederhergestellt werden."
-                  : "Diese gesamte Unterhaltung wird dauerhaft gelöscht und kann nicht wiederhergestellt werden."}
+                  ? "Diese Nachricht wird dauerhaft gelöscht."
+                  : "Diese gesamte Unterhaltung wird dauerhaft gelöscht."}
               </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setDeleteConfirm(null)}
-                  className="flex-1 font-semibold border-2"
-                >
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="flex-1 h-9 text-sm">
                   Abbrechen
                 </Button>
                 <Button
@@ -505,7 +527,7 @@ function MessagesContent() {
                       handleDeleteConversation(deleteConfirm.id)
                     }
                   }}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold"
+                  className="flex-1 h-9 text-sm bg-red-500 hover:bg-red-600 text-white"
                 >
                   Löschen
                 </Button>

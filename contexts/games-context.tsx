@@ -24,6 +24,13 @@ interface Game {
   latitude?: number
   longitude?: number
   location?: string
+  tracking_info?: {
+    status: "available" | "rented" | "swapped" | "lent"
+    rented_to?: string
+    rented_until?: string
+    swapped_with?: string
+    notes?: string
+  }
 }
 
 interface MarketplaceOffer {
@@ -148,6 +155,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
       try {
         console.log("[v0] Querying games for user:", userToUse.id)
+        console.log("[v0] Querying table: games, filter: user_id =", userToUse.id)
+
         const { data, error } = await supabase
           .from("games")
           .select("*")
@@ -156,11 +165,19 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           console.error("[v0] Error loading games:", error)
+          console.error("[v0] Error details:", JSON.stringify(error, null, 2))
           return
         }
 
         console.log("[v0] Raw games data from database:", data)
         console.log("[v0] Number of games loaded:", data?.length || 0)
+
+        if (data && data.length > 0) {
+          console.log("[v0] First game example:", JSON.stringify(data[0], null, 2))
+        } else {
+          console.log("[v0] No games found in database for this user")
+          console.log("[v0] This means the user needs to add games to their library first")
+        }
 
         const gamesWithFallback = (data || []).map((game) => ({
           ...game,
@@ -172,6 +189,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         console.log("[v0] Games state updated with", gamesWithFallback.length, "games")
       } catch (err) {
         console.error("[v0] Error loading games:", err)
+        console.error("[v0] Error stack:", err instanceof Error ? err.stack : "No stack trace")
       }
     },
     [user, databaseConnected, supabase],
@@ -236,6 +254,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         ...(gameData.latitude && { latitude: gameData.latitude }),
         ...(gameData.longitude && { longitude: gameData.longitude }),
         ...(gameData.location && { location: gameData.location }),
+        ...(gameData.tracking_info && { tracking_info: gameData.tracking_info }),
       }
 
       const { data, error } = await supabase.from("games").insert([gameWithFallback]).select()
@@ -284,6 +303,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         ...(gameData.latitude && { latitude: gameData.latitude }),
         ...(gameData.longitude && { longitude: gameData.longitude }),
         ...(gameData.location && { location: gameData.location }),
+        ...(gameData.tracking_info && { tracking_info: gameData.tracking_info }),
       }
 
       const { data, error } = await supabase
@@ -450,7 +470,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     try {
       const availabilityStatus = isAvailable ? ["available"] : ["not_available"]
-      
+
       const { data, error } = await supabase
         .from("games")
         .update({ available: availabilityStatus })

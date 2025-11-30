@@ -3,7 +3,6 @@ import { useState, useEffect } from "react"
 import type React from "react"
 
 import {
-  FaSearch,
   FaPlus,
   FaMapMarkerAlt,
   FaCalendarAlt,
@@ -13,16 +12,15 @@ import {
   FaUserPlus,
   FaComment,
   FaCog,
-  FaFilter,
   FaUsers,
   FaUserCog,
   FaDice,
-  FaCalendarPlus,
   FaChevronDown,
   FaUserTimes,
   FaUserMinus,
 } from "react-icons/fa"
-import { LuCalendarSync } from "react-icons/lu"
+import { MdEventRepeat, MdOutlineManageSearch } from "react-icons/md"
+import { FiFilter } from "react-icons/fi"
 // </CHANGE>
 
 import { Button } from "@/components/ui/button"
@@ -1149,29 +1147,28 @@ export default function LudoEventsPage() {
         </div>
 
         {/* Search and Filter Bar */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-gray-200 shadow-none">
-          <div className="space-y-6">
-            <div className="flex gap-4">
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100 shadow-sm mb-8">
+          <div className="space-y-4">
+            <div className="flex gap-3">
               <div className="relative flex-1">
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" /> {/* Changed to FaSearch */}
+                <MdOutlineManageSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Events durchsuchen..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-12 bg-white/80 border-gray-200 focus:border-teal-500 text-base"
+                  className="pl-9 h-9 bg-white/80 border-gray-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 text-xs"
                 />
               </div>
             </div>
 
-            <div className="space-y-3">
-              <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
-            </div>
+            <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
 
             {showLocationResults && (
-              <div className="flex items-center justify-between p-4 bg-teal-50 rounded-xl border border-gray-200">
+              // Changed blue to teal for clear location button
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="flex items-center gap-2">
-                  <FaMapMarkerAlt className="h-5 w-5 text-teal-600" /> {/* Changed to FaMapMarkerAlt */}
-                  <span className="text-sm text-teal-800 font-medium">
+                  <FaMapMarkerAlt className="h-4 w-4 text-gray-600" /> {/* Changed to FaMapMarkerAlt */}
+                  <span className="text-xs text-gray-800 font-medium">
                     Zeige Ergebnisse in der Nähe ({locationSearchResults.length})
                   </span>
                 </div>
@@ -1183,7 +1180,7 @@ export default function LudoEventsPage() {
                     setShowLocationResults(false)
                     setLocationSearchResults([])
                   }}
-                  className="text-teal-600 border-teal-300 hover:bg-teal-100"
+                  className="text-gray-600 border-gray-200 hover:bg-gray-100 h-7 text-xs"
                 >
                   Alle Events zeigen
                 </Button>
@@ -1191,151 +1188,202 @@ export default function LudoEventsPage() {
             )}
 
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Sortieren nach</Label>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren nach</Label>
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      <SelectItem value="newest">Neueste</SelectItem>
-                      <SelectItem value="date">Datum</SelectItem>
-                      <SelectItem value="participants">Teilnehmer</SelectItem>
+                      <SelectItem value="all" className="text-xs">
+                        Alle
+                      </SelectItem>
+                      <SelectItem value="newest" className="text-xs">
+                        Neueste
+                      </SelectItem>
+                      <SelectItem value="date" className="text-xs">
+                        Datum
+                      </SelectItem>
+                      <SelectItem value="participants" className="text-xs">
+                        Teilnehmer
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Häufigkeit</Label>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Häufigkeit</Label>
                   <Select value={frequencyFilter} onValueChange={setFrequencyFilter}>
-                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      <SelectItem value="einmalig">Einmalig</SelectItem>
-                      <SelectItem value="täglich">Täglich</SelectItem>
-                      <SelectItem value="wöchentlich">Wöchentlich</SelectItem>
-                      <SelectItem value="monatlich">Monatlich</SelectItem>
-                      <SelectItem value="jährlich">Jährlich</SelectItem>
+                      <SelectItem value="all" className="text-xs">
+                        Alle
+                      </SelectItem>
+                      <SelectItem value="einmalig" className="text-xs">
+                        Einmalig
+                      </SelectItem>
+                      <SelectItem value="täglich" className="text-xs">
+                        Täglich
+                      </SelectItem>
+                      <SelectItem value="wöchentlich" className="text-xs">
+                        Wöchentlich
+                      </SelectItem>
+                      <SelectItem value="monatlich" className="text-xs">
+                        Monatlich
+                      </SelectItem>
+                      <SelectItem value="jährlich" className="text-xs">
+                        Jährlich
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Zeitpunkt</Label>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Zeitpunkt</Label>
                   <Select value={timePeriodFilter} onValueChange={setTimePeriodFilter}>
-                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      <SelectItem value="heute">Heute</SelectItem>
-                      <SelectItem value="morgen">Morgen</SelectItem>
-                      <SelectItem value="wochenende">Wochenende</SelectItem>
-                      <SelectItem value="diese-woche">Diese Woche</SelectItem>
-                      <SelectItem value="naechste-woche">Nächste Woche</SelectItem>
-                      <SelectItem value="dieser-monat">Dieser Monat</SelectItem>
-                      <SelectItem value="naechster-monat">Nächster Monat</SelectItem>
+                      <SelectItem value="all" className="text-xs">
+                        Alle
+                      </SelectItem>
+                      <SelectItem value="heute" className="text-xs">
+                        Heute
+                      </SelectItem>
+                      <SelectItem value="morgen" className="text-xs">
+                        Morgen
+                      </SelectItem>
+                      <SelectItem value="wochenende" className="text-xs">
+                        Wochenende
+                      </SelectItem>
+                      <SelectItem value="diese-woche" className="text-xs">
+                        Diese Woche
+                      </SelectItem>
+                      <SelectItem value="naechste-woche" className="text-xs">
+                        Nächste Woche
+                      </SelectItem>
+                      <SelectItem value="dieser-monat" className="text-xs">
+                        Dieser Monat
+                      </SelectItem>
+                      <SelectItem value="naechster-monat" className="text-xs">
+                        Nächster Monat
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="flex items-end">
+                <div className="flex items-end gap-2 md:col-span-2 lg:col-span-1">
                   <Button
                     variant="outline"
                     onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                    className="h-12 w-full border-2 border-teal-500 text-teal-600 hover:bg-teal-50 font-medium"
+                    className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
                   >
-                    <FaFilter className="w-4 h-4 mr-2" /> {/* Changed to FaFilter */}
+                    <FiFilter className="w-3 h-3 mr-2" />
                     Erweiterte Filter
                     <FaChevronDown
-                      className={`w-4 h-4 ml-2 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
-                    /> {/* Changed to FaChevronDown */}
+                      className={`w-3 h-3 ml-2 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
+                    />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchTerm("")
+                      setSortBy("all")
+                      setLocationFilter("all")
+                      setFrequencyFilter("all")
+                      setTimePeriodFilter("all")
+                      setAvailabilityFilter("all")
+                      setApprovalModeFilter("all")
+                      setShowLocationResults(false)
+                      setLocationSearchResults([])
+                    }}
+                    className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
+                  >
+                    Filter zurücksetzen
                   </Button>
                 </div>
               </div>
 
               {showAdvancedFilters && (
-                <div className="pt-6 border-t border-gray-200 space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-700 flex items-center">
-                    <FaFilter className="w-4 h-4 mr-2" /> {/* Changed to FaFilter */}
+                <div className="pt-4 border-t border-gray-100 space-y-3">
+                  <h3 className="text-xs font-semibold text-gray-500 flex items-center">
+                    <FiFilter className="w-3 h-3 mr-2" />
                     Erweiterte Filter
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
-                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Ort</Label>
+                      <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Ort</Label>
                       <Select value={locationFilter} onValueChange={setLocationFilter}>
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                        <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Alle</SelectItem>
-                          <SelectItem value="local">Vor Ort</SelectItem>
-                          <SelectItem value="virtual">Online</SelectItem>
+                          <SelectItem value="all" className="text-xs">
+                            Alle
+                          </SelectItem>
+                          <SelectItem value="local" className="text-xs">
+                            Vor Ort
+                          </SelectItem>
+                          <SelectItem value="virtual" className="text-xs">
+                            Online
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div>
-                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Kapazität</Label>
+                      <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Kapazität</Label>
                       <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                        <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Alle</SelectItem>
-                          <SelectItem value="available">Freie Plätze</SelectItem>
-                          <SelectItem value="full">Ausgebucht</SelectItem>
+                          <SelectItem value="all" className="text-xs">
+                            Alle
+                          </SelectItem>
+                          <SelectItem value="available" className="text-xs">
+                            Freie Plätze
+                          </SelectItem>
+                          <SelectItem value="full" className="text-xs">
+                            Ausgebucht
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div>
-                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Teilnahmemodus</Label>
+                      <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Teilnahmemodus</Label>
                       <Select value={approvalModeFilter} onValueChange={setApprovalModeFilter}>
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                        <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Alle</SelectItem>
-                          <SelectItem value="automatic">Direkte Teilnahme</SelectItem>
-                          <SelectItem value="manual">Teilnahme erst nach Genehmigung</SelectItem>
+                          <SelectItem value="all" className="text-xs">
+                            Alle
+                          </SelectItem>
+                          <SelectItem value="automatic" className="text-xs">
+                            Direkte Teilnahme
+                          </SelectItem>
+                          <SelectItem value="manual" className="text-xs">
+                            Teilnahme erst nach Genehmigung
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
                 </div>
               )}
-
-              <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchTerm("")
-                    setSortBy("all")
-                    setLocationFilter("all")
-                    setFrequencyFilter("all")
-                    setTimePeriodFilter("all")
-                    setAvailabilityFilter("all")
-                    setApprovalModeFilter("all")
-                    setShowLocationResults(false)
-                    setLocationSearchResults([])
-                  }}
-                  className="h-12 px-6 border-2 border-gray-300 text-gray-700 hover:bg-gray-100 font-medium"
-                >
-                  Filter zurücksetzen
-                </Button>
-              </div>
             </div>
           </div>
         </div>
 
         <div className="flex gap-8">
           <div className="flex-1">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {loading ? (
                 // Skeleton loader for events
                 Array.from({ length: 6 }).map((_, i) => (
@@ -1353,8 +1401,8 @@ export default function LudoEventsPage() {
                 // Message for no events found
                 <div className="col-span-full text-center py-12">
                   <FaCalendar className="h-16 w-16 text-gray-300 mx-auto mb-4" /> {/* Changed to FaCalendar */}
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">Keine Events gefunden</h3>
-                  <p className="text-gray-500 mb-4">
+                  <h3 className="font-semibold text-gray-600 mb-2">Keine Events gefunden</h3>
+                  <p className="text-gray-600 mb-2 font-extralight text-sm">
                     {searchTerm ? "Versuche einen anderen Suchbegriff" : "Sei der Erste und erstelle ein neues Event!"}
                   </p>
                   {!searchTerm && (
@@ -1393,32 +1441,30 @@ export default function LudoEventsPage() {
                     >
                       {/* Event Image or Placeholder */}
                       {!event.image_url && (
-                        <div className="relative h-32 w-full overflow-hidden bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
+                        <div className="relative aspect-[16/9] w-full overflow-hidden bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
                           {isRecurring && (
                             <div className="absolute top-2 right-2 z-10">
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200">
-                                <LuCalendarSync className="h-3.5 w-3.5" /> {/* Changed to FaCalendarPlus */}
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200 shadow-sm">
+                                <MdEventRepeat className="h-3 w-3" />
                                 <span>Serientermine</span>
                               </div>
                             </div>
                           )}
                           <div className="absolute top-2 left-2 z-10">
                             {event.approval_mode === "automatic" ? (
-                              // Changed green badge to teal
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200">
-                                <FaUserCheck className="h-3.5 w-3.5" /> {/* Changed to FaUserCheck */}
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200 shadow-sm">
+                                <FaUserCheck className="h-3 w-3" />
                                 <span>Direkte Teilnahme</span>
                               </div>
                             ) : (
-                              // Changed orange badge to teal
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-100 backdrop-blur-sm text-xs font-medium text-teal-700 rounded-full border border-teal-300">
-                                <FaClock className="h-3.5 w-3.5" /> {/* Changed to FaClock */}
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-100 backdrop-blur-sm text-xs font-medium text-amber-800 rounded-full border border-amber-200 shadow-sm">
+                                <FaClock className="h-3 w-3" />
                                 <span>Genehmigung erforderlich</span>
                               </div>
                             )}
                           </div>
                           <div className="text-center">
-                            <FaDice className="h-12 w-12 text-teal-400 mx-auto mb-1" /> {/* Changed to FaDice */}
+                            <FaDice className="h-12 w-12 text-teal-400 mx-auto mb-1" />
                           </div>
                         </div>
                       )}
@@ -1433,23 +1479,21 @@ export default function LudoEventsPage() {
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                           {isRecurring && (
                             <div className="absolute top-2 right-2 z-10">
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200">
-                                <LuCalendarSync className="h-3.5 w-3.5" /> {/* Changed to FaCalendarPlus */}
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200 shadow-sm">
+                                <MdEventRepeat className="h-3 w-3" />
                                 <span className="">Serientermine</span>
                               </div>
                             </div>
                           )}
                           <div className="absolute top-2 left-2 z-10">
                             {event.approval_mode === "automatic" ? (
-                              // Changed green badge to teal
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200">
-                                <FaUserCheck className="h-3.5 w-3.5" /> {/* Changed to FaUserCheck */}
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200 shadow-sm">
+                                <FaUserCheck className="h-3 w-3" />
                                 <span>Direkte Teilnahme</span>
                               </div>
                             ) : (
-                              // Changed orange badge to teal
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-100 backdrop-blur-sm text-xs font-medium text-teal-700 rounded-full border border-teal-300">
-                                <FaClock className="h-3.5 w-3.5" /> {/* Changed to FaClock */}
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-100 backdrop-blur-sm text-xs font-medium text-amber-800 rounded-full border border-amber-200 shadow-sm">
+                                <FaClock className="h-3 w-3" />
                                 <span>Genehmigung erforderlich</span>
                               </div>
                             )}
@@ -1457,10 +1501,10 @@ export default function LudoEventsPage() {
                         </div>
                       )}
 
-                      <CardHeader className="pb-3 px-6 mt-2">
+                      <CardHeader className="pb-2 px-4 mt-2">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-handwritten font-bold text-gray-900 mb-0 group-hover:text-teal-600 transition-colors text-sm truncate">
+                            <h3 className="font-handwritten font-bold text-gray-900 mb-0 group-hover:text-teal-600 transition-colors text-xs truncate">
                               {event.title}
                             </h3>
                           </div>
@@ -1468,16 +1512,16 @@ export default function LudoEventsPage() {
                         </div>
                       </CardHeader>
 
-                      <CardContent className="space-y-3 flex-1 flex flex-col px-6">
+                      <CardContent className="space-y-2 flex-1 flex flex-col px-4 pb-4">
                         {event.description && (
                           <p
-                            className="text-xs text-gray-600 line-clamp-2 font-normal"
+                            className="text-xs text-gray-600 line-clamp-2 font-normal mb-2"
                             dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(event.description) }}
                           />
                         )}
-                        <div className="space-y-2 mt-auto">
+                        <div className="space-y-1.5 mt-auto border-t border-gray-100 pt-2">
                           <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <FaCalendarAlt className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarAlt */}
+                            <FaCalendarAlt className="h-3.5 w-3.5 text-teal-600" /> {/* Changed to FaCalendarAlt */}
                             <span className="text-xs">
                               {(() => {
                                 console.log(`[v0] Card view for event "${event.title}":`, {
@@ -1494,7 +1538,7 @@ export default function LudoEventsPage() {
                           </div>
 
                           <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <FaClock className="h-4 w-4 text-teal-600" /> {/* Changed to FaClock */}
+                            <FaClock className="h-3.5 w-3.5 text-teal-600" /> {/* Changed to FaClock */}
                             <span className="text-xs">
                               {event.start_time.slice(0, 5)}
                               {event.end_time && ` - ${event.end_time.slice(0, 5)}`}
@@ -1503,13 +1547,13 @@ export default function LudoEventsPage() {
 
                           {intervalDisplay && (
                             <div className="flex items-center gap-2 text-xs text-gray-600">
-                              <LuCalendarSync className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
+                              <MdEventRepeat className="h-3.5 w-3.5 text-teal-600" /> {/* Changed to FaCalendarPlus */}
                               <span className="text-xs">{intervalDisplay}</span>
                             </div>
                           )}
 
                           <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <FaMapMarkerAlt className="h-4 w-4 text-teal-600" /> {/* Changed to FaMapMarkerAlt */}
+                            <FaMapMarkerAlt className="h-3.5 w-3.5 text-teal-600" /> {/* Changed to FaMapMarkerAlt */}
                             {event.location_type === "virtual" ? (
                               <span className="truncate">Online Event</span>
                             ) : event.location ? (
@@ -1529,7 +1573,7 @@ export default function LudoEventsPage() {
 
                           {event.selected_games && event.selected_games.length > 0 && (
                             <div className="flex items-center gap-2 text-xs text-gray-600">
-                              <FaDice className="h-4 w-4 text-teal-600" /> {/* Changed to FaDice */}
+                              <FaDice className="h-3.5 w-3.5 text-teal-600" /> {/* Changed to FaDice */}
                               <span className="truncate">
                                 {(() => {
                                   const gameNames = event.selected_games
@@ -1572,12 +1616,12 @@ export default function LudoEventsPage() {
                           )}
 
                           <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <FaUsers className="h-4 w-4 text-teal-600" /> {/* Changed to FaUsers */}
+                            <FaUsers className="h-3.5 w-3.5 text-teal-600" /> {/* Changed to FaUsers */}
                             <span>{formatParticipantCount(event)}</span>
                           </div>
 
                           <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <FaUserCog className="h-4 w-4 text-teal-600" /> {/* Changed to FaUserCog */}
+                            <FaUserCog className="h-3.5 w-3.5 text-teal-600" /> {/* Changed to FaUserCog */}
                             <Avatar className="h-4 w-4">
                               <AvatarImage src={event.creator.avatar || "/placeholder.svg"} />
                               <AvatarFallback className="text-xs">
@@ -1780,7 +1824,7 @@ export default function LudoEventsPage() {
                     {/* Content for Info Tab */}
                     {detailViewTab === "info" && (
                       <div className="space-y-4">
-                        <div className="space-y-4">
+                        <div className="space-y-3.5">
                           <div className="flex items-center gap-3 text-xs">
                             <FaCalendarAlt className="text-teal-600 h-4 w-4" /> {/* Changed to FaCalendarAlt */}
                             <div>
@@ -1804,7 +1848,7 @@ export default function LudoEventsPage() {
 
                           {getIntervalDisplay(selectedEvent) && (
                             <div className="flex items-center gap-3 text-xs">
-                              <LuCalendarSync className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
+                              <MdEventRepeat className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
                               <div>
                                 <div className="text-gray-600 text-xs font-medium">
                                   {getIntervalDisplay(selectedEvent)}
@@ -1983,7 +2027,7 @@ export default function LudoEventsPage() {
                                     {date.end_time && ` - ${date.end_time.slice(0, 5)}`}
                                   </div>
                                 </div>
-                                <div className={`flex items-center gap-3 mt-2 pt-2 border-t text-xs ${dividerColor}`}>
+                                <div className={`flex items-center gap-3 mt-2 pt-2 border-t ${dividerColor}`}>
                                   <FaUsers className="text-gray-600 h-4 w-4" /> {/* Changed to FaUsers */}
                                   <div className="font-medium text-gray-600 text-xs">
                                     {date.participant_count || 0} Teilnehmer
@@ -2037,7 +2081,7 @@ export default function LudoEventsPage() {
 
                       {getIntervalDisplay(selectedEvent) && (
                         <div className="flex items-center gap-3">
-                          <LuCalendarSync className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
+                          <MdEventRepeat className="h-4 w-4 text-teal-600" /> {/* Changed to FaCalendarPlus */}
                           <div>
                             <div className="text-gray-600 text-xs">{getIntervalDisplay(selectedEvent)}</div>
                           </div>

@@ -158,7 +158,7 @@ export function PollCard({ poll, currentUserId, isCreator, onPollUpdated }: Poll
                 />
                 {poll.description && (
                   <p
-                    className="text-sm text-gray-600 mt-1.5 leading-relaxed"
+                    className="text-xs text-gray-600 mt-1.5 leading-relaxed"
                     dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(poll.description) }}
                   />
                 )}

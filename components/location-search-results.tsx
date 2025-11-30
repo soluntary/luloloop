@@ -167,7 +167,7 @@ export function LocationSearchResults({
 
                     {/* Price or Action */}
                     <div className="flex items-center gap-2">
-                      {item.price && <span className="font-semibold text-orange-600 text-sm">{item.price}</span>}
+                      {item.price && <span className="font-semibold text-orange-600 text-xs">{item.price}</span>}
                       {onContactItem && (
                         <Button
                           size="sm"

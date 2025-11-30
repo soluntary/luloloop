@@ -75,7 +75,7 @@ export function ShareButton({ title, url, description, className }: ShareButtonP
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-        <Button variant="outline" size="xs" className={className}>
+        <Button variant="outline" size="sm" className={className}>
           <Share2 className="w-4 h-4 mr-2" />
           Teilen
         </Button>

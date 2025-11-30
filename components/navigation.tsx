@@ -23,6 +23,7 @@ import {
   FaStar,
   FaUserCheck,
 } from "react-icons/fa"
+import { LiaUsersSolid } from "react-icons/lia"
 import {
 IoLibrary
 } from "react-icons/io5"
@@ -33,6 +34,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useMessages } from "@/contexts/messages-context"
 import { useAvatar } from "@/contexts/avatar-context"
 import NotificationDropdown from "@/components/notification-dropdown"
+import { NotificationBell } from "@/components/notification-bell"
 
 interface NavigationProps {
   currentPage?: string
@@ -62,21 +64,21 @@ function Navigation({ currentPage }: NavigationProps) {
 
   const loggedInNavItems: NavItem[] = [
     { href: "/", label: "Home", icon: FaHome, key: "home" },
-    { href: "/library", label: "Ludothek", icon: IoLibrary, key: "library" },
+    { href: "/library", label: "Spieleregal", icon: IoLibrary, key: "library" },
     {
       label: "Community",
       icon: RiUserCommunityFill,
       key: "community",
       dropdown: {
         items: [
-          { href: "/ludo-gruppen", label: "Spielgruppen", icon: FaUsersRectangle, key: "ludo-gruppen" },
+          { href: "/ludo-gruppen", label: "Spielgruppen", icon: LiaUsersSolid, key: "ludo-gruppen" },
           { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
           { href: "/ludo-events", label: "Events", icon: FaCalendarAlt, key: "ludo-events" },
           { href: "/ludo-forum", label: "Forum", icon: MdForum, key: "ludo-forum" },
         ],
       },
     },
-    { href: "/marketplace", label: "Spielemarkt", icon: FaStore, key: "spielemarkt" },
+    { href: "/marketplace", label: "Spielehandel", icon: FaStore, key: "spielemarkt" },
     { href: "/messages", label: "Nachrichten", icon: FaComments, key: "messages" },
     { href: "/about", label: "Über uns", icon: FaInfoCircle, key: "about" },
   ]
@@ -213,7 +215,7 @@ function Navigation({ currentPage }: NavigationProps) {
                     <Icon className="w-5 h-5" />
                     <span>{item.label}</span>
                     {item.key === "messages" && unreadCount > 0 && (
-                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-sm rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
+                      <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse text-xs">
                         {unreadCount > 99 ? "99+" : unreadCount}
                       </div>
                     )}
@@ -227,7 +229,7 @@ function Navigation({ currentPage }: NavigationProps) {
           <div className="hidden md:flex items-center space-x-4">
             {user && (
               <>
-                <NotificationDropdown />
+                <NotificationBell />
               </>
             )}
 
@@ -291,7 +293,7 @@ function Navigation({ currentPage }: NavigationProps) {
           <div className="md:hidden flex items-center space-x-2">
             {user && (
               <>
-                <NotificationDropdown className="p-1" />
+                <NotificationBell />
               </>
             )}
             <Button variant="ghost" size="sm" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2">

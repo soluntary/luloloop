@@ -9,6 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ai-sdk/openai": "2.0.68",
     "@aws-sdk/client-rds-data": "latest",
     "@cloudflare/workers-types": "latest",
     "@electric-sql/pglite": "latest",
@@ -56,6 +57,7 @@
     "@vercel/blob": "latest",
     "@vercel/postgres": "latest",
     "@xata.io/client": "latest",
+    "ai": "latest",
     "better-sqlite3": "latest",
     "bun-types": "latest",
     "class-variance-authority": "^0.7.1",

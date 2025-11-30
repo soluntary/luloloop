@@ -60,7 +60,7 @@ export default function RootLayout({
                         <LocationSearchProvider>
                           <RequestsProvider>
                             <SecurityEventLogger>
-                              <div className="min-h-screen flex flex-col">
+                              <div className="flex flex-col min-h-screen">
                                 <main className="flex-1">{children}</main>
                                 <Footer />
                               </div>

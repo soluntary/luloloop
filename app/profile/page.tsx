@@ -9,7 +9,7 @@ import { useProfileSync } from "@/contexts/profile-sync-context"
 import { updateUserProfile } from "@/app/actions/profile-sync"
 import { deleteAccountAction } from "@/app/actions/delete-account"
 
-import { toggleOfferStatus, toggleSearchAdStatus } from './actions'
+import { toggleOfferStatus, toggleSearchAdStatus } from "./actions"
 
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
@@ -18,8 +18,38 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Globe, Twitter, Instagram, Upload, Shuffle, RefreshCw, Check, X, CalendarDaysIcon, Calendar, Users, Trash2, MapPin, Eye, UserX, MessageSquare, Shield, Tag, DicesIcon, Gamepad2, Edit2, BanknoteIcon, DollarSign, Building, Clock, RepeatIcon } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import {
+  Globe,
+  Upload,
+  Shuffle,
+  RefreshCw,
+  Check,
+  X,
+  CalendarDaysIcon,
+  Calendar,
+  Users,
+  Trash2,
+  MapPin,
+  Eye,
+  UserX,
+  MessageSquare,
+  Tag,
+  DicesIcon,
+  Gamepad2,
+  Edit2,
+  BanknoteIcon,
+  DollarSign,
+  Building,
+  Clock,
+  RepeatIcon,
+  CalendarPlus,
+  UserPlus,
+  ShoppingBag,
+  LogOut,
+} from "lucide-react"
+import { FaXTwitter } from "react-icons/fa6"
+import { FaInstagram } from "react-icons/fa"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/components/ui/use-toast" // Assuming useToast is available
@@ -54,16 +84,17 @@ import {
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Mail, Bell } from 'lucide-react'
-
-// Import new form components
-import { EditCommunityForm } from "@/components/edit-community-form" // Fixed import path
 import { CreateLudoEventFormDialog } from "@/components/forms/create-ludo-event-form-dialog" // Assuming this handles editing as well
 import { EditMarketplaceOfferForm } from "@/components/forms/edit-marketplace-offer-form"
 import { EditSearchAdForm } from "@/components/forms/edit-search-ad-form"
 
+// Import new management components
+import EventApprovalManagement from "@/components/event-approval-management"
+import { GroupMemberManagementDialog } from "@/components/group-member-management-dialog"
+import { GroupPollsDialog } from "@/components/group-polls-dialog"
+
 // Import icons for toggling
-import { FaPlay, FaPause } from "react-icons/fa"
+import { FaPlay, FaPause, FaChartBar } from "react-icons/fa"
 
 export default function ProfilePage() {
   const { user, updateProfile, signOut } = useAuth()
@@ -76,6 +107,16 @@ export default function ProfilePage() {
 
   const [editingEvent, setEditingEvent] = useState<any>(null)
   const [editingCommunity, setEditingCommunity] = useState<any>(null)
+
+  // New state for management dialogs
+  const [isEventApprovalOpen, setIsEventApprovalOpen] = useState(false)
+  const [selectedEventForApproval, setSelectedEventForApproval] = useState<any>(null)
+
+  const [isGroupMembersOpen, setIsGroupMembersOpen] = useState(false)
+  const [selectedGroupForMembers, setSelectedGroupForMembers] = useState<any>(null)
+
+  const [isGroupPollsOpen, setIsGroupPollsOpen] = useState(false)
+  const [selectedGroupForPolls, setSelectedGroupForPolls] = useState<any>(null)
 
   const [userOffers, setUserOffers] = useState<any[]>([])
   const [userSearchAds, setUserSearchAds] = useState<any[]>([])
@@ -245,7 +286,11 @@ export default function ProfilePage() {
 
       if (result.error) {
         console.error("[v0] Error toggling offer status:", result.error)
-        toast({ title: "Fehler", description: "Konnte den Status des Angebots nicht aktualisieren.", variant: "destructive" })
+        toast({
+          title: "Fehler",
+          description: "Konnte den Status des Angebots nicht aktualisieren.",
+          variant: "destructive",
+        })
         return
       }
 
@@ -263,11 +308,18 @@ export default function ProfilePage() {
 
       if (result.error) {
         console.error("[v0] Error toggling search ad status:", result.error)
-        toast({ title: "Fehler", description: "Konnte den Status der Suchanzeige nicht aktualisieren.", variant: "destructive" })
+        toast({
+          title: "Fehler",
+          description: "Konnte den Status der Suchanzeige nicht aktualisieren.",
+          variant: "destructive",
+        })
         return
       }
 
-      toast({ title: "Status aktualisiert", description: currentStatus ? "Suchanzeige pausiert" : "Suchanzeige aktiviert." })
+      toast({
+        title: "Status aktualisiert",
+        description: currentStatus ? "Suchanzeige pausiert" : "Suchanzeige aktiviert.",
+      })
       await loadUserSearchAds()
     } catch (error) {
       console.error("[v0] Error in handleToggleSearchAdStatus:", error)
@@ -280,7 +332,7 @@ export default function ProfilePage() {
     if (!user?.id) return
     try {
       console.log("[v0] Loading search ads for user:", user.id)
-      
+
       const { data: searchAds, error: searchAdsError } = await supabase
         .from("search_ads")
         .select("*")
@@ -294,7 +346,7 @@ export default function ProfilePage() {
         setUserSearchAds(searchAds || [])
       }
     } catch (error) {
-      console.error("[v0] Error loading user search ads:", error)
+      console.error("Error loading user search ads:", error)
     }
   }
 
@@ -1390,11 +1442,11 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-teal-50">
       <Navigation currentPage="profile" />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="font-semibold text-base md:text-sm">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 md:mb-8">
             <h1 className="text-2xl md:text-3xl font-bold font-handwritten text-gray-800 mb-2">Profil</h1>
-            <p className="text-gray-600 font-body text-sm md:text-sm">
+            <p className="text-gray-600 font-body text-sm md:text-sm font-normal">
               Verwalte deine Kontoinformationen und Einstellungen
             </p>
           </div>
@@ -1445,7 +1497,7 @@ export default function ProfilePage() {
                         <Button
                           type="button"
                           variant="outline"
-                          size="xs"
+                          size="sm"
                           onClick={() => document.getElementById("avatar-upload")?.click()}
                           disabled={isLoading}
                         >
@@ -1456,7 +1508,7 @@ export default function ProfilePage() {
                         <Button
                           type="button"
                           variant="outline"
-                          size="xs"
+                          size="sm"
                           onClick={() => generateAvatarPreview()}
                           disabled={isLoading}
                         >
@@ -1527,7 +1579,7 @@ export default function ProfilePage() {
                       {/* Basic Profile Information */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="name" className="text-xs">
+                          <Label htmlFor="name" className="text-xs font-bold">
                             Vollständiger Name
                           </Label>
                           <Input
@@ -1538,7 +1590,7 @@ export default function ProfilePage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="username" className="text-xs">
+                          <Label htmlFor="username" className="text-xs font-bold">
                             Benutzername
                           </Label>
                           <Input
@@ -1548,14 +1600,14 @@ export default function ProfilePage() {
                             onChange={(e) => handleInputChange("username", e.target.value)}
                             className="text-xs"
                           />
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground font-normal">
                             Dieser Name wird auf der Plattform angezeigt und ist für andere Nutzer sichtbar.
                           </p>
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="email" className="text-xs">
+                        <Label htmlFor="email" className="text-xs font-bold">
                           E-Mail-Adresse
                         </Label>
                         <Input
@@ -1566,14 +1618,14 @@ export default function ProfilePage() {
                           className="text-xs"
                           disabled
                         />
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground font-normal">
                           Die E-Mail-Adresse kann im Sicherheits-Tab geändert werden.
                         </p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="birthDate" className="text-xs">
+                          <Label htmlFor="birthDate" className="text-xs font-bold">
                             Geburtsdatum
                           </Label>
                           <Input
@@ -1585,7 +1637,7 @@ export default function ProfilePage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="phone" className="text-xs">
+                          <Label htmlFor="phone" className="text-xs font-bold">
                             Telefonnummer
                           </Label>
                           <Input
@@ -1600,7 +1652,7 @@ export default function ProfilePage() {
 
                       {/* Lieblingsspiele */}
                       <div className="space-y-2">
-                        <Label htmlFor="favoriteGames" className="text-xs">
+                        <Label htmlFor="favoriteGames" className="text-xs font-medium">
                           Lieblingsspiele
                         </Label>
                         <Input
@@ -1614,7 +1666,7 @@ export default function ProfilePage() {
 
                       {/* Bio */}
                       <div className="space-y-2">
-                        <Label htmlFor="bio" className="text-xs">
+                        <Label htmlFor="bio" className="text-xs font-bold">
                           Bio
                         </Label>
                         <Textarea
@@ -1629,9 +1681,9 @@ export default function ProfilePage() {
 
                       {/* Social Media */}
                       <div className="space-y-2">
-                        <Label className="text-xs font-medium">Social Media</Label>
+                        <Label className="text-xs font-bold">Soziale Netwerke</Label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="space-y-2">
+                          <div className="space-y-2 py-1">
                             <Label htmlFor="website" className="text-xs flex items-center gap-2">
                               <Globe className="w-4 h-4" />
                               Website
@@ -1644,9 +1696,9 @@ export default function ProfilePage() {
                               className="text-xs"
                             />
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-2 py-1">
                             <Label htmlFor="twitter" className="text-xs flex items-center gap-2">
-                              <Twitter className="w-4 h-4" />
+                              <FaXTwitter className="w-4 h-4" />
                               Twitter/X
                             </Label>
                             <Input
@@ -1657,9 +1709,9 @@ export default function ProfilePage() {
                               className="text-xs"
                             />
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-2 py-1">
                             <Label htmlFor="instagram" className="text-xs flex items-center gap-2">
-                              <Instagram className="w-4 h-4" />
+                              <FaInstagram className="w-4 h-4" />
                               Instagram
                             </Label>
                             <Input
@@ -1676,16 +1728,16 @@ export default function ProfilePage() {
 
                     {/* Address Section */}
                     <div className="space-y-4">
-                      <Label className="text-xs font-medium">Adresse</Label>
+                      <Label className="text-xs font-bold">Adresse</Label>
                       {!isEditingAddress ? (
                         <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
-                          <span className="text-xs text-slate-700">
+                          <span className="text-xs text-slate-700 font-normal">
                             {profileData.address || "Keine Adresse angegeben"}
                           </span>
                           <Button
                             type="button"
                             variant="outline"
-                            size="xs"
+                            size="sm"
                             onClick={() => {
                               setTempAddress(profileData.address || "")
                               setIsEditingAddress(true)
@@ -1754,78 +1806,114 @@ export default function ProfilePage() {
             </TabsContent>
 
             <TabsContent value="activities">
-              <Card>
-                <CardHeader className="p-4 md:p-6">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="p-4 md:p-6 pb-2">
                   <CardTitle className="font-handwritten text-lg md:text-xl">Meine Aktivitäten</CardTitle>
-                  <CardDescription className="text-sm md:text-base">
+                  <CardDescription className="text-sm">
                     Übersicht über deine Event-Teilnahmen, Anfragen und Spielgruppen, sowie Spielemarkt-Angebote
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-4 md:p-6">
+                <CardContent className="p-4 md:p-6 pt-2">
                   <Tabs defaultValue="events-participating" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6 gap-1">
-                      <TabsTrigger value="events-participating" className="text-xs md:text-sm px-1">
-                        <span className="text-gray-600 text-sm md:text-sm mb-0">Events (Teilnahme)</span>
-                        <span className="sm:hidden">📅 Teil.</span>
+                    <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6 gap-1 bg-gray-100/80 p-1 rounded-lg h-auto">
+                      <TabsTrigger
+                        value="events-participating"
+                        className="text-xs px-2 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                      >
+                        <Calendar className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
+                        <span className="hidden sm:inline">Events (Teiln.)</span>
+                        <span className="sm:hidden text-xs">Teiln.</span>
                       </TabsTrigger>
-                      <TabsTrigger value="events-created" className="text-xs md:text-sm px-1">
-                        <span className="hidden sm:inline text-sm">Events (Erstellt)</span>
-                        <span className="sm:hidden">📅 Erst.</span>
+                      <TabsTrigger
+                        value="events-created"
+                        className="text-xs px-2 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                      >
+                        <CalendarPlus className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
+                        <span className="hidden sm:inline">Events (Erst.)</span>
+                        <span className="sm:hidden text-xs">Erst.</span>
                       </TabsTrigger>
-                      <TabsTrigger value="requests" className="text-xs md:text-sm px-1">
+                      <TabsTrigger
+                        value="requests"
+                        className="text-xs px-2 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                      >
+                        <Clock className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
                         <span className="hidden sm:inline">Anfragen</span>
-                        <span className="sm:hidden">⏳</span>
+                        <span className="sm:hidden text-xs">Anfr.</span>
                       </TabsTrigger>
-                      <TabsTrigger value="groups-joined" className="text-xs md:text-sm px-1">
-                        <span className="hidden sm:inline">Gruppen (Mitglied)</span>
-                        <span className="sm:hidden">👥 Mit.</span>
+                      <TabsTrigger
+                        value="groups-joined"
+                        className="text-xs px-2 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                      >
+                        <Users className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
+                        <span className="hidden sm:inline">Gruppen (Mitgl.)</span>
+                        <span className="sm:hidden text-xs">Mitgl.</span>
                       </TabsTrigger>
-                      <TabsTrigger value="groups-created" className="text-xs md:text-sm px-1">
-                        <span className="hidden sm:inline">Gruppen (Erstellt)</span>
-                        <span className="sm:hidden">👥 Erst.</span>
+                      <TabsTrigger
+                        value="groups-created"
+                        className="text-xs px-2 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                      >
+                        <UserPlus className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
+                        <span className="font-medium text-gGruppen (Erst.)text-xs">Gruppen (Erst.)</span>
+                        <span className="sm:hidden text-xs">Erst.</span>
                       </TabsTrigger>
-                      <TabsTrigger value="marketplace" className="text-xs md:text-sm px-1">
+                      <TabsTrigger
+                        value="marketplace"
+                        className="text-xs px-2 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
                         <span className="hidden sm:inline">Marktplatz</span>
-                        <span className="sm:hidden">🛒</span>
+                        <span className="sm:hidden text-xs">Markt</span>
                       </TabsTrigger>
                     </TabsList>
 
-                    {/* Events Participating Tab - Updated */}
                     <TabsContent value="events-participating" className="space-y-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <h3 className="font-semibold text-base md:text-sm">
-                          Events, an denen ich teilnehme ({participatingEvents.length})
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm text-black font-semibold">
+                          Events, an denen ich teilnehme
+                          <span className="ml-2 text-black font-bold text-sm text-sm">({participatingEvents.length})</span>
                         </h3>
                       </div>
                       {loadingActivities ? (
                         <div className="flex items-center justify-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
                         </div>
                       ) : participatingEvents.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm mb-2">
-                            Du nimmst derzeit an keinen Events teil.
-                          </p>
-                          <Button size="sm" onClick={() => router.push("/ludo-events")}>
+                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
+                          <p className="text-gray-500 mb-3 font-normal text-xs">Du nimmst derzeit an keinen Events teil.</p>
+                          <Button size="sm" variant="outline" onClick={() => router.push("/ludo-events")}>
                             Events entdecken
                           </Button>
                         </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           {participatingEvents.map((participation) => (
                             <div
                               key={participation.id}
-                              className="border-2 border-blue-200 rounded-xl p-3 bg-white hover:border-blue-400 transition-colors cursor-pointer"
+                              className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
                               onClick={() => router.push(`/ludo-events/${participation.event?.id}`)}
                             >
-                              <div className="space-y-2">
-                                <h4 className="font-semibold text-sm text-gray-900">
-                                  {participation.event?.title || "Event"}
-                                </h4>
-                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                              <div className="space-y-1.5">
+                                <div className="flex items-start justify-between gap-2">
+                                  <h4 className="font-medium text-sm text-gray-900 flex-1">
+                                    {participation.event?.title || "Event"}
+                                  </h4>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
+                                    title="Event verlassen"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleLeaveEvent(participation.id)
+                                    }}
+                                  >
+                                    <LogOut className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                                   <span className="flex items-center gap-1">
-                                    <Calendar className="w-3.5 h-3.5" />
-                                    {participation.event?.event_date // Corrected to event_date based on actual data structure
+                                    <Calendar className="w-3 h-3" />
+                                    {participation.event?.event_date
                                       ? new Date(participation.event.event_date).toLocaleDateString("de-DE", {
                                           day: "2-digit",
                                           month: "2-digit",
@@ -1835,13 +1923,13 @@ export default function ProfilePage() {
                                     {participation.event?.event_time && ` • ${participation.event.event_time}`}
                                   </span>
                                   <span className="flex items-center gap-1">
-                                    <MapPin className="w-3.5 h-3.5" />
+                                    <MapPin className="w-3 h-3" />
                                     {participation.event?.location || "Kein Ort"}
                                   </span>
                                   {participation.event?.selected_games &&
                                     participation.event.selected_games.length > 0 && (
                                       <span className="flex items-center gap-1">
-                                        <Gamepad2 className="w-3.5 h-3.5" />
+                                        <Gamepad2 className="w-3 h-3" />
                                         {participation.event.selected_games
                                           .map((g: any) => g.title || g.name)
                                           .join(", ")}
@@ -1856,63 +1944,75 @@ export default function ProfilePage() {
                     </TabsContent>
 
                     <TabsContent value="events-created" className="space-y-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        
-                        <h3 className="text-sm mb-2 md:text-sm font-semibold text-foreground">
-                          Events, die ich erstellt habe ({createdEvents.length})
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-semibold text-black">
+                          Events, die ich erstellt habe
+                          <span className="ml-2 text-sm text-black font-bold">({createdEvents.length})</span>
                         </h3>
                       </div>
                       {loadingActivities ? (
                         <div className="flex items-center justify-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
                         </div>
                       ) : createdEvents.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm mb-2">Du hast noch keine Events erstellt.</p>
-                          <Button size="sm" onClick={() => router.push("/ludo-events")}>
+                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
+                          <p className="text-gray-500 text-sm mb-3">Du hast noch keine Events erstellt.</p>
+                          <Button size="sm" variant="outline" onClick={() => router.push("/ludo-events")}>
                             Erstes Event erstellen
                           </Button>
                         </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           {createdEvents.map((event) => (
                             <div
                               key={event.id}
-                              className="border-2 border-green-200 rounded-xl p-3 bg-white hover:border-green-400 transition-colors cursor-pointer"
+                              className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
                               onClick={() => router.push(`/ludo-events/${event.id}`)}
                             >
-                              <div className="space-y-2">
+                              <div className="space-y-1.5">
                                 <div className="flex items-start justify-between gap-2">
-                                  <h4 className="font-semibold text-sm text-gray-900 flex-1">{event.title}</h4>
-                                  <div className="flex gap-1">
+                                  <h4 className="font-medium text-gray-900 flex-1 text-xs">{event.title}</h4>
+                                  <div className="flex gap-0.5">
                                     <Button
-                                      size="icon"
+                                      size="sm"
                                       variant="ghost"
-                                      className="text-blue-500 hover:text-blue-700"
+                                      className="text-gray-500 hover:text-teal-600 hover:bg-teal-50 h-7 w-7 p-0"
+                                      title="Teilnehmer verwalten"
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        console.log("[v0] Edit event button clicked, event:", event.id)
+                                        setSelectedEventForApproval(event)
+                                        setIsEventApprovalOpen(true)
+                                      }}
+                                    >
+                                      <Users className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-gray-500 hover:text-blue-600 hover:bg-blue-50 h-7 w-7 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
                                         setEditingEvent(event)
                                       }}
                                     >
-                                      <Edit2 className="h-4 w-4" />
+                                      <Edit2 className="h-3.5 w-3.5" />
                                     </Button>
                                     <Button
-                                      size="icon"
+                                      size="sm"
                                       variant="ghost"
-                                      className="text-red-500 hover:text-red-700"
+                                      className="text-gray-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
                                       onClick={(e) => {
                                         e.stopPropagation()
                                         handleDeleteEvent(event.id)
                                       }}
                                     >
-                                      <Trash2 className="w-4 h-4" />
+                                      <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
                                   </div>
                                 </div>
-                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-thin">
                                   <span className="flex items-center gap-1">
-                                    <CalendarDaysIcon className="w-3.5 h-3.5" />
+                                    <CalendarDaysIcon className="w-3 h-3" />
                                     {event.frequency && event.frequency !== "once" ? (
                                       "Serientermine"
                                     ) : (
@@ -1929,17 +2029,17 @@ export default function ProfilePage() {
                                     )}
                                   </span>
                                   <span className="flex items-center gap-1">
-                                    <MapPin className="w-3.5 h-3.5" />
+                                    <MapPin className="w-3 h-3" />
                                     {event.location || "Kein Ort"}
                                   </span>
                                   {event.selected_games && event.selected_games.length > 0 && (
                                     <span className="flex items-center gap-1">
-                                      <DicesIcon className="w-3.5 h-3.5" />
+                                      <DicesIcon className="w-3 h-3" />
                                       {event.selected_games.map((g: any) => g.title || g.name).join(", ")}
                                     </span>
                                   )}
                                   <span className="flex items-center gap-1">
-                                    <Users className="w-3.5 h-3.5" />
+                                    <Users className="w-3 h-3" />
                                     {event.participants?.[0]?.count || 0} Teilnehmer
                                   </span>
                                 </div>
@@ -1951,72 +2051,70 @@ export default function ProfilePage() {
                     </TabsContent>
 
                     <TabsContent value="requests" className="space-y-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <h3 className="font-semibold text-base md:text-sm">
-                          Ausstehende Teilnahmeanfragen ({pendingJoinRequests.length})
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm text-black font-bold">
+                          Ausstehende Teilnahmeanfragen
+                          <span className="ml-2 text-black text-sm font-bold">({pendingJoinRequests.length})</span>
                         </h3>
                       </div>
                       {loadingActivities ? (
                         <div className="flex items-center justify-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
                         </div>
                       ) : pendingJoinRequests.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm">Keine ausstehenden Anfragen.</p>
+                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
+                          <p className="leading-7 font-normal text-gray-500 text-xs">Keine ausstehenden Anfragen.</p>
                         </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           {pendingJoinRequests.map((request) => (
                             <div
                               key={request.id}
-                              className="border-2 border-orange-200 rounded-xl p-4 bg-white hover:shadow-md transition-shadow"
+                              className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 transition-all"
                             >
-                              <div className="flex flex-col gap-3">
+                              <div className="flex flex-col gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-base text-orange-900 mb-2">
+                                  <h4 className="font-medium text-sm text-gray-900 mb-1">
                                     {request.event?.title || "Event"}
                                   </h4>
-                                  <p className="text-gray-600 text-sm line-clamp-2 mb-2">
-                                    {request.event?.description}
-                                  </p>
+                                  {request.event?.description && (
+                                    <p className="text-gray-500 text-xs line-clamp-1 mb-1">
+                                      {request.event.description}
+                                    </p>
+                                  )}
                                   {request.message && (
-                                    <div className="flex items-start gap-2 mb-3 p-2 bg-orange-50 rounded">
-                                      <MessageSquare className="w-4 h-4 text-orange-600 mt-0.5" />
-                                      <p className="text-gray-700 text-xs italic">"{request.message}"</p>
+                                    <div className="flex items-start gap-1.5 p-2 bg-gray-50 rounded text-xs text-gray-600 mb-2">
+                                      <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                      <p className="italic line-clamp-2">"{request.message}"</p>
                                     </div>
                                   )}
-                                  <div className="flex flex-wrap gap-3 text-sm text-gray-600">
-                                    <span className="flex items-center gap-1.5">
-                                      <Calendar className="w-4 h-4" />
-                                      Angefragt am{" "}
-                                      {new Date(request.created_at).toLocaleDateString("de-DE", {
-                                        day: "2-digit",
-                                        month: "2-digit",
-                                        year: "numeric",
-                                      })}
+                                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {new Date(request.created_at).toLocaleDateString("de-DE")}
                                     </span>
-                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    <span className="px-1.5 py-0.5 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200">
                                       Ausstehend
                                     </span>
                                   </div>
                                 </div>
-                                <div className="flex gap-2 justify-end pt-2 border-t border-orange-100">
+                                <div className="flex gap-2 justify-end pt-2 border-t border-gray-100">
                                   <Button
                                     size="sm"
-                                    variant="outline"
+                                    variant="ghost"
                                     onClick={() => router.push(`/ludo-events/${request.event?.id}`)}
-                                    className="text-xs"
+                                    className="text-xs h-7 text-gray-600"
                                   >
-                                    <Eye className="w-3.5 h-3.5 mr-1" />
+                                    <Eye className="w-3 h-3 mr-1" />
                                     Details
                                   </Button>
                                   <Button
                                     size="sm"
-                                    variant="destructive"
+                                    variant="ghost"
                                     onClick={() => handleCancelJoinRequest(request.id)}
-                                    className="text-xs"
+                                    className="text-xs h-7 text-red-600 hover:text-red-700 hover:bg-red-50"
                                   >
-                                    <UserX className="w-3.5 h-3.5 mr-1" />
+                                    <UserX className="w-3 h-3 mr-1" />
                                     Stornieren
                                   </Button>
                                 </div>
@@ -2028,76 +2126,96 @@ export default function ProfilePage() {
                     </TabsContent>
 
                     <TabsContent value="groups-created" className="space-y-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <h3 className="font-semibold text-base md:text-sm">
-                          Spielgruppen, die ich erstellt habe ({createdCommunities.length})
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-bold text-black">
+                          Spielgruppen, die ich erstellt habe
+                          <span className="ml-2 font-bold text-black">({createdCommunities.length})</span>
                         </h3>
                       </div>
                       {loadingActivities ? (
                         <div className="flex items-center justify-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
                         </div>
                       ) : createdCommunities.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm md:text-base mb-2">
-                            Du hast noch keine Spielgruppen erstellt.
-                          </p>
-                          <Button size="sm" onClick={() => router.push("/ludo-gruppen")}>
+                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
+                          <p className="text-gray-500 text-sm mb-3">Du hast noch keine Spielgruppen erstellt.</p>
+                          <Button size="sm" variant="outline" onClick={() => router.push("/ludo-gruppen")}>
                             Erste Spielgruppe erstellen
                           </Button>
                         </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           {createdCommunities.map((community) => (
                             <div
                               key={community.id}
-                              className="border-2 border-pink-200 rounded-xl p-3 bg-white hover:border-pink-400 transition-colors cursor-pointer"
+                              className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
                               onClick={() => router.push(`/ludo-gruppen/${community.id}`)}
                             >
-                              <div className="space-y-2">
+                              <div className="space-y-1.5">
                                 <div className="flex items-start justify-between gap-2">
-                                  <h4 className="font-semibold text-gray-900 flex-1">{community.name}</h4>
-                                  <div className="flex gap-1">
+                                  <h4 className="font-medium text-gray-900 flex-1 text-xs">{community.name}</h4>
+                                  <div className="flex gap-0.5">
                                     <Button
-                                      size="icon"
+                                      size="sm"
                                       variant="ghost"
-                                      className="text-blue-500 hover:text-blue-700"
+                                      className="text-gray-500 hover:text-teal-600 hover:bg-teal-50 h-7 w-7 p-0"
+                                      title="Mitglieder verwalten"
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        console.log("[v0] Edit community button clicked, community:", community.id)
+                                        setSelectedGroupForMembers(community)
+                                        setIsGroupMembersOpen(true)
+                                      }}
+                                    >
+                                      <Users className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-gray-500 hover:text-purple-600 hover:bg-purple-50 h-7 w-7 p-0"
+                                      title="Abstimmungen"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setSelectedGroupForPolls(community)
+                                        setIsGroupPollsOpen(true)
+                                      }}
+                                    >
+                                      <FaChartBar className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-gray-500 hover:text-blue-600 hover:bg-blue-50 h-7 w-7 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
                                         setEditingCommunity(community)
                                       }}
                                     >
-                                      <Edit2 className="h-4 w-4" />
+                                      <Edit2 className="h-3.5 w-3.5" />
                                     </Button>
                                     <Button
-                                      size="icon"
+                                      size="sm"
                                       variant="ghost"
-                                      className="text-red-500 hover:text-red-700"
+                                      className="text-gray-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
                                       onClick={(e) => {
                                         e.stopPropagation()
                                         handleDeleteCommunity(community.id)
                                       }}
                                     >
-                                      <Trash2 className="w-4 h-4" />
+                                      <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
                                   </div>
                                 </div>
-                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-thin">
                                   <span className="flex items-center gap-1">
-                                    <CalendarDaysIcon className="w-3.5 h-3.5" />
-                                    {new Date(community.created_at).toLocaleDateString("de-DE", {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      year: "numeric",
-                                    })}
+                                    <CalendarDaysIcon className="w-3 h-3" />
+                                    {new Date(community.created_at).toLocaleDateString("de-DE")}
                                   </span>
                                   <span className="flex items-center gap-1">
-                                    <MapPin className="w-3.5 h-3.5" />
+                                    <MapPin className="w-3 h-3" />
                                     {community.location || "Kein Ort"}
                                   </span>
                                   <span className="flex items-center gap-1">
-                                    <Users className="w-3.5 h-3.5" />
+                                    <Users className="w-3 h-3" />
                                     {community.members?.[0]?.count || 0} Mitglied
                                     {(community.members?.[0]?.count || 0) !== 1 ? "er" : ""}
                                   </span>
@@ -2110,69 +2228,80 @@ export default function ProfilePage() {
                     </TabsContent>
 
                     <TabsContent value="groups-joined" className="space-y-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <h3 className="font-semibold text-base md:text-sm">
-                          Spielgruppen, in denen ich Mitglied bin ({joinedCommunitiesFiltered.length})
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm text-black font-bold">
+                          Spielgruppen, in denen ich Mitglied bin
+                          <span className="ml-2 text-black font-bold">({joinedCommunitiesFiltered.length})</span>
                         </h3>
                       </div>
                       {loadingActivities ? (
                         <div className="flex items-center justify-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
                         </div>
                       ) : joinedCommunitiesFiltered.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600 text-sm md:text-base mb-2">
-                            Du bist noch keiner Spielgruppe beigetreten.
-                          </p>
-                          <Button size="sm" onClick={() => router.push("/ludo-gruppen")}>
+                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
+                          <p className="text-gray-500 text-sm mb-3">Du bist noch keiner Spielgruppe beigetreten.</p>
+                          <Button size="sm" variant="outline" onClick={() => router.push("/ludo-gruppen")}>
                             Spielgruppen entdecken
                           </Button>
                         </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           {joinedCommunitiesFiltered.map((membership) => (
                             <div
                               key={membership.id}
-                              className="border-2 border-purple-200 rounded-xl p-3 bg-white hover:border-purple-400 transition-colors cursor-pointer"
+                              className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
                               onClick={() => router.push(`/ludo-gruppen/${membership.community?.id}`)}
                             >
-                              <div className="space-y-2">
+                              <div className="space-y-1.5">
                                 <div className="flex items-start justify-between gap-2">
-                                  <h4 className="font-semibold text-gray-900 flex-1 text-xs">
+                                  <h4 className="font-medium text-gray-900 flex-1 text-xs">
                                     {membership.community?.name}
                                   </h4>
-                                  {membership.role === "admin" && (
-                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 whitespace-nowrap">
-                                      Admin
-                                    </span>
-                                  )}
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="text-red-500 hover:text-red-700 ml-auto"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleLeaveCommunity(membership.id)
-                                    }}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-gray-500 hover:text-purple-600 hover:bg-purple-50 h-7 w-7 p-0"
+                                      title="Abstimmungen"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setSelectedGroupForPolls(membership.community)
+                                        setIsGroupPollsOpen(true)
+                                      }}
+                                    >
+                                      <FaChartBar className="h-3.5 w-3.5" />
+                                    </Button>
+                                    {membership.role === "admin" && (
+                                      <span className="px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600 border border-gray-200">
+                                        Admin
+                                      </span>
+                                    )}
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
+                                      title="Gruppe verlassen"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleLeaveCommunity(membership.id)
+                                      }}
+                                    >
+                                      <LogOut className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
                                 </div>
-                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-thin">
                                   <span className="flex items-center gap-1">
-                                    <CalendarDaysIcon className="w-3.5 h-3.5" />
-                                    {new Date(membership.joined_at).toLocaleDateString("de-DE", {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      year: "numeric",
-                                    })}
+                                    <CalendarDaysIcon className="w-3 h-3" />
+                                    Beigetreten am {new Date(membership.joined_at).toLocaleDateString("de-DE")}
                                   </span>
                                   <span className="flex items-center gap-1">
-                                    <MapPin className="w-3.5 h-3.5" />
+                                    <MapPin className="w-3 h-3" />
                                     {membership.community?.location || "Kein Ort"}
                                   </span>
                                   <span className="flex items-center gap-1">
-                                    <Users className="w-3.5 h-3.5" />
+                                    <Users className="w-3 h-3" />
                                     {membership.community?.members?.[0]?.count || 0} Mitglied
                                     {(membership.community?.members?.[0]?.count || 0) !== 1 ? "er" : ""}
                                   </span>
@@ -2187,90 +2316,103 @@ export default function ProfilePage() {
                     <TabsContent value="marketplace" className="space-y-6">
                       {/* Marketplace Offers Section */}
                       <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <h3 className="font-semibold text-base md:text-lg">
-                            Marktplatz-Angebote ({userOffers.length})
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-sm text-black font-bold">
+                            Marktplatz-Angebote
+                            <span className="ml-2 font-bold text-black">({userOffers.length})</span>
                           </h3>
                         </div>
                         {userOffers.length === 0 ? (
-                          <div className="text-center py-8 bg-gray-50 rounded-lg">
-                            <p className="text-gray-600 text-sm md:text-base mb-2">
-                              Du hast noch keine Angebote erstellt.
-                            </p>
-                            <Button size="sm" onClick={() => router.push("/marketplace")}>
+                          <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
+                            <p className="mb-3 font-normal text-gray-500 text-xs">Du hast noch keine Angebote erstellt.</p>
+                            <Button size="sm" variant="outline" onClick={() => router.push("/marketplace")}>
                               Erstes Angebot erstellen
                             </Button>
                           </div>
                         ) : (
-                          <div className="space-y-3">
+                          <div className="space-y-2">
                             {userOffers.map((offer) => (
                               <div
                                 key={offer.id}
-                                className="border-2 border-purple-200 rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer bg-white/80"
+                                className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
                                 onClick={() => router.push(`/marketplace?offerId=${offer.id}`)}
                               >
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
-                                    <h4 className="font-semibold text-gray-900 mb-2">{offer.game_title}</h4>
-                                    <div className="space-y-1 text-xs text-gray-600">
+                                    <h4 className="font-medium text-sm text-gray-900 mb-1">
+                                      {offer.offer_type === "sell" && "Verkaufen: "}
+                                      {offer.offer_type === "trade" && "Tauschen: "}
+                                      {offer.offer_type === "lend" && "Vermieten: "}
+                                      {offer.game_title}
+                                    </h4>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                                       {offer.publisher && (
-                                        <p className="flex items-center gap-2">
-                                          <Building className="h-4 w-4" />
+                                        <span className="flex items-center gap-1">
+                                          <Building className="h-3 w-3" />
                                           {offer.publisher}
-                                        </p>
+                                        </span>
                                       )}
-                                      <p className="flex items-center gap-2">
-                                        <Tag className="h-4 w-4" />
+                                      <span className="flex items-center gap-1">
+                                        <Tag className="h-3 w-3" />
                                         {offer.offer_type === "sell" && "Verkaufen"}
                                         {offer.offer_type === "lend" && "Verleihen"}
                                         {offer.offer_type === "trade" && "Tauschen"}
-                                      </p>
+                                      </span>
                                       {offer.price && (
-                                        <p className="flex items-center gap-2">
-                                          <DollarSign className="h-4 w-4" />
+                                        <span className="flex items-center gap-1">
+                                          <DollarSign className="h-3 w-3" />
                                           {offer.price} CHF
-                                        </p>
+                                        </span>
                                       )}
                                       {offer.rental_price && (
-                                        <p className="flex items-center gap-2">
-                                          <DollarSign className="h-4 w-4" />
+                                        <span className="flex items-center gap-1">
+                                          <DollarSign className="h-3 w-3" />
                                           {offer.rental_price} CHF / Tag
-                                        </p>
+                                        </span>
                                       )}
                                     </div>
                                   </div>
-                                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
                                     <Button
-                                      variant={offer.active === false ? "default" : "outline"}
-                                      size="xs"
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={() => handleToggleOfferStatus(offer.id, offer.active !== false)}
-                                      className={offer.active === false ? "bg-green-500 hover:bg-green-600 text-white" : ""}
+                                      className={`h-7 px-2 text-xs ${
+                                        offer.active === false
+                                          ? "text-green-600 hover:text-green-700 hover:bg-green-50"
+                                          : "text-gray-500 hover:text-amber-600 hover:bg-amber-50"
+                                      }`}
                                     >
                                       {offer.active === false ? (
                                         <>
                                           <FaPlay className="h-3 w-3 mr-1" />
-                                          Aktivieren
+                                          Aktiv.
                                         </>
                                       ) : (
                                         <>
                                           <FaPause className="h-3 w-3 mr-1" />
-                                          Pausieren
+                                          Pause
                                         </>
                                       )}
                                     </Button>
                                     <Button
                                       variant="ghost"
-                                      size="xs"
+                                      size="sm"
+                                      className="text-gray-500 hover:text-blue-600 hover:bg-blue-50 h-7 w-7 p-0"
                                       onClick={() => {
-                                        console.log("[v0] Edit offer button clicked, offer:", offer.id)
                                         setEditingOffer(offer)
                                         setIsEditOfferOpen(true)
                                       }}
                                     >
-                                      <Edit2 className="h-4 w-4" />
+                                      <Edit2 className="h-3.5 w-3.5" />
                                     </Button>
-                                    <Button variant="ghost" size="xs" onClick={() => handleDeleteOffer(offer.id)}>
-                                      <Trash2 className="h-4 w-4 text-red-500" />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-gray-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
+                                      onClick={() => handleDeleteOffer(offer.id)}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
                                   </div>
                                 </div>
@@ -2282,101 +2424,109 @@ export default function ProfilePage() {
 
                       {/* Search Ads Section */}
                       <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <h3 className="font-semibold text-base md:text-lg">Suchanzeigen ({userSearchAds.length})</h3>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-sm font-bold text-black">
+                            Suchanzeigen
+                            <span className="ml-2 text-sm text-black">({userSearchAds.length})</span>
+                          </h3>
                         </div>
                         {userSearchAds.length === 0 ? (
-                          <div className="text-center py-8 bg-gray-50 rounded-lg">
-                            <p className="text-gray-600 text-sm md:text-base mb-2">
-                              Du hast noch keine Suchanzeigen erstellt.
-                            </p>
-                            <Button size="sm" onClick={() => router.push("/marketplace")}>
+                          <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
+                            <p className="text-gray-500 text-sm mb-3">Du hast noch keine Suchanzeigen erstellt.</p>
+                            <Button size="sm" variant="outline" onClick={() => router.push("/marketplace")}>
                               Erste Suchanzeige erstellen
                             </Button>
                           </div>
                         ) : (
-                          <div className="space-y-3">
+                          <div className="space-y-2">
                             {userSearchAds.map((ad) => (
                               <div
                                 key={ad.id}
-                                className="border-2 border-amber-200 rounded-xl p-3 bg-white hover:border-amber-400 transition-colors cursor-pointer"
+                                className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
                                 onClick={() => router.push(`/marketplace?searchAdId=${ad.id}`)}
                               >
-                                <div className="space-y-2">
+                                <div className="space-y-1.5">
                                   <div className="flex justify-between items-center">
-                                    <h4 className="font-semibold text-sm text-gray-900 flex-1">{ad.title}</h4>
-                                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                    <h4 className="font-medium text-gray-900 flex-1 text-xs">{ad.title}</h4>
+                                    <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
                                       <Button
-                                        variant={ad.active === false ? "default" : "outline"}
+                                        variant="ghost"
                                         size="sm"
                                         onClick={() => handleToggleSearchAdStatus(ad.id, ad.active !== false)}
-                                        className={ad.active === false ? "bg-green-500 hover:bg-green-600 text-white" : ""}
+                                        className={`h-7 px-2 text-xs ${
+                                          ad.active === false
+                                            ? "text-green-600 hover:text-green-700 hover:bg-green-50"
+                                            : "text-gray-500 hover:text-amber-600 hover:bg-amber-50"
+                                        }`}
                                       >
                                         {ad.active === false ? (
                                           <>
                                             <FaPlay className="h-3 w-3 mr-1" />
-                                            Aktivieren
+                                            Aktiv.
                                           </>
                                         ) : (
                                           <>
                                             <FaPause className="h-3 w-3 mr-1" />
-                                            Pausieren
+                                            Pause
                                           </>
                                         )}
                                       </Button>
                                       <Button
-                                        size="icon"
+                                        size="sm"
                                         variant="ghost"
-                                        className="text-blue-500 hover:text-blue-700"
+                                        className="text-gray-500 hover:text-blue-600 hover:bg-blue-50 h-7 w-7 p-0"
                                         onClick={() => {
-                                          console.log("[v0] Edit search ad button clicked, ad:", ad.id)
                                           setEditingSearchAd(ad)
                                           setIsEditSearchAdOpen(true)
                                         }}
                                       >
-                                        <Edit2 className="w-4 h-4" />
+                                        <Edit2 className="h-3.5 w-3.5" />
                                       </Button>
                                       <Button
-                                        size="icon"
+                                        size="sm"
                                         variant="ghost"
-                                        className="text-red-500 hover:text-red-700"
+                                        className="text-gray-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
                                         onClick={(e) => {
                                           e.stopPropagation()
                                           handleDeleteSearchAd(ad.id)
                                         }}
                                       >
-                                        <Trash2 className="w-4 h-4" />
+                                        <Trash2 className="h-3.5 w-3.5" />
                                       </Button>
                                     </div>
                                   </div>
-                                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-normal">
                                     {ad.publisher && (
-                                      <p className="flex items-center gap-2">
-                                        <Building className="h-4 w-4" />
+                                      <span className="flex items-center gap-1">
+                                        <Building className="h-3 w-3" />
                                         {ad.publisher}
-                                      </p>
+                                      </span>
                                     )}
-                                    <p className="flex items-center gap-2">
-                                      <Tag className="h-4 w-4" />
-                                      {ad.type === "buy" ? "Gesucht zum Kaufen" : ad.type === "rent" ? "Gesucht zum Mieten" : "Gesucht zum Tauschen"}
-                                    </p>
+                                    <span className="flex items-center gap-1 font-normal font-thin">
+                                      <Tag className="h-3 w-3" />
+                                      {ad.type === "buy"
+                                        ? "Zum Kaufen"
+                                        : ad.type === "rent"
+                                          ? "Zum Mieten"
+                                          : "Zum Tauschen"}
+                                    </span>
                                     {ad.type === "rent" && ad.rental_duration && (
-                                      <p className="flex items-center gap-2">
-                                        <Clock className="h-4 w-4" />
+                                      <span className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
                                         {ad.rental_duration}
-                                      </p>
+                                      </span>
                                     )}
                                     {ad.type === "buy" && ad.max_price && (
-                                      <p className="flex items-center gap-2">
-                                        <BanknoteIcon className="h-4 w-4" />
+                                      <span className="flex items-center gap-1">
+                                        <BanknoteIcon className="h-3 w-3" />
                                         bis {ad.max_price} CHF
-                                      </p>
+                                      </span>
                                     )}
                                     {ad.type === "trade" && ad.trade_game_title && (
-                                      <p className="flex items-center gap-2">
-                                        <RepeatIcon className="h-4 w-4" />
+                                      <span className="flex items-center gap-1 text-xs font-normal font-thin">
+                                        <RepeatIcon className="h-3 w-3" />
                                         Biete: {ad.trade_game_title}
-                                      </p>
+                                      </span>
                                     )}
                                   </div>
                                 </div>
@@ -2405,7 +2555,6 @@ export default function ProfilePage() {
                     <AccordionItem value="social" className="border-2 border-teal-200 rounded-xl mb-4 px-4">
                       <AccordionTrigger className="hover:no-underline">
                         <div className="flex items-center gap-3">
-                          
                           <div className="text-left">
                             <h3 className="font-semibold text-sm">Soziale Benachrichtigungen</h3>
                             <p className="text-xs text-gray-600">Freunde, Forum, Community</p>
@@ -2417,7 +2566,9 @@ export default function ProfilePage() {
                         <div className="space-y-3 pb-4 border-b">
                           <div>
                             <Label className="text-xs font-medium">Freundschaftsanfragen</Label>
-                            <p className="text-xs text-gray-600">Benachrichtigung bei neuen Freundschaftsanfragen</p>
+                            <p className="text-xs text-gray-600 font-normal">
+                              Benachrichtigung bei neuen Freundschaftsanfragen
+                            </p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -2429,7 +2580,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">In-App</span>
+                              <span className="text-xs text-gray-600 font-normal">In-App</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <input
@@ -2440,7 +2591,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">E-Mail</span>
+                              <span className="text-xs text-gray-600 font-normal">E-Mail</span>
                             </div>
                           </div>
                         </div>
@@ -2449,7 +2600,7 @@ export default function ProfilePage() {
                         <div className="space-y-3 pb-4 border-b">
                           <div>
                             <Label className="text-xs font-medium">Freundschaftsannahmen</Label>
-                            <p className="text-xs text-gray-600">Wenn jemand deine Anfrage annimmt</p>
+                            <p className="text-xs text-gray-600 font-normal">Wenn jemand deine Anfrage annimmt</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -2461,7 +2612,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">In-App</span>
+                              <span className="text-xs text-gray-600 font-normal">In-App</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <input
@@ -2472,7 +2623,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">E-Mail</span>
+                              <span className="text-xs text-gray-600 font-normal">E-Mail</span>
                             </div>
                           </div>
                         </div>
@@ -2481,7 +2632,7 @@ export default function ProfilePage() {
                         <div className="space-y-3 pb-4 border-b">
                           <div>
                             <Label className="text-xs font-medium">Freundschaftsablehnungen</Label>
-                            <p className="text-xs text-gray-600">Wenn jemand deine Anfrage ablehnt</p>
+                            <p className="text-xs text-gray-600 font-normal">Wenn jemand deine Anfrage ablehnt</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -2493,7 +2644,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">In-App</span>
+                              <span className="text-xs text-gray-600 font-normal">In-App</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <input
@@ -2504,7 +2655,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">E-Mail</span>
+                              <span className="text-xs text-gray-600 font-normal">E-Mail</span>
                             </div>
                           </div>
                         </div>
@@ -2513,7 +2664,7 @@ export default function ProfilePage() {
                         <div className="space-y-3 pb-4 border-b">
                           <div>
                             <Label className="text-xs font-medium">Forum-Antworten</Label>
-                            <p className="text-xs text-gray-600">Antworten auf deine Beiträge</p>
+                            <p className="text-xs text-gray-600 font-normal">Antworten auf deine Beiträge</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -2525,7 +2676,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">In-App</span>
+                              <span className="text-xs text-gray-600 font-normal">In-App</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <input
@@ -2536,7 +2687,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">E-Mail</span>
+                              <span className="text-xs text-gray-600 font-normal">E-Mail</span>
                             </div>
                           </div>
                         </div>
@@ -2545,7 +2696,7 @@ export default function ProfilePage() {
                         <div className="space-y-3 pb-4 border-b">
                           <div>
                             <Label className="text-xs font-medium">Kommentar-Antworten</Label>
-                            <p className="text-xs text-gray-600">
+                            <p className="text-xs text-gray-600 font-normal">
                               Benachrichtigung bei Antworten auf Kommentare, auf die du geantwortet hast
                             </p>
                           </div>
@@ -2559,7 +2710,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">In-App</span>
+                              <span className="text-xs text-gray-600 font-normal">In-App</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <input
@@ -2570,7 +2721,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">E-Mail</span>
+                              <span className="text-xs text-gray-600 font-normal">E-Mail</span>
                             </div>
                           </div>
                         </div>
@@ -2579,7 +2730,7 @@ export default function ProfilePage() {
                         <div className="space-y-3">
                           <div>
                             <Label className="text-xs font-medium">Spielregal-Anfragen</Label>
-                            <p className="text-xs text-gray-600">Zugangsanfragen zu deinem Spielregal</p>
+                            <p className="text-xs text-gray-600 font-normal">Zugangsanfragen zu deinem Spielregal</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -2591,7 +2742,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">In-App</span>
+                              <span className="text-xs text-gray-600 font-normal">In-App</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <input
@@ -2602,7 +2753,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">E-Mail</span>
+                              <span className="text-xs text-gray-600 font-normal">E-Mail</span>
                             </div>
                           </div>
                         </div>
@@ -2613,7 +2764,6 @@ export default function ProfilePage() {
                     <AccordionItem value="messages" className="border-2 border-blue-200 rounded-xl mb-4 px-4">
                       <AccordionTrigger className="hover:no-underline">
                         <div className="flex items-center gap-3">
-                          
                           <div className="text-left">
                             <h3 className="font-semibold text-sm">Nachrichten</h3>
                             <p className="text-xs text-gray-600">Direktnachrichten, Anfragen</p>
@@ -2625,7 +2775,7 @@ export default function ProfilePage() {
                         <div className="space-y-3 pb-4 border-b">
                           <div>
                             <Label className="text-xs font-medium">Direktnachrichten</Label>
-                            <p className="text-xs text-gray-600">Private Nachrichten von anderen Nutzern</p>
+                            <p className="text-xs text-gray-600 font-normal">Private Nachrichten von anderen Nutzern</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -2637,7 +2787,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">In-App</span>
+                              <span className="text-xs text-gray-600 font-normal">In-App</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <input
@@ -2648,7 +2798,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">E-Mail</span>
+                              <span className="text-xs text-gray-600 font-normal">E-Mail</span>
                             </div>
                           </div>
                         </div>
@@ -2657,7 +2807,7 @@ export default function ProfilePage() {
                         <div className="space-y-3 pb-4 border-b">
                           <div>
                             <Label className="text-xs font-medium">Spielanfragen</Label>
-                            <p className="text-xs text-gray-600">Anfragen zu deinen Spielen</p>
+                            <p className="text-xs text-gray-600 font-normal">Anfragen zu deinen Spielen</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -2689,7 +2839,7 @@ export default function ProfilePage() {
                         <div className="space-y-3 pb-4 border-b">
                           <div>
                             <Label className="text-xs font-medium">Event-Anfragen</Label>
-                            <p className="text-xs text-gray-600">Anfragen zu deinen Events</p>
+                            <p className="text-xs text-gray-600 font-normal">Anfragen zu deinen Events</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -2701,7 +2851,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">In-App</span>
+                              <span className="text-xs text-gray-600 font-normal">In-App</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <input
@@ -2712,7 +2862,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">E-Mail</span>
+                              <span className="text-xs text-gray-600 font-normal">E-Mail</span>
                             </div>
                           </div>
                         </div>
@@ -2721,7 +2871,7 @@ export default function ProfilePage() {
                         <div className="space-y-3 pb-4 border-b">
                           <div>
                             <Label className="text-xs font-medium">Spielgruppen-Anfragen</Label>
-                            <p className="text-xs text-gray-600">Anfragen zu deinen Spielgruppen</p>
+                            <p className="text-xs text-gray-600 font-normal">Anfragen zu deinen Spielgruppen</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -2733,7 +2883,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">In-App</span>
+                              <span className="text-xs text-gray-600 font-normal">In-App</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <input
@@ -2744,7 +2894,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">E-Mail</span>
+                              <span className="text-xs text-gray-600 font-normal">E-Mail</span>
                             </div>
                           </div>
                         </div>
@@ -2753,7 +2903,7 @@ export default function ProfilePage() {
                         <div className="space-y-3">
                           <div>
                             <Label className="text-xs font-medium">Marktplatz-Nachrichten</Label>
-                            <p className="text-xs text-gray-600">Nachrichten zu Marktplatz-Angeboten</p>
+                            <p className="text-xs text-gray-600 font-normal">Nachrichten zu Marktplatz-Angeboten</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -2765,7 +2915,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">In-App</span>
+                              <span className="text-xs text-gray-600 font-normal">In-App</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <input
@@ -2776,7 +2926,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">E-Mail</span>
+                              <span className="text-xs text-gray-600 font-normal">E-Mail</span>
                             </div>
                           </div>
                         </div>
@@ -2798,7 +2948,7 @@ export default function ProfilePage() {
                         <div className="space-y-3 pb-4 border-b">
                           <div>
                             <Label className="text-xs font-medium">Event-Einladungen</Label>
-                            <p className="text-xs text-gray-600">Wenn du zu einem Event eingeladen wirst</p>
+                            <p className="text-xs text-gray-600 font-normal">Wenn du zu einem Event eingeladen wirst</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -2810,7 +2960,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">In-App</span>
+                              <span className="text-xs text-gray-600 font-normal">In-App</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <input
@@ -2821,7 +2971,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">E-Mail</span>
+                              <span className="text-xs text-gray-600 font-normal">E-Mail</span>
                             </div>
                           </div>
                         </div>
@@ -2830,7 +2980,7 @@ export default function ProfilePage() {
                         <div className="space-y-3 pb-4 border-b">
                           <div>
                             <Label className="text-xs font-medium">Event-Erinnerungen</Label>
-                            <p className="text-xs text-gray-600">Erinnerungen vor Events</p>
+                            <p className="text-xs text-gray-600 font-normal">Erinnerungen an bevorstehende Events</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -2842,7 +2992,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">In-App</span>
+                              <span className="text-xs text-gray-600 font-normal">In-App</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <input
@@ -2853,7 +3003,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">E-Mail</span>
+                              <span className="text-xs text-gray-600 font-normal">E-Mail</span>
                             </div>
                           </div>
                         </div>
@@ -2862,7 +3012,7 @@ export default function ProfilePage() {
                         <div className="space-y-3">
                           <div>
                             <Label className="text-xs font-medium">Spielgruppen-Einladungen</Label>
-                            <p className="text-xs text-gray-600">Einladungen zu Spielgruppen</p>
+                            <p className="text-xs text-gray-600 font-normal">Einladungen zu Spielgruppen</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -2874,7 +3024,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">In-App</span>
+                              <span className="text-xs text-gray-600 font-normal">In-App</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <input
@@ -2885,7 +3035,7 @@ export default function ProfilePage() {
                                 }
                                 className="rounded border-gray-300"
                               />
-                              <span className="text-xs text-gray-600">E-Mail</span>
+                              <span className="text-xs text-gray-600 font-normal">E-Mail</span>
                             </div>
                           </div>
                         </div>
@@ -2908,7 +3058,7 @@ export default function ProfilePage() {
                   <div className="space-y-6">
                     <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
                       <div>
-                        <Label className="text-xs font-medium">Wer kann dein Profil sehen?</Label>
+                        <Label className="text-xs font-bold">Wer kann dein Profil sehen?</Label>
                         <div className="mt-2 space-y-2">
                           <label className="flex items-center space-x-2">
                             <input
@@ -2921,7 +3071,7 @@ export default function ProfilePage() {
                             />
                             <div>
                               <span className="text-xs font-medium">Öffentlich</span>
-                              <p className="text-xs text-gray-600">Jeder kann dein Profil sehen</p>
+                              <p className="text-xs text-gray-600 font-normal">Jeder kann dein Profil sehen</p>
                             </div>
                           </label>
                           <label className="flex items-center space-x-2">
@@ -2935,7 +3085,9 @@ export default function ProfilePage() {
                             />
                             <div>
                               <span className="text-xs font-medium">Nur Freunde</span>
-                              <p className="text-xs text-gray-600">Nur deine Freunde können dein Profil sehen</p>
+                              <p className="text-xs text-gray-600 font-normal">
+                                Nur deine Freunde können dein Profil sehen
+                              </p>
                             </div>
                           </label>
                           <label className="flex items-center space-x-2">
@@ -2949,7 +3101,7 @@ export default function ProfilePage() {
                             />
                             <div>
                               <span className="text-xs font-medium">Privat</span>
-                              <p className="text-xs text-gray-600">Nur du kannst dein Profil sehen</p>
+                              <p className="text-xs text-gray-600 font-normal">Nur du kannst dein Profil sehen</p>
                             </div>
                           </label>
                         </div>
@@ -2957,8 +3109,10 @@ export default function ProfilePage() {
 
                       <div className="flex items-center justify-between pt-4 border-t">
                         <div>
-                          <Label className="text-xs font-medium">Freundschaftsanfragen erlauben</Label>
-                          <p className="text-xs text-gray-600">Andere können dir Freundschaftsanfragen senden</p>
+                          <Label className="text-xs font-bold">Freundschaftsanfragen erlauben</Label>
+                          <p className="text-xs text-gray-600 font-normal">
+                            Andere können dir Freundschaftsanfragen senden
+                          </p>
                         </div>
                         <input
                           type="checkbox"
@@ -2969,7 +3123,7 @@ export default function ProfilePage() {
                       </div>
 
                       <div className="pt-4 border-t">
-                        <Label className="text-xs font-medium">Wer kann dir Nachrichten senden?</Label>
+                        <Label className="text-xs font-bold">Wer kann dir Nachrichten senden?</Label>
                         <div className="mt-2 space-y-2">
                           <label className="flex items-center space-x-2">
                             <input
@@ -2980,7 +3134,7 @@ export default function ProfilePage() {
                               onChange={(e) => handlePrivacySettingChange("allow_messages_from", e.target.value)}
                               className="rounded border-gray-300"
                             />
-                            <span className="text-xs">Jeder</span>
+                            <span className="text-xs font-normal">Jeder</span>
                           </label>
                           <label className="flex items-center space-x-2">
                             <input
@@ -2991,7 +3145,7 @@ export default function ProfilePage() {
                               onChange={(e) => handlePrivacySettingChange("allow_messages_from", e.target.value)}
                               className="rounded border-gray-300"
                             />
-                            <span className="text-xs">Nur Freunde</span>
+                            <span className="text-xs font-normal font-normal font-normal font-normal">Nur Freunde</span>
                           </label>
                           <label className="flex items-center space-x-2">
                             <input
@@ -3002,7 +3156,7 @@ export default function ProfilePage() {
                               onChange={(e) => handlePrivacySettingChange("allow_messages_from", e.target.value)}
                               className="rounded border-gray-300"
                             />
-                            <span className="text-xs">Niemand</span>
+                            <span className="text-xs font-normal font-normal font-normal font-normal">Niemand</span>
                           </label>
                         </div>
                       </div>
@@ -3042,7 +3196,7 @@ export default function ProfilePage() {
                       <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
                         {/* Email Change Section */}
                         <div className="space-y-4">
-                          <h5 className="font-medium text-xs">E-Mail-Adresse ändern</h5>
+                          <h5 className="font-bold text-xs">E-Mail-Adresse ändern</h5>
                           <form onSubmit={handleEmailChange} className="space-y-4">
                             <div className="space-y-2">
                               <Label htmlFor="newEmail" className="text-xs">
@@ -3092,8 +3246,8 @@ export default function ProfilePage() {
                         <div className="pt-4 border-t">
                           <div className="flex items-center justify-between">
                             <div>
-                              <Label className="text-xs font-medium">Sicherheitsereignisse</Label>
-                              <p className="text-xs text-gray-600">
+                              <h5 className="text-xs font-bold">Sicherheitsereignisse</h5>
+                              <p className="text-xs text-gray-600 font-normal">
                                 Benachrichtigungen über wichtige Sicherheitsereignisse
                               </p>
                             </div>
@@ -3110,12 +3264,12 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
-                    {/* Add account deletion section here */}
+                    {/* Account Deletion Section */}
                     <div className="border-t pt-6">
                       <div className="space-y-4">
                         <div>
                           <h3 className="font-semibold text-gray-900 mb-2 text-xs">Konto löschen</h3>
-                          <p className="text-xs text-muted-foreground mb-4">
+                          <p className="text-xs text-muted-foreground mb-4 font-normal font-normal font-normal font-normal">
                             Das Löschen deines Kontos ist dauerhaft und kann nicht rückgängig gemacht werden. Alle deine
                             Daten, einschliesslich Profil, Spielesammlung, Nachrichten und Aktivitäten werden permanent
                             gelöscht.
@@ -3204,46 +3358,52 @@ export default function ProfilePage() {
             </TabsContent>
           </Tabs>
 
-          {/* Edit Community Dialog */}
-          <Dialog open={!!editingCommunity} onOpenChange={() => setEditingCommunity(null)}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Spielgruppe bearbeiten</DialogTitle>
-              </DialogHeader>
-              {editingCommunity && (
-                <EditCommunityForm
-                  community={editingCommunity}
-                  onClose={() => setEditingCommunity(null)}
-                  onSuccess={() => {
-                    setEditingCommunity(null)
-                    fetchUserActivities() // Changed from fetchActivities to fetchUserActivities
-                    toast({
-                      title: "Spielgruppe aktualisiert",
-                      description: "Die Spielgruppe wurde erfolgreich aktualisiert",
-                    })
-                  }}
-                />
-              )}
-            </DialogContent>
-          </Dialog>
-
-          {/* Edit Event Dialog - using CreateLudoEventFormDialog */}
+          {/* Existing dialogs */}
           {editingEvent && (
             <CreateLudoEventFormDialog
               event={editingEvent}
               onClose={() => setEditingEvent(null)}
               onSuccess={() => {
                 setEditingEvent(null)
-                fetchUserEvents() // Changed from fetchUserActivities to fetchUserEvents
-                toast({
-                  title: "Event aktualisiert",
-                  description: "Das Event wurde erfolgreich aktualisiert",
-                })
+                fetchUserActivities()
               }}
             />
           )}
 
-          {/* Edit Marketplace Offer Dialog */}
+          {selectedEventForApproval && (
+            <EventApprovalManagement
+              eventId={selectedEventForApproval.id}
+              eventTitle={selectedEventForApproval.title}
+              creatorId={user?.id || ""}
+              isOpen={isEventApprovalOpen}
+              onClose={() => setIsEventApprovalOpen(false)}
+              onUpdate={() => {
+                fetchUserActivities()
+              }}
+              approvalMode={selectedEventForApproval.approval_mode}
+            />
+          )}
+
+          {selectedGroupForMembers && (
+            <GroupMemberManagementDialog
+              isOpen={isGroupMembersOpen}
+              onClose={() => setIsGroupMembersOpen(false)}
+              group={selectedGroupForMembers}
+              onBroadcastMessage={(group) => {
+                // Implement broadcast logic if needed, or just console log for now
+                console.log("Broadcast to group", group.id)
+              }}
+            />
+          )}
+
+          {selectedGroupForPolls && (
+            <GroupPollsDialog
+              isOpen={isGroupPollsOpen}
+              onClose={() => setIsGroupPollsOpen(false)}
+              group={selectedGroupForPolls}
+            />
+          )}
+
           <EditMarketplaceOfferForm
             isOpen={isEditOfferOpen}
             onClose={() => {
@@ -3254,7 +3414,6 @@ export default function ProfilePage() {
             offer={editingOffer}
           />
 
-          {/* Edit Search Ad Dialog */}
           <EditSearchAdForm
             isOpen={isEditSearchAdOpen}
             onClose={() => {

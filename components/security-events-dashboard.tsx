@@ -179,29 +179,29 @@ export function SecurityEventsDashboard() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-medium text-xs">{getEventTitle(event.event_type)}</h4>
+                    <h4 className="text-xs font-thin">{getEventTitle(event.event_type)}</h4>
                     <Badge variant={event.success ? "default" : "destructive"} className="text-xs">
                       {event.success ? "Erfolgreich" : "Fehlgeschlagen"}
                     </Badge>
                   </div>
 
-                  <p className="font-medium text-xs">{getEventDescription(event)}</p>
+                  <p className="text-xs font-light">{getEventDescription(event)}</p>
 
                   <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 font-extralight">
                       <Clock className="w-3 h-3" />
                       {formatDate(event.created_at)}
                     </div>
 
                     {event.ip_address && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 font-extralight">
                         <MapPin className="w-3 h-3" />
                         {event.ip_address}
                       </div>
                     )}
 
                     {event.user_agent && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 font-thin">
                         <Monitor className="w-3 h-3" />
                         {getBrowserInfo(event.user_agent)}
                       </div>

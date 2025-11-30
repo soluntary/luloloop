@@ -158,9 +158,9 @@ export function RequestsManager({ isOpen, onClose }: RequestsManagerProps) {
                             </Avatar>
                             <div className="flex-1">
                               <p className="font-medium text-gray-900">{request.requester?.name}</p>
-                              <p className="text-sm text-gray-600">möchte dein Spielregal ansehen</p>
+                              <p className="text-xs text-gray-600">möchte dein Spielregal ansehen</p>
                               {request.message && (
-                                <p className="text-sm text-gray-500 mt-1 italic">"{request.message}"</p>
+                                <p className="text-xs text-gray-500 mt-1 italic">"{request.message}"</p>
                               )}
                               <p className="text-xs text-gray-400 mt-1">{formatDate(request.created_at)}</p>
                             </div>
@@ -217,16 +217,16 @@ export function RequestsManager({ isOpen, onClose }: RequestsManagerProps) {
                             <div className="flex-1">
                               <div className="flex items-center space-x-2 mb-1">
                                 <p className="font-medium text-gray-900">{request.requester?.name}</p>
-                                <div className="flex items-center text-sm text-gray-600">
+                                <div className="flex items-center text-xs text-gray-600">
                                   {getRequestTypeIcon(request.request_type)}
                                   <span className="ml-1">{getRequestTypeText(request.request_type)}</span>
                                 </div>
                               </div>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-xs text-gray-600">
                                 möchte "{request.game?.title}" {getRequestTypeText(request.request_type).toLowerCase()}
                               </p>
                               {request.message && (
-                                <p className="text-sm text-gray-500 mt-1 italic">"{request.message}"</p>
+                                <p className="text-xs text-gray-500 mt-1 italic">"{request.message}"</p>
                               )}
                               {request.rental_duration_days && (
                                 <p className="text-xs text-gray-500 mt-1">
@@ -298,9 +298,9 @@ export function RequestsManager({ isOpen, onClose }: RequestsManagerProps) {
                             </Avatar>
                             <div className="flex-1">
                               <p className="font-medium text-gray-900">{request.owner?.name}</p>
-                              <p className="text-sm text-gray-600">Spielregal-Zugang angefragt</p>
+                              <p className="text-xs text-gray-600">Spielregal-Zugang angefragt</p>
                               {request.message && (
-                                <p className="text-sm text-gray-500 mt-1 italic">"{request.message}"</p>
+                                <p className="text-xs text-gray-500 mt-1 italic">"{request.message}"</p>
                               )}
                               <p className="text-xs text-gray-400 mt-1">{formatDate(request.created_at)}</p>
                             </div>
@@ -337,17 +337,17 @@ export function RequestsManager({ isOpen, onClose }: RequestsManagerProps) {
                             <div className="flex-1">
                               <div className="flex items-center space-x-2 mb-1">
                                 <p className="font-medium text-gray-900">{request.owner?.name}</p>
-                                <div className="flex items-center text-sm text-gray-600">
+                                <div className="flex items-center text-xs text-gray-600">
                                   {getRequestTypeIcon(request.request_type)}
                                   <span className="ml-1">{getRequestTypeText(request.request_type)}</span>
                                 </div>
                               </div>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-xs text-gray-600">
                                 "{request.game?.title}" {getRequestTypeText(request.request_type).toLowerCase()}{" "}
                                 angefragt
                               </p>
                               {request.message && (
-                                <p className="text-sm text-gray-500 mt-1 italic">"{request.message}"</p>
+                                <p className="text-xs text-gray-500 mt-1 italic">"{request.message}"</p>
                               )}
                               <p className="text-xs text-gray-400 mt-1">{formatDate(request.created_at)}</p>
                             </div>

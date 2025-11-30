@@ -1,17 +1,21 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, X, AlertCircle } from "lucide-react"
+import { FaSearch, FaTimes, FaExclamationCircle, FaBook, FaDatabase, FaKeyboard } from "react-icons/fa"
+import { IoLibrary } from "react-icons/io5"
 import { useAuth } from "@/contexts/auth-context"
+import { useGames } from "@/contexts/games-context"
 import { createClient } from "@/lib/supabase/client"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
+import { GameSearchDialog } from "@/components/game-search-dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface CreateSearchAdFormProps {
   isOpen: boolean
@@ -21,19 +25,38 @@ interface CreateSearchAdFormProps {
 
 export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchAdFormProps) {
   const { user } = useAuth()
+  const { games } = useGames()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [type, setType] = useState("")
   const [rentalDuration, setRentalDuration] = useState("")
   const [isFlexibleRental, setIsFlexibleRental] = useState(false)
   const [maxPrice, setMaxPrice] = useState("")
+  
+  // Trade game selection state
   const [tradeGameTitle, setTradeGameTitle] = useState("")
+  const [tradeGameSelectionMethod, setTradeGameSelectionMethod] = useState<"library" | "database" | "manual">("library")
+  const [selectedTradeGame, setSelectedTradeGame] = useState<{ id?: string; title: string; image?: string } | null>(null)
+  const [isGameSearchOpen, setIsGameSearchOpen] = useState(false)
+
   const [image, setImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
   const supabase = createClient()
+
+  console.log("[v0] CreateSearchAdForm - Games from context:", games)
+  console.log("[v0] CreateSearchAdForm - Games count:", games.length)
+  console.log("[v0] CreateSearchAdForm - User:", user?.id)
+
+  useEffect(() => {
+    if (isOpen) {
+      console.log("[v0] Search ad form opened")
+      console.log("[v0] Current games in context:", games.length)
+      console.log("[v0] Games list:", games.map(g => ({ id: g.id, title: g.title })))
+    }
+  }, [isOpen, games])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -63,6 +86,14 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
       newErrors.type = "Bitte wähle aus, ob du kaufen, mieten oder tauschen möchtest."
     }
 
+    if (type === "trade") {
+      if (tradeGameSelectionMethod === "manual" && !tradeGameTitle.trim()) {
+        newErrors.tradeGame = "Bitte gib den Namen des Tauschspiels ein."
+      } else if ((tradeGameSelectionMethod === "library" || tradeGameSelectionMethod === "database") && !selectedTradeGame) {
+        newErrors.tradeGame = "Bitte wähle ein Spiel aus."
+      }
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -85,6 +116,16 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
       console.log("[v0] Creating search ad with type:", type)
 
       const finalRentalDuration = type === "rent" ? (isFlexibleRental ? "Flexibel" : rentalDuration) : null
+      
+      // Determine the final trade game title
+      let finalTradeGameTitle = null
+      if (type === "trade") {
+        if (tradeGameSelectionMethod === "manual") {
+          finalTradeGameTitle = tradeGameTitle.trim()
+        } else {
+          finalTradeGameTitle = selectedTradeGame?.title || null
+        }
+      }
 
       const { error } = await supabase.from("search_ads").insert({
         title: title.trim(),
@@ -92,7 +133,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
         type: type, // Use English value directly: 'buy', 'rent', 'trade'
         rental_duration: finalRentalDuration,
         max_price: type === "buy" && maxPrice ? Number.parseFloat(maxPrice) : null,
-        trade_game_title: type === "trade" ? tradeGameTitle.trim() : null,
+        trade_game_title: finalTradeGameTitle,
         user_id: user.id,
       })
 
@@ -110,6 +151,8 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
       setIsFlexibleRental(false)
       setMaxPrice("")
       setTradeGameTitle("")
+      setSelectedTradeGame(null)
+      setTradeGameSelectionMethod("library")
       setImage(null)
       setImagePreview(null)
       setErrors({})
@@ -132,6 +175,8 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
     setIsFlexibleRental(false)
     setMaxPrice("")
     setTradeGameTitle("")
+    setSelectedTradeGame(null)
+    setTradeGameSelectionMethod("library")
     setImage(null)
     setImagePreview(null)
     setErrors({})
@@ -152,25 +197,25 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
           <CardContent className="space-y-6 p-0">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <h3 className="text-base font-semibold text-gray-900 mb-4">Grundinformationen</h3>
+                <h3 className="font-semibold text-gray-900 mb-4 text-sm">Grundinformationen</h3>
 
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <Label className="text-sm font-medium text-gray-700">Spielname *</Label>
+                      <Label className="text-sm font-medium text-gray-700">Name des gesuchtes Spiels *</Label>
                       <span className="text-xs text-gray-500">{title.length}/60</span>
                     </div>
                     <Input
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder="z.B. Carcassonne"
+                      placeholder="z.B. Carcassonne, Catan (Grundspiel)"
                       className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
                       required
                       maxLength={60}
                     />
                     {errors.title && (
                       <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                        <AlertCircle className="w-4 h-4" />
+                        <FaExclamationCircle className="w-4 h-4" />
                         <span>{errors.title}</span>
                       </div>
                     )}
@@ -184,25 +229,25 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                       </SelectTrigger>
                       <SelectContent className="rounded-lg border-gray-200">
                         <SelectItem value="buy" className="rounded-md">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 text-xs">
                             <span>Kaufen</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="rent" className="rounded-md">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 text-xs">
                             <span>Mieten</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="trade" className="rounded-md">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 text-xs">
                             <span>Tauschen</span>
                           </div>
                         </SelectItem>
                       </SelectContent>
                     </Select>
                     {errors.type && (
-                      <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                        <AlertCircle className="w-4 h-4" />
+                      <div className="flex items-center space-x-2 text-red-600 text-xs mt-2 bg-red-50 p-2 rounded-lg">
+                        <FaExclamationCircle className="w-4 h-4" />
                         <span>{errors.type}</span>
                       </div>
                     )}
@@ -210,7 +255,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
 
                   {type === "rent" && (
                     <div className="space-y-3">
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Mietdauer</Label>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Gewünschte Mietdauer</Label>
 
                       {/* Adding flexible checkbox option */}
                       <div className="flex items-center space-x-2">
@@ -248,7 +293,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
 
                   {type === "buy" && (
                     <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Vorbehaltspreis (CHF)</Label>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Preisvorstellung (CHF)</Label>
                       <Input
                         type="number"
                         step="0.01"
@@ -258,30 +303,140 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                         placeholder="z.B. 50.00"
                         className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Ein Vorbehaltspreis, auch Reservationspreis genannt, ist der maximale Preis, den du bereit bist zu zahlen</p>
+                      <p className="text-xs text-gray-500 mt-1">Gib den maximalen Preis ein, den du bereit bist, zu zahlen</p>
                     </div>
                   )}
 
                   {type === "trade" && (
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Tauschspiel</Label>
-                      <Input
-                        value={tradeGameTitle}
-                        onChange={(e) => setTradeGameTitle(e.target.value)}
-                        placeholder="z.B. Die Siedler von Catan"
-                        maxLength={50}
-                        className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Welches Spiel bietest du zum Tausch an? (max. 50 Zeichen)
-                      </p>
+                    <div className="space-y-4">
+                      <Label className="text-sm font-medium text-gray-700 block">Tauschspiel</Label>
+                      
+                      <Tabs 
+                        value={tradeGameSelectionMethod} 
+                        onValueChange={(v) => setTradeGameSelectionMethod(v as any)}
+                        className="w-full"
+                      >
+                        <TabsList className="grid w-full grid-cols-3 mb-4">
+                          <TabsTrigger value="library" className="flex items-center gap-2">
+                            <IoLibrary className="w-4 h-4" />
+                            <span className="hidden sm:inline text-xs">Aus Ludothek auswählen</span>
+                          </TabsTrigger>
+                          <TabsTrigger value="database" className="flex items-center gap-2">
+                            <FaDatabase className="w-4 h-4" />
+                            <span className="hidden sm:inline text-xs">In Datenbank suchen</span>
+                          </TabsTrigger>
+                          <TabsTrigger value="manual" className="flex items-center gap-2">
+                            <FaKeyboard className="w-4 h-4" />
+                            <span className="hidden sm:inline text-xs">Manuell eingeben</span>
+                          </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="library" className="space-y-4">
+                          {games.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-1">
+                              {games.map((game) => (
+                                <div 
+                                  key={game.id}
+                                  onClick={() => setSelectedTradeGame({ id: game.id, title: game.title, image: game.image })}
+                                  className={`flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-all ${
+                                    selectedTradeGame?.id === game.id 
+                                      ? "border-orange-500 bg-orange-50 ring-1 ring-orange-500" 
+                                      : "border-gray-200 hover:border-orange-300 hover:bg-gray-50"
+                                  }`}
+                                >
+                                  <div className="w-10 h-10 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
+                                    {game.image ? (
+                                      <img src={game.image || "/placeholder.svg"} alt={game.title} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                        <FaBook className="w-5 h-5" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="font-medium truncate text-xs">{game.title}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center p-6 border border-dashed rounded-lg text-gray-500 bg-gray-50">
+                              <FaBook className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                              <p className="text-sm font-medium mb-1">Keine Spiele in deiner Ludothek</p>
+                              <p className="text-xs text-gray-600">
+                                Füge zuerst Spiele zu deiner Ludothek hinzu, um sie hier auswählen zu können.
+                              </p>
+                            </div>
+                          )}
+                        </TabsContent>
+
+                        <TabsContent value="database" className="space-y-4">
+                          <div className="flex flex-col gap-4">
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="xs"
+                              onClick={() => setIsGameSearchOpen(true)}
+                              className="w-full justify-start text-xs text-left font-normal h-12"
+                            >
+                              <FaSearch className="w-4 h-4 mr-2" />
+                              {selectedTradeGame ? "Spiel in Datenbank suchen suchen..." : "Spiel in Datenbank suchen..."}
+                            </Button>
+                            
+                            {selectedTradeGame && tradeGameSelectionMethod === "database" && (
+                              <div className="flex items-center gap-3 p-3 rounded-lg border border-orange-500 bg-orange-50">
+                                <div className="w-12 h-12 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
+                                  {selectedTradeGame.image ? (
+                                    <img src={selectedTradeGame.image || "/placeholder.svg"} alt={selectedTradeGame.title} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                      <FaDatabase className="w-6 h-6" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-gray-900 truncate text-xs">{selectedTradeGame.title}</p>
+                                  <p className="text-xs text-orange-600">Ausgewählt aus Ludothek</p>
+                                </div>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="xs" 
+                                  onClick={() => setSelectedTradeGame(null)}
+                                  className="text-gray-500 hover:text-red-500"
+                                >
+                                  <FaTimes className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </TabsContent>
+
+                        <TabsContent value="manual" className="space-y-4">
+                          <Input
+                            value={tradeGameTitle}
+                            onChange={(e) => setTradeGameTitle(e.target.value)}
+                            placeholder="z.B. Die Siedler von Catan"
+                            maxLength={50}
+                            className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                          />
+                          <p className="text-xs text-gray-500">
+                            Gib den Namen des Spiels manuell ein, falls du es nicht finden kannst.
+                          </p>
+                        </TabsContent>
+                      </Tabs>
+
+                      {errors.tradeGame && (
+                        <div className="flex items-center space-x-2 text-red-600 text-xs mt-2 bg-red-50 p-2 rounded-lg">
+                          <FaExclamationCircle className="w-4 h-4" />
+                          <span>{errors.tradeGame}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
 
               <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <div className="flex items-center justify-between mb-4 text-base">
+                <div className="flex items-center justify-between mb-4 text-sm">
                   <Label className="text-lg font-bold text-gray-900">Beschreibung</Label>
                 </div>
                 <RichTextEditor
@@ -302,7 +457,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                   className="flex-1 h-12 border-2 border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl px-6 font-medium transition-all duration-200 bg-transparent"
                   disabled={isSubmitting}
                 >
-                  <X className="w-4 h-4 mr-2" />
+                  <FaTimes className="w-4 h-4 mr-2" />
                   Abbrechen
                 </Button>
                 <Button
@@ -317,7 +472,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                     </>
                   ) : (
                     <>
-                      <Search className="w-4 h-4 mr-2" />
+                      <FaSearch className="w-4 h-4 mr-2" />
                       Suchanzeige erstellen
                     </>
                   )}
@@ -327,6 +482,19 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
           </CardContent>
         </Card>
       </DialogContent>
+
+      <GameSearchDialog
+        open={isGameSearchOpen}
+        onOpenChange={(open) => setIsGameSearchOpen(open)}
+        onGameSelect={(game) => {
+          setSelectedTradeGame({
+            id: game.id.toString(),
+            title: game.name,
+            image: game.image
+          })
+          setIsGameSearchOpen(false)
+        }}
+      />
     </Dialog>
   )
 }

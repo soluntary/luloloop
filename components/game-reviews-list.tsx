@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Star, ThumbsUp, MessageSquare, Clock, Filter } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/lib/supabase/client"
+import { UserLink } from "@/components/user-link" // Added UserLink import
 
 interface GameReview {
   id: string
@@ -276,7 +277,15 @@ export function GameReviewsList({ gameId, gameTitle, limit }: GameReviewsListPro
 
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex items-center gap-4">
-                        <span>von {review.author?.username || "Unbekannt"}</span>
+                        <div className="flex items-center gap-1">
+                          <span>von</span>
+                          <UserLink
+                            userId={review.author?.id || ""}
+                            className="hover:text-primary hover:underline transition-colors"
+                          >
+                            {review.author?.username || "Unbekannt"}
+                          </UserLink>
+                        </div>
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {new Date(review.created_at).toLocaleDateString("de-DE")}

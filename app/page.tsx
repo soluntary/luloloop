@@ -6,34 +6,31 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   FaUsers,
-  FaExchangeAlt,
   FaStore,
   FaPlus,
-  FaHandHoldingUsd,
-  FaBook,
   FaCheckCircle,
-  FaExpand,
   FaHeart,
   FaBullseye,
   FaCoins,
-  FaLeaf,
   FaShieldAlt,
   FaArrowRight,
   FaUserPlus,
   FaCalendarAlt,
-  FaComments,
 } from "react-icons/fa"
+import { LiaUsersSolid } from "react-icons/lia"
 import { IoLibrary } from "react-icons/io5"
-import { GiReceiveMoney, GiBackForth } from "react-icons/gi"
+import { GiReceiveMoney, GiBackForth, GiDiceTarget } from "react-icons/gi"
+import { TbExchange } from "react-icons/tb"
 import { MdForum } from "react-icons/md"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
-import { MdSavings } from "react-icons/md"
+import { MdSavings, MdGroupAdd } from "react-icons/md"
 import "@/styles/font-handwritten.css"
 import "@/styles/font-body.css"
 import { motion } from "framer-motion"
 import { useInView } from "framer-motion"
 import { useRef, useState, useMemo } from "react"
+import { useAuth } from "@/contexts/auth-context"
 
 // Floating Dice Component - 3D dice showing all faces
 function FloatingDice({ delay = 0, duration = 18 }: { delay?: number; duration?: number }) {
@@ -359,54 +356,7 @@ function AnimatedSection({ children, className = "" }: { children: React.ReactNo
 
 export default function HomePage() {
   const [showConfetti, setShowConfetti] = useState(false)
-
-  const getColorClasses = (color: string) => {
-    const colorMap: { [key: string]: { border: string; text: string; hover: string; bg: string; icon: string } } = {
-      pink: {
-        border: "border-pink-200",
-        text: "text-pink-600",
-        hover: "hover:bg-pink-400",
-        bg: "bg-pink-400",
-        icon: "bg-pink-400",
-      },
-      teal: {
-        border: "border-teal-200",
-        text: "text-teal-600",
-        hover: "hover:bg-teal-400",
-        bg: "bg-teal-400",
-        icon: "bg-teal-400",
-      },
-      orange: {
-        border: "border-orange-200",
-        text: "text-orange-600",
-        hover: "hover:bg-orange-400",
-        bg: "bg-orange-400",
-        icon: "bg-orange-400",
-      },
-      green: {
-        border: "border-green-200",
-        text: "text-green-600",
-        hover: "hover:bg-green-400",
-        bg: "bg-green-400",
-        icon: "bg-green-400",
-      },
-      purple: {
-        border: "border-purple-200",
-        text: "text-purple-600",
-        hover: "hover:bg-purple-400",
-        bg: "bg-purple-400",
-        icon: "bg-purple-400",
-      },
-      blue: {
-        border: "border-blue-200",
-        text: "text-blue-600",
-        hover: "hover:bg-blue-400",
-        bg: "bg-blue-400",
-        icon: "bg-blue-400",
-      },
-    }
-    return colorMap[color] || colorMap.pink
-  }
+  const { user } = useAuth()
 
   const floatingElements = useMemo(
     () => (
@@ -489,27 +439,27 @@ export default function HomePage() {
             {
               icon: IoLibrary,
               title: "Digitales Spielregal",
-              description: "Erfasse deine gesamte Spielesammlung digital und behalte den perfekten Überblick.",
+              description: "Leg im Handumdrehen deine gesamte Spielesammlung digital an und behalte den perfekten Überblick.",
               link: "/library",
-              linkText: "Zur Ludothek",
+              linkText: "Spielesammlung digital anlegen",
               color: "pink",
               rotation: "rotate-1",
             },
             {
               icon: FaStore,
-              title: "Spielemarkt",
+              title: "Spielehandel",
               description:
                 "Entdecke tolle Angebote von anderen Mitgliedern und finde tolle Spiele zum Mieten, Kaufen oder Tauschen.",
               link: "/marketplace",
-              linkText: "Zum Spielemarkt",
+              linkText: "Zum Spielehandel",
               color: "orange",
               rotation: "rotate-1",
             },
             {
-              icon: FaExpand,
+              icon: TbExchange,
               title: "Spiele vermieten",
               description:
-                "Vermiete deine Spiele und verdiene dabei etwas. Lass deine Sammlung für dich arbeiten - sicher, einfach und fair!",
+                "Lass deine Sammlung für dich arbeiten. Vermiete deine Spiele und verdiene dabei etwas Geld.",
               link: "/marketplace?filter=lend",
               linkText: "Jetzt vermieten",
               color: "teal",
@@ -535,7 +485,7 @@ export default function HomePage() {
               rotation: "rotate-1",
             },
             {
-              icon: FaUsers,
+              icon: LiaUsersSolid,
               title: "Spielgruppen",
               description:
                 "Tritt Spielgruppen bei oder gründe deine eigene Community. Verbinde dich mit anderen Spiel-Enthusiasten und schliesse neue Freundschaften!",
@@ -555,8 +505,8 @@ export default function HomePage() {
               rotation: "-rotate-1",
             },
             {
-              icon: FaUserPlus,
-              title: "Freunde finden",
+              icon: MdGroupAdd,
+              title: "(Spiel-)Freunde finden",
               description: "Vernetze dich mit anderen Brettspielbegeisterten und baue dein Freundesnetzwerk auf.",
               link: "/ludo-mitglieder",
               linkText: "Mitglieder entdecken",
@@ -647,7 +597,7 @@ export default function HomePage() {
         >
           {[
             {
-              icon: FaBullseye,
+              icon: GiDiceTarget,
               title: "Alles an einem Ort",
               description:
                 "Digitales Spielregal, Verleih, Tausch, Verkauf und Community - alles vereint in einer Plattform.",
@@ -774,4 +724,52 @@ export default function HomePage() {
       </AnimatedSection>
     </div>
   )
+}
+
+function getColorClasses(color: string) {
+  const colorMap: { [key: string]: { border: string; text: string; hover: string; bg: string; icon: string } } = {
+    pink: {
+      border: "border-pink-200",
+      text: "text-pink-600",
+      hover: "hover:bg-pink-400",
+      bg: "bg-pink-400",
+      icon: "bg-pink-400",
+    },
+    teal: {
+      border: "border-teal-200",
+      text: "text-teal-600",
+      hover: "hover:bg-teal-400",
+      bg: "bg-teal-400",
+      icon: "bg-teal-400",
+    },
+    orange: {
+      border: "border-orange-200",
+      text: "text-orange-600",
+      hover: "hover:bg-orange-400",
+      bg: "bg-orange-400",
+      icon: "bg-orange-400",
+    },
+    green: {
+      border: "border-green-200",
+      text: "text-green-600",
+      hover: "hover:bg-green-400",
+      bg: "bg-green-400",
+      icon: "bg-green-400",
+    },
+    purple: {
+      border: "border-purple-200",
+      text: "text-purple-600",
+      hover: "hover:bg-purple-400",
+      bg: "bg-purple-400",
+      icon: "bg-purple-400",
+    },
+    blue: {
+      border: "border-blue-200",
+      text: "text-blue-600",
+      hover: "hover:bg-blue-400",
+      bg: "bg-blue-400",
+      icon: "bg-blue-400",
+    },
+  }
+  return colorMap[color] || colorMap.pink
 }

@@ -72,7 +72,7 @@ export function LocationFilter({ onLocationSearch, searchType, disabled = false 
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-900">Standortsuche</span>
+            <span className="text-xs font-medium text-gray-900">Standortsuche</span>
           </div>
 
           {!hasLocation && (

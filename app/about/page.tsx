@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Users, Recycle, Heart, Target, Mail, MapPin } from "lucide-react"
+import { Users, Recycle, Heart, Target, Mail, MapPin } from 'lucide-react'
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { FaHeart } from "react-icons/fa"
@@ -19,7 +19,9 @@ export default function AboutPage() {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-gray-800 mb-6 transform -rotate-1 font-handwritten">Über Ludoloop</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto transform rotate-1 font-body"></p>
+          <p className="text-gray-600 max-w-3xl mx-auto transform rotate-1 font-body text-base">
+            Wir sind mehr als nur eine Plattform - wir sind eine lebendige Community von Brettspiel-Enthusiasten, die ihre Leidenschaft teilen und gemeinsam die Welt der Brettspiele neu erleben.
+          </p>
         </div>
 
         {/* Mission Section */}
@@ -30,15 +32,8 @@ export default function AboutPage() {
                 <FiTarget className="w-10 h-10 text-white" />
               </div>
               <h2 className="font-bold text-gray-800 mb-4 font-handwritten text-lg">Unsere Mission</h2>
-              <p className="text-gray-600 font-body text-xs">
-                LudoLoop entstand aus einer einfachen Beobachtung: Viele von uns ha-ben Regale voller Brettspiele, die
-                nur selten gespielt werden, während andere genau nach diesen Spielen suchen. Gleichzeitig ist es oft
-                schwie-rig, Gleichgesinnte für regelmässige Spielrunden zu finden. Als begeisterte Brettspieler wollten
-                wir eine Lösung schaffen, die mehrere Probleme gleichzeitig löst: Den Zugang zu einer grösseren
-                Spielevielfalt ermöglichen, ohne dass jeder jedes Spiel neu kaufen muss. Eine Com-munity aufbauen, in
-                der sich Spieler einfach finden und vernetzen kön-nen. Und dabei auch noch nachhaltig mit Ressourcen
-                umgehen. So entstand LudoLoop - eine Plattform, die all diese Bedürfnisse vereint und das Beste aus der
-                Sharing Economy mit der Leidenschaft für Brett-spiele verbindet.
+              <p className="text-gray-600 font-body text-xs text-justify">
+                LudoLoop entstand aus einer einfachen Beobachtung: Viele von uns haben Regale voller wunderbarer Brettspiele, die nur selten gespielt werden, während andere genau nach diesen Spielen suchen. Gleichzeitig ist es oft schwierig, Gleichgesinnte für spontane oder regelmässige Spielrunden zu finden oder neue Spiele auszuprobieren, bevor man sie kauft. Als begeisterte Brettspieler wollten wir eine Lösung schaffen, die mehrere Probleme gleichzeitig löst: Den Zugang zu einer grösseren Spielevielfalt ermöglichen, ohne dass jeder jedes Spiel neu kaufen muss. Eine Community aufbauen, in der sich Spieler einfach finden und vernetzen können. Und dabei auch noch nachhaltig mit Ressourcen umgehen. So entstand LudoLoop - eine Plattform, die all diese Bedürfnisse vereint und das Beste aus der Sharing Economy mit der Leidenschaft für Brettspiele verbindet.
               </p>
             </CardContent>
           </Card>
@@ -49,7 +44,7 @@ export default function AboutPage() {
                 <FaHeart className="w-10 h-10 text-white" />
               </div>
               <h2 className="font-bold text-gray-800 mb-4 font-handwritten text-lg">Unsere Vision</h2>
-              <p className="text-gray-600 font-body text-xs">
+              <p className="text-gray-600 font-body text-xs text-justify">
                 Wir glauben, dass Gesellschaftsspiele mehr sind als nur Unterhaltung – sie sind Brücken zwischen
                 Menschen. Unsere Vision ist es, die grösste digitale Gemeinschaft rund um Brett- und Gesellschaftsspiele
                 aufzubauen, in der Spiele nicht unbenutzt im Regal verstauben, sondern immer wieder neue Freude
@@ -73,7 +68,7 @@ export default function AboutPage() {
                 </div>
                 <h3 className="text-sm font-bold text-gray-800 mb-2 font-handwritten">Gemeinschaft</h3>
                 <p className="text-gray-600 text-xs font-body">
-                  Wir verbinden Menschen durch die Liebe zu Brett- und Gesellschaftsspiele
+                  Wir verbinden Menschen durch die Liebe zu Brett- und Gesellschaftsspiele und schaffen einen Raum für echte Begegnungen.
                 </p>
               </CardContent>
             </Card>
@@ -108,10 +103,10 @@ export default function AboutPage() {
             Das Team
           </h2>
           <div className="max-w-2xl mx-auto text-center">
-            <p className="text-xs text-gray-600 mb-8 font-body">
-              Unser kleines, aber feines Team arbeitet täglich daran, die beste Plattform für Spieleliebhaber zu
+            <p className="text-xs text-gray-600 mb-8 font-body text-center">
+              Unser kleines, aber feines Team arbeitet täglich daran, die beste Plattform für Spielbegeisterte zu
               schaffen. Wir sind selbst begeisterte Brettspieler und verstehen die Bedürfnisse unserer Community aus
-              eigener Erfahrung.
+              eigener Erfahrung. Mit Leidenschaft, Engagement und einer Prise Spielfreude entwickeln wir LudoLoop kontinuierlich weiter.
             </p>
           </div>
         </div>

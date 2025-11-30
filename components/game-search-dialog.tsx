@@ -7,7 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Search, Loader2, Users, Clock, Calendar, AlertCircle } from "lucide-react"
+import { Search, Loader2, AlertCircle, Globe } from "lucide-react"
+import { GiSandsOfTime } from "react-icons/gi"
+import { FaUsers, FaUserCheck } from "react-icons/fa"
 
 interface GameSearchResult {
   id: string
@@ -15,12 +17,15 @@ interface GameSearchResult {
   yearPublished: number | null
   minPlayers: number | null
   maxPlayers: number | null
+  minPlayTime: number | null
+  maxPlayTime: number | null
   playingTime: number | null
   minAge: number | null
   image: string | null
   publishers: string[]
   categories: string[]
   mechanics: string[]
+  source?: string
 }
 
 interface GameSearchDialogProps {
@@ -39,17 +44,26 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
 
-    console.log("[v0] Starting search for:", searchQuery)
+    console.log("[v0] Starting BGG search for:", searchQuery)
     setIsSearching(true)
     setHasSearched(true)
     setApiError(null)
 
     try {
       const url = `/api/boardgamegeek/search?q=${encodeURIComponent(searchQuery)}`
+
       console.log("[v0] Fetching from:", url)
 
       const response = await fetch(url)
       console.log("[v0] Response status:", response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("[v0] API error response:", errorText)
+        setApiError("Fehler beim Laden der Spiele. Bitte versuche es später erneut.")
+        setSearchResults([])
+        return
+      }
 
       const data = await response.json()
       console.log("[v0] Response data:", data)
@@ -57,10 +71,14 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
       if (data.error) {
         console.error("[v0] API returned error:", data.error)
         setApiError(data.error)
-        setSearchResults([])
+        setSearchResults(data.games || [])
       } else if (data.games) {
-        console.log("[v0] Setting search results:", data.games.length, "games")
-        setSearchResults(data.games)
+        console.log("[v0] Setting BGG search results:", data.games.length, "games")
+        const mappedResults = data.games.map((game: any) => ({
+          ...game,
+          source: "bgg",
+        }))
+        setSearchResults(mappedResults)
       }
     } catch (error) {
       console.error("[v0] Search error:", error)
@@ -85,13 +103,16 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
     return `${min}-${max} Spieler`
   }
 
-  const formatPlayingTime = (time: number | null) => {
+  const formatPlayingTime = (minTime: number | null, maxTime: number | null, fallbackTime: number | null) => {
+    if (minTime && maxTime && minTime !== maxTime) {
+      return `${minTime} - ${maxTime} Min.`
+    }
+    if (minTime && maxTime && minTime === maxTime) {
+      return `${minTime} Min.`
+    }
+    const time = minTime || maxTime || fallbackTime
     if (!time) return "Unbekannt"
-    if (time < 60) return `${time} Min.`
-    const hours = Math.floor(time / 60)
-    const minutes = time % 60
-    if (minutes === 0) return `${hours}h`
-    return `${hours}h ${minutes}min`
+    return `${time} Min.`
   }
 
   return (
@@ -99,21 +120,21 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="font-handwritten text-xl text-teal-700 flex items-center gap-2">
-            <Search className="w-5 h-5" />
-            Spiel in der Datenbank suchen
+            <Globe className="w-5 h-5" />
+            Spiel suchen (BoardGameGeek)
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Search Input */}
           <div className="flex gap-2">
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Spielname eingeben..."
-              className="font-body border-2 border-teal-200 focus:border-teal-400"
+              className="font-body border border-gray-200 focus:border-teal-400"
             />
+
             <Button
               onClick={handleSearch}
               disabled={isSearching || !searchQuery.trim()}
@@ -123,11 +144,10 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
             </Button>
           </div>
 
-          {/* Search Results */}
           <div className="max-h-96 overflow-y-auto space-y-3">
             {searchResults.map((game) => (
               <div
-                key={game.id}
+                key={`bgg-${game.id}`}
                 className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => {
                   onGameSelect(game)
@@ -135,7 +155,6 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
                 }}
               >
                 <div className="flex gap-4">
-                  {/* Game Image */}
                   <div className="w-16 h-20 flex-shrink-0">
                     {game.image ? (
                       <img
@@ -150,40 +169,39 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
                     )}
                   </div>
 
-                  {/* Game Details */}
                   <div className="flex-1 space-y-2">
                     <div>
-                      <h3 className="font-handwritten text-lg text-gray-800">
-                        {game.name}
-                        {game.yearPublished && (
-                          <span className="text-sm text-gray-500 ml-2">({game.yearPublished})</span>
-                        )}
-                      </h3>
-                      {game.publishers.length > 0 && (
-                        <p className="text-sm text-gray-600 font-body">{game.publishers.join(", ")}</p>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-handwritten text-gray-800 text-xs">
+                          {game.name}
+                          {game.yearPublished && (
+                            <span className="text-xs text-gray-500 ml-2">({game.yearPublished})</span>
+                          )}
+                        </h3>
+                      </div>
+                      {game.publishers && game.publishers.length > 0 && (
+                        <p className="text-xs text-gray-600 font-body">{game.publishers.join(", ")}</p>
                       )}
                     </div>
 
-                    {/* Game Stats */}
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                    <div className="flex flex-wrap gap-4 text-xs text-gray-600">
                       <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
+                        <FaUsers className="w-4 h-4" />
                         {formatPlayerCount(game.minPlayers, game.maxPlayers)}
                       </div>
                       <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        {formatPlayingTime(game.playingTime)}
+                        <GiSandsOfTime className="w-4 h-4" />
+                        {formatPlayingTime(game.minPlayTime, game.maxPlayTime, game.playingTime)}
                       </div>
                       {game.minAge && (
                         <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
+                          <FaUserCheck className="w-4 h-4" />
                           ab {game.minAge} Jahren
                         </div>
                       )}
                     </div>
 
-                    {/* Categories */}
-                    {game.categories.length > 0 && (
+                    {game.categories && game.categories.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {game.categories.slice(0, 3).map((category) => (
                           <Badge key={category} variant="secondary" className="text-xs">
@@ -205,7 +223,9 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
             {!hasSearched && searchQuery && (
               <div className="text-center py-8 text-gray-500">
                 <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p className="font-body">Um eine Suche zu starten, klicken Sie auf das Suchsymbol oder drücken Sie die Enter-Taste (Eingabetaste) nach der Eingabe des Spielnamen.</p>
+                <p className="font-body text-xs font-bold">
+                  Um eine Suche zu starten, klicken Sie auf das Suchsymbol oder drücken Sie die Enter-Taste.
+                </p>
               </div>
             )}
 
@@ -214,7 +234,7 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
                 <AlertCircle className="w-12 h-12 mx-auto mb-2 text-amber-500" />
                 <p className="font-body text-gray-700 mb-2">{apiError}</p>
                 <p className="text-sm text-gray-500">
-                  Du kannst das Spiel trotzdem manuell hinzufügen, indem du diesen Dialog schließt.
+                  Du kannst das Spiel trotzdem manuell hinzufügen, indem du diesen Dialog schliesst.
                 </p>
               </div>
             )}
@@ -222,8 +242,8 @@ export function GameSearchDialog({ open, onOpenChange, onGameSelect }: GameSearc
             {hasSearched && searchResults.length === 0 && !apiError && searchQuery && !isSearching && (
               <div className="text-center py-8 text-gray-500">
                 <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p className="font-body">Keine Spiele gefunden für "{searchQuery}"</p>
-                <p className="text-sm">Versuche einen anderen Suchbegriff oder gib gerne das Spiel selber ein.</p>
+                <p className="font-body text-base">Keine Spiele gefunden für "{searchQuery}"</p>
+                <p className="text-sm">Versuche einen anderen Suchbegriff oder gib das Spiel manuell ein.</p>
               </div>
             )}
           </div>

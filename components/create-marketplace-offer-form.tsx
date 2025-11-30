@@ -11,6 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { FaTruckFast, FaLocationDot, FaUpload  } from "react-icons/fa6"
+import { FaInfo, FaArrowLeft, FaSearch, FaChevronDown } from "react-icons/fa"
+import { AiFillPicture } from "react-icons/ai"
 import { Upload, ImageIcon, AlertCircle, Check, Camera, Plus, ChevronDown, Info, MapPin, Trash2, TruckIcon, ArrowLeft, ArrowRight, Search } from 'lucide-react'
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
@@ -921,7 +924,7 @@ export function CreateMarketplaceOfferForm({
                           }}
                           className="w-full h-11 border-gray-300 text-gray-800 hover:bg-gray-100 hover:border-gray-900 transition-colors rounded-lg font-medium"
                         >
-                          <Search className="w-4 h-4 mr-2" />
+                          <FaSearch className="w-4 h-4 mr-2" />
                           Spiel in der Datenbank suchen
                         </Button>
 
@@ -955,7 +958,7 @@ export function CreateMarketplaceOfferForm({
                           />
                         ) : (
                           <div className="text-center">
-                            <Camera className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                            <AiFillPicture className="w-10 h-10 text-gray-400 mx-auto mb-3" />
                             <p className="text-xs text-gray-600 font-medium">Cover hochladen</p>
                           </div>
                         )}
@@ -974,7 +977,7 @@ export function CreateMarketplaceOfferForm({
                         className="w-full h-11 border-gray-300 text-gray-800 hover:bg-gray-100 hover:border-gray-900 transition-colors rounded-lg font-medium"
                         disabled={!!selectedGame}
                       >
-                        <Upload className="w-4 h-4 mr-2" />
+                        <FaUpload className="w-4 h-4 mr-2" />
                         Bild hochladen
                       </Button>
                     </div>
@@ -1222,7 +1225,7 @@ export function CreateMarketplaceOfferForm({
                               ) : (
                                 "Kategorie wählen..."
                               )}
-                              <ChevronDown className="h-4 w-4 opacity-50" />
+                              <FaChevronDown className="h-4 w-4 opacity-50" />
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-80 p-0">
@@ -1312,7 +1315,7 @@ export function CreateMarketplaceOfferForm({
                               ) : (
                                 "Typus wählen..."
                               )}
-                              <ChevronDown className="h-4 w-4 opacity-50" />
+                              <FaChevronDown className="h-4 w-4 opacity-50" />
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-80 p-0">
@@ -1437,8 +1440,8 @@ export function CreateMarketplaceOfferForm({
                         <SelectValue placeholder="Zustand auswählen..." />
                       </SelectTrigger>
                       <SelectContent className="rounded-lg">
-                        <SelectItem value="Neu" className="rounded-md">
-                          <div className="flex items-center gap-2">Neu</div>
+                        <SelectItem value="Neu, ungeöffnet" className="rounded-md">
+                          <div className="flex items-center gap-2">Neu, ungeöffnet</div>
                         </SelectItem>
                         <SelectItem value="Neuwertig" className="rounded-md">
                           <div className="flex items-center gap-2">Neuwertig</div>
@@ -1659,7 +1662,7 @@ export function CreateMarketplaceOfferForm({
                         className="border-gray-400 data-[state=checked]:bg-blue-600"
                       />
                       <Label htmlFor="pickup" className="flex items-center gap-2 text-sm cursor-pointer">
-                        <MapPin className="w-4 h-4" />
+                        <FaLocationDot className="w-4 h-4" />
                         Abholung
                       </Label>
                     </div>
@@ -1667,9 +1670,9 @@ export function CreateMarketplaceOfferForm({
                     {deliveryPickup && (
                       <div className="space-y-3">
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-                          <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <FaInfo className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                           <p className="text-xs text-blue-700">
-                            Standardmäßig zeigen wir nur die Postleitzahl und den Ort an. Wenn du die vollständige
+                            Standardmässig zeigen wir nur die Postleitzahl und den Ort an. Wenn du die vollständige
                             Adresse anzeigen lassen möchtest, setze bitte einen Haken im Kasten.
                           </p>
                         </div>
@@ -1727,7 +1730,7 @@ export function CreateMarketplaceOfferForm({
                         htmlFor="shipping"
                         className="flex items-center gap-2 text-sm cursor-pointer flex items-center gap-2"
                       >
-                        <TruckIcon className="w-4 h-4" />
+                        <FaTruckFast className="w-4 h-4" />
                         Postversand (Kosten zu Lasten der{" "}
                         {offerType === "lend" ? "Mieter*in" : offerType === "sell" ? "Käufer*in" : "Tauschpartner*in"})
                       </Label>
@@ -1814,7 +1817,7 @@ export function CreateMarketplaceOfferForm({
                         onClick={() => document.getElementById("image-upload")?.click()}
                         className="w-full h-11 border-gray-300 text-gray-800 hover:bg-gray-100 hover:border-gray-900 transition-colors rounded-lg font-medium"
                       >
-                        <Upload className="w-4 h-4 mr-2" />
+                        <FaUpload className="w-4 h-4 mr-2" />
                         Bild auswählen
                       </Button>
                       <p className="text-xs text-gray-500 mt-3">JPG, PNG, WebP (max. 5MB)</p>
@@ -1926,7 +1929,7 @@ export function CreateMarketplaceOfferForm({
                     <div className="space-y-3">
                       {deliveryPickup && (
                         <div className="flex items-start gap-2">
-                          <MapPin className="w-4 h-4 text-gray-900 mt-0.5 flex-shrink-0" />
+                          <FaLocationDot className="w-4 h-4 text-gray-900 mt-0.5 flex-shrink-0" />
                           <div>
                             <p className="text-sm font-medium text-gray-900">
                               Abholung in{" "}
@@ -1939,7 +1942,7 @@ export function CreateMarketplaceOfferForm({
                       )}
                       {deliveryShipping && (
                         <div className="flex items-start gap-2">
-                          <TruckIcon className="w-4 h-4 text-gray-900 mt-0.5 flex-shrink-0" />
+                          <FaTruckFast className="w-4 h-4 text-gray-900 mt-0.5 flex-shrink-0" />
                           <div>
                             <p className="text-sm font-medium text-gray-900">
                               Postversand (Kosten zu Lasten der{" "}
@@ -1998,7 +2001,7 @@ export function CreateMarketplaceOfferForm({
               onClick={handleBack}
               className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg px-6 py-2 font-medium transition-all duration-200 bg-transparent"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <FaArrowLeft className="w-4 h-4 mr-2" />
               Zurück
             </Button>
           )}

@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MessageComposerModal } from "@/components/message-composer-modal"
 import { BroadcastMessageModal } from "@/components/broadcast-message-modal"
 import {
-  FaSearch,
   FaPlus,
   FaMapMarkerAlt,
   FaUsers,
@@ -24,13 +23,13 @@ import {
   FaClock,
   FaCheckCircle,
   FaUserCog,
-  FaDice,
   FaTimes,
   FaChartBar,
   FaUserMinus,
   FaImage,
   FaUserTimes,
 } from "react-icons/fa"
+import { MdOutlineManageSearch } from "react-icons/md"
 import { GiRollingDices } from "react-icons/gi"
 // </CHANGE>
 import { useAuth } from "@/contexts/auth-context"
@@ -854,7 +853,8 @@ export default function LudoGruppenPage() {
     if (freeSpots > 0) {
       return (
         <>
-          {group.member_count} Mitglieder (<span className="text-xs text-green-600 font-medium">{freeSpots} Plätze frei</span>)
+          {group.member_count} Mitglieder (
+          <span className="text-xs text-green-600 font-medium">{freeSpots} Plätze frei</span>)
         </>
       )
     } else {
@@ -1039,29 +1039,27 @@ export default function LudoGruppenPage() {
         </div>
 
         {/* Search and Filter Bar */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg border border-gray-200">
-          <div className="space-y-6">
-            <div className="flex gap-4">
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100 shadow-sm mb-8">
+          <div className="space-y-4">
+            <div className="flex gap-3">
               <div className="relative flex-1">
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <MdOutlineManageSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Spielgruppen durchsuchen..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-12 bg-white/80 border-gray-200 focus:border-teal-500 text-xs"
+                  className="pl-9 h-9 bg-white/80 border-gray-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 text-xs"
                 />
               </div>
             </div>
 
-            <div className="space-y-3">
-              <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
-            </div>
+            <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
 
             {showLocationResults && (
-              <div className="flex items-center justify-between p-4 bg-teal-50 rounded-xl border border-gray-200">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="flex items-center gap-2">
-                  <FaMapMarkerAlt className="h-5 w-5 text-teal-600" />
-                  <span className="text-xs text-teal-800 font-medium">
+                  <FaMapMarkerAlt className="h-4 w-4 text-gray-600" />
+                  <span className="text-xs text-gray-800 font-medium">
                     Zeige Ergebnisse in der Nähe ({locationSearchResults.length})
                   </span>
                 </div>
@@ -1072,7 +1070,7 @@ export default function LudoGruppenPage() {
                     setShowLocationResults(false)
                     setLocationSearchResults([])
                   }}
-                  className="text-teal-600 border-teal-300 hover:bg-teal-100"
+                  className="text-gray-600 border-gray-200 hover:bg-gray-100 h-7 text-xs"
                 >
                   Alle Spielgruppen zeigen
                 </Button>
@@ -1080,44 +1078,60 @@ export default function LudoGruppenPage() {
             )}
 
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Sortieren nach</Label>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren nach</Label>
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      <SelectItem value="newest">Neueste</SelectItem>
-                      <SelectItem value="members">Mitglieder</SelectItem>
+                      <SelectItem value="all" className="text-xs">
+                        Alle
+                      </SelectItem>
+                      <SelectItem value="newest" className="text-xs">
+                        Neueste
+                      </SelectItem>
+                      <SelectItem value="members" className="text-xs">
+                        Mitglieder
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Kapazität</Label>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Kapazität</Label>
                   <Select value={availableSpotsFilter} onValueChange={setAvailableSpotsFilter}>
-                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      <SelectItem value="available">Freie Plätze</SelectItem>
+                      <SelectItem value="all" className="text-xs">
+                        Alle
+                      </SelectItem>
+                      <SelectItem value="available" className="text-xs">
+                        Freie Plätze
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Beitrittsmodus</Label>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Beitrittsmodus</Label>
                   <Select value={approvalModeFilter} onValueChange={setApprovalModeFilter}>
-                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-teal-500">
+                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      <SelectItem value="automatic">Sofortiger Beitritt</SelectItem>
-                      <SelectItem value="manual">Beitritt erst nach Genehmigung</SelectItem>
+                      <SelectItem value="all" className="text-xs">
+                        Alle
+                      </SelectItem>
+                      <SelectItem value="automatic" className="text-xs">
+                        Sofortiger Beitritt
+                      </SelectItem>
+                      <SelectItem value="manual" className="text-xs">
+                        Beitritt erst nach Genehmigung
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1133,7 +1147,7 @@ export default function LudoGruppenPage() {
                       setShowLocationResults(false)
                       setLocationSearchResults([])
                     }}
-                    className="h-12 w-full border-2 border-gray-300 text-gray-700 hover:bg-gray-100 font-medium"
+                    className="h-9 w-full border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
                   >
                     Filter zurücksetzen
                   </Button>
@@ -1145,7 +1159,7 @@ export default function LudoGruppenPage() {
 
         <div className="flex gap-8">
           <div className="flex-1">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <Card key={i} className="animate-pulse">
@@ -1161,8 +1175,8 @@ export default function LudoGruppenPage() {
               ) : filteredGroups.length === 0 ? (
                 <div className="col-span-full text-center py-12">
                   <FaUsers className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-sm font-semibold text-gray-600 mb-2">Keine Spielgruppen gefunden</h3>
-                  <p className="text-gray-500 mb-4">
+                  <h3 className="font-semibold text-gray-600 mb-2 text-base">Keine Spielgruppen gefunden</h3>
+                  <p className="text-gray-500 mb-4 text-sm">
                     {searchTerm
                       ? "Versuche einen anderen Suchbegriff"
                       : "Sei der Erste und erstelle eine neue Spielgruppe!"}
@@ -1188,17 +1202,17 @@ export default function LudoGruppenPage() {
                       onClick={() => showGroupDetails(group)}
                       className="group hover:shadow-lg transition-all duration-300 bg-white/80 backdrop-blur-sm border-0 cursor-pointer overflow-hidden relative flex flex-col h-full"
                     >
-                      {group.approval_mode === "manual" && (
-                        <Badge
-                          variant="secondary"
-                          className="absolute top-3 right-3 bg-amber-100 text-amber-800 text-xs z-20 shadow-md border border-amber-200 font-medium"
-                        >
-                          Beitritt erst nach Genehmigung
-                        </Badge>
-                      )}
-
                       {/* Updated image container with aspect ratio and gradient */}
                       <div className="relative aspect-[16/9] overflow-hidden flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                        {group.approval_mode === "manual" && (
+                          <div className="absolute top-2 left-2 z-10">
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-100 backdrop-blur-sm text-xs font-medium text-amber-800 rounded-full border border-amber-200 shadow-sm">
+                              <FaClock className="h-3 w-3" />
+                              <span>Genehmigung erforderlich</span>
+                            </div>
+                          </div>
+                        )}
+
                         {group.image ? (
                           <>
                             <img
@@ -1213,10 +1227,10 @@ export default function LudoGruppenPage() {
                         )}
                       </div>
 
-                      <CardHeader className="pb-3 px-6 mt-2">
+                      <CardHeader className="pb-2 px-4 mt-2">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-handwritten font-bold text-gray-900 mb-0 group-hover:text-teal-600 transition-colors text-sm truncate">
+                            <h3 className="font-handwritten font-bold text-gray-900 mb-1 group-hover:text-teal-600 transition-colors text-xs truncate">
                               {group.name}
                             </h3>
                           </div>
@@ -1224,23 +1238,23 @@ export default function LudoGruppenPage() {
                         </div>
                       </CardHeader>
 
-                      <CardContent className="space-y-3 flex-1 flex flex-col px-6">
+                      <CardContent className="space-y-2 flex-1 flex flex-col px-4 pb-4">
                         {group.description && (
                           // Added font-normal to paragraph
                           <p
-                            className="text-xs text-gray-600 line-clamp-2 font-normal"
+                            className="text-xs text-gray-600 line-clamp-2 font-normal mb-2"
                             dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(group.description) }}
                           />
                         )}
 
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-1 text-xs text-gray-500">
-                            <FaUsers className="h-4 w-4 text-teal-600" />
+                        <div className="space-y-1.5 border-t border-gray-100 pt-2">
+                          <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                            <FaUsers className="h-3.5 w-3.5 text-teal-600" />
                             <span>{formatMemberCount(group)}</span>
                           </div>
                           {group.location && (
                             <div className="flex items-center gap-1 text-xs text-gray-500">
-                              <FaMapMarkerAlt className="h-4 w-4 text-teal-600" />
+                              <FaMapMarkerAlt className="h-3.5 w-3.5 text-teal-600" />
                               <a
                                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(group.location)}`}
                                 target="_blank"
@@ -1255,11 +1269,11 @@ export default function LudoGruppenPage() {
                         </div>
 
                         <div className="flex items-center gap-1 text-xs text-gray-500">
-                          <FaUserCog className="h-4 w-4 text-teal-600" />
+                          <FaUserCog className="h-3.5 w-3.5 text-teal-600" />
                           <div className="flex items-center gap-2">
                             <Avatar className="h-4 w-4">
                               <AvatarImage src={group.users?.avatar || "/placeholder.svg"} />
-                              <AvatarFallback className="text-xs">
+                              <AvatarFallback className="text-[10px]">
                                 {group.users?.username?.[0]?.toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
@@ -1276,7 +1290,7 @@ export default function LudoGruppenPage() {
                           </div>
                         </div>
 
-                        <div className="flex gap-2 pt-4 mt-auto">
+                        <div className="flex flex-wrap gap-2 pt-2 mt-auto">
                           <Button
                             size="sm"
                             onClick={(e) => {
@@ -1416,7 +1430,7 @@ export default function LudoGruppenPage() {
                       value={newGroup.name}
                       onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
                       placeholder="z.B. CATAN-Freunde Zürich"
-                      className="h-11 text-sm border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                      className="h-11 text-xs border-gray-300 focus:border-gray-900 focus:ring-gray-900"
                       maxLength={60}
                     />
                   </div>
@@ -1450,7 +1464,7 @@ export default function LudoGruppenPage() {
                         })
                       }
                       placeholder="Leer lassen für unbegrenzt"
-                      className="h-11 text-sm border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                      className="h-11 text-xs border-gray-300 focus:border-gray-900 focus:ring-gray-900"
                     />
                   </div>
 
@@ -1505,7 +1519,7 @@ export default function LudoGruppenPage() {
                       placeholder="Location, Adresse, PLZ oder Ort eingeben..."
                       value={newGroup.location}
                       onChange={(value) => setNewGroup({ ...newGroup, location: value })}
-                      className="h-11 text-sm border-gray-300 focus:border-gray-900"
+                      className="h-11 text-xs border-gray-300 focus:border-gray-900"
                     />
                   </div>
                 </div>
@@ -1592,7 +1606,7 @@ export default function LudoGruppenPage() {
                 <Button
                   onClick={createLudoGroup}
                   disabled={!newGroup.name.trim() || isUploading}
-                  className="flex-1 h-11 text-sm bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-medium shadow-lg disabled:bg-gray-400"
+                  className="flex-1 h-11 text-xs bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-medium shadow-lg disabled:bg-gray-400"
                 >
                   {isUploading ? (
                     <div className="flex items-center">
@@ -1720,7 +1734,7 @@ export default function LudoGruppenPage() {
                     </div>
                   ) : (
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs text-gray-600">
                         Kein Standort angegeben. Diese Spielgruppe hat keinen Standort hinterlegt.
                       </p>
                     </div>

@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Search, Plus, MessageSquare, Heart, Eye, Pin, Lock } from "lucide-react"
+import { Search, Plus, Pin, Lock } from "lucide-react"
+import { MdQuestionAnswer } from "react-icons/md"
+import { FaEye, FaHeart } from "react-icons/fa"
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
@@ -175,7 +177,7 @@ export default function LudoForumPage() {
         </div>
 
         {/* Search and Filter Section */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg">
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100 shadow-sm mb-8">
           <div className="flex flex-col gap-4">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -183,50 +185,44 @@ export default function LudoForumPage() {
                 placeholder="Diskussionen durchsuchen..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white/80 border-gray-200 focus:border-teal-500"
+                className="pl-9 bg-white/80 border-gray-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 h-9 text-xs"
               />
             </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <span className="text-xs font-medium text-gray-700 whitespace-nowrap">Sortieren nach:</span>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <span className="text-xs font-medium text-gray-500 whitespace-nowrap">Sortieren nach:</span>
               <div className="flex flex-wrap gap-2">
                 <Button
-                  size="xs"
                   variant={sortBy === "recent" ? "default" : "outline"}
                   onClick={() => setSortBy("recent")}
-                  className={sortBy === "recent" ? "bg-teal-600 hover:bg-teal-700" : "bg-white/80 hover:bg-teal-50"}
+                  className={`h-9 text-xs px-3 ${sortBy === "recent" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
                 >
                   Neueste
                 </Button>
                 <Button
-                  size="xs"
                   variant={sortBy === "unanswered" ? "default" : "outline"}
                   onClick={() => setSortBy("unanswered")}
-                  className={sortBy === "unanswered" ? "bg-teal-600 hover:bg-teal-700" : "bg-white/80 hover:bg-teal-50"}
+                  className={`h-9 text-xs px-3 ${sortBy === "unanswered" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
                 >
                   Unbeantwortet
                 </Button>
                 <Button
-                  size="xs"
                   variant={sortBy === "popular" ? "default" : "outline"}
                   onClick={() => setSortBy("popular")}
-                  className={sortBy === "popular" ? "bg-teal-600 hover:bg-teal-700" : "bg-white/80 hover:bg-teal-50"}
+                  className={`h-9 text-xs px-3 ${sortBy === "popular" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
                 >
                   Meist gelikt
                 </Button>
                 <Button
-                  size="xs"
                   variant={sortBy === "replies" ? "default" : "outline"}
                   onClick={() => setSortBy("replies")}
-                  className={sortBy === "replies" ? "bg-teal-600 hover:bg-teal-700" : "bg-white/80 hover:bg-teal-50"}
+                  className={`h-9 text-xs px-3 ${sortBy === "replies" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
                 >
                   Meist beantwortet
                 </Button>
                 <Button
-                  size="xs"
                   variant={sortBy === "views" ? "default" : "outline"}
                   onClick={() => setSortBy("views")}
-                  className={sortBy === "views" ? "bg-teal-600 hover:bg-teal-700" : "bg-white/80 hover:bg-teal-50"}
+                  className={`h-9 text-xs px-3 ${sortBy === "views" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
                 >
                   Meist gesehen
                 </Button>
@@ -237,7 +233,7 @@ export default function LudoForumPage() {
 
         {/* Results Summary */}
         <div className="mb-6">
-          <p className="text-gray-600 text-xs">
+          <p className="text-gray-600 text-sm">
             {loading ? "Lade Diskussionen..." : `${filteredPosts.length} Diskussionen gefunden`}
             {searchTerm && ` für "${searchTerm}"`}
           </p>
@@ -264,7 +260,7 @@ export default function LudoForumPage() {
                 ))
               ) : filteredPosts.length === 0 ? (
                 <div className="text-center py-12">
-                  <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <MdQuestionAnswer className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-sm font-semibold text-gray-600 mb-2">Keine Diskussionen gefunden</h3>
                   <p className="text-gray-500 text-xs mb-4">
                     {searchTerm
@@ -298,45 +294,49 @@ export default function LudoForumPage() {
                                 </h3>
                               </div>
 
-                              <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
-                                <Avatar className="h-5 w-5">
-                                  <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
-                                  <AvatarFallback className="text-xs">
-                                    {post.author?.username?.[0]?.toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <UserLink
-                                  userId={post.author_id}
-                                  className="font-medium hover:text-teal-600 transition-colors"
-                                >
-                                  {post.author?.username}
-                                </UserLink>
-                                <span>•</span>
-                                <span className="text-xs">{formatTimeAgo(post.created_at)}</span>
+                              <div className="text-gray-600 text-xs line-clamp-2 mb-p3 my-2.5">
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="h-5 w-5">
+                                    <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
+                                    <AvatarFallback className="text-xs text-gray-500">
+                                      {post.author?.username?.[0]?.toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div onClick={(e) => e.stopPropagation()}>
+                                    <UserLink
+                                      userId={post.author_id}
+                                      className="text-xs text-gray-500 hover:text-teal-600 transition-colors"
+                                    >
+                                      {post.author?.username}
+                                    </UserLink>
+                                  </div>
+                                  <span>•</span>
+                                  <span className="text-gray-500 text-xs">{formatTimeAgo(post.created_at)}</span>
+                                </div>
                               </div>
 
-                              <p className="text-gray-600 text-xs line-clamp-2 mb-3">{post.content}</p>
+                              <p className="text-gray-500 text-xs line-clamp-2 mb-p3 my-2.5">{post.content}</p>
                             </div>
                           </div>
 
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <MessageSquare className="h-4 w-4" />
+                              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                <MdQuestionAnswer className="h-4 w-4" />
                                 <span>{post.replies_count}</span>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <Heart className="h-4 w-4" />
+                              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                <FaHeart className="h-4 w-4" />
                                 <span>{post.likes_count}</span>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <Eye className="h-4 w-4" />
+                              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                <FaEye className="h-4 w-4" />
                                 <span>{post.views_count}</span>
                               </div>
                             </div>
 
                             <Button
-                              size="xs"
+                              size="sm"
                               variant="outline"
                               className="bg-transparent hover:bg-teal-50 hover:border-teal-300"
                               onClick={(e) => {
@@ -353,7 +353,7 @@ export default function LudoForumPage() {
                             </Button>
                           </div>
 
-                          <div className="mt-3 pt-3 border-t border-gray-100">
+                          <div className="mt-3 pt-3 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
                             <ForumPostReactions postId={post.id} />
                           </div>
                         </div>

@@ -108,26 +108,26 @@ export function EditSearchAdForm({ isOpen, onClose, onSuccess, searchAd }: EditS
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
             <Edit className="w-8 h-8 text-white" />
           </div>
-          <DialogTitle className="font-handwritten text-3xl text-orange-800 font-bold">
+          <DialogTitle className="font-handwritten text-base text-orange-800 font-bold">
             Suchanzeige bearbeiten
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 px-2">
           <div className="space-y-2">
-            <Label className="font-body text-orange-800 font-semibold text-base">Titel *</Label>
+            <Label className="font-body text-orange-800 font-semibold text-sm">Titel *</Label>
             <Input
               value={formData.title}
               onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
               placeholder="z.B. Suche Catan Erweiterung"
-              className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/90 rounded-xl h-12 text-base"
+              className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/90 rounded-xl h-12 text-sm"
               required
             />
             {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label className="font-body text-orange-800 font-semibold text-base">Was möchtest du? *</Label>
+            <Label className="font-body text-orange-800 font-semibold text-sm">Was möchtest du? *</Label>
             <Select
               value={formData.type}
               onValueChange={(value: "buy" | "rent") => setFormData((prev) => ({ ...prev, type: value }))}

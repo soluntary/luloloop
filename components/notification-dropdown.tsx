@@ -321,7 +321,7 @@ export default function NotificationDropdown({ className }: NotificationDropdown
           </div>
 
           {notifications.length === 0 ? (
-            <div className="p-4 text-gray-500 text-left text-xs">Zurzeit keine Benachrichtigung</div>
+            <div className="p-4 text-gray-500 text-left text-xs">Du bist auf dem neuesten Stand</div>
           ) : (
             <div className="max-h-80 overflow-y-auto">
               {notifications.map((notification, index) => (
@@ -334,7 +334,7 @@ export default function NotificationDropdown({ className }: NotificationDropdown
                       <div className="flex-shrink-0 mt-1">{getNotificationIcon(notification.type)}</div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-gray-900 truncate">{notification.title}</p>
+                          <p className="text-xs font-medium text-gray-900 truncate">{notification.title}</p>
                           <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2"></div>
                         </div>
                         <p className="text-xs text-gray-600 mt-1 line-clamp-2">{notification.message}</p>

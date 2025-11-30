@@ -181,7 +181,7 @@ export function MessageNotificationDashboard() {
                     <span>{formatTime(notification.sent_at)}</span>
                   </div>
 
-                  <p className="text-sm text-gray-700 truncate">{notification.message.message}</p>
+                  <p className="text-xs text-gray-700 truncate">{notification.message.message}</p>
 
                   {notification.email_error && (
                     <p className="text-xs text-red-600 mt-1">Fehler: {notification.email_error}</p>

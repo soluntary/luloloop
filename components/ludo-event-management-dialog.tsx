@@ -492,7 +492,7 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
                                   >
                                     {request.user.username || "Unbekannt"}
                                   </UserLink>
-                                  <p className="text-sm text-gray-500">
+                                  <p className="text-xs text-gray-500">
                                     Angefragt am {new Date(request.created_at).toLocaleDateString("de-DE")}
                                   </p>
                                 </div>
@@ -521,7 +521,7 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
 
                             {pendingDates.length > 0 && (
                               <div className="mt-3 p-3 bg-white rounded border border-orange-200">
-                                <p className="text-sm font-medium text-gray-700 mb-2">Ausgewählte Termine:</p>
+                                <p className="text-xs font-medium text-gray-700 mb-2">Ausgewählte Termine:</p>
                                 <div className="flex flex-wrap gap-2">
                                   {pendingDates.map((dateInfo, idx) => (
                                     <Badge
@@ -539,8 +539,8 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
 
                             {request.message && (
                               <div className="mt-3 p-3 bg-white rounded border border-orange-200">
-                                <p className="text-sm font-medium text-gray-700 mb-1">Nachricht:</p>
-                                <p className="text-sm text-gray-600">{request.message}</p>
+                                <p className="text-xs font-medium text-gray-700 mb-1">Nachricht:</p>
+                                <p className="text-xs text-gray-600">{request.message}</p>
                               </div>
                             )}
                           </div>
@@ -587,7 +587,7 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
                           <div className="flex items-center gap-3 mb-4">
                             <div className="flex-1">
                               <p className="font-semibold text-lg">{formatDate(dateGroup.date)}</p>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-xs text-gray-600">
                                 {dateGroup.startTime.slice(0, 5)}
                                 {dateGroup.endTime && ` - ${dateGroup.endTime.slice(0, 5)}`}
                               </p>
@@ -651,7 +651,7 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
               <CardContent className="space-y-4">
                 <div className="p-4 bg-white rounded-lg border-2 border-red-200">
                   <h4 className="font-semibold text-red-800 mb-2">Event löschen</h4>
-                  <p className="text-sm text-red-600 mb-4">
+                  <p className="text-xs text-red-600 mb-4">
                     Das Event wird permanent gelöscht und alle Anmeldungen werden entfernt. Diese Aktion kann nicht
                     rückgängig gemacht werden.
                   </p>

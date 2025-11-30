@@ -110,7 +110,7 @@ export function MessageComposerModal({
               <AvatarFallback>{recipientName[0]?.toUpperCase()}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-medium text-gray-800">An: {recipientName}</p>
+              <p className="font-medium text-gray-800 text-xs">An: {recipientName}</p>
               <p className="text-xs text-gray-500">
                 {getContextLabel()}: {context.title}
               </p>
@@ -119,7 +119,7 @@ export function MessageComposerModal({
 
           {/* Message Input */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Deine Nachricht</label>
+            <label className="text-gray-700 text-xs font-semibold">Deine Nachricht</label>
             <Textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -128,7 +128,7 @@ export function MessageComposerModal({
               maxLength={1000}
             />
             <div className="flex justify-between items-center text-xs text-gray-500">
-              <span>Tipp: Sei höflich und beschreibe dein Interesse</span>
+              <span>Tipp: Sei höflich</span>
               <span>{message.length}/1000</span>
             </div>
           </div>

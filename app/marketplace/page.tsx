@@ -11,10 +11,23 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CreateMarketplaceOfferForm } from "@/components/create-marketplace-offer-form"
 import { CreateSearchAdForm } from "@/components/create-search-ad-form"
-import { useSearchParams } from 'next/navigation'
-import { Search, LogIn, UserPlus, Star, MessageCircle, ShoppingCart, Database, Store, AlertCircle, CalendarDaysIcon, MapPin, Filter, ChevronDown, Truck } from 'lucide-react'
+import { useSearchParams } from "next/navigation"
+import {
+  Search,
+  LogIn,
+  UserPlus,
+  Star,
+  MessageCircle,
+  ShoppingCart,
+  Database,
+  Store,
+  AlertCircle,
+  CalendarDaysIcon,
+} from "lucide-react"
+import { FaLocationDot } from "react-icons/fa6" // Changed from Search to FaSearch
+import { MdOutlineSavedSearch, MdOutlineManageSearch } from "react-icons/md"
+import { FiFilter } from "react-icons/fi"
 import { FaShippingFast } from "react-icons/fa"
-import { FaLocationDot } from "react-icons/fa6"
 import { Navigation } from "@/components/navigation"
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
@@ -34,6 +47,50 @@ import { LocationMap } from "@/components/location-map"
 import { toast } from "sonner"
 import { ExpandableDescription } from "@/components/expandable-description"
 import { getPostalCodeAndCity } from "@/lib/utils"
+import { FaChevronDown } from "react-icons/fa6" // Import FaChevronDown
+
+const PLAYER_COUNT_MIN_OPTIONS = [
+  { value: "1", label: "Ab 1 Spieler" },
+  { value: "2", label: "Ab 2 Spieler" },
+  { value: "3", label: "Ab 3 Spieler" },
+  { value: "4", label: "Ab 4 Spieler" },
+  { value: "5", label: "Ab 5 Spieler" },
+  { value: "6", label: "Ab 6 Spieler" },
+  { value: "7", label: "Ab 7 Spieler" },
+  { value: "8", label: "Ab 8 Spieler" },
+  { value: "10", label: "Ab 10+ Spieler" },
+]
+
+const PLAYER_COUNT_MAX_OPTIONS = [
+  { value: "2", label: "Bis 2 Spieler" },
+  { value: "3", label: "Bis 3 Spieler" },
+  { value: "4", label: "Bis 4 Spieler" },
+  { value: "5", label: "Bis 5 Spieler" },
+  { value: "6", label: "Bis 6 Spieler" },
+  { value: "7", label: "Bis 7 Spieler" },
+  { value: "8", label: "Bis 8 Spieler" },
+  { value: "9", label: "Bis 9 Spieler" },
+]
+
+const AGE_OPTIONS = [
+  "Ab 2 Jahren",
+  "Ab 3 Jahren",
+  "Ab 4 Jahren",
+  "Ab 5 Jahren",
+  "Ab 6 Jahren",
+  "Ab 7 Jahren",
+  "Ab 8 Jahren",
+  "Ab 9 Jahren",
+  "Ab 10 Jahren",
+  "Ab 11 Jahren",
+  "Ab 12 Jahren",
+  "Ab 13 Jahren",
+  "Ab 14 Jahren",
+  "Ab 15 Jahren",
+  "Ab 16 Jahren",
+  "Ab 17 Jahren",
+  "Ab 18 Jahren",
+]
 
 export default function MarketplacePage() {
   const { sendMessage } = useMessages()
@@ -62,14 +119,19 @@ export default function MarketplacePage() {
   const [searchAdContactMessage, setSearchAdContactMessage] = useState("")
   const [selectedSearchAd, setSelectedSearchAd] = useState<any>(null)
   const [filters, setFilters] = useState({
-    playerCount: "",
+    playerCountMin: "",
+    playerCountMax: "",
     duration: "",
     age: "",
     language: "",
     category: "",
-    style: "",
+    type: "", // Added 'type' to filters state
     condition: "",
   })
+
+  // Filter state variables for select components
+  const [offerTypeFilter, setOfferTypeFilter] = useState("all")
+  const [conditionFilter, setConditionFilter] = useState("all")
 
   const [locationSearchResults, setLocationSearchResults] = useState<any[]>([])
   const [showLocationResults, setShowLocationResults] = useState(false)
@@ -79,9 +141,6 @@ export default function MarketplacePage() {
   const [calculatedPrice, setCalculatedPrice] = useState<string>("")
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
-
-  // Initialize useSearchParams for handling URL query parameters
-  // const searchParams = useSearchParams() // This was duplicated, removed the second declaration
 
   const { searchByAddress, searchMarketplaceOffersNearby } = useLocationSearch()
 
@@ -175,7 +234,9 @@ export default function MarketplacePage() {
         itemType: "offer",
       }))
     : [
-        ...marketplaceOffers.filter((offer) => offer.active !== false).map((offer) => ({ ...offer, itemType: "offer" })),
+        ...marketplaceOffers
+          .filter((offer) => offer.active !== false)
+          .map((offer) => ({ ...offer, itemType: "offer" })),
         ...searchAds.filter((ad) => ad.active !== false).map((ad) => ({ ...ad, itemType: "search" })),
       ]
 
@@ -193,8 +254,25 @@ export default function MarketplacePage() {
         (item.itemType === "offer" && item.type === selectedType) ||
         (item.itemType === "search" && selectedType === "search")
 
-      const matchesPlayerCount =
-        !filters.playerCount || (item.itemType === "offer" && item.players?.includes(filters.playerCount))
+      const matchesPlayerCount = (() => {
+        const minFilter = filters.playerCountMin ? Number.parseInt(filters.playerCountMin) : null
+        const maxFilter = filters.playerCountMax ? Number.parseInt(filters.playerCountMax) : null
+
+        if (!minFilter && !maxFilter) return true
+
+        const gameMinPlayers = item.min_players || 1
+        const gameMaxPlayers = item.max_players || 99
+
+        if (minFilter && maxFilter) {
+          return gameMaxPlayers >= minFilter && gameMinPlayers <= maxFilter
+        } else if (minFilter) {
+          return gameMaxPlayers >= minFilter
+        } else if (maxFilter) {
+          return gameMinPlayers <= maxFilter
+        }
+        return true
+      })()
+
       const matchesDuration =
         !filters.duration || (item.itemType === "offer" && item.duration?.includes(filters.duration))
       const matchesAge = !filters.age || (item.itemType === "offer" && item.age?.includes(filters.age))
@@ -210,6 +288,12 @@ export default function MarketplacePage() {
         !filters.condition ||
         (item.itemType === "offer" && item.condition?.toLowerCase().includes(filters.condition.toLowerCase()))
 
+      // Added new filter states for offer type and condition
+      const matchesOfferType = offerTypeFilter === "all" || (item.itemType === "offer" && item.type === offerTypeFilter)
+
+      const matchesSelectedCondition =
+        conditionFilter === "all" || (item.itemType === "offer" && item.condition === conditionFilter)
+
       return (
         matchesSearch &&
         matchesType &&
@@ -219,7 +303,9 @@ export default function MarketplacePage() {
         matchesLanguage &&
         matchesCategory &&
         matchesStyle &&
-        matchesCondition
+        matchesCondition &&
+        matchesOfferType &&
+        matchesSelectedCondition
       )
     })
     .sort((a, b) => {
@@ -397,7 +483,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
         const supabase = createClient()
         const { data: gameData, error } = await supabase
           .from("games")
-          .select("id, duration, players, category, style, age, language, type") // Added id to select
+          .select("id, duration, players, category, style, age, language, type, min_players, max_players") // Added min_players, max_players to select
           .eq("id", item.game_id)
           .single()
 
@@ -414,6 +500,8 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
             // Merge game details, prioritizing existing offer details if they exist and are valid
             duration: gameData.duration || item.duration,
             players: gameData.players || item.players,
+            min_players: gameData.min_players || item.min_players, // Use min_players from fetched game data
+            max_players: gameData.max_players || item.max_players, // Use max_players from fetched game data
             category: gameData.category || item.category,
             style: gameData.style || item.style,
             age: gameData.age || item.age,
@@ -569,9 +657,9 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               const period = parts[0].trim()
               const price = parts[1].trim().replace("CHF", " CHF")
               return (
-                <div key={index} className="flex items-center justify-between w-full">
-                  <span className="text-sm font-medium text-gray-700">{period}</span>
-                  <span className="text-sm font-bold px-20 mx-0 border-0 mr-0 border-l-0 border-r-0 text-left pr-0 ml-20 text-foreground">
+                <div key={index} className="flex items-center justify-between w-full text-xs">
+                  <span className="font-medium text-gray-700 text-xs text-xs">{period}</span>
+                  <span className="font-bold px-20 mx-0 border-0 mr-0 border-l-0 border-r-0 text-left pr-0 text-foreground ml-1.5 text-xs">
                     {price}
                   </span>
                 </div>
@@ -579,7 +667,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
             }
             // Fallback for unexpected format or "Offen für Vorschläge"
             return (
-              <div key={index} className="text-sm w-full">
+              <div key={index} className="w-full text-xs">
                 {rate.replace("CHF", " CHF")}
               </div>
             )
@@ -742,7 +830,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
-      <Navigation currentPage="spielemarkt" />
+      <Navigation currentPage="spielhandel" />
 
       <div className="container mx-auto px-4 py-8">
         {/* Database Error Banner */}
@@ -774,7 +862,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">Spielemarkt</h1>
+          <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">Spielehandel</h1>
           {authUser && databaseConnected && (
             <div className="mt-6 flex gap-4 justify-center">
               <Button
@@ -799,31 +887,28 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
         <LocationPermissionBanner />
 
         {/* Search and Filter Bar */}
-        <div className="bg-white/50 rounded-lg p-4 border border-gray-200 mb-8">
-          <div className="space-y-6">
-            {/* Search Bar */}
-            <div className="flex gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100 shadow-sm mb-8">
+          <div className="space-y-4">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex-1 relative">
+                <MdOutlineManageSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Spiele, Verlage oder Anbieter durchsuchen..."
+                  placeholder="Angebote durchsuchen..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-12 bg-white/80 border-gray-200 focus:border-orange-500 text-base"
+                  className="pl-9 h-9 bg-white/80 border-gray-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 text-xs"
+                  disabled={!databaseConnected}
                 />
               </div>
             </div>
 
-            {/* Location Search */}
-            <div className="space-y-3">
-              <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
-            </div>
+            <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
 
             {showLocationResults && (
-              <div className="flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-gray-200">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="flex items-center gap-2">
-                  <FaLocationDot className="h-5 w-5 text-orange-600" />
-                  <span className="text-sm text-orange-800 font-medium">
+                  <FaLocationDot className="h-4 w-4 text-gray-600" />
+                  <span className="text-xs text-gray-800 font-medium">
                     Zeige Ergebnisse in der Nähe ({locationSearchResults.length})
                   </span>
                 </div>
@@ -834,81 +919,126 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     setShowLocationResults(false)
                     setLocationSearchResults([])
                   }}
-                  className="text-orange-600 border-orange-300 hover:bg-orange-100"
+                  className="text-gray-600 border-gray-200 hover:bg-gray-100 h-7 text-xs"
                 >
                   Alle Angebote zeigen
                 </Button>
               </div>
             )}
 
-            {/* Basic Filters */}
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
                 <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Sortieren nach</Label>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren nach</Label>
                   <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
-                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
+                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {showLocationResults && <SelectItem value="distance">Nach Entfernung</SelectItem>}
-                      <SelectItem value="newest">Neueste zuerst</SelectItem>
-                      <SelectItem value="oldest">Älteste zuerst</SelectItem>
-                      <SelectItem value="title">Spielname A-Z</SelectItem>
-                      <SelectItem value="price-low">Preis aufsteigend</SelectItem>
-                      <SelectItem value="price-high">Preis absteigend</SelectItem>
+                      <SelectItem value="newest" className="text-xs">
+                        Neueste
+                      </SelectItem>
+                      <SelectItem value="price-low" className="text-xs">
+                        Preis aufsteigend
+                      </SelectItem>
+                      <SelectItem value="price-high" className="text-xs">
+                        Preis absteigend
+                      </SelectItem>
+                      <SelectItem value="distance" className="text-xs">
+                        Entfernung
+                      </SelectItem>
+                      <SelectItem value="title" className="text-xs">
+                        Titel A-Z
+                      </SelectItem>
+                      <SelectItem value="title-desc" className="text-xs">
+                        Titel Z-A
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-2 block">Anzeigeart</Label>
-                  <Select value={selectedType} onValueChange={setSelectedType} disabled={!databaseConnected}>
-                    <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
-                      <SelectValue placeholder="Alle" />
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Angebotstyp</Label>
+                  <Select value={offerTypeFilter} onValueChange={setOfferTypeFilter} disabled={!databaseConnected}>
+                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      <SelectItem value="lend">Mietangebote</SelectItem>
-                      <SelectItem value="trade">Tauschangebote</SelectItem>
-                      <SelectItem value="sell">Verkaufsangebote</SelectItem>
-                      <SelectItem value="search">Suchanzeigen</SelectItem>
+                      <SelectItem value="all" className="text-xs">
+                        Alle
+                      </SelectItem>
+                      <SelectItem value="sell" className="text-xs">
+                        Verkaufen
+                      </SelectItem>
+                      <SelectItem value="lend" className="text-xs">
+                        Mieten
+                      </SelectItem>
+                      <SelectItem value="trade" className="text-xs">
+                        Tauschen
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="md:col-span-2 flex items-end gap-4">
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Zustand</Label>
+                  <Select value={conditionFilter} onValueChange={setConditionFilter} disabled={!databaseConnected}>
+                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-xs">
+                        Alle
+                      </SelectItem>
+                      <SelectItem value="Neu" className="text-xs">
+                        Neu
+                      </SelectItem>
+                      <SelectItem value="Sehr gut" className="text-xs">
+                        Sehr gut
+                      </SelectItem>
+                      <SelectItem value="Gut" className="text-xs">
+                        Gut
+                      </SelectItem>
+                      <SelectItem value="Akzeptabel" className="text-xs">
+                        Akzeptabel
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-end gap-2 lg:col-span-2">
                   <Button
                     variant="outline"
                     onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                    className="h-12 flex-1 border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-medium"
-                    disabled={!databaseConnected}
+                    className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
                   >
-                    <Filter className="w-4 h-4 mr-2" />
+                    <FiFilter className="w-3 h-3 mr-2" />
                     Erweiterte Filter
-                    <ChevronDown
-                      className={`w-4 h-4 ml-2 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
+                    <FaChevronDown
+                      className={`w-3 h-3 ml-2 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
                     />
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
                       setSearchTerm("")
-                      setSelectedType("all")
-                      setSortBy("newest")
+                      setSortBy("all")
+                      setOfferTypeFilter("all")
+                      setConditionFilter("all")
+                      setShowLocationResults(false)
+                      setLocationSearchResults([])
                       setFilters({
-                        playerCount: "",
+                        playerCountMin: "",
+                        playerCountMax: "",
                         duration: "",
                         age: "",
                         language: "",
                         category: "",
-                        style: "",
+                        type: "",
                         condition: "",
                       })
-                      setShowLocationResults(false)
-                      setLocationSearchResults([])
                     }}
-                    className="h-12 px-6 border-2 border-gray-300 text-gray-700 hover:bg-gray-100 font-medium"
+                    className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
                     disabled={!databaseConnected}
                   >
                     Filter zurücksetzen
@@ -918,29 +1048,55 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
               {/* Advanced Filters */}
               {showAdvancedFilters && (
-                <div className="pt-6 border-t border-gray-200 space-y-4">
-                  <h3 className="text-xs font-semibold text-gray-700 flex items-center">
-                    <Filter className="w-4 h-4 mr-2" />
+                <div className="pt-4 border-t border-gray-100 space-y-3">
+                  <h3 className="text-xs font-medium text-gray-500 flex items-center">
+                    <FiFilter className="w-3 h-3 mr-2" />
                     Erweiterte Filter
                   </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                     <div>
-                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Spieleranzahl</Label>
+                      <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Spieleranzahl (ab)</Label>
                       <Select
-                        value={filters.playerCount}
+                        value={filters.playerCountMin}
                         onValueChange={(value) =>
-                          setFilters((prev) => ({ ...prev, playerCount: value === "all" ? "" : value }))
+                          setFilters((prev) => ({ ...prev, playerCountMin: value === "all" ? "" : value }))
                         }
                         disabled={!databaseConnected}
                       >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
+                        <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                           <SelectValue placeholder="Alle" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Alle</SelectItem>
-                          {dynamicFilterOptions.playerCounts.map((count) => (
-                            <SelectItem key={count} value={count}>
-                              {count}
+                          <SelectItem value="all" className="text-xs">
+                            Alle
+                          </SelectItem>
+                          {PLAYER_COUNT_MIN_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value} className="text-xs">
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Spieleranzahl (bis)</Label>
+                      <Select
+                        value={filters.playerCountMax}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({ ...prev, playerCountMax: value === "all" ? "" : value }))
+                        }
+                        disabled={!databaseConnected}
+                      >
+                        <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
+                          <SelectValue placeholder="Alle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all" className="text-xs">
+                            Alle
+                          </SelectItem>
+                          {PLAYER_COUNT_MAX_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value} className="text-xs">
+                              {option.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -948,7 +1104,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     </div>
 
                     <div>
-                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Spieldauer</Label>
+                      <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Spieldauer</Label>
                       <Select
                         value={filters.duration}
                         onValueChange={(value) =>
@@ -956,13 +1112,15 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         }
                         disabled={!databaseConnected}
                       >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
+                        <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                           <SelectValue placeholder="Alle" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Alle</SelectItem>
+                          <SelectItem value="all" className="text-xs">
+                            Alle
+                          </SelectItem>
                           {dynamicFilterOptions.durations.map((duration) => (
-                            <SelectItem key={duration} value={duration}>
+                            <SelectItem key={duration} value={duration} className="text-xs">
                               {duration}
                             </SelectItem>
                           ))}
@@ -971,7 +1129,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     </div>
 
                     <div>
-                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Altersempfehlung</Label>
+                      <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Altersempfehlung</Label>
                       <Select
                         value={filters.age}
                         onValueChange={(value) =>
@@ -979,13 +1137,15 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         }
                         disabled={!databaseConnected}
                       >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
+                        <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                           <SelectValue placeholder="Alle" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Alle</SelectItem>
-                          {dynamicFilterOptions.ages.map((age) => (
-                            <SelectItem key={age} value={age}>
+                          <SelectItem value="all" className="text-xs">
+                            Alle
+                          </SelectItem>
+                          {AGE_OPTIONS.map((age) => (
+                            <SelectItem key={age} value={age} className="text-xs">
                               {age}
                             </SelectItem>
                           ))}
@@ -994,30 +1154,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     </div>
 
                     <div>
-                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Sprache</Label>
-                      <Select
-                        value={filters.language}
-                        onValueChange={(value) =>
-                          setFilters((prev) => ({ ...prev, language: value === "all" ? "" : value }))
-                        }
-                        disabled={!databaseConnected}
-                      >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
-                          <SelectValue placeholder="Alle" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Alle</SelectItem>
-                          {dynamicFilterOptions.languages.map((language) => (
-                            <SelectItem key={language} value={language}>
-                              {language}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Kategorie</Label>
+                      <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Kategorie</Label>
                       <Select
                         value={filters.category}
                         onValueChange={(value) =>
@@ -1025,13 +1162,15 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         }
                         disabled={!databaseConnected}
                       >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
+                        <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                           <SelectValue placeholder="Alle" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Alle</SelectItem>
+                          <SelectItem value="all" className="text-xs">
+                            Alle
+                          </SelectItem>
                           {dynamicFilterOptions.categories.map((category) => (
-                            <SelectItem key={category} value={category}>
+                            <SelectItem key={category} value={category} className="text-xs">
                               {category}
                             </SelectItem>
                           ))}
@@ -1040,45 +1179,24 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     </div>
 
                     <div>
-                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Typus</Label>
+                      <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Typ</Label>
                       <Select
-                        value={filters.style}
+                        value={filters.type}
                         onValueChange={(value) =>
-                          setFilters((prev) => ({ ...prev, style: value === "all" ? "" : value }))
+                          setFilters((prev) => ({ ...prev, type: value === "all" ? "" : value }))
                         }
                         disabled={!databaseConnected}
                       >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
+                        <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                           <SelectValue placeholder="Alle" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Alle</SelectItem>
+                          <SelectItem value="all" className="text-xs">
+                            Alle
+                          </SelectItem>
                           {dynamicFilterOptions.styles.map((style) => (
-                            <SelectItem key={style} value={style}>
+                            <SelectItem key={style} value={style} className="text-xs">
                               {style}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label className="text-xs font-medium text-gray-700 mb-2 block">Zustand</Label>
-                      <Select
-                        value={filters.condition}
-                        onValueChange={(value) =>
-                          setFilters((prev) => ({ ...prev, condition: value === "all" ? "" : value }))
-                        }
-                        disabled={!databaseConnected}
-                      >
-                        <SelectTrigger className="h-12 bg-white/80 border-gray-200 focus:border-orange-500">
-                          <SelectValue placeholder="Alle" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Alle</SelectItem>
-                          {dynamicFilterOptions.conditions.map((condition) => (
-                            <SelectItem key={condition} value={condition}>
-                              {condition}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1093,7 +1211,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
         {/* Results Count */}
         <div className="mb-6 flex items-center justify-between">
-          <p className="text-gray-600 font-thin text-xs">
+          <p className="text-gray-600 font-thin text-sm">
             <span className="text-gray-600 font-normal">{filteredItems.length}</span>{" "}
             {filteredItems.length === 1 ? "Eintrag" : "Anzeigen"}
             {!databaseConnected && <span className="text-red-500 ml-2">(Offline-Modus)</span>}
@@ -1104,7 +1222,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
         <div className="flex gap-8">
           {/* Main Content */}
           <div className="flex-1">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-12">
               {filteredItems.length > 0 ? (
                 filteredItems.map((item) => (
                   <Card
@@ -1139,8 +1257,11 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                             )}
                           </div>
 
-                          <div className="p-4">
+                          <div className="p-3">
                             <h3 className="font-handwritten font-bold text-gray-900 mb-1.5 truncate group-hover:text-gray-700 transition-colors text-xs">
+                              {item.type === "sell" && "Verkaufe "}
+                              {item.type === "trade" && "Biete "}
+                              {item.type === "lend" && "Vermiete "}
                               {item.title}
                             </h3>
 
@@ -1148,32 +1269,41 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
                             {/* Delivery options */}
                             {(item.pickup_available || item.shipping_available) && (
-                              <div className="flex items-center gap-2 mb-3">
-                                {item.pickup_available && (
-                                  <div className="flex items-center gap-1 text-xs text-gray-600">
-                                    <FaLocationDot className="w-3.5 h-3.5" />
-                                    <span>Abholung möglich</span>
+                              <div className="flex flex-col gap-1 mb-3">
+                                {item.pickup_available && item.shipping_available ? (
+                                  <div className="flex items-center gap-2 text-[10px] text-gray-600">
+                                    <div className="flex items-center gap-1">
+                                      <span>Abholung</span>
+                                    </div>
+                                    <span> &</span>
+                                    <div className="flex items-center gap-1">
+                                      <span>Versand möglich</span>
+                                    </div>
                                   </div>
-                                )}
-                                {item.pickup_available && item.shipping_available && (
-                                  <span className="text-gray-300">•</span>
-                                )}
-                                {item.shipping_available && (
-                                  <div className="flex items-center gap-1 text-xs text-gray-600">
-                                    <FaShippingFast className="w-3.5 h-3.5" />
-                                    <span>Versand möglich</span>
-                                  </div>
+                                ) : (
+                                  <>
+                                    {item.pickup_available && (
+                                      <div className="flex items-center gap-1 text-[10px] text-gray-600">
+                                        <span>Abholung möglich</span>
+                                      </div>
+                                    )}
+                                    {item.shipping_available && (
+                                      <div className="flex items-center gap-1 text-[10px] text-gray-600">
+                                        <span>Versand möglich</span>
+                                      </div>
+                                    )}
+                                  </>
                                 )}
                               </div>
                             )}
 
                             {/* Price */}
-                            <div className="pt-3 border-t border-gray-100">
+                            <div className="pt-2 border-t border-gray-100">
                               <p className="font-semibold text-gray-900 text-xs">
                                 {item.type === "trade" && item.price
                                   ? item.price === "Offen für Vorschläge"
-                                    ? "Offen für Vorschläge"
-                                    : `Tausch gegen ${item.price}`
+                                    ? "Offen für Vorschläge" // Lowercase as requested
+                                    : `gegen ${item.price}` // Changed from "Tausch gegen" to "gegen"
                                   : formatDailyRates(item.price)}
                               </p>
                             </div>
@@ -1185,7 +1315,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                           {/* Image section for search ads (placeholder) */}
                           <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-orange-50 to-orange-100">
                             <div className="absolute inset-0 flex items-center justify-center">
-                              <Search className="w-16 h-16 text-orange-300" />
+                              <MdOutlineSavedSearch className="w-12 h-12 text-orange-300" />
                             </div>
                             <div className="absolute top-2 right-2 z-20">
                               <div className="bg-orange-500 bg-opacity-90 text-white text-[10px] px-2 py-1 rounded-full shadow-sm font-medium">
@@ -1200,35 +1330,35 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                             )}
                           </div>
 
-                          <div className="p-4">
+                          <div className="p-3">
                             <h3 className="font-handwritten font-bold text-gray-900 mb-1.5 truncate group-hover:text-gray-700 transition-colors text-xs">
-                              {item.title}
+                              Suche {item.title}
                             </h3>
 
-                            <p className="text-xs text-gray-500 mb-2">
-                              {item.type === "buy" && "Gesucht zum Kaufen"}
-                              {item.type === "rent" && "Gesucht zum Mieten"}
-                              {item.type === "trade" && "Gesucht zum Tauschen"}
+                            <p className="text-[10px] text-gray-500 mb-2">
+                              {item.type === "buy" && "Zum Kaufen"}
+                              {item.type === "rent" && "Zum Mieten"}
+                              {item.type === "trade" && "Zum Tauschen"}
                             </p>
 
-                            <div className="pt-3 border-t border-gray-100">
+                            <div className="pt-2 border-t border-gray-100">
                               {item.type === "rent" && item.rental_duration && (
-                                <p className="text-xs flex items-center gap-1.5 font-semibold text-black">
+                                <p className="text-[10px] flex items-center gap-1.5 font-semibold text-black">
                                   Gewünschte Mietdauer: {item.rental_duration}
                                 </p>
                               )}
                               {item.type === "buy" && item.max_price && (
-                                <p className="text-xs flex items-center gap-1.5 font-semibold text-black">
-                                  Vorbehaltspreis: bis {item.max_price} CHF
+                                <p className="text-[10px] flex items-center gap-1.5 font-semibold text-black">
+                                  Zahle bis {item.max_price} CHF
                                 </p>
                               )}
                               {item.type === "trade" && item.trade_game_title && (
-                                <p className="text-xs flex items-center gap-1.5 font-semibold text-black">
-                                  Tauschspiel: {item.trade_game_title}
+                                <p className="flex items-center gap-1.5 font-semibold text-black text-xs">
+                                  Biete {item.trade_game_title}
                                 </p>
                               )}
                               {!item.rental_duration && !item.max_price && !item.trade_game_title && (
-                                <p className="text-xs text-gray-400">Details auf Anfrage</p>
+                                <p className="text-[10px] text-gray-400">Details auf Anfrage</p>
                               )}
                             </div>
                           </div>
@@ -1242,11 +1372,11 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                   <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
                     <ShoppingCart className="w-12 h-12 text-gray-400" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-600 mb-4 font-handwritten">
+                  <h3 className="font-bold text-gray-600 mb-4 font-handwritten text-base">
                     {!databaseConnected ? "Marktplatz temporär nicht verfügbar" : "Keine Angebote gefunden"}
                   </h3>
-                  <p className="text-gray-500 font-body">
-                    {!databaseConnected
+                  <p className="text-gray-500 font-body text-sm">
+                    {databaseConnected
                       ? "Bitte versuche es später erneut oder melde dich an für den vollen Zugriff."
                       : "Versuche andere Suchbegriffe oder erstelle selbst ein Angebot!"}
                   </p>
@@ -1309,7 +1439,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 alt={selectedOffer?.title}
                 className="w-24 h-32 mx-auto rounded-lg shadow-lg mb-4"
               />
-              <h3 className="font-handwritten text-gray-800 mb-2 text-base">{selectedOffer?.title}</h3>
+              <h3 className="font-handwritten text-gray-800 mb-2 text-xs">{selectedOffer?.title}</h3>
 
               {selectedOffer?.type === "lend" && rentalStartDate && rentalEndDate && (
                 <div className="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
@@ -1412,6 +1542,9 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-handwritten text-base text-gray-800 mb-2">
+              {selectedOfferDetails?.type === "sell" && "Verkaufen "}
+              {selectedOfferDetails?.type === "trade" && "Biete "}
+              {selectedOfferDetails?.type === "lend" && "Vermiete "}
               {selectedOfferDetails?.title}
             </DialogTitle>
           </DialogHeader>
@@ -1455,7 +1588,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                       : selectedOfferDetails.type === "sell"
                         ? "Preis"
                         : selectedOfferDetails.type === "trade"
-                          ? "Wunschspiel"
+                          ? "Gegen"
                           : "Preis"}
                   </p>
                   <div className="text-xs font-bold text-slate-900">
@@ -1474,7 +1607,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
               {/* Game Details */}
               <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                <h2 className="font-bold mb-6 text-base">Spieldetails</h2>
+                <h2 className="font-bold mb-6 text-sm">Spieldetails</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   <div className="text-center p-4 rounded-xl bg-slate-50">
                     <p className="mb-2 font-normal text-xs text-slate-500">Verlag</p>
@@ -1524,7 +1657,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               {/* Description */}
               {selectedOfferDetails.description && (
                 <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                  <h3 className="font-semibold mb-4 text-black text-base">Beschreibung</h3>
+                  <h3 className="font-semibold mb-4 text-black text-sm">Beschreibung</h3>
                   <ExpandableDescription text={selectedOfferDetails.description} />
                 </div>
               )}
@@ -1560,10 +1693,10 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                       </span>
                     </div>
                   </div>
-                  <div className="flex-1 font-normal font-normal font-normal font-normal">
+                  <div className="flex-1 font-normal font-normal font-normal font-normal text-xs">
                     <UserLink
                       userId={selectedOfferDetails.user_id}
-                      className="text-slate-900 font-semibold text-xs block hover:text-teal-600"
+                      className="text-slate-900 text-xs block hover:text-teal-600"
                     >
                       {selectedOfferDetails.users?.username || selectedOfferDetails.owner || "Unbekannter Nutzer"}
                     </UserLink>
@@ -1588,7 +1721,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                       <div className="bg-slate-50 p-4 rounded-xl">
                         <div className="flex items-center gap-2 mb-2 text-xs">
                           <FaLocationDot className="w-4 h-4 text-slate-700" />
-                          <span className="text-slate-900 text-sm font-normal">Abholung</span>
+                          <span className="text-slate-900 font-normal text-xs">Abholung</span>
                         </div>
                         {selectedOfferDetails.pickup_address && (
                           <p className="text-slate-600 font-normal text-xs">
@@ -1602,14 +1735,14 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     )}
                     {selectedOfferDetails.pickup_available && selectedOfferDetails.shipping_available && (
                       <div className="text-center py-2">
-                        <span className="text-slate-500 font-medium">oder</span>
+                        <span className="text-slate-500 font-medium text-xs">oder</span>
                       </div>
                     )}
                     {selectedOfferDetails.shipping_available && (
                       <div className="bg-slate-50 p-4 rounded-xl">
                         <div className="flex items-center gap-2 mb-2">
                           <FaShippingFast className="w-4 h-4 text-slate-700" />
-                          <span className="text-slate-900 text-sm font-normal">Postversand</span>
+                          <span className="text-slate-900 font-normal text-xs">Postversand</span>
                         </div>
                         <p className="text-slate-600 text-xs">
                           Kosten zu deinen Lasten. Weitere Details mit dem/der Spielanbieter/-in besprechen.
@@ -1729,7 +1862,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-handwritten text-base text-gray-800 mb-2">
-              {selectedSearchAdDetails?.title}
+              Suche {selectedSearchAdDetails?.title}
             </DialogTitle>
           </DialogHeader>
 
@@ -1740,7 +1873,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 <div className="relative h-56 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl overflow-hidden border border-purple-200">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center shadow-lg">
-                      <Search className="w-16 h-16 text-purple-400" />
+                      <MdOutlineSavedSearch className="w-16 h-16 text-purple-400" />
                     </div>
                   </div>
                   <div className="absolute top-6 right-6">
@@ -1759,49 +1892,43 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 </div>
               </div>
 
-              {/* Type and Details */}
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
-                  <p className="text-slate-500 mb-2 text-sm">Gesucht zum</p>
-                  <p className="font-bold text-slate-900 text-xs">
-                    {selectedSearchAdDetails.type === "buy"
-                      ? "Kaufen"
-                      : selectedSearchAdDetails.type === "rent"
-                        ? "Mieten"
-                        : "Tauschen"}
-                  </p>
+              {/* Type and Details - Only show for search ads */}
+              {selectedSearchAdDetails && (
+                <div className="grid md:grid-cols-1 gap-6">
+                  <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
+                    <p className="mb-2 text-sm text-left flex items-center gap-2 font-semibold text-black">
+                      {selectedSearchAdDetails.type === "buy" ? (
+                        <>Preisvorstellung</>
+                      ) : selectedSearchAdDetails.type === "rent" ? (
+                        "Gewünschte Mietdauer"
+                      ) : (
+                        "Biete"
+                      )}
+                    </p>
+                    <p className="text-xs text-left font-normal text-black">
+                      {selectedSearchAdDetails.type === "buy" && selectedSearchAdDetails.max_price
+                        ? `bis CHF ${selectedSearchAdDetails.max_price}`
+                        : selectedSearchAdDetails.type === "rent" && selectedSearchAdDetails.rental_duration
+                          ? selectedSearchAdDetails.rental_duration
+                          : selectedSearchAdDetails.type === "trade" && selectedSearchAdDetails.trade_game_title
+                            ? selectedSearchAdDetails.trade_game_title
+                            : "Nicht angegeben"}
+                    </p>
+                  </div>
                 </div>
-                <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
-                  <p className="text-slate-500 mb-2 text-sm">
-                    {selectedSearchAdDetails.type === "buy"
-                      ? "Vorbehaltspreis"
-                      : selectedSearchAdDetails.type === "rent"
-                        ? "Gewünschte Mietdauer"
-                        : "Tauschspiel"}
-                  </p>
-                  <p className="font-bold text-slate-900 text-xs">
-                    {selectedSearchAdDetails.type === "buy" && selectedSearchAdDetails.max_price
-                      ? `bis CHF ${selectedSearchAdDetails.max_price}`
-                      : selectedSearchAdDetails.type === "rent" && selectedSearchAdDetails.rental_duration
-                        ? selectedSearchAdDetails.rental_duration
-                        : selectedSearchAdDetails.type === "trade" && selectedSearchAdDetails.trade_game_title
-                          ? selectedSearchAdDetails.trade_game_title
-                          : "Nicht angegeben"}
-                  </p>
-                </div>
-              </div>
+              )}
 
               {/* Description */}
               {selectedSearchAdDetails.description && (
                 <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                  <h3 className="font-semibold mb-4 text-black text-base">Beschreibung</h3>
+                  <h3 className="font-semibold mb-4 text-black text-sm">Beschreibung</h3>
                   <ExpandableDescription text={selectedSearchAdDetails.description} />
                 </div>
               )}
 
               {/* Creator */}
               <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                <h3 className="font-semibold mb-4 text-black text-xs">Gesucht von</h3>
+                <h3 className="font-semibold mb-4 text-black text-sm">Gesucht von</h3>
                 <div className="flex items-center space-x-4">
                   <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 relative">
                     <img
@@ -1827,7 +1954,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                       </span>
                     </div>
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 text-black">
                     <UserLink
                       userId={selectedSearchAdDetails.user_id}
                       className="text-slate-900 text-xs block hover:text-teal-600"
@@ -1898,7 +2025,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               window.location.reload()
             }}
             preselectedGame={preSelectedGame}
-            preselectedOfferType={preSelectedOfferType}
+            preSelectedOfferType={preSelectedOfferType}
             /* Pass initialStep=2 to skip step 1 when coming from library */
             initialStep={preSelectedGame ? 2 : 1}
           />

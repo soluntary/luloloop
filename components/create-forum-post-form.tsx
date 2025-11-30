@@ -94,13 +94,13 @@ export default function CreateForumPostForm({ onSuccess, onCancel }: CreateForum
           {/* Title Field */}
           <div className="space-y-2">
             <Label htmlFor="title" className="text-sm font-medium text-gray-700">
-              Titel *
+              Titel der Diskussion *
             </Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) => handleInputChange("title", e.target.value)}
-              placeholder="Gib deiner Diskussion einen aussagekräftigen Titel..."
+              placeholder="Gib deiner Diskussion einen aussagekräftigen Titel (z.B. Empfehlenswerte kooperative)"
               className={`h-11 border-gray-300 focus:border-gray-900 ${errors.title ? "border-red-500" : ""}`}
               maxLength={200}
             />
@@ -116,7 +116,7 @@ export default function CreateForumPostForm({ onSuccess, onCancel }: CreateForum
           {/* Content Field */}
           <div className="space-y-2">
             <Label htmlFor="content" className="text-sm font-medium text-gray-700">
-              Inhalt *
+              Beschreibung / Startbeitrag *
             </Label>
             <RichTextEditor
               value={formData.content}

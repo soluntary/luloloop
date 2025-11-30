@@ -7,8 +7,27 @@ import type React from "react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { FaBook, FaImage, FaPlus, FaSearch, FaUpload, FaRedo, FaDice, FaHandHoldingUsd, FaExpand, FaCamera, FaInfoCircle, FaDatabase, FaEdit, FaTrash, FaChevronDown, FaTag, FaUsers, FaEyeSlash, FaCheck, FaExchangeAlt } from "react-icons/fa"
+import {
+  FaBook,
+  FaImage,
+  FaPlus,
+  FaUpload,
+  FaDice,
+  FaCamera,
+  FaInfoCircle,
+  FaDatabase,
+  FaEdit,
+  FaTrash,
+  FaChevronDown,
+  FaTag,
+  FaUsers,
+  FaEyeSlash,
+  FaCheck,
+  FaTags,
+} from "react-icons/fa"
+import { MdOutlineManageSearch } from "react-icons/md"
 import { GiReceiveMoney, GiBackForth } from "react-icons/gi"
+import { TbExchange } from "react-icons/tb"
 import { GrSelect } from "react-icons/gr"
 import { Input } from "@/components/ui/input"
 import { Navigation } from "@/components/navigation"
@@ -22,6 +41,139 @@ import { useAuth } from "@/contexts/auth-context"
 import { GameSearchDialog } from "@/components/game-search-dialog"
 import { CreateMarketplaceOfferForm } from "@/components/create-marketplace-offer-form"
 import { useToast } from "@/hooks/use-toast"
+import { format } from "date-fns"
+import { de } from "date-fns/locale"
+import { Calendar } from "@/components/ui/calendar"
+import { CalendarIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
+
+function GameTrackingDialog({
+  isOpen,
+  onClose,
+  game,
+  onUpdate,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  game: any
+  onUpdate: (gameId: string, trackingInfo: any) => void
+}) {
+  const [status, setStatus] = useState<"available" | "rented" | "swapped" | "lent">(
+    game?.tracking_info?.status || "available",
+  )
+  const [rentedTo, setRentedTo] = useState(game?.tracking_info?.rented_to || "")
+  const [rentedUntil, setRentedUntil] = useState<Date | undefined>(
+    game?.tracking_info?.rented_until ? new Date(game.tracking_info.rented_until) : undefined,
+  )
+  const [swappedWith, setSwappedWith] = useState(game?.tracking_info?.swapped_with || "")
+  const [notes, setNotes] = useState(game?.tracking_info?.notes || "")
+
+  useEffect(() => {
+    if (isOpen && game) {
+      setStatus(game.tracking_info?.status || "available")
+      setRentedTo(game.tracking_info?.rented_to || "")
+      setRentedUntil(game.tracking_info?.rented_until ? new Date(game.tracking_info.rented_until) : undefined)
+      setSwappedWith(game.tracking_info?.swapped_with || "")
+      setNotes(game.tracking_info?.notes || "")
+    }
+  }, [isOpen, game])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onUpdate(game.id, {
+      status,
+      rented_to: rentedTo,
+      rented_until: rentedUntil ? rentedUntil.toISOString() : null,
+      swapped_with: swappedWith,
+      notes,
+    })
+    onClose()
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle className="font-handwritten text-2xl text-teal-600">Spiel-Status aktualisieren</DialogTitle>
+          <DialogDescription>Hier kannst du festhalten, wo sich dein Spiel gerade befindet.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Aktueller Status</Label>
+            <Select value={status} onValueChange={(value: any) => setStatus(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status wählen" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="available">Im Regal (Verfügbar)</SelectItem>
+                <SelectItem value="rented">Vermietet / Verliehen</SelectItem>
+                <SelectItem value="swapped">Getauscht</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {status === "rented" && (
+            <>
+              <div className="space-y-2">
+                <Label>An wen vermieten / verleihen?</Label>
+                <Input
+                  placeholder="Name des Ausleihers"
+                  value={rentedTo}
+                  onChange={(e) => setRentedTo(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Bis wann?</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !rentedUntil && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {rentedUntil ? format(rentedUntil, "PPP", { locale: de }) : <span>Datum wählen</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar mode="single" selected={rentedUntil} onSelect={setRentedUntil} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </>
+          )}
+
+          {status === "swapped" && (
+            <div className="space-y-2">
+              <Label>Mit wem getauscht?</Label>
+              <Input
+                placeholder="Name des Tauschpartners"
+                value={swappedWith}
+                onChange={(e) => setSwappedWith(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Notizen</Label>
+            <Input placeholder="Zusätzliche Infos..." value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Abbrechen
+            </Button>
+            <Button type="submit" className="bg-teal-500 hover:bg-teal-600 text-white">
+              Speichern
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 const GAME_TYPE_OPTIONS = [
   "Aktions- und Reaktionsspiel",
@@ -79,15 +231,47 @@ const GAME_STYLE_OPTIONS = [
   "Team vs. Team",
 ]
 
+const PLAYER_COUNT_MIN_OPTIONS = [
+  { value: "1", label: "Ab 1 Spieler" },
+  { value: "2", label: "Ab 2 Spieler" },
+  { value: "3", label: "Ab 3 Spieler" },
+  { value: "4", label: "Ab 4 Spieler" },
+  { value: "5", label: "Ab 5 Spieler" },
+  { value: "6", label: "Ab 6 Spieler" },
+  { value: "7", label: "Ab 7 Spieler" },
+  { value: "8", label: "Ab 8 Spieler" },
+  { value: "10", label: "Ab 10+ Spieler" },
+]
+
+const PLAYER_COUNT_MAX_OPTIONS = [
+  { value: "2", label: "Bis 2 Spieler" },
+  { value: "3", label: "Bis 3 Spieler" },
+  { value: "4", label: "Bis 4 Spieler" },
+  { value: "5", label: "Bis 5 Spieler" },
+  { value: "6", label: "Bis 6 Spieler" },
+  { value: "7", label: "Bis 7 Spieler" },
+  { value: "8", label: "Bis 8 Spieler" },
+  { value: "9", label: "Bis 9 Spieler" },
+]
+
 const AGE_OPTIONS = [
-  "bis 4 Jahren",
-  "ab 4 bis 5 Jahren",
-  "ab 6 bis 7 Jahren",
-  "ab 8 bis 9 Jahren",
-  "ab 10 bis 11 Jahren",
-  "ab 12 bis 13 Jahren",
-  "ab 14 bis 17 Jahren",
-  "ab 18 Jahren",
+  "Ab 2 Jahren",
+  "Ab 3 Jahren",
+  "Ab 4 Jahren",
+  "Ab 5 Jahren",
+  "Ab 6 Jahren",
+  "Ab 7 Jahren",
+  "Ab 8 Jahren",
+  "Ab 9 Jahren",
+  "Ab 10 Jahren",
+  "Ab 11 Jahren",
+  "Ab 12 Jahren",
+  "Ab 13 Jahren",
+  "Ab 14 Jahren",
+  "Ab 15 Jahren",
+  "Ab 16 Jahren",
+  "Ab 17 Jahren",
+  "Ab 18 Jahren",
 ]
 
 const durationOptionsInit = [
@@ -115,6 +299,36 @@ const playerCountOptionsInit = [
   "4 bis 6 Personen",
 ]
 
+// Placeholder for CATEGORY_OPTIONS and TYPE_OPTIONS as they were not provided in the existing code
+const CATEGORY_OPTIONS = [
+  "Aktions- und Reaktionsspiel",
+  "Brettspiel",
+  "Erweiterung",
+  "Escape-Spiel",
+  "Geschicklichkeitsspiel",
+  "Glücksspiel",
+  "Kartenspiel",
+  "Krimi- und Detektivspiel",
+  "Legespiel",
+  "Merkspiel",
+  "Outdoor-Spiel",
+  "Partyspiel",
+  "Wissens- und Quizspiel",
+  "Rollenspiel",
+  "Trinkspiel",
+  "Würfelspiel",
+]
+
+const TYPE_OPTIONS = [
+  "Kooperativ",
+  "Kompetitiv",
+  "Semi-Kooperativ",
+  "Strategisch",
+  "Solospiel",
+  "One vs. All",
+  "Team vs. Team",
+]
+
 function LibraryLoading() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
@@ -123,7 +337,7 @@ function LibraryLoading() {
           <FaBook className="w-10 h-10 text-white" />
         </div>
         <h2 className="text-3xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-          Bibliothek wird geladen...
+          Spieleregal wird geladen...
         </h2>
         <p className="text-xl text-gray-600 transform rotate-1 font-handwritten">
           Deine Spiele werden aus dem Regal geholt!
@@ -155,7 +369,8 @@ function LibraryContent() {
   const [searchTerm, setSearchTerm] = useState("")
 
   const [filters, setFilters] = useState({
-    playerCount: "",
+    playerCountMin: "",
+    playerCountMax: "",
     duration: "",
     age: "",
     language: "",
@@ -195,6 +410,8 @@ function LibraryContent() {
   const [publisherOptions, setPublisherOptions] = useState(publisherOptionsInit)
   const [playerCountOptions, setPlayerCountOptions] = useState(playerCountOptionsInit)
   const [durationOptions, setDurationOptions] = useState<string[]>(durationOptionsInit)
+  const [gameTypeOptions, setGameTypeOptions] = useState(GAME_TYPE_OPTIONS) // Added state for game types
+  const [gameStyleOptions, setGameStyleOptions] = useState(GAME_STYLE_OPTIONS) // Added state for game styles
 
   // Spiel bearbeiten Dialog States
   const [isEditGameDialogOpen, setIsEditGameDialogOpen] = useState(false)
@@ -250,6 +467,8 @@ function LibraryContent() {
   const [isToggling, setIsToggling] = useState(false)
 
   const [localToggleState, setLocalToggleState] = useState<Record<string, boolean>>({})
+
+  const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState(false)
 
   useEffect(() => {
     if (selectedGame) {
@@ -312,6 +531,32 @@ function LibraryContent() {
     }
   }
 
+  const handleUpdateTracking = async (gameId: string, trackingInfo: any) => {
+    try {
+      await updateGame(gameId, { tracking_info: trackingInfo })
+
+      // Update local state immediately for better UX
+      if (selectedGame && selectedGame.id === gameId) {
+        setSelectedGame({
+          ...selectedGame,
+          tracking_info: trackingInfo,
+        })
+      }
+
+      toast({
+        title: "Status aktualisiert",
+        description: "Der Status deines Spiels wurde erfolgreich gespeichert.",
+      })
+    } catch (error) {
+      console.error("Error updating tracking info:", error)
+      toast({
+        title: "Fehler",
+        description: "Status konnte nicht gespeichert werden.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const filteredGames = games
     .filter((game) => {
       // Suchfilter
@@ -320,13 +565,25 @@ function LibraryContent() {
         game.publisher?.toLowerCase().includes(searchTerm.toLowerCase())
 
       // Spieleranzahl Filter
-      const matchesPlayerCount =
-        !filters.playerCount ||
-        game.players?.includes(filters.playerCount) ||
-        (game.min_players &&
-          game.max_players &&
-          Number.parseInt(filters.playerCount) >= game.min_players &&
-          Number.parseInt(filters.playerCount) <= game.max_players)
+      const matchesPlayerCount = (() => {
+        const minFilter = filters.playerCountMin ? Number.parseInt(filters.playerCountMin) : null
+        const maxFilter = filters.playerCountMax ? Number.parseInt(filters.playerCountMax) : null
+
+        if (!minFilter && !maxFilter) return true
+
+        const gameMinPlayers = game.min_players || 1
+        const gameMaxPlayers = game.max_players || 99
+
+        if (minFilter && maxFilter) {
+          // Game range must overlap with filter range
+          return gameMaxPlayers >= minFilter && gameMinPlayers <= maxFilter
+        } else if (minFilter) {
+          return gameMaxPlayers >= minFilter
+        } else if (maxFilter) {
+          return gameMinPlayers <= maxFilter
+        }
+        return true
+      })()
 
       // Spieldauer Filter
       const matchesDuration = !filters.duration || game.duration === filters.duration
@@ -840,161 +1097,130 @@ function LibraryContent() {
   }
 
   const handleGameSelect = (game: any) => {
-    console.log("[v0] handleGameSelect called with game:", game.name)
-    console.log("[v0] Current publisherOptions:", publisherOptions)
-    console.log("[v0] Current playerCountOptions:", playerCountOptions)
-    console.log("[v0] Current durationOptions:", durationOptions)
+    console.log("[v0] handleGameSelect called with game:", game)
 
-    // Map BoardGameGeek data to form fields
     setNewGameTitle(game.name)
 
-    if (game.publishers.length > 0) {
-      const publisher = game.publishers[0]
-      console.log("[v0] Processing publisher:", publisher)
-      console.log("[v0] Publisher in options?", publisherOptions.includes(publisher))
-
-      if (publisherOptions.includes(publisher)) {
-        setNewGamePublisher(publisher)
-        console.log("[v0] Set existing publisher:", publisher)
-      } else {
-        // Add the new publisher to the options
-        console.log("[v0] Adding new publisher to options:", publisher)
-        setPublisherOptions((prev) => {
-          const newOptions = [...prev, publisher]
-          console.log("[v0] Updated publisherOptions:", newOptions)
-          return newOptions
-        })
-        setNewGamePublisher(publisher)
-        setNewGameCustomPublisher("")
-        console.log("[v0] Set new publisher:", publisher)
-      }
-    }
-
-    // Set image
     if (game.image) {
       setNewGameImage(game.image)
     }
 
+    if (game.publishers && game.publishers.length > 0) {
+      const publisher = game.publishers[0]
+      if (publisherOptions.includes(publisher)) {
+        setNewGamePublisher(publisher)
+      } else {
+        setPublisherOptions((prev) => [...prev, publisher])
+        setNewGamePublisher(publisher)
+      }
+    }
+
     if (game.minPlayers && game.maxPlayers) {
       const playerCount = `${game.minPlayers} bis ${game.maxPlayers} Personen`
-      console.log("[v0] Processing player count:", playerCount)
-
       const matchingOption = playerCountOptions.find(
         (option) => option.includes(game.minPlayers.toString()) && option.includes(game.maxPlayers.toString()),
       )
-      console.log("[v0] Matching player count option:", matchingOption)
-
       if (matchingOption) {
         setNewGamePlayerCount(matchingOption)
-        console.log("[v0] Set existing player count:", matchingOption)
       } else {
-        // Add the new player count to the options
-        console.log("[v0] Adding new player count to options:", playerCount)
-        setPlayerCountOptions((prev) => {
-          const newOptions = [...prev, playerCount]
-          console.log("[v0] Updated playerCountOptions:", newOptions)
-          return newOptions
-        })
+        setPlayerCountOptions((prev) => [...prev, playerCount])
         setNewGamePlayerCount(playerCount)
-        console.log("[v0] Set new player count:", playerCount)
       }
     }
 
-    // Map playing time
-    if (game.playingTime) {
-      let durationOption = ""
-      if (game.playingTime < 10) durationOption = "< 10 Min."
-      else if (game.playingTime <= 20) durationOption = "10-20 Min."
-      else if (game.playingTime <= 30) durationOption = "20-30 Min."
-      else if (game.playingTime <= 45) durationOption = "30-45 Min."
-      else if (game.playingTime <= 60) durationOption = "45-60 Min."
-      else if (game.playingTime <= 90) durationOption = "60-90 Min."
-      else if (game.playingTime <= 120) durationOption = "90-120 Min."
-      else {
-        // For durations > 120 minutes, create a custom option
-        durationOption = `${game.playingTime} Min.`
+    if (game.minPlayTime || game.maxPlayTime || game.playingTime) {
+      const minTime = game.minPlayTime || game.playingTime
+      const maxTime = game.maxPlayTime || game.playingTime
+      let duration = ""
+
+      if (minTime && maxTime && minTime !== maxTime) {
+        duration = `${minTime} - ${maxTime} Min.`
+      } else if (minTime || maxTime) {
+        duration = `${minTime || maxTime} Min.`
       }
 
-      console.log("[v0] Processing duration:", durationOption)
-      console.log("[v0] Duration in options?", durationOptions.includes(durationOption))
-
-      if (durationOptions.includes(durationOption)) {
-        setNewGameDuration(durationOption)
-        console.log("[v0] Set existing duration:", durationOption)
-      } else {
-        // Add the new duration to the options
-        console.log("[v0] Adding new duration to options:", durationOption)
-        setDurationOptions((prev) => {
-          const newOptions = [...prev, durationOption]
-          console.log("[v0] Updated durationOptions:", newOptions)
-          return newOptions
-        })
-        setNewGameDuration(durationOption)
-        console.log("[v0] Set new duration:", durationOption)
+      if (duration) {
+        const matchingOption = durationOptions.find(
+          (option) => option.includes(minTime?.toString() || "") || option.includes(maxTime?.toString() || ""),
+        )
+        if (matchingOption) {
+          setNewGameDuration(matchingOption)
+        } else {
+          setDurationOptions((prev) => [...prev, duration])
+          setNewGameDuration(duration)
+        }
       }
     }
 
-    // Map age
     if (game.minAge) {
-      let ageOption = ""
-      if (game.minAge <= 4) ageOption = "bis 4 Jahren"
-      else if (game.minAge <= 5) ageOption = "ab 4 bis 5 Jahren"
-      else if (game.minAge <= 7) ageOption = "ab 6 bis 7 Jahren"
-      else if (game.minAge <= 9) ageOption = "ab 8 bis 9 Jahren"
-      else if (game.minAge <= 11) ageOption = "ab 10 bis 11 Jahren"
-      else if (game.minAge <= 13) ageOption = "ab 12 bis 13 Jahren"
-      else if (game.minAge <= 17) ageOption = "ab 14 bis 17 Jahren"
-      else ageOption = "ab 18 Jahren"
-
-      setNewGameAge(ageOption)
+      const ageValue = `Ab ${game.minAge} Jahren`
+      const matchingAge = AGE_OPTIONS.find((option) => option === ageValue)
+      if (matchingAge) {
+        setNewGameAge(matchingAge)
+      } else {
+        // Find closest higher age option
+        const closestAge = AGE_OPTIONS.find((option) => {
+          const optionAge = Number.parseInt(option.replace(/\D/g, ""))
+          return optionAge >= game.minAge
+        })
+        if (closestAge) {
+          setNewGameAge(closestAge)
+        }
+      }
     }
 
-    // Map categories to game types
-    if (game.categories.length > 0) {
-      const mappedTypes: string[] = []
+    if (game.categories && game.categories.length > 0) {
+      const matchingCategories: string[] = []
+      const newCategories: string[] = []
+
       game.categories.forEach((category: string) => {
-        // Simple mapping of BGG categories to our types
-        if (category.includes("Card")) mappedTypes.push("Kartenspiel")
-        else if (category.includes("Dice")) mappedTypes.push("Würfelspiel")
-        else if (category.includes("Party")) mappedTypes.push("Partyspiel")
-        else if (category.includes("Strategy")) mappedTypes.push("Brettspiel")
-        else if (category.includes("Family")) mappedTypes.push("Brettspiel")
-        // Add more mappings as needed
+        if (GAME_TYPE_OPTIONS.includes(category)) {
+          matchingCategories.push(category)
+        } else {
+          newCategories.push(category)
+        }
       })
 
-      if (mappedTypes.length === 0) {
-        mappedTypes.push("Brettspiel") // Default
+      // Set matching categories
+      if (matchingCategories.length > 0) {
+        setNewGameType(matchingCategories)
       }
 
-      setNewGameType([...new Set(mappedTypes)]) // Remove duplicates
+      // Add new categories to options and select them
+      if (newCategories.length > 0) {
+        const limitedNewCategories = newCategories.slice(0, 3) // Limit to 3 new categories
+        setGameTypeOptions((prev) => [...new Set([...prev, ...limitedNewCategories])])
+        setNewGameType((prev) => [...new Set([...prev, ...limitedNewCategories])])
+      }
     }
 
-    // Map mechanics to game styles
-    if (game.mechanics.length > 0) {
-      const mappedStyles: string[] = []
+    if (game.mechanics && game.mechanics.length > 0) {
+      const matchingStyles: string[] = []
+      const newStyles: string[] = []
+
       game.mechanics.forEach((mechanic: string) => {
-        if (mechanic.includes("Cooperative")) mappedStyles.push("Kooperativ")
-        else if (mechanic.includes("Solo")) mappedStyles.push("Solospiel")
-        else if (mechanic.includes("Team")) mappedStyles.push("Team vs. Team")
-        // Add more mappings as needed
+        if (GAME_STYLE_OPTIONS.includes(mechanic)) {
+          matchingStyles.push(mechanic)
+        } else {
+          newStyles.push(mechanic)
+        }
       })
 
-      if (mappedStyles.length === 0) {
-        mappedStyles.push("Kompetitiv") // Default
+      // Set matching styles
+      if (matchingStyles.length > 0) {
+        setNewGameStyle(matchingStyles)
       }
 
-      setNewGameStyle([...new Set(mappedStyles)]) // Remove duplicates
+      // Add new styles to options and select them
+      if (newStyles.length > 0) {
+        const limitedNewStyles = newStyles.slice(0, 3) // Limit to 3 new styles
+        setGameStyleOptions((prev) => [...new Set([...prev, ...limitedNewStyles])])
+        setNewGameStyle((prev) => [...new Set([...prev, ...limitedNewStyles])])
+      }
     }
 
-    // Set default language to German
-    setNewGameLanguage("Deutsch")
-
-    console.log("[v0] Clearing all field errors")
-    setFieldErrors({})
-
-    // Close the dialog
-    setShowGameSearch(false)
-    console.log("[v0] Game selection completed, dialog closed")
+    // Close the search dialog
+    setIsGameSearchDialogOpen(false)
   }
 
   return (
@@ -1033,12 +1259,7 @@ function LibraryContent() {
         {/* Page Header */}
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten flex items-center justify-center gap-4">
-            Meine Ludothek
-            {loading && (
-              <div className="w-8 h-8 bg-teal-400 rounded-full flex items-center justify-center animate-bounce">
-                <FaBook className="w-4 h-4 text-white" />
-              </div>
-            )}
+            Mein Spieleregal
           </h1>
           <p className="text-gray-600 transform rotate-1 font-body text-base">Verwalte deine Spielesammlung</p>
         </div>
@@ -1064,7 +1285,7 @@ function LibraryContent() {
                     inputMode === "auto" ? "bg-green-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  <FaSearch className="w-4 h-4 inline mr-2" />
+                  <MdOutlineManageSearch className="w-4 h-4 inline mr-2" />
                   Automatisch suchen
                 </button>
                 <button
@@ -1082,7 +1303,7 @@ function LibraryContent() {
               {inputMode === "auto" && (
                 <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
                   <h3 className="font-handwritten text-green-700 mb-3 flex items-center gap-2 text-sm">
-                    <FaSearch className="w-5 h-5" />
+                    <MdOutlineManageSearch className="w-5 h-5" />
                     Spiel automatisch suchen
                   </h3>
                   <p className="text-green-600 font-body mb-3 text-xs">
@@ -1093,7 +1314,7 @@ function LibraryContent() {
                     onClick={() => setIsGameSearchDialogOpen(true)}
                     className="bg-green-400 hover:bg-green-500 text-white font-handwritten"
                   >
-                    <FaSearch className="w-4 h-4 mr-2" />
+                    <MdOutlineManageSearch className="w-4 h-4 mr-2" />
                     Spiel suchen
                   </Button>
                 </div>
@@ -1359,7 +1580,7 @@ function LibraryContent() {
                           <PopoverContent className="w-64 p-0">
                             <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
                               <h4 className="font-medium text-xs font-body text-purple-700">Kategorie auswählen:</h4>
-                              {GAME_TYPE_OPTIONS.map((type) => (
+                              {gameTypeOptions.map((type) => (
                                 <div key={type} className="flex items-center space-x-2">
                                   <Checkbox
                                     id={`new-type-${type}`}
@@ -1443,7 +1664,7 @@ function LibraryContent() {
                           <PopoverContent className="w-64 p-0">
                             <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
                               <h4 className="font-medium text-xs font-body text-purple-700">Typus auswählen:</h4>
-                              {GAME_STYLE_OPTIONS.map((style) => (
+                              {gameStyleOptions.map((style) => (
                                 <div key={style} className="flex items-center space-x-2">
                                   <Checkbox
                                     id={`new-style-${style}`}
@@ -1535,35 +1756,34 @@ function LibraryContent() {
 
         {/* Search, Sort and Filter */}
         <div className="space-y-4 mb-8">
-          <div className="bg-white/50 rounded-lg p-4 border border-teal-200">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
-              <div className="col-span-full mb-2">
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Spiele durchsuchen..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="border-2 border-teal-200 focus:border-teal-400 text-xs md:text-base"
-                      disabled={!databaseConnected}
-                    />
-                  </div>
-                  <Button
-                    onClick={() => setIsAddGameDialogOpen(true)}
-                    className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten whitespace-nowrap"
-                    disabled={!databaseConnected}
-                  >
-                    <FaPlus className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">Spiel hinzufügen</span>
-                    <span className="sm:hidden">Hinzufügen</span>
-                  </Button>
-                </div>
+          <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100 shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <div className="flex-1 relative">
+                <MdOutlineManageSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Spiele durchsuchen..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="border border-gray-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 text-xs h-9 pl-9 bg-white/80"
+                  disabled={!databaseConnected}
+                />
               </div>
+              <Button
+                onClick={() => setIsAddGameDialogOpen(true)}
+                className="bg-teal-500 hover:bg-teal-600 text-white whitespace-nowrap h-9 text-xs px-4"
+                disabled={!databaseConnected}
+              >
+                <FaPlus className="w-3 h-3 mr-2" />
+                <span className="hidden sm:inline">Spiel hinzufügen</span>
+                <span className="sm:hidden">Hinzufügen</span>
+              </Button>
+            </div>
 
-              <div className="col-span-full sm:col-span-1 lg:col-auto">
-                <Label className="text-xs text-gray-600 mb-1 block">Sortieren nach</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3 items-end">
+              <div>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren nach</Label>
                 <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1585,22 +1805,44 @@ function LibraryContent() {
 
               {/* Spieleranzahl Filter */}
               <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Spieleranzahl</Label>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Spieleranzahl (ab)</Label>
                 <Select
-                  value={filters.playerCount}
+                  value={filters.playerCountMin}
                   onValueChange={(value) =>
-                    setFilters((prev) => ({ ...prev, playerCount: value === "all" ? "" : value }))
+                    setFilters((prev) => ({ ...prev, playerCountMin: value === "all" ? "" : value }))
                   }
                   disabled={!databaseConnected}
                 >
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
                     <SelectValue placeholder="Alle" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Alle</SelectItem>
-                    {playerCountOptions.map((option) => (
-                      <SelectItem key={option} value={option} className="text-xs">
-                        {option}
+                    {PLAYER_COUNT_MIN_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="text-xs">
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Spieleranzahl (bis)</Label>
+                <Select
+                  value={filters.playerCountMax}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({ ...prev, playerCountMax: value === "all" ? "" : value }))
+                  }
+                  disabled={!databaseConnected}
+                >
+                  <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    {PLAYER_COUNT_MAX_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="text-xs">
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1609,13 +1851,13 @@ function LibraryContent() {
 
               {/* Spieldauer Filter */}
               <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Spieldauer</Label>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Spieldauer</Label>
                 <Select
                   value={filters.duration}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, duration: value === "all" ? "" : value }))}
                   disabled={!databaseConnected}
                 >
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
                     <SelectValue placeholder="Alle" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1631,13 +1873,13 @@ function LibraryContent() {
 
               {/* Altersempfehlung Filter */}
               <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Altersempfehlung</Label>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Altersempfehlung</Label>
                 <Select
                   value={filters.age}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, age: value === "all" ? "" : value }))}
                   disabled={!databaseConnected}
                 >
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
                     <SelectValue placeholder="Alle" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1653,13 +1895,13 @@ function LibraryContent() {
 
               {/* Sprache Filter */}
               <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Sprache</Label>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sprache</Label>
                 <Select
                   value={filters.language}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, language: value === "all" ? "" : value }))}
                   disabled={!databaseConnected}
                 >
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
                     <SelectValue placeholder="Alle" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1675,18 +1917,18 @@ function LibraryContent() {
 
               {/* Kategorie Filter */}
               <div>
-                <Label className="text-xs text-gray-600 mb-1 block">Kategorie</Label>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Kategorie</Label>
                 <Select
                   value={filters.category}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, category: value === "all" ? "" : value }))}
                   disabled={!databaseConnected}
                 >
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
                     <SelectValue placeholder="Alle" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Alle</SelectItem>
-                    {GAME_TYPE_OPTIONS.map((option) => (
+                    {CATEGORY_OPTIONS.map((option) => (
                       <SelectItem key={option} value={option} className="text-xs">
                         {option}
                       </SelectItem>
@@ -1695,14 +1937,38 @@ function LibraryContent() {
                 </Select>
               </div>
 
-              <div className="flex items-end px-5">
+              {/* Typ Filter */}
+              <div>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Typ</Label>
+                <Select
+                  value={filters.type}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, type: value === "all" ? "" : value }))}
+                  disabled={!databaseConnected}
+                >
+                  <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
+                    <SelectValue placeholder="Alle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle</SelectItem>
+                    {TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option} className="text-xs">
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium invisible">Reset</Label>
                 <Button
                   variant="outline"
                   onClick={() => {
                     setSearchTerm("")
                     setSortBy("title-asc")
                     setFilters({
-                      playerCount: "",
+                      playerCountMin: "",
+                      playerCountMax: "",
                       duration: "",
                       age: "",
                       language: "",
@@ -1710,7 +1976,7 @@ function LibraryContent() {
                       type: "",
                     })
                   }}
-                  className="h-8 text-xs border-2 border-gray-400 text-gray-600 hover:bg-gray-400 hover:text-white font-handwritten"
+                  className="h-9 text-xs border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 whitespace-nowrap w-full"
                   disabled={!databaseConnected}
                 >
                   Filter zurücksetzen
@@ -1724,7 +1990,7 @@ function LibraryContent() {
           {/* Library Shelf */}
           <div className="lg:col-span-2">
             <div className="bg-gradient-to-b from-amber-100 to-amber-200 rounded-lg p-3 md:p-6 shadow-lg border-4 border-amber-300">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 ml-1.5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 ml-0">
                 <div className="flex flex-wrap items-center gap-2 md:gap-4">
                   <Button
                     onClick={() => {
@@ -1794,7 +2060,7 @@ function LibraryContent() {
                               <div className="text-center">
                                 <FaPlus className="w-6 h-6 md:w-8 md:h-8 text-teal-600 mx-auto mb-1" />
                                 <p className="text-xs text-teal-700 font-bold font-handwritten px-1">
-                                  <span className="hidden sm:inline text-xs">Spiel hinzufügen</span>
+                                  <span className="hidden sm:inline text-xs font-normal">Spiel hinzufügen</span>
                                   <span className="sm:hidden">Hinzufügen</span>
                                 </p>
                               </div>
@@ -1847,7 +2113,7 @@ function LibraryContent() {
                                   className="w-full h-full object-cover"
                                 />
                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-1">
-                                  <p className="text-white text-xs font-bold text-center leading-tight font-handwritten truncate">
+                                  <p className="text-white text-xs text-center leading-tight font-handwritten font-normal">
                                     {game.title}
                                   </p>
                                 </div>
@@ -1871,7 +2137,7 @@ function LibraryContent() {
                             {filteredGames.slice(8 + shelfIndex * 9, 8 + shelfIndex * 9 + 9).map((game) => (
                               <div
                                 key={game.id}
-                                className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300 relative mx-0.5 px-0"
+                                className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300 mx-0.5 px-0"
                                 onClick={() => (isSelectionMode ? toggleGameSelection(game.id) : setSelectedGame(game))}
                               >
                                 {isSelectionMode && (
@@ -1891,7 +2157,7 @@ function LibraryContent() {
                                 {!isSelectionMode && (
                                   <div className="absolute top-1 left-1 z-10">
                                     <div
-                                      className={`w-4 h-4 rounded-full border border-white shadow-sm ${
+                                      className={`w-4 h-4 rounded-full border border-white shadow-sm mx-2 my-2.5 ${
                                         game.available?.includes("available") ? "bg-green-500" : "bg-red-500"
                                       }`}
                                       title={game.available?.includes("available") ? "Verfügbar" : "Nicht verfügbar"}
@@ -1926,7 +2192,7 @@ function LibraryContent() {
                     {filteredGames.length === 0 && (
                       <div className="relative">
                         <div className="absolute bottom-3 left-0 right-0 h-4 bg-gradient-to-b from-amber-600 to-amber-700 rounded-lg shadow-md"></div>
-                        <div className="flex gap-2 pb-4">
+                        <div className="flex gap-2 pb-7 pt-2.5">
                           <div
                             className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300"
                             onClick={() => setIsAddGameDialogOpen(true)}
@@ -1934,7 +2200,7 @@ function LibraryContent() {
                             <div className="w-24 h-32 bg-gradient-to-br from-teal-100 to-teal-200 rounded-t-lg shadow-lg border-2 border-dashed border-teal-400 overflow-hidden relative flex items-center justify-center">
                               <div className="text-center">
                                 <FaPlus className="w-8 h-8 text-teal-600 mx-auto mb-1" />
-                                <p className="text-xs text-teal-700 font-bold font-handwritten">Spiel hinzufügen</p>
+                                <p className="text-xs text-teal-700 font-handwritten font-normal">Spiel hinzufügen</p>
                               </div>
                             </div>
                             <div className="w-24 h-2 bg-gradient-to-b from-gray-300 to-gray-400 rounded-b-sm"></div>
@@ -2030,13 +2296,41 @@ function LibraryContent() {
                         </p>
                       </div>
                     </div>
+
+                    {selectedGame.tracking_info && selectedGame.tracking_info.status !== "available" && (
+                      <div className="mb-3 bg-amber-50 border border-amber-200 rounded-md p-2 text-xs text-amber-800">
+                        {selectedGame.tracking_info.status === "rented" && (
+                          <>
+                            <p className="font-semibold">Vermietet an:</p>
+                            <p>{selectedGame.tracking_info.rented_to}</p>
+                            {selectedGame.tracking_info.rented_until && (
+                              <p className="text-[10px] mt-1">
+                                bis {format(new Date(selectedGame.tracking_info.rented_until), "P", { locale: de })}
+                              </p>
+                            )}
+                          </>
+                        )}
+                        {selectedGame.tracking_info.status === "swapped" && (
+                          <>
+                            <p className="font-semibold">Getauscht mit:</p>
+                            <p>{selectedGame.tracking_info.swapped_with}</p>
+                          </>
+                        )}
+                        {selectedGame.tracking_info.notes && (
+                          <p className="italic mt-1 text-[10px] border-t border-amber-200 pt-1">
+                            "{selectedGame.tracking_info.notes}"
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <h3 className="text-sm font-bold text-gray-800 mb-2 font-handwritten md:text-xs">
                       {selectedGame.title}
                     </h3>
                     <p className="text-xs text-gray-600 font-body md:text-xs">{selectedGame.publisher}</p>
                   </div>
 
-                  <div className="space-y-2 md:space-y-3 mb-6 text-xs">
+                  <div className="space-y-2 mb-6 text-xs">
                     <div className="flex justify-between text-xs md:text-sm">
                       <span className="font-medium font-body text-xs">Spieleranzahl:</span>
                       <span className="font-body text-xs">{selectedGame.players}</span>
@@ -2047,7 +2341,7 @@ function LibraryContent() {
                     </div>
                     <div className="flex justify-between text-xs md:text-sm">
                       <span className="flex justify-between text-xs md:text-xs">Altersempfehlung:</span>
-                      <span className="font-body text-xs">{selectedGame.age}</span>
+                      <span className="font-body text-xs">{selectedGame.age || "Keine Angabe"}</span>
                     </div>
                     <div className="flex justify-between text-xs md:text-sm">
                       <span className="font-medium font-body text-xs">Sprache:</span>
@@ -2071,51 +2365,55 @@ function LibraryContent() {
                     <div className="flex gap-2">
                       <Button
                         onClick={() => handleEditGame(selectedGame)}
-                        className="flex-1 bg-blue-400 hover:bg-blue-500 text-white font-handwritten"
+                        className="flex-1 h-8 text-xs bg-blue-400 hover:bg-blue-500 text-white font-handwritten"
                         disabled={!databaseConnected}
                       >
-                        <FaEdit className="w-4 h-4 mr-2" />
+                        <FaEdit className="w-3 h-3 mr-1" />
                         Bearbeiten
                       </Button>
                       <Button
-                        onClick={() => handleOfferGame(selectedGame, "lend")}
-                        className="flex-1 bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
+                        onClick={() => setIsTrackingDialogOpen(true)}
+                        className="flex-1 h-8 text-xs bg-purple-400 hover:bg-purple-500 text-white font-handwritten"
                         disabled={!databaseConnected}
                       >
-                        <FaExpand className="w-4 h-4 mr-2" />
-                        Vermieten
+                        <FaTags className="w-3 h-3 mr-1" />
+                        Status
                       </Button>
                     </div>
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => handleOfferGame(selectedGame, "trade")}
-                        className="flex-1 bg-orange-400 hover:bg-orange-500 text-white font-handwritten"
+                        onClick={() => handleOfferGame(selectedGame, "lend")}
+                        className="flex-1 h-8 text-xs bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
                         disabled={!databaseConnected}
                       >
-                        <GiBackForth className="w-4 h-4 mr-2" />
+                        <TbExchange className="w-3 h-3 mr-1" />
+                        Vermieten
+                      </Button>
+                      <Button
+                        onClick={() => handleOfferGame(selectedGame, "trade")}
+                        className="flex-1 h-8 text-xs bg-orange-400 hover:bg-orange-500 text-white font-handwritten"
+                        disabled={!databaseConnected}
+                      >
+                        <GiBackForth className="w-3 h-3 mr-1" />
                         Tauschen
                       </Button>
                       <Button
                         onClick={() => handleOfferGame(selectedGame, "sell")}
-                        className="flex-1 bg-pink-400 hover:bg-pink-500 text-white font-handwritten"
+                        className="flex-1 h-8 text-xs bg-pink-400 hover:bg-pink-500 text-white font-handwritten"
                         disabled={!databaseConnected}
                       >
-                        <GiReceiveMoney className="w-4 h-4 mr-2" />
+                        <GiReceiveMoney className="w-3 h-3 mr-1" />
                         Verkaufen
                       </Button>
                     </div>
-                    <Button
-                      onClick={() => handleDeleteGame(selectedGame)}
-                      className="w-full bg-red-400 hover:bg-red-500 text-white font-handwritten"
-                      disabled={!databaseConnected}
-                    >
-                      <FaTrash className="w-4 h-4 mr-2" />
-                      Löschen
-                    </Button>
                   </div>
 
-                  <Button variant="secondary" className="w-full font-handwritten" onClick={() => setSelectedGame(null)}>
-                    <FaEyeSlash className="w-4 h-4 mr-2" />
+                  <Button
+                    variant="secondary"
+                    className="w-full font-handwritten h-8 text-xs"
+                    onClick={() => setSelectedGame(null)}
+                  >
+                    <FaEyeSlash className="w-3 h-3 mr-2" />
                     Ansicht schliessen
                   </Button>
                 </CardContent>
@@ -2125,7 +2423,7 @@ function LibraryContent() {
                 <CardContent className="p-6">
                   <div className="text-center">
                     <GrSelect className="w-10 h-10 text-gray-500 mx-auto mb-4" />
-                    <h3 className="font-bold mb-2 font-handwritten text-sm text-black">Spiel auswählen</h3>
+                    <h3 className="mb-2 font-handwritten text-sm text-black font-medium">Spiel auswählen</h3>
                     <p className="text-gray-500 font-body text-xs">
                       Wähle ein Spiel aus deinem Spieleregal, um Details anzuzeigen
                     </p>
@@ -2629,6 +2927,15 @@ function LibraryContent() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {selectedGame && (
+        <GameTrackingDialog
+          isOpen={isTrackingDialogOpen}
+          onClose={() => setIsTrackingDialogOpen(false)}
+          game={selectedGame}
+          onUpdate={handleUpdateTracking}
+        />
+      )}
     </div>
   )
 }

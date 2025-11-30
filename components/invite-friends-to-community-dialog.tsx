@@ -132,7 +132,7 @@ export function InviteFriendsToCommunityDialog({
 
           {/* Message */}
           <div>
-            <Label htmlFor="invitation-message" className="text-sm font-medium text-gray-700 mb-2 block">
+            <Label htmlFor="invitation-message" className="text-xs font-medium text-gray-700 mb-2 block">
               Nachricht (optional)
             </Label>
             <textarea
@@ -147,7 +147,7 @@ export function InviteFriendsToCommunityDialog({
 
           {/* Friends List */}
           <div>
-            <Label className="text-sm font-medium text-gray-700 mb-2 block">
+            <Label className="text-xs font-medium text-gray-700 mb-2 block">
               Freunde auswählen ({selectedFriends.length} ausgewählt)
             </Label>
             <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
@@ -175,7 +175,7 @@ export function InviteFriendsToCommunityDialog({
                       </Avatar>
                       <div className="flex-1">
                         <p className="font-medium text-gray-800">{friend.name || friend.username}</p>
-                        <p className="text-sm text-gray-500">@{friend.username}</p>
+                        <p className="text-xs text-gray-500">@{friend.username}</p>
                       </div>
                     </div>
                   ))}

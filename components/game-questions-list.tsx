@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
+import { UserLink } from "@/components/user-link" // Added UserLink import
 
 interface GameQuestion {
   id: string
@@ -296,7 +297,15 @@ export function GameQuestionsList({ gameId, gameTitle, limit }: GameQuestionsLis
 
                       <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
                         <div className="flex items-center gap-4">
-                          <span>von {question.author?.username || "Unbekannt"}</span>
+                          <div className="flex items-center gap-1">
+                            <span>von</span>
+                            <UserLink
+                              userId={question.author?.id || ""}
+                              className="hover:text-primary hover:underline transition-colors"
+                            >
+                              {question.author?.username || "Unbekannt"}
+                            </UserLink>
+                          </div>
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {new Date(question.created_at).toLocaleDateString("de-DE")}
@@ -342,9 +351,12 @@ export function GameQuestionsList({ gameId, gameTitle, limit }: GameQuestionsLis
                                     </Avatar>
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-sm font-medium text-foreground">
+                                        <UserLink
+                                          userId={reply.author?.id || ""}
+                                          className="text-sm font-medium text-foreground hover:text-primary hover:underline transition-colors"
+                                        >
                                           {reply.author?.username || "Unbekannt"}
-                                        </span>
+                                        </UserLink>
                                         <span className="text-xs text-muted-foreground">
                                           {new Date(reply.created_at).toLocaleDateString("de-DE")}
                                         </span>

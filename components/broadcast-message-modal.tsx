@@ -61,7 +61,7 @@ export function BroadcastMessageModal({ isOpen, onClose, groupId, groupName }: B
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="font-handwritten text-xl text-gray-800">Nachricht an alle Mitglieder</DialogTitle>
+          <DialogTitle className="font-handwritten text-sm text-gray-800">Nachricht an alle Mitglieder</DialogTitle>
           <DialogDescription>Senden Sie eine Nachricht an alle Mitglieder der Gruppe "{groupName}".</DialogDescription>
         </DialogHeader>
 

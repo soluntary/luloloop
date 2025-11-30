@@ -8,13 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/u
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { UserProfileModal } from "@/components/user-profile-modal"
 import { Search, MessageSquare, Clock, Heart, Database, ArrowUpDown, Reply, Send, ThumbsUp } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
 import NewForumPostForm from "@/components/new-forum-post-form" // Import the NewForumPostForm component
 import { useAvatar } from "@/contexts/avatar-context"
+import { UserLink } from "@/components/user-link" // Added UserLink import
 
 interface ForumPost {
   id: string
@@ -86,7 +86,6 @@ export default function ForumPage() {
   const [expandedPost, setExpandedPost] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState("")
   const [isSubmittingReply, setIsSubmittingReply] = useState(false)
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set())
   const [likedReplies, setLikedReplies] = useState<Set<string>>(new Set())
 
@@ -344,10 +343,6 @@ export default function ForumPage() {
     }
   }
 
-  const handleShowUserProfile = (userId: string) => {
-    setSelectedUserId(userId)
-  }
-
   const filteredPosts = posts.filter((post) => {
     const matchesSearch =
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -516,15 +511,17 @@ export default function ForumPage() {
 
                             <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
                               <div className="flex items-center gap-4 font-body">
-                                <button
-                                  onClick={() => handleShowUserProfile(post.author?.id || "")}
-                                  className="bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent hover:from-teal-700 hover:to-cyan-700 hover:underline transition-all duration-200 transform hover:scale-105 font-normal"
+                                <UserLink
+                                  userId={post.author?.id || ""}
+                                  className="text-xs text-gray-500 hover:text-teal-600 transition-colors"
                                 >
                                   von {post.author?.username || "Unbekannt"}
-                                </button>
+                                </UserLink>
                                 <div className="flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
-                                  {new Date(post.created_at).toLocaleDateString("de-DE")}
+                                  <span className="text-xs text-gray-500">
+                                    {new Date(post.created_at).toLocaleDateString("de-DE")}
+                                  </span>
                                 </div>
                               </div>
 
@@ -573,12 +570,12 @@ export default function ForumPage() {
                                           </Avatar>
                                           <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                              <button
-                                                onClick={() => handleShowUserProfile(reply.author?.id || "")}
-                                                className="bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text hover:from-orange-700 hover:to-pink-700 hover:underline transition-all duration-200 transform hover:scale-105 text-transparent font-normal bg-black"
+                                              <UserLink
+                                                userId={reply.author?.id || ""}
+                                                className="text-xs text-gray-500 hover:text-teal-600 transition-colors"
                                               >
                                                 {reply.author?.username || "Unbekannt"}
-                                              </button>
+                                              </UserLink>
                                               <span className="text-xs text-gray-500 font-body">
                                                 {new Date(reply.created_at).toLocaleDateString("de-DE")}
                                               </span>
@@ -657,8 +654,6 @@ export default function ForumPage() {
           </div>
         </div>
       </div>
-
-      <UserProfileModal userId={selectedUserId} isOpen={!!selectedUserId} onClose={() => setSelectedUserId(null)} />
     </div>
   )
 }
