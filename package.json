@@ -81,6 +81,7 @@
     "pg": "latest",
     "postgres": "latest",
     "react": "19.1.1",
+    "react-day-picker": "9.7.0",
     "react-dom": "19.1.1",
     "react-hot-toast": "latest",
     "react-icons": "latest",
