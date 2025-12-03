@@ -1459,30 +1459,30 @@ export default function LudoGruppenPage() {
             </div>
 
             <div className="space-y-6 mt-6">
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-900 mb-4">Grundinformationen</h3>
+              <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg p-6 border border-purple-100">
+                <h3 className="text-sm font-semibold text-purple-800 mb-4">Grundinformationen</h3>
 
                 <div className="space-y-5">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <Label htmlFor="group-name" className="text-xs font-medium text-gray-700">
+                      <Label htmlFor="group-name" className="text-xs font-medium text-purple-700">
                         Name der Spielgruppe *
                       </Label>
-                      <span className="text-gray-500 text-xs">{newGroup.name.length}/60</span>
+                      <span className="text-purple-500 text-xs">{newGroup.name.length}/60</span>
                     </div>
                     <Input
                       id="group-name"
                       value={newGroup.name}
                       onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
                       placeholder="z.B. CATAN-Freunde Zürich"
-                      className="h-11 text-xs border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                      className="h-11 text-xs border-purple-200 focus:border-purple-500 focus:ring-purple-500 bg-white"
                       maxLength={60}
                     />
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <Label htmlFor="group-description" className="text-xs font-medium text-gray-700">
+                      <Label htmlFor="group-description" className="text-xs font-medium text-purple-700">
                         Beschreibung
                       </Label>
                     </div>
@@ -1495,7 +1495,7 @@ export default function LudoGruppenPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="max-members" className="text-xs font-medium text-gray-700 mb-2 block">
+                    <Label htmlFor="max-members" className="text-xs font-medium text-purple-700 mb-2 block">
                       Maximale Mitgliederzahl
                     </Label>
                     <Input
@@ -1509,23 +1509,23 @@ export default function LudoGruppenPage() {
                         })
                       }
                       placeholder="Leer lassen für unbegrenzt"
-                      className="h-11 text-xs border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                      className="h-11 text-xs border-purple-200 focus:border-purple-500 focus:ring-purple-500 bg-white"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="group-image" className="text-xs font-medium text-gray-700 mb-3 block">
+                    <Label htmlFor="group-image" className="text-xs font-medium text-purple-700 mb-3 block">
                       Spielgruppenbild (optional)
                     </Label>
 
                     {!imagePreview ? (
                       <div
                         onClick={() => document.getElementById("group-image")?.click()}
-                        className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-gray-900 hover:bg-gray-50 transition-all duration-200 bg-gray-50"
+                        className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all duration-200 bg-white"
                       >
-                        <FaImage className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                        <p className="text-xs font-medium text-gray-700 mb-1">Klicken zum Hochladen</p>
-                        <p className="text-xs text-gray-500">JPG, PNG oder WebP (max. 5MB)</p>
+                        <FaImage className="h-16 w-16 text-purple-400 mx-auto mb-4" />
+                        <p className="text-xs font-medium text-purple-700 mb-1">Klicken zum Hochladen</p>
+                        <p className="text-xs text-purple-500">JPG, PNG oder WebP (max. 5MB)</p>
                         <Input
                           id="group-image"
                           type="file"
@@ -1535,7 +1535,7 @@ export default function LudoGruppenPage() {
                         />
                       </div>
                     ) : (
-                      <div className="relative rounded-xl overflow-hidden border-2 border-gray-300">
+                      <div className="relative rounded-xl overflow-hidden border-2 border-purple-300">
                         <img
                           src={imagePreview || "/placeholder.svg"}
                           alt="Preview"
@@ -1556,7 +1556,7 @@ export default function LudoGruppenPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="group-location" className="text-xs font-medium text-gray-700 mb-2 block">
+                    <Label htmlFor="group-location" className="text-xs font-medium text-purple-700 mb-2 block">
                       Standort
                     </Label>
                     <AddressAutocomplete
@@ -1564,18 +1564,18 @@ export default function LudoGruppenPage() {
                       placeholder="Location, Adresse, PLZ oder Ort eingeben..."
                       value={newGroup.location}
                       onChange={(value) => setNewGroup({ ...newGroup, location: value })}
-                      className="h-11 text-xs border-gray-300 focus:border-gray-900"
+                      className="h-11 text-xs border-purple-200 focus:border-purple-500"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-900 mb-4">Beitrittsmodus</h3>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
+                <h3 className="text-sm font-semibold text-blue-800 mb-4">Beitrittsmodus</h3>
 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="approval-mode" className="text-xs font-medium text-gray-700 mb-2 block">
+                    <Label htmlFor="approval-mode" className="text-xs font-medium text-blue-700 mb-2 block">
                       Wie sollen neue Mitglieder beitreten können?
                     </Label>
                     <Select
@@ -1584,7 +1584,7 @@ export default function LudoGruppenPage() {
                         setNewGroup({ ...newGroup, approval_mode: value })
                       }
                     >
-                      <SelectTrigger className="h-11 text-xs border-gray-300 focus:border-gray-900 focus:ring-gray-900">
+                      <SelectTrigger className="h-11 text-xs border-blue-200 focus:border-blue-500 focus:ring-blue-500 bg-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1594,14 +1594,14 @@ export default function LudoGruppenPage() {
                     </Select>
                   </div>
 
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                     {newGroup.approval_mode === "automatic" ? (
                       <div className="space-y-2">
                         <div className="flex items-start gap-2">
                           <FaCheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="text-xs font-semibold text-gray-900 mb-1">Sofortiger Beitritt</p>
-                            <p className="text-xs text-gray-600">
+                            <p className="text-xs font-semibold text-blue-900 mb-1">Sofortiger Beitritt</p>
+                            <p className="text-xs text-blue-700">
                               Interessenten können der Spielgruppe sofort beitreten, ohne auf eine Genehmigung warten zu
                               müssen.
                             </p>
@@ -1611,12 +1611,12 @@ export default function LudoGruppenPage() {
                     ) : (
                       <div className="space-y-2">
                         <div className="flex items-start gap-2">
-                          <FaClock className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <FaClock className="h-4 w-4 text-indigo-600 mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="test-xs font-semibold text-gray-900 mb-1 text-xs">
+                            <p className="test-xs font-semibold text-blue-900 mb-1 text-xs">
                               Beitritt erst nach Genehmigung
                             </p>
-                            <p className="text-xs text-gray-600">
+                            <p className="text-xs text-blue-700">
                               Du erhältst eine Benachrichtigung für jede Beitrittsanfrage und kannst entscheiden, wer
                               Mitglied wird.
                             </p>

@@ -191,20 +191,20 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
         <Card className="border-0 shadow-none bg-transparent">
           <CardContent className="space-y-6 p-0">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <h3 className="font-semibold text-gray-900 mb-4 text-sm">Grundinformationen</h3>
+              <div className="bg-gradient-to-r from-cyan-50 to-teal-50 rounded-lg p-6 border border-cyan-100">
+                <h3 className="font-semibold text-cyan-800 mb-4 text-sm">Grundinformationen</h3>
 
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <Label className="text-sm font-medium text-gray-700">Name des gesuchtes Spiels *</Label>
-                      <span className="text-xs text-gray-500">{title.length}/60</span>
+                      <Label className="text-sm font-medium text-cyan-700">Name des gesuchtes Spiels *</Label>
+                      <span className="text-xs text-cyan-500">{title.length}/60</span>
                     </div>
                     <Input
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="z.B. Carcassonne, Catan (Grundspiel)"
-                      className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                      className="h-11 border-cyan-200 focus:border-cyan-500 rounded-lg bg-white"
                       required
                       maxLength={60}
                     />
@@ -217,9 +217,9 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium text-gray-700 mb-2 block"> Ich möchte das Spiel ...? *</Label>
+                    <Label className="text-sm font-medium text-cyan-700 mb-2 block"> Ich möchte das Spiel ...? *</Label>
                     <Select value={type} onValueChange={setType} required>
-                      <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                      <SelectTrigger className="h-11 border-cyan-200 focus:border-cyan-500 rounded-lg bg-white">
                         <SelectValue placeholder="Wähle eine Option" />
                       </SelectTrigger>
                       <SelectContent className="rounded-lg border-gray-200">
@@ -250,7 +250,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
 
                   {type === "rent" && (
                     <div className="space-y-3">
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Gewünschte Mietdauer</Label>
+                      <Label className="text-sm font-medium text-cyan-700 mb-2 block">Gewünschte Mietdauer</Label>
 
                       <div className="flex items-center space-x-2">
                         <input
@@ -286,7 +286,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
 
                   {type === "buy" && (
                     <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Preisvorstellung (CHF)</Label>
+                      <Label className="text-sm font-medium text-cyan-700 mb-2 block">Preisvorstellung (CHF)</Label>
                       <Input
                         type="number"
                         step="0.01"
@@ -304,7 +304,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
 
                   {type === "trade" && (
                     <div className="space-y-4">
-                      <Label className="text-sm font-medium text-gray-700 block">Tauschspiel</Label>
+                      <Label className="text-sm font-medium text-cyan-700 block">Tauschspiel</Label>
 
                       <Tabs
                         value={tradeGameSelectionMethod}

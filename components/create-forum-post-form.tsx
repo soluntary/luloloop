@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
-import { Send, X } from "lucide-react"
+import { Send, X, MessageSquare, FileText } from "lucide-react"
 import { toast } from "sonner"
 import { createForumPost } from "@/app/actions/forum-posts"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
@@ -50,29 +50,23 @@ export default function CreateForumPostForm({ onSuccess, onCancel }: CreateForum
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("[v0] Form submission started")
 
     if (!validateForm()) {
-      console.log("[v0] Form validation failed")
       return
     }
 
-    console.log("[v0] Form data being submitted:", formData)
     setIsSubmitting(true)
     try {
       const result = await createForumPost(formData)
-      console.log("[v0] Server action result:", result)
 
       if (result.success) {
-        console.log("[v0] Forum post created successfully")
         toast.success("Diskussion wurde erfolgreich erstellt!")
         onSuccess()
       } else {
-        console.log("[v0] Forum post creation failed:", result.error)
         toast.error(result.error || "Fehler beim Erstellen der Diskussion")
       }
     } catch (error) {
-      console.error("[v0] Error creating forum post:", error)
+      console.error("Error creating forum post:", error)
       toast.error("Ein unerwarteter Fehler ist aufgetreten")
     } finally {
       setIsSubmitting(false)
@@ -81,7 +75,6 @@ export default function CreateForumPostForm({ onSuccess, onCancel }: CreateForum
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }))
     }
@@ -91,43 +84,47 @@ export default function CreateForumPostForm({ onSuccess, onCancel }: CreateForum
     <Card className="w-full border border-gray-200">
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title Field */}
-          <div className="space-y-2">
-            <Label htmlFor="title" className="text-sm font-medium text-gray-700">
-              Titel der Diskussion *
-            </Label>
+          <div className="bg-gradient-to-r from-rose-50 to-pink-50 rounded-lg p-5 border border-rose-100">
+            <div className="flex items-center gap-2 mb-3">
+              <MessageSquare className="h-4 w-4 text-rose-600" />
+              <Label htmlFor="title" className="text-sm font-medium text-rose-800">
+                Titel der Diskussion *
+              </Label>
+            </div>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) => handleInputChange("title", e.target.value)}
               placeholder="Gib deiner Diskussion einen aussagekräftigen Titel (z.B. Empfehlenswerte kooperative)"
-              className={`h-11 border-gray-300 focus:border-gray-900 ${errors.title ? "border-red-500" : ""}`}
+              className={`h-11 border-rose-200 focus:border-rose-500 focus:ring-rose-500 bg-white ${errors.title ? "border-red-500" : ""}`}
               maxLength={200}
             />
             {errors.title && (
-              <p className="text-sm text-red-600 flex items-center gap-1">
+              <p className="text-sm text-red-600 flex items-center gap-1 mt-2">
                 <X className="h-3 w-3" />
                 {errors.title}
               </p>
             )}
-            <p className="text-xs text-gray-500">{formData.title.length}/200 Zeichen</p>
+            <p className="text-xs text-rose-500 mt-2">{formData.title.length}/200 Zeichen</p>
           </div>
 
-          {/* Content Field */}
-          <div className="space-y-2">
-            <Label htmlFor="content" className="text-sm font-medium text-gray-700">
-              Beschreibung / Startbeitrag *
-            </Label>
+          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-5 border border-indigo-100">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="h-4 w-4 text-indigo-600" />
+              <Label htmlFor="content" className="text-sm font-medium text-indigo-800">
+                Beschreibung / Startbeitrag *
+              </Label>
+            </div>
             <RichTextEditor
               value={formData.content}
               onChange={(value) => handleInputChange("content", value)}
               placeholder="Beschreibe dein Anliegen ausführlich. Je detaillierter, desto besser können andere dir helfen..."
-              className={`${errors.content ? "border-red-500" : ""}`}
+              className={`border-indigo-200 focus:border-indigo-500 bg-white ${errors.content ? "border-red-500" : ""}`}
               maxLength={5000}
               rows={4}
             />
             {errors.content && (
-              <p className="text-sm text-red-600 flex items-center gap-1">
+              <p className="text-sm text-red-600 flex items-center gap-1 mt-2">
                 <X className="h-3 w-3" />
                 {errors.content}
               </p>
@@ -145,7 +142,11 @@ export default function CreateForumPostForm({ onSuccess, onCancel }: CreateForum
             >
               Abbrechen
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="flex-1 playful-button">
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white"
+            >
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

@@ -11,10 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { FaTruckFast, FaLocationDot, FaUpload  } from "react-icons/fa6"
+import { FaTruckFast, FaLocationDot, FaUpload } from "react-icons/fa6"
 import { FaInfo, FaArrowLeft, FaSearch, FaChevronDown } from "react-icons/fa"
 import { AiFillPicture } from "react-icons/ai"
-import { Upload, ImageIcon, AlertCircle, Check, Camera, Plus, ChevronDown, Info, MapPin, Trash2, TruckIcon, ArrowLeft, ArrowRight, Search } from 'lucide-react'
+import { ImageIcon, AlertCircle, Check, Plus, Info, Trash2, ArrowRight } from "lucide-react"
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -851,13 +851,13 @@ export function CreateMarketplaceOfferForm({
           {/* Step 1: Game Selection */}
           {currentStep === 1 && (
             <div className="space-y-6">
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <h3 className="text-gray-900 mb-4 font-normal text-xs">Spiel auswählen</h3>
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-6 border border-emerald-100">
+                <h3 className="text-emerald-800 mb-4 font-semibold text-sm">Spiel auswählen</h3>
 
                 <div className="space-y-4">
                   <div>
                     <Select value={selectedGame} onValueChange={handleGameSelection}>
-                      <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                      <SelectTrigger className="h-11 border-emerald-200 focus:border-emerald-500 rounded-lg bg-white">
                         <SelectValue placeholder="Spiel aus deiner Ludothek wählen..." />
                       </SelectTrigger>
                       <SelectContent className="rounded-lg border-gray-200">
@@ -884,15 +884,17 @@ export function CreateMarketplaceOfferForm({
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-200" />
+                      <div className="w-full border-t border-emerald-200" />
                     </div>
                     <div className="relative flex justify-center text-xs">
-                      <span className="bg-white px-4 text-gray-600 font-medium">oder</span>
+                      <span className="bg-gradient-to-r from-emerald-50 to-teal-50 px-4 text-emerald-600 font-medium">
+                        oder
+                      </span>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200 text-xs">
+                    <div className="flex items-center space-x-3 p-4 bg-white rounded-lg border border-emerald-200 text-xs">
                       <Checkbox
                         id="custom-game"
                         checked={isManualEntry}
@@ -904,7 +906,7 @@ export function CreateMarketplaceOfferForm({
                             setImage(null)
                           }
                         }}
-                        className="border-gray-400 data-[state=checked]:bg-gray-900"
+                        className="border-gray-400 data-[state=checked]:bg-emerald-600"
                       />
                       <Label htmlFor="custom-game" className="font-medium text-sm text-gray-900 cursor-pointer">
                         Neues Spiel erfassen
@@ -945,9 +947,8 @@ export function CreateMarketplaceOfferForm({
               {/* Custom Game Form */}
               {isManualEntry && (
                 <div className="space-y-6">
-                  {/* Game Cover Section */}
-                  <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">Spiel Cover</h3>
+                  <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg p-6 border border-amber-100 shadow-sm">
+                    <h3 className="text-base font-semibold text-amber-800 mb-4 flex items-center gap-2">Spiel Cover</h3>
                     <div className="text-center">
                       <div className="w-40 h-52 mx-auto mb-4 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-gray-50 overflow-hidden hover:border-gray-400 transition-all duration-300 shadow-sm hover:shadow-md">
                         {customGameImage ? (
@@ -989,31 +990,28 @@ export function CreateMarketplaceOfferForm({
                     )}
                   </div>
 
-                  {/* Basic Information */}
-                  <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-                    <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      Grundinformationen
-                    </h3>
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100 shadow-sm">
+                    <h3 className="font-semibold text-blue-800 mb-4 flex items-center gap-2">Grundinformationen</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">Spielname *</Label>
+                        <Label className="text-xs font-semibold text-blue-700 mb-2 block">Spielname *</Label>
                         <Input
                           value={customGameTitle}
                           onChange={(e) => setCustomGameTitle(e.target.value)}
                           placeholder="z.B. Die Siedler von Catan"
-                          className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                          className="h-11 border-blue-200 focus:border-blue-500 rounded-lg bg-white"
                           disabled={!!selectedGame}
                         />
                       </div>
 
                       <div>
-                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">Verlag *</Label>
+                        <Label className="text-xs font-semibold text-blue-700 mb-2 block">Verlag *</Label>
                         <Select
                           value={customGamePublisher}
                           onValueChange={setCustomGamePublisher}
                           disabled={!!selectedGame}
                         >
-                          <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                          <SelectTrigger className="h-11 border-blue-200 focus:border-blue-500 rounded-lg bg-white">
                             <SelectValue placeholder="Verlag wählen..." />
                           </SelectTrigger>
                           <SelectContent className="rounded-lg">
@@ -1054,13 +1052,13 @@ export function CreateMarketplaceOfferForm({
                       </div>
 
                       <div className="md:col-span-2">
-                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">Sprache *</Label>
+                        <Label className="text-xs font-semibold text-blue-700 mb-2 block">Sprache *</Label>
                         <Select
                           value={customGameLanguage}
                           onValueChange={setCustomGameLanguage}
                           disabled={!!selectedGame}
                         >
-                          <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                          <SelectTrigger className="h-11 border-blue-200 focus:border-blue-500 rounded-lg bg-white">
                             <SelectValue placeholder="Sprache wählen..." />
                           </SelectTrigger>
                           <SelectContent className="rounded-lg">
@@ -1119,18 +1117,19 @@ export function CreateMarketplaceOfferForm({
                     )}
                   </div>
 
-                  {/* Game Details Section */}
-                  <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">Spieldetails</h3>
+                  <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg p-6 border border-purple-100 shadow-sm">
+                    <h3 className="text-base font-semibold text-purple-800 mb-4 flex items-center gap-2">
+                      Spieldetails
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">Spieleranzahl *</Label>
+                        <Label className="text-xs font-semibold text-purple-700 mb-2 block">Spieleranzahl *</Label>
                         <Select
                           value={customGamePlayerCount}
                           onValueChange={setCustomGamePlayerCount}
                           disabled={!!selectedGame}
                         >
-                          <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                          <SelectTrigger className="h-11 border-purple-200 focus:border-purple-500 rounded-lg bg-white">
                             <SelectValue placeholder="Spieleranzahl wählen..." />
                           </SelectTrigger>
                           <SelectContent className="rounded-lg">
@@ -1143,13 +1142,13 @@ export function CreateMarketplaceOfferForm({
                         </Select>
                       </div>
                       <div>
-                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">Spieldauer *</Label>
+                        <Label className="text-xs font-semibold text-purple-700 mb-2 block">Spieldauer *</Label>
                         <Select
                           value={customGameDuration}
                           onValueChange={setCustomGameDuration}
                           disabled={!!selectedGame}
                         >
-                          <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                          <SelectTrigger className="h-11 border-purple-200 focus:border-purple-500 rounded-lg bg-white">
                             <SelectValue placeholder="Spieldauer wählen..." />
                           </SelectTrigger>
                           <SelectContent className="rounded-lg">
@@ -1162,9 +1161,9 @@ export function CreateMarketplaceOfferForm({
                         </Select>
                       </div>
                       <div>
-                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">Altersempfehlung *</Label>
+                        <Label className="text-xs font-semibold text-purple-700 mb-2 block">Altersempfehlung *</Label>
                         <Select value={customGameAge} onValueChange={setCustomGameAge} disabled={!!selectedGame}>
-                          <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
+                          <SelectTrigger className="h-11 border-purple-200 focus:border-purple-500 rounded-lg bg-white">
                             <SelectValue placeholder="Altersempfehlung wählen..." />
                           </SelectTrigger>
                           <SelectContent className="rounded-lg">
@@ -1201,25 +1200,25 @@ export function CreateMarketplaceOfferForm({
                     )}
                   </div>
 
-                  <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <div className="bg-gradient-to-r from-rose-50 to-pink-50 rounded-lg p-6 border border-rose-100 shadow-sm">
+                    <h3 className="text-base font-semibold text-rose-800 mb-4 flex items-center gap-2">
                       Kategorien & Typus
                     </h3>
                     <div className="space-y-4">
                       <div>
-                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">
+                        <Label className="text-xs font-semibold text-rose-700 mb-2 block">
                           Kategorie * (Mehrfachauswahl)
                         </Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
-                              className="w-full justify-between h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                              className="w-full justify-between h-11 border-rose-200 focus:border-rose-500 rounded-lg bg-white"
                               type="button"
                               disabled={!!selectedGame}
                             >
                               {customGameType.length > 0 ? (
-                                <span className="text-blue-600 font-medium">
+                                <span className="text-rose-600 font-medium">
                                   {customGameType.length} Kategorie{customGameType.length > 1 ? "n" : ""} ausgewählt
                                 </span>
                               ) : (
@@ -1237,7 +1236,7 @@ export function CreateMarketplaceOfferForm({
                                     id={`custom-type-${type}`}
                                     checked={customGameType.includes(type)}
                                     onCheckedChange={() => handleCustomGameTypeToggle(type)}
-                                    className="border-gray-400 data-[state=checked]:bg-blue-600"
+                                    className="border-gray-400 data-[state=checked]:bg-rose-600"
                                   />
                                   <Label htmlFor={`custom-type-${type}`} className="text-xs cursor-pointer">
                                     {type}
@@ -1263,7 +1262,7 @@ export function CreateMarketplaceOfferForm({
                                     type="button"
                                     size="sm"
                                     onClick={handleAddCustomType}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-2"
+                                    className="bg-rose-600 hover:bg-rose-700 text-white px-2"
                                   >
                                     <Plus className="w-3 h-3" />
                                   </Button>
@@ -1276,7 +1275,7 @@ export function CreateMarketplaceOfferForm({
                                     {customGameType.map((type) => (
                                       <Badge
                                         key={type}
-                                        className="text-xs cursor-pointer bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                        className="text-xs cursor-pointer bg-rose-100 text-rose-700 hover:bg-rose-200"
                                         onClick={() => handleCustomGameTypeToggle(type)}
                                       >
                                         {type} ×
@@ -1297,19 +1296,19 @@ export function CreateMarketplaceOfferForm({
                       </div>
 
                       <div>
-                        <Label className="text-xs font-semibold text-gray-700 mb-2 block">
+                        <Label className="text-xs font-semibold text-rose-700 mb-2 block">
                           Typus * (Mehrfachauswahl)
                         </Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
-                              className="w-full justify-between h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
+                              className="w-full justify-between h-11 border-rose-200 focus:border-rose-500 rounded-lg bg-white"
                               type="button"
                               disabled={!!selectedGame}
                             >
                               {customGameStyle.length > 0 ? (
-                                <span className="text-blue-600 font-medium">
+                                <span className="text-rose-600 font-medium">
                                   {customGameStyle.length} Typus {customGameStyle.length > 1 ? "en" : ""} ausgewählt
                                 </span>
                               ) : (
@@ -1327,7 +1326,7 @@ export function CreateMarketplaceOfferForm({
                                     id={`custom-style-${style}`}
                                     checked={customGameStyle.includes(style)}
                                     onCheckedChange={() => handleCustomGameStyleToggle(style)}
-                                    className="border-gray-400 data-[state=checked]:bg-blue-600"
+                                    className="border-gray-400 data-[state=checked]:bg-rose-600"
                                   />
                                   <Label htmlFor={`custom-style-${style}`} className="text-xs cursor-pointer">
                                     {style}
@@ -1353,7 +1352,7 @@ export function CreateMarketplaceOfferForm({
                                     type="button"
                                     size="sm"
                                     onClick={handleAddCustomStyle}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-2"
+                                    className="bg-rose-600 hover:bg-rose-700 text-white px-2"
                                   >
                                     <Plus className="w-3 h-3" />
                                   </Button>
@@ -1366,7 +1365,7 @@ export function CreateMarketplaceOfferForm({
                                     {customGameStyle.map((style) => (
                                       <Badge
                                         key={style}
-                                        className="text-xs cursor-pointer bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                        className="text-xs cursor-pointer bg-rose-100 text-rose-700 hover:bg-rose-200"
                                         onClick={() => handleCustomGameStyleToggle(style)}
                                       >
                                         {style} ×
@@ -1408,19 +1407,13 @@ export function CreateMarketplaceOfferForm({
                       </SelectTrigger>
                       <SelectContent className="rounded-lg">
                         <SelectItem value="lend" className="rounded-md">
-                          <div className="flex items-center gap-2">
-                            Mietangebot
-                          </div>
+                          <div className="flex items-center gap-2">Mietangebot</div>
                         </SelectItem>
                         <SelectItem value="trade" className="rounded-md">
-                          <div className="flex items-center gap-2">
-                            Tauschangebot
-                          </div>
+                          <div className="flex items-center gap-2">Tauschangebot</div>
                         </SelectItem>
                         <SelectItem value="sell" className="rounded-md">
-                          <div className="flex items-center gap-2">
-                            Verkaufsangebot
-                          </div>
+                          <div className="flex items-center gap-2">Verkaufsangebot</div>
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -1838,14 +1831,14 @@ export function CreateMarketplaceOfferForm({
           {currentStep === 3 && (
             <div className="space-y-6">
               <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-lg">
-                <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                  Angebots-Zusammenfassung
-                </h3>
+                <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Angebots-Zusammenfassung</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Game Information */}
                   <div className="bg-white rounded-xl p-4 border border-gray-200">
-                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2 justify-start text-sm">Spiel-Informationen</h4>
+                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2 justify-start text-sm">
+                      Spiel-Informationen
+                    </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Spiel:</span>
@@ -1868,7 +1861,9 @@ export function CreateMarketplaceOfferForm({
 
                   {/* Offer Information */}
                   <div className="bg-white rounded-xl p-4 border border-gray-200">
-                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2 text-sm">Angebots-Informationen</h4>
+                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2 text-sm">
+                      Angebots-Informationen
+                    </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Angebotsart:</span>

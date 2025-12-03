@@ -1269,19 +1269,19 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
       {/* Step 1: Ludo Event Details */}
       {currentStep === 1 && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
+          <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg p-6 border border-teal-100">
             <div className="flex items-center justify-between mb-2">
-              <Label htmlFor="title" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="title" className="text-sm font-medium text-teal-800">
                 Event-Titel *
               </Label>
-              <span className="text-xs text-gray-500">{formData.title.length}/60</span>
+              <span className="text-xs text-teal-600">{formData.title.length}/60</span>
             </div>
             <Input
               id="title"
               placeholder="z.B. Gemütlicher CATAN Abend..."
               value={formData.title}
               onChange={(e) => handleInputChange("title", e.target.value)}
-              className="text-sm h-11 border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+              className="text-sm h-11 border-teal-200 focus:border-teal-500 focus:ring-teal-500 bg-white"
               maxLength={60}
             />
             {fieldErrors.title && (
@@ -1298,10 +1298,9 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
             )}
           </div>
 
-          {/* Simplified image upload section */}
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
-            <Label className="text-sm font-medium text-gray-700 mb-2 block">Event-Bild</Label>
-            <p className="text-xs text-gray-600 mb-4">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-6 border border-amber-100">
+            <Label className="text-sm font-medium text-amber-800 mb-2 block">Event-Bild</Label>
+            <p className="text-xs text-amber-600 mb-4">
               Lade ein Bild hoch, um dein Event attraktiver zu gestalten (optional)
             </p>
 
@@ -1323,21 +1322,21 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
             ) : (
               <div
                 onClick={handleImageUpload}
-                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-900 hover:bg-gray-50 transition-all"
+                className="border-2 border-dashed border-amber-300 rounded-lg p-8 text-center cursor-pointer hover:border-amber-500 hover:bg-amber-50 transition-all"
               >
                 <div className="flex flex-col items-center space-y-3">
                   {isUploadingImage ? (
-                    <Loader2 className="h-10 w-10 text-gray-900 animate-spin" />
+                    <Loader2 className="h-10 w-10 text-amber-700 animate-spin" />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                      <Upload className="h-6 w-6 text-gray-700" />
+                    <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                      <Upload className="h-6 w-6 text-amber-700" />
                     </div>
                   )}
                   <div>
-                    <p className="text-gray-700 font-medium text-base">
+                    <p className="text-amber-700 font-medium text-base">
                       {isUploadingImage ? "Bild wird verarbeitet..." : "Klicken zum Hochladen"}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">JPG, PNG oder WebP (max. 5MB)</p>
+                    <p className="text-xs text-amber-500 mt-1">JPG, PNG oder WebP (max. 5MB)</p>
                   </div>
                 </div>
               </div>
