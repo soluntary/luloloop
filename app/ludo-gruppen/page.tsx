@@ -28,9 +28,11 @@ import {
   FaUserMinus,
   FaImage,
   FaUserTimes,
+  FaChevronDown,
 } from "react-icons/fa"
 import { MdOutlineManageSearch } from "react-icons/md"
 import { GiRollingDices } from "react-icons/gi"
+import { FiFilter } from "react-icons/fi"
 // </CHANGE>
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
@@ -126,8 +128,10 @@ export default function LudoGruppenPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("all")
+  const [groupTypeFilter, setGroupTypeFilter] = useState("all") // Added for filter by type
   const [availableSpotsFilter, setAvailableSpotsFilter] = useState("all")
   const [approvalModeFilter, setApprovalModeFilter] = useState("all")
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false) // State for showing/hiding advanced filters
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState<LudoGroup | null>(null)
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
@@ -889,6 +893,10 @@ export default function LudoGruppenPage() {
         group.location?.toLowerCase().includes(searchTerm.toLowerCase()),
     )
 
+    if (groupTypeFilter !== "all") {
+      filtered = filtered.filter((group) => group.type === groupTypeFilter)
+    }
+
     if (availableSpotsFilter !== "all") {
       filtered = filtered.filter((group) => {
         if (group.max_members === null) return true // Unlimited always has spots
@@ -1019,7 +1027,7 @@ export default function LudoGruppenPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Spielgruppen</h1>
+          <h1 className="font-handwritten text-3xl sm:text-4xl md:text-5xl text-gray-800 mb-4">Spielgruppen</h1>
           {user && (
             <Button
               onClick={() => {
@@ -1041,7 +1049,7 @@ export default function LudoGruppenPage() {
         {/* Search and Filter Bar */}
         <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100 shadow-sm mb-8">
           <div className="space-y-4">
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <MdOutlineManageSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -1051,9 +1059,8 @@ export default function LudoGruppenPage() {
                   className="pl-9 h-9 bg-white/80 border-gray-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 text-xs"
                 />
               </div>
+              <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
             </div>
-
-            <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
 
             {showLocationResults && (
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -1078,7 +1085,7 @@ export default function LudoGruppenPage() {
             )}
 
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4 sm:gap-3">
                 <div>
                   <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren nach</Label>
                   <Select value={sortBy} onValueChange={setSortBy}>
@@ -1136,23 +1143,61 @@ export default function LudoGruppenPage() {
                   </Select>
                 </div>
 
-                <div className="flex items-end">
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Typ</Label>
+                  <Select value={groupTypeFilter} onValueChange={setGroupTypeFilter}>
+                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-xs">
+                        Alle
+                      </SelectItem>
+                      <SelectItem value="casual" className="text-xs">
+                        Casual
+                      </SelectItem>
+                      <SelectItem value="competitive" className="text-xs">
+                        Competitive
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="col-span-2 md:col-span-1 flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                    className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
+                  >
+                    <FiFilter className="w-3 h-3 mr-1" />
+                    <span className="hidden sm:inline">Erweiterte Filter</span>
+                    <span className="sm:hidden">Filter</span>
+                    <FaChevronDown
+                      className={`w-3 h-3 ml-1 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
+                    />
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
                       setSearchTerm("")
                       setSortBy("all")
-                      setAvailableSpotsFilter("all")
-                      setApprovalModeFilter("all")
+                      setGroupTypeFilter("all") // Reset group type filter
                       setShowLocationResults(false)
                       setLocationSearchResults([])
                     }}
-                    className="h-9 w-full border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
+                    className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
                   >
-                    Filter zurücksetzen
+                    <span className="hidden sm:inline">Filter zurücksetzen</span>
+                    <span className="sm:hidden">Reset</span>
                   </Button>
                 </div>
               </div>
+
+              {showAdvancedFilters && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-4">
+                  {/* Additional filters can be added here */}
+                </div>
+              )}
             </div>
           </div>
         </div>

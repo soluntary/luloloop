@@ -50,7 +50,7 @@ export default function LudoMitgliederPage() {
   const [ludoMembers, setLudoMembers] = useState<LudoMember[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [activeFilter, setActiveFilter] = useState("all")
+  const [filterTab, setFilterTab] = useState("all")
   const [requestStates, setRequestStates] = useState<Record<string, string>>({})
 
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false)
@@ -260,10 +260,10 @@ export default function LudoMitgliederPage() {
       )
     }
 
-    console.log("[v0] Active filter:", activeFilter)
+    console.log("[v0] Active filter:", filterTab)
     console.log("[v0] Total members before filtering:", filtered.length)
 
-    switch (activeFilter) {
+    switch (filterTab) {
       case "sent":
         filtered = filtered.filter((member) => {
           const status = getFriendshipStatus(member.id)
@@ -272,7 +272,7 @@ export default function LudoMitgliederPage() {
         })
         console.log("[v0] Members after sent filter:", filtered.length)
         break
-      case "received":
+      case "requests":
         filtered = filtered.filter((member) => getFriendshipStatus(member.id) === "received")
         break
       case "friends":
@@ -396,7 +396,7 @@ export default function LudoMitgliederPage() {
         <Navigation currentPage="ludo-mitglieder" />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center mb-8">
-            <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten flex items-center justify-center gap-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten flex items-center justify-center gap-4">
               Mitglieder
             </h1>
             <p className="text-gray-600 transform rotate-1 font-body text-base">
@@ -442,7 +442,7 @@ export default function LudoMitgliederPage() {
       <Navigation currentPage="ludo-mitglieder" />
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten flex items-center justify-center gap-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten flex items-center justify-center gap-4">
             Mitglieder
           </h1>
           <p className="text-gray-600 transform rotate-1 font-body text-base">
@@ -450,46 +450,45 @@ export default function LudoMitgliederPage() {
           </p>
         </div>
 
-        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100 shadow-sm mb-8">
-          <div className="flex flex-col gap-4">
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 sm:p-5 border border-gray-100 shadow-sm mb-8">
+          <div className="flex flex-col gap-3">
             <div className="relative w-full">
               <MdPersonSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="Mitglieder suchen..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 bg-white/80 border-gray-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 h-9 text-xs w-full"
+                className="pl-9 h-9 bg-white/80 border-gray-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 text-xs w-full"
               />
             </div>
-
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               <Button
-                variant={activeFilter === "all" ? "default" : "outline"}
-                onClick={() => setActiveFilter("all")}
-                className={`h-9 text-xs px-3 ${activeFilter === "all" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                variant={filterTab === "all" ? "default" : "outline"}
+                onClick={() => setFilterTab("all")}
+                className={`h-8 text-xs px-2 sm:px-3 ${filterTab === "all" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
               >
                 Alle
               </Button>
               <Button
-                variant={activeFilter === "sent" ? "default" : "outline"}
-                onClick={() => setActiveFilter("sent")}
-                className={`h-9 text-xs px-3 ${activeFilter === "sent" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                variant={filterTab === "sent" ? "default" : "outline"}
+                onClick={() => setFilterTab("sent")}
+                className={`h-8 text-xs px-2 sm:px-3 ${filterTab === "sent" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
               >
-                Gesendet ({sentRequests?.length || 0})
+                Gesendet
               </Button>
               <Button
-                variant={activeFilter === "received" ? "default" : "outline"}
-                onClick={() => setActiveFilter("received")}
-                className={`h-9 text-xs px-3 ${activeFilter === "received" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                variant={filterTab === "requests" ? "default" : "outline"}
+                onClick={() => setFilterTab("requests")}
+                className={`h-8 text-xs px-2 sm:px-3 ${filterTab === "requests" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
               >
-                Anfragen ({pendingRequests?.length || 0})
+                Anfragen
               </Button>
               <Button
-                variant={activeFilter === "friends" ? "default" : "outline"}
-                onClick={() => setActiveFilter("friends")}
-                className={`h-9 text-xs px-3 ${activeFilter === "friends" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                variant={filterTab === "friends" ? "default" : "outline"}
+                onClick={() => setFilterTab("friends")}
+                className={`h-8 text-xs px-2 sm:px-3 ${filterTab === "friends" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
               >
-                Freunde ({friends?.length || 0})
+                Freunde
               </Button>
             </div>
           </div>
@@ -555,7 +554,7 @@ export default function LudoMitgliederPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
           {loading || friendsLoading ? (
             Array.from({ length: 10 }).map((_, i) => (
               <Card key={i} className="animate-pulse border-0 shadow-sm">
@@ -576,7 +575,7 @@ export default function LudoMitgliederPage() {
               <p className="text-gray-500 max-w-md mx-auto">
                 {searchTerm
                   ? "Versuche einen anderen Suchbegriff."
-                  : activeFilter === "friends"
+                  : filterTab === "friends"
                     ? "Du hast noch keine Freunde. Sende Freundschaftsanfragen an andere Mitglieder!"
                     : "Keine Mitglieder entsprechen den aktuellen Filtern."}
               </p>

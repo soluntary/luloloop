@@ -32,11 +32,13 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
   const [rentalDuration, setRentalDuration] = useState("")
   const [isFlexibleRental, setIsFlexibleRental] = useState(false)
   const [maxPrice, setMaxPrice] = useState("")
-  
+
   // Trade game selection state
   const [tradeGameTitle, setTradeGameTitle] = useState("")
   const [tradeGameSelectionMethod, setTradeGameSelectionMethod] = useState<"library" | "database" | "manual">("library")
-  const [selectedTradeGame, setSelectedTradeGame] = useState<{ id?: string; title: string; image?: string } | null>(null)
+  const [selectedTradeGame, setSelectedTradeGame] = useState<{ id?: string; title: string; image?: string } | null>(
+    null,
+  )
   const [isGameSearchOpen, setIsGameSearchOpen] = useState(false)
 
   const [image, setImage] = useState<File | null>(null)
@@ -46,15 +48,9 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
 
   const supabase = createClient()
 
-  console.log("[v0] CreateSearchAdForm - Games from context:", games)
-  console.log("[v0] CreateSearchAdForm - Games count:", games.length)
-  console.log("[v0] CreateSearchAdForm - User:", user?.id)
-
   useEffect(() => {
     if (isOpen) {
-      console.log("[v0] Search ad form opened")
-      console.log("[v0] Current games in context:", games.length)
-      console.log("[v0] Games list:", games.map(g => ({ id: g.id, title: g.title })))
+      setErrors({})
     }
   }, [isOpen, games])
 
@@ -89,7 +85,10 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
     if (type === "trade") {
       if (tradeGameSelectionMethod === "manual" && !tradeGameTitle.trim()) {
         newErrors.tradeGame = "Bitte gib den Namen des Tauschspiels ein."
-      } else if ((tradeGameSelectionMethod === "library" || tradeGameSelectionMethod === "database") && !selectedTradeGame) {
+      } else if (
+        (tradeGameSelectionMethod === "library" || tradeGameSelectionMethod === "database") &&
+        !selectedTradeGame
+      ) {
         newErrors.tradeGame = "Bitte wähle ein Spiel aus."
       }
     }
@@ -113,11 +112,8 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
     setIsSubmitting(true)
 
     try {
-      console.log("[v0] Creating search ad with type:", type)
-
       const finalRentalDuration = type === "rent" ? (isFlexibleRental ? "Flexibel" : rentalDuration) : null
-      
-      // Determine the final trade game title
+
       let finalTradeGameTitle = null
       if (type === "trade") {
         if (tradeGameSelectionMethod === "manual") {
@@ -130,7 +126,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
       const { error } = await supabase.from("search_ads").insert({
         title: title.trim(),
         description: description.trim() || null,
-        type: type, // Use English value directly: 'buy', 'rent', 'trade'
+        type: type,
         rental_duration: finalRentalDuration,
         max_price: type === "buy" && maxPrice ? Number.parseFloat(maxPrice) : null,
         trade_game_title: finalTradeGameTitle,
@@ -143,7 +139,6 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
         return
       }
 
-      // Reset form
       setTitle("")
       setDescription("")
       setType("")
@@ -257,7 +252,6 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                     <div className="space-y-3">
                       <Label className="text-sm font-medium text-gray-700 mb-2 block">Gewünschte Mietdauer</Label>
 
-                      {/* Adding flexible checkbox option */}
                       <div className="flex items-center space-x-2">
                         <input
                           type="checkbox"
@@ -276,7 +270,6 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                         </Label>
                       </div>
 
-                      {/* Only show input when not flexible */}
                       {!isFlexibleRental && (
                         <div>
                           <Input
@@ -303,16 +296,18 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                         placeholder="z.B. 50.00"
                         className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Gib den maximalen Preis ein, den du bereit bist, zu zahlen</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Gib den maximalen Preis ein, den du bereit bist, zu zahlen
+                      </p>
                     </div>
                   )}
 
                   {type === "trade" && (
                     <div className="space-y-4">
                       <Label className="text-sm font-medium text-gray-700 block">Tauschspiel</Label>
-                      
-                      <Tabs 
-                        value={tradeGameSelectionMethod} 
+
+                      <Tabs
+                        value={tradeGameSelectionMethod}
                         onValueChange={(v) => setTradeGameSelectionMethod(v as any)}
                         className="w-full"
                       >
@@ -335,18 +330,24 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                           {games.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-1">
                               {games.map((game) => (
-                                <div 
+                                <div
                                   key={game.id}
-                                  onClick={() => setSelectedTradeGame({ id: game.id, title: game.title, image: game.image })}
+                                  onClick={() =>
+                                    setSelectedTradeGame({ id: game.id, title: game.title, image: game.image })
+                                  }
                                   className={`flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-all ${
-                                    selectedTradeGame?.id === game.id 
-                                      ? "border-orange-500 bg-orange-50 ring-1 ring-orange-500" 
+                                    selectedTradeGame?.id === game.id
+                                      ? "border-orange-500 bg-orange-50 ring-1 ring-orange-500"
                                       : "border-gray-200 hover:border-orange-300 hover:bg-gray-50"
                                   }`}
                                 >
                                   <div className="w-10 h-10 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
                                     {game.image ? (
-                                      <img src={game.image || "/placeholder.svg"} alt={game.title} className="w-full h-full object-cover" />
+                                      <img
+                                        src={game.image || "/placeholder.svg"}
+                                        alt={game.title}
+                                        className="w-full h-full object-cover"
+                                      />
                                     ) : (
                                       <div className="w-full h-full flex items-center justify-center text-gray-400">
                                         <FaBook className="w-5 h-5" />
@@ -370,22 +371,28 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
 
                         <TabsContent value="database" className="space-y-4">
                           <div className="flex flex-col gap-4">
-                            <Button 
-                              type="button" 
-                              variant="outline" 
+                            <Button
+                              type="button"
+                              variant="outline"
                               size="xs"
                               onClick={() => setIsGameSearchOpen(true)}
                               className="w-full justify-start text-xs text-left font-normal h-12"
                             >
                               <FaSearch className="w-4 h-4 mr-2" />
-                              {selectedTradeGame ? "Spiel in Datenbank suchen suchen..." : "Spiel in Datenbank suchen..."}
+                              {selectedTradeGame
+                                ? "Spiel in Datenbank suchen suchen..."
+                                : "Spiel in Datenbank suchen..."}
                             </Button>
-                            
+
                             {selectedTradeGame && tradeGameSelectionMethod === "database" && (
                               <div className="flex items-center gap-3 p-3 rounded-lg border border-orange-500 bg-orange-50">
                                 <div className="w-12 h-12 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
                                   {selectedTradeGame.image ? (
-                                    <img src={selectedTradeGame.image || "/placeholder.svg"} alt={selectedTradeGame.title} className="w-full h-full object-cover" />
+                                    <img
+                                      src={selectedTradeGame.image || "/placeholder.svg"}
+                                      alt={selectedTradeGame.title}
+                                      className="w-full h-full object-cover"
+                                    />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center text-gray-400">
                                       <FaDatabase className="w-6 h-6" />
@@ -393,13 +400,15 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-gray-900 truncate text-xs">{selectedTradeGame.title}</p>
+                                  <p className="font-medium text-gray-900 truncate text-xs">
+                                    {selectedTradeGame.title}
+                                  </p>
                                   <p className="text-xs text-orange-600">Ausgewählt aus Ludothek</p>
                                 </div>
-                                <Button 
-                                  type="button" 
-                                  variant="ghost" 
-                                  size="xs" 
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="xs"
                                   onClick={() => setSelectedTradeGame(null)}
                                   className="text-gray-500 hover:text-red-500"
                                 >
@@ -490,7 +499,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
           setSelectedTradeGame({
             id: game.id.toString(),
             title: game.name,
-            image: game.image
+            image: game.image,
           })
           setIsGameSearchOpen(false)
         }}

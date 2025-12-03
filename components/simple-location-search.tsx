@@ -52,8 +52,8 @@ export function SimpleLocationSearch({ onLocationSearch, className, onNearbySear
 
   return (
     <div className={`relative ${className}`}>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-        <div className="flex-1 w-full sm:min-w-0 my-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="flex-1 w-full sm:min-w-0">
           <div className="relative">
             <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 z-10">
               <FaSearchLocation className="w-3.5 h-3.5" />
@@ -69,7 +69,7 @@ export function SimpleLocationSearch({ onLocationSearch, className, onNearbySear
           </div>
         </div>
 
-        <div className="flex items-center gap-2 min-w-fit mt-2">
+        <div className="flex items-center gap-2 min-w-fit">
           <Select value={radius} onValueChange={setRadius}>
             <SelectTrigger className="w-24 h-9 border border-gray-200 text-xs">
               <SelectValue />

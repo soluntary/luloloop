@@ -649,7 +649,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
     if (priceString.includes("Tag:") || priceString.includes("Tage:") || priceString === "Offen für Vorschläge") {
       const rates = priceString.split(", ")
       return (
-        <div className="w-full space-y-1 my-3.5">
+        <div className="w-full space-y-0.5 my-0">
           {rates.map((rate, index) => {
             // Parse the rate to separate period and price
             const parts = rate.split(":")
@@ -659,7 +659,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               return (
                 <div key={index} className="flex items-center justify-between w-full text-xs">
                   <span className="font-medium text-gray-700 text-xs text-xs">{period}</span>
-                  <span className="font-bold px-20 mx-0 border-0 mr-0 border-l-0 border-r-0 text-left pr-0 text-foreground ml-1.5 text-xs">
+                  <span className="font-bold px-20 mx-0 border-0 border-l-0 border-r-0 text-left text-foreground text-xs ml-px mr-0 pr-0 pl-6">
                     {price}
                   </span>
                 </div>
@@ -862,21 +862,23 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">Spielehandel</h1>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
+            Spielehandel
+          </h1>
           {authUser && databaseConnected && (
-            <div className="mt-6 flex gap-4 justify-center">
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
               <Button
                 onClick={() => setIsCreateOfferOpen(true)}
-                className="bg-orange-400 hover:bg-orange-500 text-white font-handwritten text-lg px-8 py-3 transform hover:scale-105 hover:rotate-1 transition-all"
+                className="bg-orange-400 hover:bg-orange-500 text-white font-handwritten text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 transform hover:scale-105 hover:rotate-1 transition-all"
               >
-                <Store className="w-5 h-5 mr-2" />
+                <Store className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Angebot erstellen
               </Button>
               <Button
                 onClick={() => setIsCreateSearchAdOpen(true)}
-                className="bg-amber-400 hover:bg-amber-500 text-white font-handwritten text-lg px-8 py-3 transform hover:scale-105 hover:-rotate-1 transition-all"
+                className="bg-amber-400 hover:bg-amber-500 text-white font-handwritten text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 transform hover:scale-105 hover:-rotate-1 transition-all"
               >
-                <Search className="w-5 h-5 mr-2" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Suchanzeige erstellen
               </Button>
             </div>
@@ -927,9 +929,9 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
             )}
 
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 sm:gap-3">
                 <div>
-                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren nach</Label>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren</Label>
                   <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
                     <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                       <SelectValue />
@@ -1222,7 +1224,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
         <div className="flex gap-8">
           {/* Main Content */}
           <div className="flex-1">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-12">
+            <div className="grid grid-cols-2 gap-4 mb-12 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {filteredItems.length > 0 ? (
                 filteredItems.map((item) => (
                   <Card
@@ -1258,7 +1260,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                           </div>
 
                           <div className="p-3">
-                            <h3 className="font-handwritten font-bold text-gray-900 mb-1.5 truncate group-hover:text-gray-700 transition-colors text-xs">
+                            <h3 className="font-handwritten font-bold text-gray-900 mb-1.5 truncate group-hover:text-teal-600 transition-colors text-xs">
                               {item.type === "sell" && "Verkaufe "}
                               {item.type === "trade" && "Biete "}
                               {item.type === "lend" && "Vermiete "}
@@ -1331,7 +1333,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                           </div>
 
                           <div className="p-3">
-                            <h3 className="font-handwritten font-bold text-gray-900 mb-1.5 truncate group-hover:text-gray-700 transition-colors text-xs">
+                            <h3 className="font-handwritten font-bold text-gray-900 mb-1.5 truncate group-hover:text-teal-600 transition-colors text-xs">
                               Suche {item.title}
                             </h3>
 
@@ -1343,7 +1345,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
                             <div className="pt-2 border-t border-gray-100">
                               {item.type === "rent" && item.rental_duration && (
-                                <p className="text-[10px] flex items-center gap-1.5 font-semibold text-black">
+                                <p className="flex items-center gap-1.5 font-semibold text-black text-xs mt-1">
                                   Gewünschte Mietdauer: {item.rental_duration}
                                 </p>
                               )}
@@ -1353,7 +1355,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                                 </p>
                               )}
                               {item.type === "trade" && item.trade_game_title && (
-                                <p className="flex items-center gap-1.5 font-semibold text-black text-xs">
+                                <p className="flex items-center gap-1.5 font-semibold text-black text-xs mt-1">
                                   Biete {item.trade_game_title}
                                 </p>
                               )}

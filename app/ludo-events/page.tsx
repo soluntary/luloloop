@@ -1132,7 +1132,7 @@ export default function LudoEventsPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Spielevents</h1>
+          <h1 className="font-handwritten text-3xl sm:text-4xl md:text-5xl text-gray-800 mb-4">Spielevents</h1>
           {user && (
             <Button
               onClick={() => {
@@ -1188,9 +1188,9 @@ export default function LudoEventsPage() {
             )}
 
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4 sm:gap-3">
                 <div>
-                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren nach</Label>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren</Label>
                   <Select value={sortBy} onValueChange={setSortBy}>
                     <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                       <SelectValue />
@@ -1276,16 +1276,17 @@ export default function LudoEventsPage() {
                   </Select>
                 </div>
 
-                <div className="flex items-end gap-2 md:col-span-2 lg:col-span-1">
+                <div className="col-span-2 md:col-span-1 flex gap-2">
                   <Button
                     variant="outline"
                     onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                     className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
                   >
-                    <FiFilter className="w-3 h-3 mr-2" />
-                    Erweiterte Filter
+                    <FiFilter className="w-3 h-3 mr-1" />
+                    <span className="hidden sm:inline">Erweiterte Filter</span>
+                    <span className="sm:hidden">Filter</span>
                     <FaChevronDown
-                      className={`w-3 h-3 ml-2 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
+                      className={`w-3 h-3 ml-1 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
                     />
                   </Button>
                   <Button
@@ -1303,7 +1304,8 @@ export default function LudoEventsPage() {
                     }}
                     className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
                   >
-                    Filter zurücksetzen
+                    <span className="hidden sm:inline">Filter zurücksetzen</span>
+                    <span className="sm:hidden">Reset</span>
                   </Button>
                 </div>
               </div>

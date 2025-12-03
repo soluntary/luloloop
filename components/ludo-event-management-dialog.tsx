@@ -577,7 +577,7 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
                     ))}
                   </div>
                 ) : Object.keys(participantsByInstance).length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">Noch keine Teilnehmer für Termine</p>
+                  <p className="text-gray-500 text-center py-8 text-sm">Noch keine Teilnehmer für Termine</p>
                 ) : (
                   <div className="space-y-4">
                     {Object.values(participantsByInstance)
@@ -650,7 +650,7 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="p-4 bg-white rounded-lg border-2 border-red-200">
-                  <h4 className="font-semibold text-red-800 mb-2">Event löschen</h4>
+                  <h4 className="font-semibold mb-2 text-red-600">Event löschen</h4>
                   <p className="text-xs text-red-600 mb-4">
                     Das Event wird permanent gelöscht und alle Anmeldungen werden entfernt. Diese Aktion kann nicht
                     rückgängig gemacht werden.

@@ -150,7 +150,7 @@ export default function LudoForumPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="font-handwritten text-4xl md:text-5xl text-gray-800 mb-4">Forum</h1>
+          <h1 className="font-handwritten text-3xl sm:text-4xl md:text-5xl text-gray-800 mb-4">Forum</h1>
           <div className="mt-6">
             {user && (
               <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -177,7 +177,7 @@ export default function LudoForumPage() {
         </div>
 
         {/* Search and Filter Section */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100 shadow-sm mb-8">
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 sm:p-5 border border-gray-100 shadow-sm mb-8">
           <div className="flex flex-col gap-4">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -188,43 +188,47 @@ export default function LudoForumPage() {
                 className="pl-9 bg-white/80 border-gray-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 h-9 text-xs"
               />
             </div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <span className="text-xs font-medium text-gray-500 whitespace-nowrap">Sortieren nach:</span>
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+              <span className="text-xs font-medium text-gray-500 whitespace-nowrap">Sortieren:</span>
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 <Button
                   variant={sortBy === "recent" ? "default" : "outline"}
                   onClick={() => setSortBy("recent")}
-                  className={`h-9 text-xs px-3 ${sortBy === "recent" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                  className={`h-8 text-xs px-2 sm:px-3 ${sortBy === "recent" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
                 >
                   Neueste
                 </Button>
                 <Button
                   variant={sortBy === "unanswered" ? "default" : "outline"}
                   onClick={() => setSortBy("unanswered")}
-                  className={`h-9 text-xs px-3 ${sortBy === "unanswered" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                  className={`h-8 text-xs px-2 sm:px-3 ${sortBy === "unanswered" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
                 >
-                  Unbeantwortet
+                  <span className="hidden sm:inline">Unbeantwortet</span>
+                  <span className="sm:hidden">Offen</span>
                 </Button>
                 <Button
                   variant={sortBy === "popular" ? "default" : "outline"}
                   onClick={() => setSortBy("popular")}
-                  className={`h-9 text-xs px-3 ${sortBy === "popular" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                  className={`h-8 text-xs px-2 sm:px-3 ${sortBy === "popular" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
                 >
-                  Meist gelikt
+                  <span className="hidden sm:inline">Meist gelikt</span>
+                  <span className="sm:hidden">Beliebt</span>
                 </Button>
                 <Button
                   variant={sortBy === "replies" ? "default" : "outline"}
                   onClick={() => setSortBy("replies")}
-                  className={`h-9 text-xs px-3 ${sortBy === "replies" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                  className={`h-8 text-xs px-2 sm:px-3 ${sortBy === "replies" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
                 >
-                  Meist beantwortet
+                  <span className="hidden sm:inline">Meist beantwortet</span>
+                  <span className="sm:hidden">Antworten</span>
                 </Button>
                 <Button
                   variant={sortBy === "views" ? "default" : "outline"}
                   onClick={() => setSortBy("views")}
-                  className={`h-9 text-xs px-3 ${sortBy === "views" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                  className={`h-8 text-xs px-2 sm:px-3 ${sortBy === "views" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
                 >
-                  Meist gesehen
+                  <span className="hidden sm:inline">Meist gesehen</span>
+                  <span className="sm:hidden">Views</span>
                 </Button>
               </div>
             </div>

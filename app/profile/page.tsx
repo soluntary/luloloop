@@ -33,20 +33,20 @@ import {
   Eye,
   UserX,
   MessageSquare,
-  Tag,
-  DicesIcon,
-  Gamepad2,
   Edit2,
-  BanknoteIcon,
-  DollarSign,
-  Building,
   Clock,
-  RepeatIcon,
   CalendarPlus,
   UserPlus,
   ShoppingBag,
   LogOut,
+  Search,
 } from "lucide-react"
+import { FaUserClock } from "react-icons/fa6"
+import { FaStore } from "react-icons/fa"
+import { MdEventAvailable } from "react-icons/md"
+import { MdEvent } from "react-icons/md"
+import { PiUserCircleCheckBold } from "react-icons/pi"
+import { PiUserCircleGearFill } from "react-icons/pi"
 import { FaXTwitter } from "react-icons/fa6"
 import { FaInstagram } from "react-icons/fa"
 import { useRouter } from "next/navigation"
@@ -94,7 +94,7 @@ import { GroupMemberManagementDialog } from "@/components/group-member-managemen
 import { GroupPollsDialog } from "@/components/group-polls-dialog"
 
 // Import icons for toggling
-import { FaPlay, FaPause, FaChartBar } from "react-icons/fa"
+import { FaChartBar } from "react-icons/fa"
 
 export default function ProfilePage() {
   const { user, updateProfile, signOut } = useAuth()
@@ -275,7 +275,7 @@ export default function ProfilePage() {
     if (!user?.id || !marketplaceOffers) return
     console.log("[v0] Filtering marketplace offers for user:", user.id)
     console.log("[v0] Total marketplace offers:", marketplaceOffers.length)
-    const userMarketplaceOffers = marketplaceOffers.filter((offer) => offer.creator_id === user.id)
+    const userMarketplaceOffers = marketplaceOffers.filter((offer) => offer.user_id === user.id)
     console.log("[v0] User's marketplace offers:", userMarketplaceOffers.length)
     setUserOffers(userMarketplaceOffers)
   }
@@ -1445,29 +1445,30 @@ export default function ProfilePage() {
       <div className="font-semibold text-base md:text-sm">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 md:mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold font-handwritten text-gray-800 mb-2">Profil</h1>
+            <h1 className="text-2xl md:text-3xl font-bold font-handwritten text-gray-800 mb-2 pt-7.5">Profil</h1>
             <p className="text-gray-600 font-body text-sm md:text-sm font-normal">
               Verwalte deine Kontoinformationen und Einstellungen
             </p>
           </div>
 
           <Tabs defaultValue="profile" className="space-y-4 md:space-y-6">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
-              <TabsTrigger value="profile" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
-                Profil
+            <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto gap-1">
+              <TabsTrigger value="profile" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
+                <span className="hidden sm:inline">Profilinformationen</span>
+                <span className="sm:hidden">Profil</span>
               </TabsTrigger>
-              <TabsTrigger value="activities" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
+              <TabsTrigger value="activities" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
                 <span className="hidden sm:inline">Meine Aktivitäten</span>
                 <span className="sm:hidden">Aktivitäten</span>
               </TabsTrigger>
-              <TabsTrigger value="notifications" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
-                <span className="textBenachrichtigungenext-xs font-medium">Benachrichtigungen</span>
-                <span className="sm:hidden">Benachr.</span>
+              <TabsTrigger value="notifications" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
+                <span className="hidden sm:inline">Benachrichtigungen</span>
+                <span className="sm:hidden">Alerts</span>
               </TabsTrigger>
-              <TabsTrigger value="privacy" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
+              <TabsTrigger value="privacy" className="text-xs sm:text-sm py-2 px-1 sm:px-3 hidden sm:flex">
                 Privatsphäre
               </TabsTrigger>
-              <TabsTrigger value="security" className="font-handwritten text-xs md:text-sm py-2 md:py-3">
+              <TabsTrigger value="security" className="text-xs sm:text-sm py-2 px-1 sm:px-3 hidden sm:flex">
                 Sicherheit
               </TabsTrigger>
             </TabsList>
@@ -1493,15 +1494,16 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex flex-col items-center space-y-3">
-                      <div className="flex space-x-2">
+                      <div className="flex gap-2 justify-center flex-wrap">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
+                          className="h-8 text-xs bg-transparent"
                           onClick={() => document.getElementById("avatar-upload")?.click()}
                           disabled={isLoading}
                         >
-                          <Upload className="w-4 h-4 mr-2" />
+                          <Upload className="w-3 h-3 mr-1" />
                           Foto hochladen
                         </Button>
 
@@ -1509,10 +1511,11 @@ export default function ProfilePage() {
                           type="button"
                           variant="outline"
                           size="sm"
+                          className="h-8 text-xs bg-transparent"
                           onClick={() => generateAvatarPreview()}
                           disabled={isLoading}
                         >
-                          <Shuffle className="w-4 h-4 mr-2" />
+                          <Shuffle className="w-3 h-3 mr-1" />
                           Avatar erstellen
                         </Button>
                       </div>
@@ -1806,7 +1809,7 @@ export default function ProfilePage() {
             </TabsContent>
 
             <TabsContent value="activities">
-              <Card className="border-0 shadow-none bg-transparent">
+              <Card>
                 <CardHeader className="p-4 md:p-6 pb-2">
                   <CardTitle className="font-handwritten text-lg md:text-xl">Meine Aktivitäten</CardTitle>
                   <CardDescription className="text-sm">
@@ -1815,62 +1818,64 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent className="p-4 md:p-6 pt-2">
                   <Tabs defaultValue="events-participating" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6 gap-1 bg-gray-100/80 p-1 rounded-lg h-auto">
+                    <TabsList className="flex flex-wrap justify-start gap-1 mb-6 bg-gray-100/80 p-1.5 rounded-lg h-auto">
                       <TabsTrigger
                         value="events-participating"
-                        className="text-xs px-2 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                        className="text-xs px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md flex items-center gap-1.5"
                       >
-                        <Calendar className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
-                        <span className="hidden sm:inline">Events (Teiln.)</span>
-                        <span className="sm:hidden text-xs">Teiln.</span>
+                        <MdEventAvailable className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Events (Teilnahme)</span>
+                        <span className="sm:hidden">Teiln.</span>
                       </TabsTrigger>
                       <TabsTrigger
                         value="events-created"
-                        className="text-xs px-2 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                        className="text-xs px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md flex items-center gap-1.5"
                       >
-                        <CalendarPlus className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
-                        <span className="hidden sm:inline">Events (Erst.)</span>
-                        <span className="sm:hidden text-xs">Erst.</span>
+                        <MdEvent className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Events (Erstellt)</span>
+                        <span className="sm:hidden">Erst.</span>
                       </TabsTrigger>
                       <TabsTrigger
                         value="requests"
-                        className="text-xs px-2 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                        className="text-xs px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md flex items-center gap-1.5"
                       >
-                        <Clock className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
+                        <FaUserClock className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">Anfragen</span>
-                        <span className="sm:hidden text-xs">Anfr.</span>
+                        <span className="sm:hidden">Anfr.</span>
                       </TabsTrigger>
                       <TabsTrigger
                         value="groups-joined"
-                        className="text-xs px-2 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                        className="text-xs px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md flex items-center gap-1.5"
                       >
-                        <Users className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
-                        <span className="hidden sm:inline">Gruppen (Mitgl.)</span>
-                        <span className="sm:hidden text-xs">Mitgl.</span>
+                        <PiUserCircleCheckBold className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Gruppen (Mitglied)</span>
+                        <span className="sm:hidden">Mitgl.</span>
                       </TabsTrigger>
                       <TabsTrigger
                         value="groups-created"
-                        className="text-xs px-2 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                        className="text-xs px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md flex items-center gap-1.5"
                       >
-                        <UserPlus className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
-                        <span className="font-medium text-gGruppen (Erst.)text-xs">Gruppen (Erst.)</span>
-                        <span className="sm:hidden text-xs">Erst.</span>
+                        <PiUserCircleGearFill className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Gruppen (Erstellt)</span>
+                        <span className="sm:hidden">Erst.</span>
                       </TabsTrigger>
                       <TabsTrigger
                         value="marketplace"
-                        className="text-xs px-2 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                        className="text-xs px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md flex items-center gap-1.5"
                       >
-                        <ShoppingBag className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
-                        <span className="hidden sm:inline">Marktplatz</span>
-                        <span className="sm:hidden text-xs">Markt</span>
+                        <FaStore className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Spielehandel</span>
+                        <span className="sm:hidden">Markt</span>
                       </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="events-participating" className="space-y-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm text-black font-semibold">
+                    <TabsContent value="events-participating" className="space-y-3">
+                      <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                        <h3 className="text-sm font-semibold text-gray-800">
                           Events, an denen ich teilnehme
-                          <span className="ml-2 text-black font-bold text-sm text-sm">({participatingEvents.length})</span>
+                          <span className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                            {participatingEvents.length}
+                          </span>
                         </h3>
                       </div>
                       {loadingActivities ? (
@@ -1878,9 +1883,15 @@ export default function ProfilePage() {
                           <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
                         </div>
                       ) : participatingEvents.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
-                          <p className="text-gray-500 mb-3 font-normal text-xs">Du nimmst derzeit an keinen Events teil.</p>
-                          <Button size="sm" variant="outline" onClick={() => router.push("/ludo-events")}>
+                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
+                          <Calendar className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                          <p className="text-gray-500 mb-3 text-sm">Du nimmst derzeit an keinen Events teil.</p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-8 bg-transparent"
+                            onClick={() => router.push("/ludo-events")}
+                          >
                             Events entdecken
                           </Button>
                         </div>
@@ -1889,53 +1900,40 @@ export default function ProfilePage() {
                           {participatingEvents.map((participation) => (
                             <div
                               key={participation.id}
-                              className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
+                              className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer group"
                               onClick={() => router.push(`/ludo-events/${participation.event?.id}`)}
                             >
-                              <div className="space-y-1.5">
-                                <div className="flex items-start justify-between gap-2">
-                                  <h4 className="font-medium text-sm text-gray-900 flex-1">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-sm text-gray-900 group-hover:text-teal-600 transition-colors">
                                     {participation.event?.title || "Event"}
                                   </h4>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
-                                    title="Event verlassen"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleLeaveEvent(participation.id)
-                                    }}
-                                  >
-                                    <LogOut className="h-3.5 w-3.5" />
-                                  </Button>
+                                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500">
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {participation.event?.event_date
+                                        ? new Date(participation.event.event_date).toLocaleDateString("de-DE")
+                                        : "Kein Datum"}
+                                      {participation.event?.event_time && ` • ${participation.event.event_time}`}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" />
+                                      {participation.event?.location || "Kein Ort"}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                                  <span className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    {participation.event?.event_date
-                                      ? new Date(participation.event.event_date).toLocaleDateString("de-DE", {
-                                          day: "2-digit",
-                                          month: "2-digit",
-                                          year: "numeric",
-                                        })
-                                      : "Datum nicht angegeben"}
-                                    {participation.event?.event_time && ` • ${participation.event.event_time}`}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    {participation.event?.location || "Kein Ort"}
-                                  </span>
-                                  {participation.event?.selected_games &&
-                                    participation.event.selected_games.length > 0 && (
-                                      <span className="flex items-center gap-1">
-                                        <Gamepad2 className="w-3 h-3" />
-                                        {participation.event.selected_games
-                                          .map((g: any) => g.title || g.name)
-                                          .join(", ")}
-                                      </span>
-                                    )}
-                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0 opacity-60 group-hover:opacity-100"
+                                  title="Event verlassen"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleLeaveEvent(participation.id)
+                                  }}
+                                >
+                                  <LogOut className="h-3.5 w-3.5" />
+                                </Button>
                               </div>
                             </div>
                           ))}
@@ -1943,11 +1941,13 @@ export default function ProfilePage() {
                       )}
                     </TabsContent>
 
-                    <TabsContent value="events-created" className="space-y-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-black">
+                    <TabsContent value="events-created" className="space-y-3">
+                      <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                        <h3 className="text-sm font-semibold text-gray-800">
                           Events, die ich erstellt habe
-                          <span className="ml-2 text-sm text-black font-bold">({createdEvents.length})</span>
+                          <span className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                            {createdEvents.length}
+                          </span>
                         </h3>
                       </div>
                       {loadingActivities ? (
@@ -1955,9 +1955,15 @@ export default function ProfilePage() {
                           <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
                         </div>
                       ) : createdEvents.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
+                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
+                          <CalendarPlus className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                           <p className="text-gray-500 text-sm mb-3">Du hast noch keine Events erstellt.</p>
-                          <Button size="sm" variant="outline" onClick={() => router.push("/ludo-events")}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-8 bg-transparent"
+                            onClick={() => router.push("/ludo-events")}
+                          >
                             Erstes Event erstellen
                           </Button>
                         </div>
@@ -1966,82 +1972,72 @@ export default function ProfilePage() {
                           {createdEvents.map((event) => (
                             <div
                               key={event.id}
-                              className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
+                              className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer group"
                               onClick={() => router.push(`/ludo-events/${event.id}`)}
                             >
-                              <div className="space-y-1.5">
-                                <div className="flex items-start justify-between gap-2">
-                                  <h4 className="font-medium text-gray-900 flex-1 text-xs">{event.title}</h4>
-                                  <div className="flex gap-0.5">
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="text-gray-500 hover:text-teal-600 hover:bg-teal-50 h-7 w-7 p-0"
-                                      title="Teilnehmer verwalten"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setSelectedEventForApproval(event)
-                                        setIsEventApprovalOpen(true)
-                                      }}
-                                    >
-                                      <Users className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="text-gray-500 hover:text-blue-600 hover:bg-blue-50 h-7 w-7 p-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setEditingEvent(event)
-                                      }}
-                                    >
-                                      <Edit2 className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="text-gray-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleDeleteEvent(event.id)
-                                      }}
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-gray-900 group-hover:text-teal-600 transition-colors text-xs">
+                                    {event.title}
+                                  </h4>
+                                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500 font-thin">
+                                    <span className="flex items-center gap-1">
+                                      <CalendarDaysIcon className="w-3 h-3" />
+                                      {event.frequency && event.frequency !== "once"
+                                        ? "Serientermine"
+                                        : event.event_date
+                                          ? new Date(event.event_date).toLocaleDateString("de-DE")
+                                          : "Kein Datum"}
+                                      {event.event_time && ` • ${event.event_time}`}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" />
+                                      {event.location || "Kein Ort"}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Users className="w-3 h-3" />
+                                      {event.participants?.[0]?.count || 0} Teilnehmer
+                                    </span>
                                   </div>
                                 </div>
-                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-thin">
-                                  <span className="flex items-center gap-1">
-                                    <CalendarDaysIcon className="w-3 h-3" />
-                                    {event.frequency && event.frequency !== "once" ? (
-                                      "Serientermine"
-                                    ) : (
-                                      <>
-                                        {event.event_date
-                                          ? new Date(event.event_date).toLocaleDateString("de-DE", {
-                                              day: "2-digit",
-                                              month: "2-digit",
-                                              year: "numeric",
-                                            })
-                                          : "Datum nicht angegeben"}
-                                        {event.event_time && ` • ${event.event_time}`}
-                                      </>
-                                    )}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    {event.location || "Kein Ort"}
-                                  </span>
-                                  {event.selected_games && event.selected_games.length > 0 && (
-                                    <span className="flex items-center gap-1">
-                                      <DicesIcon className="w-3 h-3" />
-                                      {event.selected_games.map((g: any) => g.title || g.name).join(", ")}
-                                    </span>
-                                  )}
-                                  <span className="flex items-center gap-1">
-                                    <Users className="w-3 h-3" />
-                                    {event.participants?.[0]?.count || 0} Teilnehmer
-                                  </span>
+                                <div className="flex gap-0.5 opacity-60 group-hover:opacity-100">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-gray-500 hover:text-teal-600 hover:bg-teal-50 h-7 w-7 p-0"
+                                    title="Teilnehmer verwalten"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSelectedEventForApproval(event)
+                                      setIsEventApprovalOpen(true)
+                                    }}
+                                  >
+                                    <Users className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-gray-500 hover:text-blue-600 hover:bg-blue-50 h-7 w-7 p-0"
+                                    title="Bearbeiten"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setEditingEvent(event)
+                                    }}
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-gray-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
+                                    title="Löschen"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDeleteEvent(event.id)
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
                                 </div>
                               </div>
                             </div>
@@ -2050,11 +2046,13 @@ export default function ProfilePage() {
                       )}
                     </TabsContent>
 
-                    <TabsContent value="requests" className="space-y-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm text-black font-bold">
+                    <TabsContent value="requests" className="space-y-3">
+                      <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                        <h3 className="text-sm font-semibold text-gray-800">
                           Ausstehende Teilnahmeanfragen
-                          <span className="ml-2 text-black text-sm font-bold">({pendingJoinRequests.length})</span>
+                          <span className="ml-2 px-2 py-0.5 bg-amber-100 rounded-full text-xs font-medium text-amber-700">
+                            {pendingJoinRequests.length}
+                          </span>
                         </h3>
                       </div>
                       {loadingActivities ? (
@@ -2062,8 +2060,9 @@ export default function ProfilePage() {
                           <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
                         </div>
                       ) : pendingJoinRequests.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
-                          <p className="leading-7 font-normal text-gray-500 text-xs">Keine ausstehenden Anfragen.</p>
+                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
+                          <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                          <p className="text-gray-500 text-sm">Keine ausstehenden Anfragen.</p>
                         </div>
                       ) : (
                         <div className="space-y-2">
@@ -2072,23 +2071,18 @@ export default function ProfilePage() {
                               key={request.id}
                               className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 transition-all"
                             >
-                              <div className="flex flex-col gap-2">
+                              <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm text-gray-900 mb-1">
+                                  <h4 className="font-medium text-sm text-gray-900">
                                     {request.event?.title || "Event"}
                                   </h4>
-                                  {request.event?.description && (
-                                    <p className="text-gray-500 text-xs line-clamp-1 mb-1">
-                                      {request.event.description}
-                                    </p>
-                                  )}
                                   {request.message && (
-                                    <div className="flex items-start gap-1.5 p-2 bg-gray-50 rounded text-xs text-gray-600 mb-2">
+                                    <div className="flex items-start gap-1.5 p-2 mt-1.5 bg-gray-50 rounded text-xs text-gray-600">
                                       <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />
                                       <p className="italic line-clamp-2">"{request.message}"</p>
                                     </div>
                                   )}
-                                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                                  <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-500">
                                     <span className="flex items-center gap-1">
                                       <Calendar className="w-3 h-3" />
                                       {new Date(request.created_at).toLocaleDateString("de-DE")}
@@ -2098,24 +2092,24 @@ export default function ProfilePage() {
                                     </span>
                                   </div>
                                 </div>
-                                <div className="flex gap-2 justify-end pt-2 border-t border-gray-100">
+                                <div className="flex gap-1">
                                   <Button
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => router.push(`/ludo-events/${request.event?.id}`)}
-                                    className="text-xs h-7 text-gray-600"
+                                    className="text-gray-500 hover:text-teal-600 hover:bg-teal-50 h-7 w-7 p-0"
+                                    title="Details anzeigen"
                                   >
-                                    <Eye className="w-3 h-3 mr-1" />
-                                    Details
+                                    <Eye className="w-3.5 h-3.5" />
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => handleCancelJoinRequest(request.id)}
-                                    className="text-xs h-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
+                                    title="Anfrage stornieren"
                                   >
-                                    <UserX className="w-3 h-3 mr-1" />
-                                    Stornieren
+                                    <UserX className="w-3.5 h-3.5" />
                                   </Button>
                                 </div>
                               </div>
@@ -2125,11 +2119,13 @@ export default function ProfilePage() {
                       )}
                     </TabsContent>
 
-                    <TabsContent value="groups-created" className="space-y-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-bold text-black">
+                    <TabsContent value="groups-created" className="space-y-3">
+                      <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                        <h3 className="text-sm font-semibold text-gray-800">
                           Spielgruppen, die ich erstellt habe
-                          <span className="ml-2 font-bold text-black">({createdCommunities.length})</span>
+                          <span className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                            {createdCommunities.length}
+                          </span>
                         </h3>
                       </div>
                       {loadingActivities ? (
@@ -2137,9 +2133,15 @@ export default function ProfilePage() {
                           <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
                         </div>
                       ) : createdCommunities.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
+                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
+                          <UserPlus className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                           <p className="text-gray-500 text-sm mb-3">Du hast noch keine Spielgruppen erstellt.</p>
-                          <Button size="sm" variant="outline" onClick={() => router.push("/ludo-gruppen")}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-8 bg-transparent"
+                            onClick={() => router.push("/ludo-gruppen")}
+                          >
                             Erste Spielgruppe erstellen
                           </Button>
                         </div>
@@ -2148,77 +2150,81 @@ export default function ProfilePage() {
                           {createdCommunities.map((community) => (
                             <div
                               key={community.id}
-                              className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
+                              className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer group"
                               onClick={() => router.push(`/ludo-gruppen/${community.id}`)}
                             >
-                              <div className="space-y-1.5">
-                                <div className="flex items-start justify-between gap-2">
-                                  <h4 className="font-medium text-gray-900 flex-1 text-xs">{community.name}</h4>
-                                  <div className="flex gap-0.5">
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="text-gray-500 hover:text-teal-600 hover:bg-teal-50 h-7 w-7 p-0"
-                                      title="Mitglieder verwalten"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setSelectedGroupForMembers(community)
-                                        setIsGroupMembersOpen(true)
-                                      }}
-                                    >
-                                      <Users className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="text-gray-500 hover:text-purple-600 hover:bg-purple-50 h-7 w-7 p-0"
-                                      title="Abstimmungen"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setSelectedGroupForPolls(community)
-                                        setIsGroupPollsOpen(true)
-                                      }}
-                                    >
-                                      <FaChartBar className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="text-gray-500 hover:text-blue-600 hover:bg-blue-50 h-7 w-7 p-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setEditingCommunity(community)
-                                      }}
-                                    >
-                                      <Edit2 className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="text-gray-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleDeleteCommunity(community.id)
-                                      }}
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-gray-900 group-hover:text-teal-600 transition-colors text-xs">
+                                    {community.name}
+                                  </h4>
+                                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500 font-thin">
+                                    <span className="flex items-center gap-1">
+                                      <CalendarDaysIcon className="w-3 h-3" />
+                                      {new Date(community.created_at).toLocaleDateString("de-DE")}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" />
+                                      {community.location || "Kein Ort"}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Users className="w-3 h-3" />
+                                      {community.members?.[0]?.count || 0} Mitglied
+                                      {(community.members?.[0]?.count || 0) !== 1 ? "er" : ""}
+                                    </span>
                                   </div>
                                 </div>
-                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-thin">
-                                  <span className="flex items-center gap-1">
-                                    <CalendarDaysIcon className="w-3 h-3" />
-                                    {new Date(community.created_at).toLocaleDateString("de-DE")}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    {community.location || "Kein Ort"}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Users className="w-3 h-3" />
-                                    {community.members?.[0]?.count || 0} Mitglied
-                                    {(community.members?.[0]?.count || 0) !== 1 ? "er" : ""}
-                                  </span>
+                                <div className="flex gap-0.5 opacity-60 group-hover:opacity-100">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-gray-500 hover:text-teal-600 hover:bg-teal-50 h-7 w-7 p-0"
+                                    title="Mitglieder verwalten"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSelectedGroupForMembers(community)
+                                      setIsGroupMembersOpen(true)
+                                    }}
+                                  >
+                                    <Users className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-gray-500 hover:text-purple-600 hover:bg-purple-50 h-7 w-7 p-0"
+                                    title="Abstimmungen"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSelectedGroupForPolls(community)
+                                      setIsGroupPollsOpen(true)
+                                    }}
+                                  >
+                                    <FaChartBar className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-gray-500 hover:text-blue-600 hover:bg-blue-50 h-7 w-7 p-0"
+                                    title="Bearbeiten"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setEditingCommunity(community)
+                                    }}
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-gray-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
+                                    title="Löschen"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDeleteCommunity(community.id)
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
                                 </div>
                               </div>
                             </div>
@@ -2227,11 +2233,13 @@ export default function ProfilePage() {
                       )}
                     </TabsContent>
 
-                    <TabsContent value="groups-joined" className="space-y-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm text-black font-bold">
+                    <TabsContent value="groups-joined" className="space-y-3">
+                      <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                        <h3 className="text-sm font-semibold text-gray-800">
                           Spielgruppen, in denen ich Mitglied bin
-                          <span className="ml-2 text-black font-bold">({joinedCommunitiesFiltered.length})</span>
+                          <span className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                            {joinedCommunitiesFiltered.length}
+                          </span>
                         </h3>
                       </div>
                       {loadingActivities ? (
@@ -2239,9 +2247,15 @@ export default function ProfilePage() {
                           <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
                         </div>
                       ) : joinedCommunitiesFiltered.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
+                        <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
+                          <Users className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                           <p className="text-gray-500 text-sm mb-3">Du bist noch keiner Spielgruppe beigetreten.</p>
-                          <Button size="sm" variant="outline" onClick={() => router.push("/ludo-gruppen")}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-8 bg-transparent"
+                            onClick={() => router.push("/ludo-gruppen")}
+                          >
                             Spielgruppen entdecken
                           </Button>
                         </div>
@@ -2250,61 +2264,63 @@ export default function ProfilePage() {
                           {joinedCommunitiesFiltered.map((membership) => (
                             <div
                               key={membership.id}
-                              className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
+                              className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer group"
                               onClick={() => router.push(`/ludo-gruppen/${membership.community?.id}`)}
                             >
-                              <div className="space-y-1.5">
-                                <div className="flex items-start justify-between gap-2">
-                                  <h4 className="font-medium text-gray-900 flex-1 text-xs">
-                                    {membership.community?.name}
-                                  </h4>
-                                  <div className="flex items-center gap-1">
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="text-gray-500 hover:text-purple-600 hover:bg-purple-50 h-7 w-7 p-0"
-                                      title="Abstimmungen"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setSelectedGroupForPolls(membership.community)
-                                        setIsGroupPollsOpen(true)
-                                      }}
-                                    >
-                                      <FaChartBar className="h-3.5 w-3.5" />
-                                    </Button>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500 font-normal">
+                                    <h4 className="font-medium text-gray-900 group-hover:text-teal-600 transition-colors">
+                                      {membership.community?.name}
+                                    </h4>
                                     {membership.role === "admin" && (
-                                      <span className="px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600 border border-gray-200">
+                                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-600 border border-gray-200">
                                         Admin
                                       </span>
                                     )}
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
-                                      title="Gruppe verlassen"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleLeaveCommunity(membership.id)
-                                      }}
-                                    >
-                                      <LogOut className="h-3.5 w-3.5" />
-                                    </Button>
+                                  </div>
+                                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500 font-thin">
+                                    <span className="flex items-center gap-1">
+                                      <CalendarDaysIcon className="w-3 h-3" />
+                                      Beigetreten am {new Date(membership.joined_at).toLocaleDateString("de-DE")}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" />
+                                      {membership.community?.location || "Kein Ort"}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Users className="w-3 h-3" />
+                                      {membership.community?.members?.[0]?.count || 0} Mitglied
+                                      {(membership.community?.members?.[0]?.count || 0) !== 1 ? "er" : ""}
+                                    </span>
                                   </div>
                                 </div>
-                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-thin">
-                                  <span className="flex items-center gap-1">
-                                    <CalendarDaysIcon className="w-3 h-3" />
-                                    Beigetreten am {new Date(membership.joined_at).toLocaleDateString("de-DE")}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    {membership.community?.location || "Kein Ort"}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Users className="w-3 h-3" />
-                                    {membership.community?.members?.[0]?.count || 0} Mitglied
-                                    {(membership.community?.members?.[0]?.count || 0) !== 1 ? "er" : ""}
-                                  </span>
+                                <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-gray-500 hover:text-purple-600 hover:bg-purple-50 h-7 w-7 p-0"
+                                    title="Abstimmungen"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSelectedGroupForPolls(membership.community)
+                                      setIsGroupPollsOpen(true)
+                                    }}
+                                  >
+                                    <FaChartBar className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
+                                    title="Gruppe verlassen"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleLeaveCommunity(membership.id)
+                                    }}
+                                  >
+                                    <LogOut className="h-3.5 w-3.5" />
+                                  </Button>
                                 </div>
                               </div>
                             </div>
@@ -2316,101 +2332,91 @@ export default function ProfilePage() {
                     <TabsContent value="marketplace" className="space-y-6">
                       {/* Marketplace Offers Section */}
                       <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-sm text-black font-bold">
+                        <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                          <h3 className="text-sm font-semibold text-gray-800">
                             Marktplatz-Angebote
-                            <span className="ml-2 font-bold text-black">({userOffers.length})</span>
+                            <span className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                              {userOffers.length}
+                            </span>
                           </h3>
                         </div>
                         {userOffers.length === 0 ? (
-                          <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
-                            <p className="mb-3 font-normal text-gray-500 text-xs">Du hast noch keine Angebote erstellt.</p>
-                            <Button size="sm" variant="outline" onClick={() => router.push("/marketplace")}>
+                          <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
+                            <ShoppingBag className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                            <p className="text-gray-500 text-sm mb-3">Du hast noch keine Angebote erstellt.</p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-8 bg-transparent"
+                              onClick={() => router.push("/marketplace")}
+                            >
                               Erstes Angebot erstellen
                             </Button>
                           </div>
                         ) : (
                           <div className="space-y-2">
-                            {userOffers.map((offer) => (
+                            {userOffers.map((offer: any) => (
                               <div
                                 key={offer.id}
-                                className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
+                                className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer group"
                                 onClick={() => router.push(`/marketplace?offerId=${offer.id}`)}
                               >
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <h4 className="font-medium text-sm text-gray-900 mb-1">
-                                      {offer.offer_type === "sell" && "Verkaufen: "}
-                                      {offer.offer_type === "trade" && "Tauschen: "}
-                                      {offer.offer_type === "lend" && "Vermieten: "}
-                                      {offer.game_title}
-                                    </h4>
-                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                                      {offer.publisher && (
-                                        <span className="flex items-center gap-1">
-                                          <Building className="h-3 w-3" />
-                                          {offer.publisher}
-                                        </span>
-                                      )}
-                                      <span className="flex items-center gap-1">
-                                        <Tag className="h-3 w-3" />
-                                        {offer.offer_type === "sell" && "Verkaufen"}
-                                        {offer.offer_type === "lend" && "Verleihen"}
-                                        {offer.offer_type === "trade" && "Tauschen"}
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span
+                                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                          offer.type === "sell"
+                                            ? "bg-green-50 text-green-700 border border-green-200"
+                                            : offer.type === "trade"
+                                              ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                              : "bg-purple-50 text-purple-700 border border-purple-200"
+                                        }`}
+                                      >
+                                        {offer.type === "sell"
+                                          ? "Verkaufsangebot"
+                                          : offer.type === "trade"
+                                            ? "Tauschangebot"
+                                            : "Mietangebot"}
                                       </span>
-                                      {offer.price && (
-                                        <span className="flex items-center gap-1">
-                                          <DollarSign className="h-3 w-3" />
-                                          {offer.price} CHF
-                                        </span>
-                                      )}
-                                      {offer.rental_price && (
-                                        <span className="flex items-center gap-1">
-                                          <DollarSign className="h-3 w-3" />
-                                          {offer.rental_price} CHF / Tag
-                                        </span>
-                                      )}
                                     </div>
+                                    <h4 className="text-gray-900 group-hover:text-teal-600 transition-colors text-xs font-normal">
+                                      {offer.type === "sell"
+                                        ? "Verkaufe "
+                                        : offer.type === "trade"
+                                          ? "Biete "
+                                          : "Vermiete "}
+                                      {offer.title}
+                                    </h4>
+                                    <p className="text-xs text-gray-500 mt-1 font-normal">
+                                      {offer.type === "sell" && `Preis: ${offer.price} CHF`}
+                                      {offer.type === "trade" &&
+                                        (offer.description ? `Gegen: ${offer.description}` : "Offen für Angebote")}
+                                      {offer.type === "lend" && `Mietgebühr: ${offer.price} CHF / Tag`}
+                                    </p>
                                   </div>
-                                  <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex gap-0.5 opacity-60 group-hover:opacity-100">
                                     <Button
-                                      variant="ghost"
                                       size="sm"
-                                      onClick={() => handleToggleOfferStatus(offer.id, offer.active !== false)}
-                                      className={`h-7 px-2 text-xs ${
-                                        offer.active === false
-                                          ? "text-green-600 hover:text-green-700 hover:bg-green-50"
-                                          : "text-gray-500 hover:text-amber-600 hover:bg-amber-50"
-                                      }`}
-                                    >
-                                      {offer.active === false ? (
-                                        <>
-                                          <FaPlay className="h-3 w-3 mr-1" />
-                                          Aktiv.
-                                        </>
-                                      ) : (
-                                        <>
-                                          <FaPause className="h-3 w-3 mr-1" />
-                                          Pause
-                                        </>
-                                      )}
-                                    </Button>
-                                    <Button
                                       variant="ghost"
-                                      size="sm"
                                       className="text-gray-500 hover:text-blue-600 hover:bg-blue-50 h-7 w-7 p-0"
-                                      onClick={() => {
-                                        setEditingOffer(offer)
-                                        setIsEditOfferOpen(true)
+                                      title="Bearbeiten"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        router.push(`/marketplace?edit=${offer.id}`)
                                       }}
                                     >
                                       <Edit2 className="h-3.5 w-3.5" />
                                     </Button>
                                     <Button
-                                      variant="ghost"
                                       size="sm"
+                                      variant="ghost"
                                       className="text-gray-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
-                                      onClick={() => handleDeleteOffer(offer.id)}
+                                      title="Löschen"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteOffer(offer.id)
+                                      }}
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
@@ -2424,110 +2430,75 @@ export default function ProfilePage() {
 
                       {/* Search Ads Section */}
                       <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-sm font-bold text-black">
+                        <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                          <h3 className="text-sm font-semibold text-gray-800">
                             Suchanzeigen
-                            <span className="ml-2 text-sm text-black">({userSearchAds.length})</span>
+                            <span className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                              {userSearchAds.length}
+                            </span>
                           </h3>
                         </div>
                         {userSearchAds.length === 0 ? (
-                          <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-gray-100">
+                          <div className="text-center py-8 bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
+                            <Search className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                             <p className="text-gray-500 text-sm mb-3">Du hast noch keine Suchanzeigen erstellt.</p>
-                            <Button size="sm" variant="outline" onClick={() => router.push("/marketplace")}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-8 bg-transparent"
+                              onClick={() => router.push("/marketplace")}
+                            >
                               Erste Suchanzeige erstellen
                             </Button>
                           </div>
                         ) : (
                           <div className="space-y-2">
-                            {userSearchAds.map((ad) => (
+                            {userSearchAds.map((ad: any) => (
                               <div
                                 key={ad.id}
-                                className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
+                                className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer group"
                                 onClick={() => router.push(`/marketplace?searchAdId=${ad.id}`)}
                               >
-                                <div className="space-y-1.5">
-                                  <div className="flex justify-between items-center">
-                                    <h4 className="font-medium text-gray-900 flex-1 text-xs">{ad.title}</h4>
-                                    <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleToggleSearchAdStatus(ad.id, ad.active !== false)}
-                                        className={`h-7 px-2 text-xs ${
-                                          ad.active === false
-                                            ? "text-green-600 hover:text-green-700 hover:bg-green-50"
-                                            : "text-gray-500 hover:text-amber-600 hover:bg-amber-50"
-                                        }`}
-                                      >
-                                        {ad.active === false ? (
-                                          <>
-                                            <FaPlay className="h-3 w-3 mr-1" />
-                                            Aktiv.
-                                          </>
-                                        ) : (
-                                          <>
-                                            <FaPause className="h-3 w-3 mr-1" />
-                                            Pause
-                                          </>
-                                        )}
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="text-gray-500 hover:text-blue-600 hover:bg-blue-50 h-7 w-7 p-0"
-                                        onClick={() => {
-                                          setEditingSearchAd(ad)
-                                          setIsEditSearchAdOpen(true)
-                                        }}
-                                      >
-                                        <Edit2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="text-gray-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleDeleteSearchAd(ad.id)
-                                        }}
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </div>
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="text-gray-900 group-hover:text-teal-600 transition-colors font-normal text-xs">
+                                      Suche {ad.title}
+                                    </h4>
+                                    <p className="text-xs text-gray-500 mt-1 font-normal">
+                                      {ad.type === "buy" && ad.max_price && `Preisvorstellung: ${ad.max_price} CHF`}
+                                      {ad.type === "rent" &&
+                                        ad.rental_duration &&
+                                        `Gewünschte Mietdauer: ${ad.rental_duration}`}
+                                      {ad.type === "trade" &&
+                                        ad.trade_game_title &&
+                                        `Tauschspiel: ${ad.trade_game_title}`}
+                                    </p>
                                   </div>
-                                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-normal">
-                                    {ad.publisher && (
-                                      <span className="flex items-center gap-1">
-                                        <Building className="h-3 w-3" />
-                                        {ad.publisher}
-                                      </span>
-                                    )}
-                                    <span className="flex items-center gap-1 font-normal font-thin">
-                                      <Tag className="h-3 w-3" />
-                                      {ad.type === "buy"
-                                        ? "Zum Kaufen"
-                                        : ad.type === "rent"
-                                          ? "Zum Mieten"
-                                          : "Zum Tauschen"}
-                                    </span>
-                                    {ad.type === "rent" && ad.rental_duration && (
-                                      <span className="flex items-center gap-1">
-                                        <Clock className="h-3 w-3" />
-                                        {ad.rental_duration}
-                                      </span>
-                                    )}
-                                    {ad.type === "buy" && ad.max_price && (
-                                      <span className="flex items-center gap-1">
-                                        <BanknoteIcon className="h-3 w-3" />
-                                        bis {ad.max_price} CHF
-                                      </span>
-                                    )}
-                                    {ad.type === "trade" && ad.trade_game_title && (
-                                      <span className="flex items-center gap-1 text-xs font-normal font-thin">
-                                        <RepeatIcon className="h-3 w-3" />
-                                        Biete: {ad.trade_game_title}
-                                      </span>
-                                    )}
+                                  <div className="flex gap-0.5 opacity-60 group-hover:opacity-100">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-gray-500 hover:text-blue-600 hover:bg-blue-50 h-7 w-7 p-0"
+                                      title="Bearbeiten"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        router.push(`/marketplace?editSearchAd=${ad.id}`)
+                                      }}
+                                    >
+                                      <Edit2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-gray-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
+                                      title="Löschen"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteSearchAd(ad.id)
+                                      }}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
                                   </div>
                                 </div>
                               </div>
@@ -2729,8 +2700,8 @@ export default function ProfilePage() {
                         {/* Shelf Access Requests */}
                         <div className="space-y-3">
                           <div>
-                            <Label className="text-xs font-medium">Spielregal-Anfragen</Label>
-                            <p className="text-xs text-gray-600 font-normal">Zugangsanfragen zu deinem Spielregal</p>
+                            <Label className="text-xs font-medium">Spieleregal-Zugangsanfragen</Label>
+                            <p className="text-xs text-gray-600 font-normal">Zugangsanfragen zu deinem Spieleregal</p>
                           </div>
                           <div className="flex items-center gap-6 ml-4">
                             <div className="flex items-center gap-2">
@@ -3145,7 +3116,7 @@ export default function ProfilePage() {
                               onChange={(e) => handlePrivacySettingChange("allow_messages_from", e.target.value)}
                               className="rounded border-gray-300"
                             />
-                            <span className="text-xs font-normal font-normal font-normal font-normal">Nur Freunde</span>
+                            <span className="text-xs font-normal">Nur Freunde</span>
                           </label>
                           <label className="flex items-center space-x-2">
                             <input
@@ -3156,7 +3127,7 @@ export default function ProfilePage() {
                               onChange={(e) => handlePrivacySettingChange("allow_messages_from", e.target.value)}
                               className="rounded border-gray-300"
                             />
-                            <span className="text-xs font-normal font-normal font-normal font-normal">Niemand</span>
+                            <span className="text-xs font-normal">Niemand</span>
                           </label>
                         </div>
                       </div>
@@ -3269,7 +3240,7 @@ export default function ProfilePage() {
                       <div className="space-y-4">
                         <div>
                           <h3 className="font-semibold text-gray-900 mb-2 text-xs">Konto löschen</h3>
-                          <p className="text-xs text-muted-foreground mb-4 font-normal font-normal font-normal font-normal">
+                          <p className="text-xs text-muted-foreground mb-4 font-normal">
                             Das Löschen deines Kontos ist dauerhaft und kann nicht rückgängig gemacht werden. Alle deine
                             Daten, einschliesslich Profil, Spielesammlung, Nachrichten und Aktivitäten werden permanent
                             gelöscht.
@@ -3283,7 +3254,7 @@ export default function ProfilePage() {
                               Konto löschen
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="sm:max-w-md">
+                          <DialogContent className="sm:max-md">
                             <DialogHeader>
                               <DialogTitle className="text-red-600">Konto wirklich löschen?</DialogTitle>
                               <DialogDescription className="space-y-3 pt-2">

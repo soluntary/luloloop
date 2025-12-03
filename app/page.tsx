@@ -506,7 +506,7 @@ export default function HomePage() {
             },
             {
               icon: MdGroupAdd,
-              title: "(Spiel-)Freunde finden",
+              title: "Freunde finden",
               description: "Vernetze dich mit anderen Brettspielbegeisterten und baue dein Freundesnetzwerk auf.",
               link: "/ludo-mitglieder",
               linkText: "Mitglieder entdecken",

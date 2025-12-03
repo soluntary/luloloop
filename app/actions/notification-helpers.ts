@@ -9,17 +9,28 @@ type NotificationType =
   | "forum_reply"
   | "comment_reply"
   | "game_shelf_request"
+  | "game_shelf_approved"
+  | "game_shelf_denied"
   | "event_invitation"
   | "event_reminder"
+  | "event_updated"
+  | "event_cancelled"
+  | "event_participant_joined"
+  | "event_participant_left"
   | "group_join_request"
   | "group_join_approved"
   | "group_join_rejected"
   | "group_created"
   | "group_join"
   | "group_leave"
+  | "group_updated"
   | "message"
   | "poll_created"
   | "event_join_request"
+  | "game_interaction_request"
+  | "game_interaction_approved"
+  | "game_interaction_denied"
+  | "marketplace_message"
 
 /**
  * Checks if a user has enabled a specific notification type
@@ -41,8 +52,30 @@ export async function shouldSendNotification(userId: string, notificationType: N
         column: "shelf_access_requests",
         defaultValue: true,
       },
+      game_shelf_approved: {
+        table: "social_notification_preferences",
+        column: "shelf_access_requests",
+        defaultValue: true,
+      },
+      game_shelf_denied: {
+        table: "social_notification_preferences",
+        column: "shelf_access_requests",
+        defaultValue: true,
+      },
       event_invitation: { table: "social_notification_preferences", column: "community_events", defaultValue: true },
       event_reminder: { table: "social_notification_preferences", column: "event_reminders", defaultValue: true },
+      event_updated: { table: "social_notification_preferences", column: "community_events", defaultValue: true },
+      event_cancelled: { table: "social_notification_preferences", column: "community_events", defaultValue: true },
+      event_participant_joined: {
+        table: "social_notification_preferences",
+        column: "community_events",
+        defaultValue: true,
+      },
+      event_participant_left: {
+        table: "social_notification_preferences",
+        column: "community_events",
+        defaultValue: true,
+      },
       group_join_request: {
         table: "social_notification_preferences",
         column: "community_invitations",
@@ -61,9 +94,30 @@ export async function shouldSendNotification(userId: string, notificationType: N
       group_created: { table: "social_notification_preferences", column: "community_posts", defaultValue: true },
       group_join: { table: "social_notification_preferences", column: "community_member_joins", defaultValue: true },
       group_leave: { table: "social_notification_preferences", column: "community_member_joins", defaultValue: true },
+      group_updated: { table: "social_notification_preferences", column: "community_posts", defaultValue: true },
       message: { table: "social_notification_preferences", column: "friend_requests", defaultValue: true }, // Using friend_requests as proxy for messages
       poll_created: { table: "social_notification_preferences", column: "community_posts", defaultValue: true },
       event_join_request: { table: "social_notification_preferences", column: "community_events", defaultValue: true },
+      game_interaction_request: {
+        table: "social_notification_preferences",
+        column: "game_interactions",
+        defaultValue: true,
+      },
+      game_interaction_approved: {
+        table: "social_notification_preferences",
+        column: "game_interactions",
+        defaultValue: true,
+      },
+      game_interaction_denied: {
+        table: "social_notification_preferences",
+        column: "game_interactions",
+        defaultValue: true,
+      },
+      marketplace_message: {
+        table: "social_notification_preferences",
+        column: "marketplace_messages",
+        defaultValue: true,
+      },
     }
 
     const mapping = preferenceMapping[notificationType]

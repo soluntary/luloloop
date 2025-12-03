@@ -89,7 +89,6 @@ const generateSeriesDates = (
 
   // Normalize end date to midnight for proper comparison
   const endDate = seriesEndDate ? parseLocalDate(seriesEndDate) : null
-  // </CHANGE>
 
   const maxCount = seriesEndCount ? Number.parseInt(seriesEndCount) : 100
 
@@ -993,7 +992,6 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
         seriesEndType: formData.seriesEndType,
         seriesEndDate: formData.seriesEndDate,
         seriesEndCount: formData.seriesEndCount ? Number.parseInt(formData.seriesEndCount) : null,
-        // </CHANGE>
 
         additionalDates: formData.additionalDates,
         additionalStartTimes: formData.additionalStartTimes,
@@ -1631,7 +1629,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                   <Label className="text-sm font-medium text-gray-700 block">Wann soll die Serie enden?</Label>
 
                   <div className="space-y-4">
-                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-gray-900 transition-colors">
+                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-gray-900 transition-colors text-xs">
                       <input
                         type="radio"
                         id="endByCount"
@@ -1902,7 +1900,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
               formData.endTime &&
               (formData.seriesEndType === "count" ? formData.seriesEndCount : formData.seriesEndDate))) && (
             <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-6">
-              <h3 className="font-semibold text-gray-900 mb-4 text-base flex items-center gap-2">
+              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
                 <span className="text-lg">📅</span>
                 Terminvorschau
               </h3>
@@ -1983,7 +1981,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                         key={index}
                         className="flex justify-between items-center bg-white rounded-lg p-4 border border-gray-200 shadow-sm"
                       >
-                        <span className="font-medium text-gray-800">
+                        <span className="font-medium text-gray-800 text-xs">
                           {parseLocalDate(date).toLocaleDateString("de-DE", {
                             weekday: "long",
                             year: "numeric",
@@ -1991,7 +1989,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                             day: "numeric",
                           })}
                         </span>
-                        <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
+                        <span className="font-medium text-gray-800 text-xs">
                           {formData.startTime} - {formData.endTime}
                         </span>
                       </div>
@@ -2000,7 +1998,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                 )}
               </div>
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-800 font-semibold">
+                <p className="text-gray-800 font-semibold text-xs">
                   {" "}
                   {formData.frequency === "einmalig"
                     ? 1
@@ -2109,7 +2107,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
               </div>
 
               <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <h4 className="text-base font-semibold text-gray-900 mb-4">Aus der Datenbank suchen</h4>
+                <h4 className="font-semibold text-gray-900 mb-4 text-sm">Aus der Datenbank suchen</h4>
                 <div className="relative mb-5">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
@@ -2120,7 +2118,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                       setBggSearchTerm(e.target.value)
                       searchBoardGameGeek(e.target.value)
                     }}
-                    className="w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-xs"
                   />
                 </div>
 
@@ -2155,7 +2153,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                               }}
                             />
                           </div>
-                          <h4 className="font-semibold text-sm text-gray-900 line-clamp-2 mb-1">{game.title}</h4>
+                          <h4 className="font-semibold text-gray-900 line-clamp-2 mb-1 text-xs">{game.title}</h4>
                           {game.year && <p className="text-xs text-gray-500">({game.year})</p>}
                           {game.publisher && <p className="text-xs text-gray-600 truncate">{game.publisher}</p>}
                         </div>
@@ -2195,7 +2193,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        <h4 className="font-semibold text-sm text-gray-900 line-clamp-2">{game.title}</h4>
+                        <h4 className="font-semibold text-gray-900 line-clamp-2 text-xs">{game.title}</h4>
                       </div>
                     ))}
                   </div>

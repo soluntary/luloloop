@@ -306,6 +306,30 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
         ])
 
         if (error) throw error
+
+        // Get requester and game info for notification
+        const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
+        const { data: gameData } = await supabase.from("games").select("title").eq("id", data.gameId).single()
+
+        const requesterName = userData?.username || userData?.name || "Ein Nutzer"
+        const gameTitle = gameData?.title || "ein Spiel"
+
+        const requestTypeText =
+          data.requestType === "trade" ? "tauschen" : data.requestType === "buy" ? "kaufen" : "mieten"
+
+        await createNotificationIfEnabled(
+          data.ownerId,
+          "game_shelf_request", // Using existing type that maps to shelf_access_requests preference
+          "Neue Spielanfrage",
+          `${requesterName} möchte "${gameTitle}" ${requestTypeText}`,
+          {
+            requester_id: user.id,
+            requester_name: requesterName,
+            game_id: data.gameId,
+            game_title: gameTitle,
+            request_type: data.requestType,
+          },
+        )
       })
 
       await loadGameInteractionRequests()
@@ -329,6 +353,17 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
 
     try {
       await withRateLimit(async () => {
+        const { data: request } = await supabase
+          .from("game_interaction_requests")
+          .select(`
+            requester_id, 
+            owner_id, 
+            request_type,
+            game:games!game_interaction_requests_game_id_fkey(title)
+          `)
+          .eq("id", requestId)
+          .single()
+
         const { error } = await supabase
           .from("game_interaction_requests")
           .update({
@@ -339,6 +374,30 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
           .eq("owner_id", user.id)
 
         if (error) throw error
+
+        if (request) {
+          const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
+          const ownerName = userData?.username || userData?.name || "Ein Nutzer"
+          const gameTitle = (request.game as any)?.title || "das Spiel"
+          const requestTypeText =
+            request.request_type === "trade" ? "Tausch" : request.request_type === "buy" ? "Kauf" : "Miete"
+
+          await createNotificationIfEnabled(
+            request.requester_id,
+            "game_shelf_request",
+            status === "approved" ? `${requestTypeText}-Anfrage angenommen` : `${requestTypeText}-Anfrage abgelehnt`,
+            status === "approved"
+              ? `${ownerName} hat deine Anfrage für "${gameTitle}" angenommen`
+              : `${ownerName} hat deine Anfrage für "${gameTitle}" abgelehnt`,
+            {
+              owner_id: user.id,
+              owner_name: ownerName,
+              game_title: gameTitle,
+              request_type: request.request_type,
+              status,
+            },
+          )
+        }
       })
 
       await loadGameInteractionRequests()

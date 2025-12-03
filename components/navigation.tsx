@@ -314,8 +314,8 @@ function Navigation({ currentPage }: NavigationProps) {
                     <div key={item.key} className="space-y-1">
                       <div className="px-4 py-2 text-sm font-medium text-gray-500 font-handwritten">
                         <div className="flex items-center space-x-2">
-                          <Icon className="w-4 h-4" />
-                          <span>{item.label}</span>
+                          <Icon className="w-4 h-4 text-black" />
+                          <span className="text-black">{item.label}</span>
                         </div>
                       </div>
                       {item.dropdown.items.map((dropdownItem) => {
@@ -358,8 +358,8 @@ function Navigation({ currentPage }: NavigationProps) {
                           : "text-gray-700 hover:bg-teal-400 hover:text-white"
                       }`}
                     >
-                      <Icon className="w-5 h-5" />
-                      <span>{item.label}</span>
+                      <Icon className="w-5 h-5 text-foreground" />
+                      <span className="text-foreground">{item.label}</span>
                       {item.key === "messages" && unreadCount > 0 && (
                         <div className="absolute right-4 bg-red-500 text-white text-sm rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
                           {unreadCount > 99 ? "99+" : unreadCount}

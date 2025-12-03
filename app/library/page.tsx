@@ -46,6 +46,7 @@ import { de } from "date-fns/locale"
 import { Calendar } from "@/components/ui/calendar"
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { FiFilter } from "react-icons/fi" // Import FiFilter
 
 function GameTrackingDialog({
   isOpen,
@@ -94,7 +95,7 @@ function GameTrackingDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-handwritten text-2xl text-teal-600">Spiel-Status aktualisieren</DialogTitle>
+          <DialogTitle className="font-handwritten text-sm text-teal-600">Spiel-Status aktualisieren</DialogTitle>
           <DialogDescription>Hier kannst du festhalten, wo sich dein Spiel gerade befindet.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -115,7 +116,7 @@ function GameTrackingDialog({
           {status === "rented" && (
             <>
               <div className="space-y-2">
-                <Label>An wen vermieten / verleihen?</Label>
+                <Label>An wen vermieten / verliehen?</Label>
                 <Input
                   placeholder="Name des Ausleihers"
                   value={rentedTo}
@@ -368,6 +369,7 @@ function LibraryContent() {
   const [selectedGame, setSelectedGame] = useState<(typeof games)[0] | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
 
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   const [filters, setFilters] = useState({
     playerCountMin: "",
     playerCountMax: "",
@@ -477,7 +479,7 @@ function LibraryContent() {
         if (prev[selectedGame.id] === undefined) {
           return {
             ...prev,
-            [selectedGame.id]: selectedGame.available?.includes("available") || false,
+            [selectedGame.id]: selectedGame.tracking_info?.status === "available" || false,
           }
         }
         return prev
@@ -533,7 +535,21 @@ function LibraryContent() {
 
   const handleUpdateTracking = async (gameId: string, trackingInfo: any) => {
     try {
-      await updateGame(gameId, { tracking_info: trackingInfo })
+      const isAvailable = trackingInfo.status === "available"
+
+      // Update tracking_info and set availability based on status
+      await updateGame(gameId, {
+        tracking_info: trackingInfo,
+      })
+
+      // Also update the game availability via toggleGameAvailability
+      await toggleGameAvailability(gameId, isAvailable)
+
+      // Update local toggle state based on new status
+      setLocalToggleState((prev) => ({
+        ...prev,
+        [gameId]: isAvailable,
+      }))
 
       // Update local state immediately for better UX
       if (selectedGame && selectedGame.id === gameId) {
@@ -545,7 +561,9 @@ function LibraryContent() {
 
       toast({
         title: "Status aktualisiert",
-        description: "Der Status deines Spiels wurde erfolgreich gespeichert.",
+        description: isAvailable
+          ? "Das Spiel ist jetzt als verfügbar markiert."
+          : "Das Spiel ist jetzt als nicht verfügbar markiert.",
       })
     } catch (error) {
       console.error("Error updating tracking info:", error)
@@ -1223,6 +1241,20 @@ function LibraryContent() {
     setIsGameSearchDialogOpen(false)
   }
 
+  const resetFilters = () => {
+    setSearchTerm("")
+    setSortBy("title-asc")
+    setFilters({
+      playerCountMin: "",
+      playerCountMax: "",
+      duration: "",
+      age: "",
+      language: "",
+      category: "",
+      type: "",
+    })
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
       {/* Header */}
@@ -1779,9 +1811,10 @@ function LibraryContent() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3 items-end">
+            {/* Hauptfilter */}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6 sm:gap-3 items-end">
               <div>
-                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren nach</Label>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren</Label>
                 <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
                   <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
                     <SelectValue />
@@ -1805,7 +1838,7 @@ function LibraryContent() {
 
               {/* Spieleranzahl Filter */}
               <div>
-                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Spieleranzahl (ab)</Label>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Spieler (ab)</Label>
                 <Select
                   value={filters.playerCountMin}
                   onValueChange={(value) =>
@@ -1827,7 +1860,7 @@ function LibraryContent() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Spieleranzahl (bis)</Label>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Spieler (bis)</Label>
                 <Select
                   value={filters.playerCountMax}
                   onValueChange={(value) =>
@@ -1843,72 +1876,6 @@ function LibraryContent() {
                     {PLAYER_COUNT_MAX_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value} className="text-xs">
                         {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Spieldauer Filter */}
-              <div>
-                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Spieldauer</Label>
-                <Select
-                  value={filters.duration}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, duration: value === "all" ? "" : value }))}
-                  disabled={!databaseConnected}
-                >
-                  <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
-                    <SelectValue placeholder="Alle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle</SelectItem>
-                    {durationOptions.map((option) => (
-                      <SelectItem key={option} value={option} className="text-xs">
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Altersempfehlung Filter */}
-              <div>
-                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Altersempfehlung</Label>
-                <Select
-                  value={filters.age}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, age: value === "all" ? "" : value }))}
-                  disabled={!databaseConnected}
-                >
-                  <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
-                    <SelectValue placeholder="Alle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle</SelectItem>
-                    {AGE_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option} className="text-xs">
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Sprache Filter */}
-              <div>
-                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sprache</Label>
-                <Select
-                  value={filters.language}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, language: value === "all" ? "" : value }))}
-                  disabled={!databaseConnected}
-                >
-                  <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
-                    <SelectValue placeholder="Alle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle</SelectItem>
-                    {LANGUAGE_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option} className="text-xs">
-                        {option}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1936,53 +1903,109 @@ function LibraryContent() {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Typ Filter */}
-              <div>
-                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Typ</Label>
-                <Select
-                  value={filters.type}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, type: value === "all" ? "" : value }))}
-                  disabled={!databaseConnected}
-                >
-                  <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
-                    <SelectValue placeholder="Alle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle</SelectItem>
-                    {TYPE_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option} className="text-xs">
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs text-gray-500 mb-1.5 block font-medium invisible">Reset</Label>
+              <div className="col-span-2 sm:col-span-1 flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    setSearchTerm("")
-                    setSortBy("title-asc")
-                    setFilters({
-                      playerCountMin: "",
-                      playerCountMax: "",
-                      duration: "",
-                      age: "",
-                      language: "",
-                      category: "",
-                      type: "",
-                    })
-                  }}
-                  className="h-9 text-xs border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 whitespace-nowrap w-full"
-                  disabled={!databaseConnected}
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs whitespace-nowrap"
                 >
-                  Filter zurücksetzen
+                  <FiFilter className="w-3 h-3 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Erweiterte Filter</span>
+                  <span className="sm:hidden">Filter</span>
+                  <FaChevronDown
+                    className={`w-3 h-3 ml-1 sm:ml-2 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
+                  />
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={resetFilters}
+                  className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs whitespace-nowrap bg-transparent"
+                >
+                  <span className="hidden sm:inline">Filter zurücksetzen</span>
+                  <span className="sm:hidden">Reset</span>
                 </Button>
               </div>
             </div>
+
+            {showAdvancedFilters && (
+              <div className="pt-4 mt-4 border-t border-gray-100 space-y-3">
+                <h3 className="text-xs font-semibold text-gray-500 flex items-center">
+                  <FiFilter className="w-3 h-3 mr-2" />
+                  Erweiterte Filter
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {/* Spieldauer Filter */}
+                  <div>
+                    <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Spieldauer</Label>
+                    <Select
+                      value={filters.duration}
+                      onValueChange={(value) =>
+                        setFilters((prev) => ({ ...prev, duration: value === "all" ? "" : value }))
+                      }
+                      disabled={!databaseConnected}
+                    >
+                      <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
+                        <SelectValue placeholder="Alle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Alle</SelectItem>
+                        {durationOptions.map((option) => (
+                          <SelectItem key={option} value={option} className="text-xs">
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Altersempfehlung Filter */}
+                  <div>
+                    <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Altersempfehlung</Label>
+                    <Select
+                      value={filters.age}
+                      onValueChange={(value) => setFilters((prev) => ({ ...prev, age: value === "all" ? "" : value }))}
+                      disabled={!databaseConnected}
+                    >
+                      <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
+                        <SelectValue placeholder="Alle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Alle</SelectItem>
+                        {AGE_OPTIONS.map((option) => (
+                          <SelectItem key={option} value={option} className="text-xs">
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Sprache Filter */}
+                  <div>
+                    <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sprache</Label>
+                    <Select
+                      value={filters.language}
+                      onValueChange={(value) =>
+                        setFilters((prev) => ({ ...prev, language: value === "all" ? "" : value }))
+                      }
+                      disabled={!databaseConnected}
+                    >
+                      <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
+                        <SelectValue placeholder="Alle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Alle</SelectItem>
+                        {LANGUAGE_OPTIONS.map((option) => (
+                          <SelectItem key={option} value={option} className="text-xs">
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -2058,7 +2081,7 @@ function LibraryContent() {
                           >
                             <div className="w-20 h-28 md:w-24 md:h-32 bg-gradient-to-br from-teal-100 to-teal-200 rounded-t-lg shadow-lg border-2 border-dashed border-teal-400 overflow-hidden relative flex items-center justify-center">
                               <div className="text-center">
-                                <FaPlus className="w-6 h-6 md:w-8 md:h-8 text-teal-600 mx-auto mb-1" />
+                                <FaPlus className="w-6 md:w-8 md:h-8 text-teal-600 mx-auto mb-1" />
                                 <p className="text-xs text-teal-700 font-bold font-handwritten px-1">
                                   <span className="hidden sm:inline text-xs font-normal">Spiel hinzufügen</span>
                                   <span className="sm:hidden">Hinzufügen</span>
@@ -2091,13 +2114,22 @@ function LibraryContent() {
                                 </div>
                               )}
 
+                              {/* Fix availability dot logic - use tracking_info.status instead of available array */}
                               {!isSelectionMode && (
                                 <div className="absolute top-1 left-1 z-10">
                                   <div
                                     className={`w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm ${
-                                      game.available?.includes("available") ? "bg-green-500" : "bg-red-500"
+                                      !game.tracking_info?.status || game.tracking_info.status === "available"
+                                        ? "bg-green-500"
+                                        : "bg-red-500"
                                     }`}
-                                    title={game.available?.includes("available") ? "Verfügbar" : "Nicht verfügbar"}
+                                    title={
+                                      !game.tracking_info?.status || game.tracking_info.status === "available"
+                                        ? "Verfügbar"
+                                        : game.tracking_info.status === "rented"
+                                          ? "Vermietet / Verliehen"
+                                          : "Getauscht"
+                                    }
                                   />
                                 </div>
                               )}
@@ -2137,7 +2169,7 @@ function LibraryContent() {
                             {filteredGames.slice(8 + shelfIndex * 9, 8 + shelfIndex * 9 + 9).map((game) => (
                               <div
                                 key={game.id}
-                                className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300 mx-0.5 px-0"
+                                className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300 mx-0.5 px-0 relative"
                                 onClick={() => (isSelectionMode ? toggleGameSelection(game.id) : setSelectedGame(game))}
                               >
                                 {isSelectionMode && (
@@ -2157,10 +2189,18 @@ function LibraryContent() {
                                 {!isSelectionMode && (
                                   <div className="absolute top-1 left-1 z-10">
                                     <div
-                                      className={`w-4 h-4 rounded-full border border-white shadow-sm mx-2 my-2.5 ${
-                                        game.available?.includes("available") ? "bg-green-500" : "bg-red-500"
+                                      className={`w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm ${
+                                        !game.tracking_info?.status || game.tracking_info.status === "available"
+                                          ? "bg-green-500"
+                                          : "bg-red-500"
                                       }`}
-                                      title={game.available?.includes("available") ? "Verfügbar" : "Nicht verfügbar"}
+                                      title={
+                                        !game.tracking_info?.status || game.tracking_info.status === "available"
+                                          ? "Verfügbar"
+                                          : game.tracking_info.status === "rented"
+                                            ? "Vermietet / Verliehen"
+                                            : "Getauscht"
+                                      }
                                     />
                                   </div>
                                 )}
@@ -2297,65 +2337,87 @@ function LibraryContent() {
                       </div>
                     </div>
 
-                    {selectedGame.tracking_info && selectedGame.tracking_info.status !== "available" && (
-                      <div className="mb-3 bg-amber-50 border border-amber-200 rounded-md p-2 text-xs text-amber-800">
-                        {selectedGame.tracking_info.status === "rented" && (
-                          <>
-                            <p className="font-semibold">Vermietet an:</p>
-                            <p>{selectedGame.tracking_info.rented_to}</p>
-                            {selectedGame.tracking_info.rented_until && (
-                              <p className="text-[10px] mt-1">
-                                bis {format(new Date(selectedGame.tracking_info.rented_until), "P", { locale: de })}
-                              </p>
-                            )}
-                          </>
-                        )}
-                        {selectedGame.tracking_info.status === "swapped" && (
-                          <>
-                            <p className="font-semibold">Getauscht mit:</p>
-                            <p>{selectedGame.tracking_info.swapped_with}</p>
-                          </>
-                        )}
-                        {selectedGame.tracking_info.notes && (
-                          <p className="italic mt-1 text-[10px] border-t border-amber-200 pt-1">
-                            "{selectedGame.tracking_info.notes}"
-                          </p>
-                        )}
-                      </div>
-                    )}
-
                     <h3 className="text-sm font-bold text-gray-800 mb-2 font-handwritten md:text-xs">
                       {selectedGame.title}
                     </h3>
                     <p className="text-xs text-gray-600 font-body md:text-xs">{selectedGame.publisher}</p>
                   </div>
 
-                  <div className="space-y-2 mb-6 text-xs">
+                  {/* CHANGE: Moved status display to after title and publisher */}
+                  {selectedGame.tracking_info && selectedGame.tracking_info.status !== "available" && (
+                    <div className="mb-4 rounded-lg overflow-hidden border border-amber-200">
+                      <div
+                        className={cn(
+                          "px-3 py-1.5 text-xs font-semibold text-orange-800",
+                          selectedGame.tracking_info.status === "rented"
+                            ? "bg-orange-100 text-orange-800"
+                            : "bg-orange-100 text-orange-800",
+                        )}
+                      >
+                        {selectedGame.tracking_info.status === "rented" ? "Vermietet / Verliehen" : "Getauscht"}
+                      </div>
+                      <div className="bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                        {selectedGame.tracking_info.status === "rented" && (
+                          <div className="space-y-1">
+                            <p>
+                              <span className="font-medium">an:</span>{" "}
+                              <span className="font-semibold text-orange-800 text-xs">
+                                {selectedGame.tracking_info.rented_to || "Unbekannt"}
+                              </span>
+                            </p>
+                            {selectedGame.tracking_info.rented_until && (
+                              <p>
+                                <span className="font-medium">Bis:</span>{" "}
+                                <span className="text-orange-800 font-semibold">
+                                  {format(new Date(selectedGame.tracking_info.rented_until), "PPP", { locale: de })}
+                                </span>
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {selectedGame.tracking_info.status === "swapped" && (
+                          <p>
+                            <span className="font-medium">mit:</span>{" "}
+                            <span className="font-semibold text-orange-800">
+                              {selectedGame.tracking_info.swapped_with || "Unbekannt"}
+                            </span>
+                          </p>
+                        )}
+                        {selectedGame.tracking_info.notes && (
+                          <p className="italic mt-2 pt-2 border-t border-amber-200 text-[11px] text-amber-700">
+                            Notiz: "{selectedGame.tracking_info.notes}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="border-t pt-3 pb-6 space-y-2.5">
                     <div className="flex justify-between text-xs md:text-sm">
-                      <span className="font-medium font-body text-xs">Spieleranzahl:</span>
+                      <span className="font-body text-xs font-semibold">Spieleranzahl:</span>
                       <span className="font-body text-xs">{selectedGame.players}</span>
                     </div>
                     <div className="flex justify-between text-xs md:text-sm">
-                      <span className="font-medium font-body text-xs">Spieldauer:</span>
+                      <span className="font-body text-xs font-bold">Spieldauer:</span>
                       <span className="font-body text-xs">{selectedGame.duration}</span>
                     </div>
                     <div className="flex justify-between text-xs md:text-sm">
-                      <span className="flex justify-between text-xs md:text-xs">Altersempfehlung:</span>
+                      <span className="flex justify-between text-xs md:text-xs font-bold">Altersempfehlung:</span>
                       <span className="font-body text-xs">{selectedGame.age || "Keine Angabe"}</span>
                     </div>
                     <div className="flex justify-between text-xs md:text-sm">
-                      <span className="font-medium font-body text-xs">Sprache:</span>
+                      <span className="font-body text-xs font-bold">Sprache:</span>
                       <span className="font-body text-xs">{selectedGame.language}</span>
                     </div>
                     {selectedGame.type && (
                       <div className="flex justify-between text-xs md:text-sm">
-                        <span className="font-medium font-body text-xs">Kategorie:</span>
+                        <span className="font-body text-xs font-bold">Kategorie:</span>
                         <span className="font-body text-xs">{selectedGame.type}</span>
                       </div>
                     )}
                     {selectedGame.style && (
                       <div className="flex justify-between text-xs md:text-sm">
-                        <span className="font-medium font-body text-xs">Typus:</span>
+                        <span className="font-body text-xs font-bold">Typus:</span>
                         <span className="font-body text-xs">{selectedGame.style}</span>
                       </div>
                     )}
