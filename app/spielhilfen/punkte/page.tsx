@@ -7,17 +7,19 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Trophy, Plus, Minus, Trash2, Crown, Target, Undo2, History, RotateCcw } from "lucide-react"
+import { ArrowLeft, Trophy, Plus, Minus, Trash2, Crown, Undo2, History, RotateCcw } from "lucide-react"
 import { GiTargetPrize } from "react-icons/gi"
 
-type Player = { id: number; name: string; score: number; inputValue: string }
+type Player = { id: number; name: string; score: number; inputValue: string; originalIndex: number }
 type HistoryEntry = { playerId: number; playerName: string; change: number; newScore: number; timestamp: Date }
 
 export default function PunktePage() {
-  const [players, setPlayers] = useState<Player[]>([
-    { id: 1, name: "Spieler 1", score: 0, inputValue: "" },
-    { id: 2, name: "Spieler 2", score: 0, inputValue: "" },
-  ])
+  const getInitialPlayers = (): Player[] => [
+    { id: 1, name: "Spieler 1", score: 0, inputValue: "", originalIndex: 0 },
+    { id: 2, name: "Spieler 2", score: 0, inputValue: "", originalIndex: 1 },
+  ]
+
+  const [players, setPlayers] = useState<Player[]>(getInitialPlayers())
   const [targetScore, setTargetScore] = useState<number | null>(null)
   const [targetInput, setTargetInput] = useState("")
   const [winner, setWinner] = useState<Player | null>(null)
@@ -26,7 +28,16 @@ export default function PunktePage() {
 
   const addPlayer = () => {
     if (players.length < 8) {
-      setPlayers([...players, { id: Date.now(), name: `Spieler ${players.length + 1}`, score: 0, inputValue: "" }])
+      setPlayers([
+        ...players,
+        {
+          id: Date.now(),
+          name: `Spieler ${players.length + 1}`,
+          score: 0,
+          inputValue: "",
+          originalIndex: players.length,
+        },
+      ])
     }
   }
 
@@ -36,13 +47,19 @@ export default function PunktePage() {
     }
   }
 
-  const updateScore = (id: number, change: number) => {
+  const addFromInput = (id: number, subtract = false) => {
     if (winner) return
     const player = players.find((p) => p.id === id)
-    if (!player) return
+    if (!player || !player.inputValue) return
 
+    const value = Number.parseInt(player.inputValue)
+    if (isNaN(value) || value === 0) return
+
+    const change = subtract ? -value : value
     const newScore = player.score + change
-    setPlayers(players.map((p) => (p.id === id ? { ...p, score: newScore } : p)))
+
+    setPlayers((prevPlayers) => prevPlayers.map((p) => (p.id === id ? { ...p, score: newScore, inputValue: "" } : p)))
+
     setHistory((prev) =>
       [{ playerId: id, playerName: player.name, change, newScore, timestamp: new Date() }, ...prev].slice(0, 50),
     )
@@ -50,15 +67,6 @@ export default function PunktePage() {
     if (targetScore && newScore >= targetScore) {
       setWinner({ ...player, score: newScore })
     }
-  }
-
-  const addFromInput = (id: number, subtract = false) => {
-    const player = players.find((p) => p.id === id)
-    if (!player || !player.inputValue) return
-    const value = Number.parseInt(player.inputValue)
-    if (isNaN(value)) return
-    updateScore(id, subtract ? -value : value)
-    setPlayers(players.map((p) => (p.id === id ? { ...p, inputValue: "" } : p)))
   }
 
   const setTarget = () => {
@@ -78,12 +86,34 @@ export default function PunktePage() {
   }
 
   const resetAll = () => {
-    setPlayers(players.map((p) => ({ ...p, score: 0, inputValue: "" })))
+    setPlayers(getInitialPlayers())
     setHistory([])
     setWinner(null)
+    setTargetScore(null)
+    setTargetInput("")
+    setShowHistory(false)
   }
 
-  const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
+  const sortedPlayers = [...players]
+    .map((p, originalIndex) => ({ ...p, originalIndex }))
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      return a.originalIndex - b.originalIndex
+    })
+
+  const getRankingStyle = (index: number, score: number) => {
+    if (index === 0 && score > 0) return "bg-gradient-to-r from-amber-100 to-amber-50 border border-amber-300"
+    if (index === 1 && score > 0) return "bg-gradient-to-r from-gray-100 to-gray-50 border border-gray-300"
+    if (index === 2 && score > 0) return "bg-gradient-to-r from-orange-100 to-orange-50 border border-orange-300"
+    return "bg-gray-50 border border-gray-200"
+  }
+
+  const getBadgeStyle = (index: number, score: number) => {
+    if (index === 0 && score > 0) return "bg-amber-500 text-white"
+    if (index === 1 && score > 0) return "bg-gray-400 text-white"
+    if (index === 2 && score > 0) return "bg-orange-400 text-white"
+    return "bg-gray-300 text-gray-600"
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
@@ -115,16 +145,19 @@ export default function PunktePage() {
               </div>
             )}
 
-            {/* Target Score */}
+            {/* Target Score - Display target score properly when set */}
             <div className="flex items-center gap-2 justify-center flex-wrap">
               <GiTargetPrize className="w-5 h-5 text-amber-500" />
               {targetScore ? (
-                <Badge variant="secondary" className="text-base px-3 py-1 bg-amber-100 text-amber-700">
-                  Ziel: {targetScore} Punkte
-                  <button onClick={() => setTargetScore(null)} className="ml-2 hover:text-amber-900">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-base text-amber-500">Punkteziel: {targetScore}</span>
+                  <button
+                    onClick={() => setTargetScore(null)}
+                    className="text-gray-400 hover:text-red-500 text-lg font-bold"
+                  >
                     ×
                   </button>
-                </Badge>
+                </div>
               ) : (
                 <div className="flex gap-2">
                   <Input
@@ -133,6 +166,9 @@ export default function PunktePage() {
                     value={targetInput}
                     onChange={(e) => setTargetInput(e.target.value)}
                     className="w-28 h-9"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") setTarget()
+                    }}
                   />
                   <Button onClick={setTarget} size="sm" variant="secondary">
                     Setzen
@@ -167,6 +203,11 @@ export default function PunktePage() {
                       className="w-16 h-9 text-center"
                       placeholder="0"
                       disabled={!!winner}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          addFromInput(player.id, false)
+                        }
+                      }}
                     />
                     <Button
                       variant="outline"
@@ -248,16 +289,23 @@ export default function PunktePage() {
 
             {/* Ranking */}
             <div className="border-t pt-4">
-              <h4 className="font-medium text-gray-700 mb-2">Rangliste</h4>
-              <div className="flex flex-wrap gap-2">
+              <h4 className="text-gray-700 mb-3 text-sm font-bold">Rangliste</h4>
+              <div className="space-y-2">
                 {sortedPlayers.map((p, i) => (
-                  <Badge
-                    key={p.id}
-                    variant={i === 0 ? "default" : "secondary"}
-                    className={i === 0 ? "bg-amber-500" : ""}
-                  >
-                    {i + 1}. {p.name}: {p.score}
-                  </Badge>
+                  <div key={p.id} className={`flex items-center gap-3 p-2 rounded-lg ${getRankingStyle(i, p.score)}`}>
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${getBadgeStyle(i, p.score)}`}
+                    >
+                      {i + 1}
+                    </div>
+                    <span className="flex-1 font-medium text-gray-800 text-xs">{p.name}</span>
+                    <span
+                      className={`font-bold text-xs ${i === 0 && p.score > 0 ? "text-amber-600" : "text-gray-700"}`}
+                    >
+                      {p.score} Pkt.
+                    </span>
+                    {i === 0 && p.score > 0 && <Crown className="w-5 h-5 text-amber-500" />}
+                  </div>
                 ))}
               </div>
             </div>

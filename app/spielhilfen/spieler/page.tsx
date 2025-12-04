@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
   ArrowLeft,
-  Users,
   Plus,
   Trash2,
   Shuffle,
@@ -17,9 +16,10 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Crown,
   RotateCcw,
 } from "lucide-react"
+import { FaUsersLine } from "react-icons/fa6"
+import { FaRegStar } from "react-icons/fa"
 
 type Player = { id: number; name: string }
 
@@ -132,16 +132,16 @@ export default function SpielerPage() {
         <Card className="max-w-xl mx-auto border-2 border-gray-200">
           <CardHeader className="text-center border-b bg-gradient-to-r from-green-50 to-green-100">
             <div className="w-14 h-14 rounded-xl bg-green-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
-              <Users className="w-8 h-8 text-white" />
+              <FaUsersLine className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-2xl">Spieler & Zugreihenfolge</CardTitle>
+            <CardTitle className="text-2xl">Spieler- & Zugreihenfolge</CardTitle>
             <p className="text-gray-500 text-sm">Verwalte Spieler und Züge</p>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             {/* First Player Announcement */}
             {firstPlayer && !gameStarted && (
               <div className="bg-gradient-to-r from-green-400 to-emerald-500 text-white p-4 rounded-xl text-center">
-                <Crown className="w-8 h-8 mx-auto mb-2" />
+                <FaRegStar className="w-8 h-8 mx-auto mb-2" />
                 <p className="text-xl font-bold">{firstPlayer.name} beginnt!</p>
               </div>
             )}
@@ -173,7 +173,7 @@ export default function SpielerPage() {
             {!gameStarted && (
               <div className="flex gap-2">
                 <Input
-                  placeholder="Spielername"
+                  placeholder="Spielername eingeben..."
                   value={newPlayerName}
                   onChange={(e) => setNewPlayerName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addPlayer()}
@@ -197,7 +197,7 @@ export default function SpielerPage() {
                   } ${isShuffling ? "animate-pulse" : ""}`}
                 >
                   <span className="w-6 text-center font-bold text-gray-400">{index + 1}</span>
-                  {firstPlayer?.id === player.id && <Crown className="w-4 h-4 text-amber-500" />}
+                  {firstPlayer?.id === player.id && <FaRegStar className="w-4 h-4 text-amber-500" />}
                   <Input
                     value={player.name}
                     onChange={(e) =>
@@ -252,7 +252,7 @@ export default function SpielerPage() {
                     className="bg-green-500 hover:bg-green-600"
                   >
                     <Shuffle className="w-4 h-4 mr-2" />
-                    {isShuffling ? "Mischt..." : "Mischen & Startspieler"}
+                    {isShuffling ? "Mischt..." : "Mischen & Startspieler bestimmen"}
                   </Button>
                   {firstPlayer && (
                     <Button onClick={startGame} variant="outline">

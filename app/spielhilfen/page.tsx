@@ -9,13 +9,13 @@ import { GiSandsOfTime, GiRollingDices } from "react-icons/gi"
 import { TiSortAlphabeticallyOutline } from "react-icons/ti"
 import { FaUsersLine } from "react-icons/fa6"
 import { FaRandom, FaArrowRight } from "react-icons/fa"
-import { Trophy } from "lucide-react"
+import { Trophy, MessageSquareText, Zap, Users, StickyNote, Cast as Mask } from "lucide-react"
 
 const tools = [
   {
     id: "wuerfel",
     title: "Würfel",
-    description: "Virtuelle Würfel mit 3D-Animation. Unterstützt D4, D6, D8, D10, D12, D20 und D100.",
+    description: "Virtuelle Würfel mit Animation. Unterstützt D4, D6, D8, D10, D12, D20 und D100.",
     icon: GiRollingDices,
     color: "red",
     rotation: "rotate-1",
@@ -23,8 +23,8 @@ const tools = [
   },
   {
     id: "timer",
-    title: "Timer",
-    description: "Countdown-Timer mit Presets und eigener Zeiteinstellung für zeitbasierte Spiele.",
+    title: "Sanduhr / Timer",
+    description: "Animierte Sanduhr mit Presets und eigener Zeiteinstellung für zeitbasierte Spiele.",
     icon: GiSandsOfTime,
     color: "blue",
     rotation: "-rotate-1",
@@ -60,11 +60,56 @@ const tools = [
   {
     id: "zufallsbuchstaben",
     title: "Zufallsbuchstaben",
-    description: "Generiere zufällige Buchstaben für Wortspiele wie Scrabble oder Stadt-Land-Fluss.",
+    description: "Generiere zufällige Buchstaben für Wortspiele wie Stadt-Land-Fluss.",
     icon: TiSortAlphabeticallyOutline,
     color: "teal",
     rotation: "-rotate-1",
     linkText: "Buchstaben generieren",
+  },
+  {
+    id: "wort-generator",
+    title: "Wort-Generator",
+    description: "Zufällige Wörter aus Kategorien wie Tiere, Berufe, Orte, Gegenstände und mehr.",
+    icon: MessageSquareText,
+    color: "pink",
+    rotation: "rotate-1",
+    linkText: "Wort generieren",
+  },
+  {
+    id: "buzzer",
+    title: "Buzzer",
+    description: "Sound-Buzzer für Quiz-Spiele. Wer zuerst drückt, gewinnt!",
+    icon: Zap,
+    color: "yellow",
+    rotation: "-rotate-1",
+    linkText: "Zum Buzzer",
+  },
+  {
+    id: "team-generator",
+    title: "Team-Generator",
+    description: "Teile Spieler zufällig in Teams auf. Perfekt für Mannschaftsspiele.",
+    icon: Users,
+    color: "cyan",
+    rotation: "rotate-1",
+    linkText: "Teams bilden",
+  },
+  {
+    id: "rollen-verteiler",
+    title: "Rollen-Verteiler",
+    description: "Verteile geheime Rollen an Spieler für Spiele wie Werwolf oder Mafia.",
+    icon: Mask,
+    color: "indigo",
+    rotation: "-rotate-1",
+    linkText: "Rollen verteilen",
+  },
+  {
+    id: "notizblock",
+    title: "Notizblock",
+    description: "Schnelle Notizen während des Spiels. Mit Speicherfunktion für mehrere Notizen.",
+    icon: StickyNote,
+    color: "lime",
+    rotation: "rotate-1",
+    linkText: "Notizen öffnen",
   },
 ]
 
@@ -105,6 +150,36 @@ const getColorClasses = (color: string) => {
       border: "border-teal-300",
       text: "text-teal-600",
       hover: "hover:bg-teal-500",
+    },
+    pink: {
+      icon: "bg-pink-500",
+      border: "border-pink-300",
+      text: "text-pink-600",
+      hover: "hover:bg-pink-500",
+    },
+    yellow: {
+      icon: "bg-yellow-500",
+      border: "border-yellow-300",
+      text: "text-yellow-600",
+      hover: "hover:bg-yellow-500",
+    },
+    cyan: {
+      icon: "bg-cyan-500",
+      border: "border-cyan-300",
+      text: "text-cyan-600",
+      hover: "hover:bg-cyan-500",
+    },
+    indigo: {
+      icon: "bg-indigo-500",
+      border: "border-indigo-300",
+      text: "text-indigo-600",
+      hover: "hover:bg-indigo-500",
+    },
+    lime: {
+      icon: "bg-lime-500",
+      border: "border-lime-300",
+      text: "text-lime-600",
+      hover: "hover:bg-lime-500",
     },
   }
   return colorMap[color] || colorMap.teal

@@ -64,7 +64,7 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "latest",
-    "drizzle-kit": "latest",
+    "drizzle-kit": "0.31.5",
     "drizzle-orm": "latest",
     "expo-sqlite": "latest",
     "framer-motion": "latest",

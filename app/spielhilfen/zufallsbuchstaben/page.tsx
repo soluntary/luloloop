@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ArrowLeft, Type, Trash2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { TiSortAlphabeticallyOutline } from "react-icons/ti"
 
 export default function ZufallsbuchstabenPage() {
   const [letterCount, setLetterCount] = useState(1)
@@ -73,7 +74,7 @@ export default function ZufallsbuchstabenPage() {
         <Card className="max-w-md mx-auto border-2 border-gray-200">
           <CardHeader className="text-center border-b bg-gradient-to-r from-teal-50 to-teal-100">
             <div className="w-14 h-14 rounded-xl bg-teal-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
-              <Type className="w-8 h-8 text-white" />
+              <TiSortAlphabeticallyOutline className="w-8 h-8 text-white" />
             </div>
             <CardTitle className="text-2xl">Zufallsbuchstaben</CardTitle>
             <p className="text-gray-500 text-sm">Für Wortspiele wie Stadt-Land-Fluss</p>
@@ -93,7 +94,7 @@ export default function ZufallsbuchstabenPage() {
                   </div>
                 ))
               ) : (
-                <span className="text-gray-400">Klicke auf Generieren</span>
+                <span className="text-gray-400 text-xs">Klicke auf "Buchstaben generieren"</span>
               )}
             </div>
 
@@ -153,14 +154,14 @@ export default function ZufallsbuchstabenPage() {
             {history.length > 0 && (
               <div className="border-t pt-4">
                 <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-medium text-gray-700">Verlauf</h4>
+                  <h4 className="text-gray-700 text-sm font-bold">Verlauf</h4>
                   <Button variant="ghost" size="sm" onClick={() => setHistory([])}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
                 <div className="space-y-1 max-h-32 overflow-y-auto">
                   {history.map((h, i) => (
-                    <div key={i} className="text-sm flex justify-between text-gray-600 bg-gray-50 px-3 py-1.5 rounded">
+                    <div key={i} className="flex justify-between text-gray-600 bg-gray-50 px-3 py-1.5 rounded text-xs">
                       <span className="text-gray-400">{h.set}</span>
                       <span className="font-bold text-teal-600 tracking-widest">{h.letters.join(" ")}</span>
                     </div>
