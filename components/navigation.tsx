@@ -2,12 +2,11 @@
 
 import { useState, useMemo } from "react"
 import Link from "next/link"
-import { usePathname } from 'next/navigation'
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   FaHome,
-  FaBook,
   FaUserPlus,
   FaSignInAlt,
   FaUsers,
@@ -20,20 +19,16 @@ import {
   FaInfoCircle,
   FaChevronDown,
   FaCalendarAlt,
-  FaStar,
   FaUserCheck,
+  FaDice,
 } from "react-icons/fa"
 import { LiaUsersSolid } from "react-icons/lia"
-import {
-IoLibrary
-} from "react-icons/io5"
+import { IoLibrary } from "react-icons/io5"
 import { MdForum } from "react-icons/md"
-import { FaUsersRectangle } from "react-icons/fa6"
 import { RiUserCommunityFill } from "react-icons/ri"
 import { useAuth } from "@/contexts/auth-context"
 import { useMessages } from "@/contexts/messages-context"
 import { useAvatar } from "@/contexts/avatar-context"
-import NotificationDropdown from "@/components/notification-dropdown"
 import { NotificationBell } from "@/components/notification-bell"
 
 interface NavigationProps {
@@ -79,6 +74,7 @@ function Navigation({ currentPage }: NavigationProps) {
       },
     },
     { href: "/marketplace", label: "Spielehandel", icon: FaStore, key: "spielemarkt" },
+    { href: "/spielhilfen", label: "Spielhilfen", icon: FaDice, key: "spielhilfen" },
     { href: "/messages", label: "Nachrichten", icon: FaComments, key: "messages" },
     { href: "/about", label: "Über uns", icon: FaInfoCircle, key: "about" },
   ]
@@ -99,6 +95,7 @@ function Navigation({ currentPage }: NavigationProps) {
       },
     },
     { href: "/marketplace", label: "Spielemarkt", icon: FaStore, key: "spielemarkt" },
+    { href: "/spielhilfen", label: "Spielhilfen", icon: FaDice, key: "spielhilfen" },
     { href: "/about", label: "Über uns", icon: FaInfoCircle, key: "about" },
   ]
 

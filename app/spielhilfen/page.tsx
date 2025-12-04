@@ -1,0 +1,201 @@
+"use client"
+
+import Link from "next/link"
+import { motion } from "framer-motion"
+import { Navigation } from "@/components/navigation"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { GiSandsOfTime, GiRollingDices } from "react-icons/gi"
+import { TiSortAlphabeticallyOutline } from "react-icons/ti"
+import { FaUsersLine } from "react-icons/fa6"
+import { FaRandom, FaArrowRight } from "react-icons/fa"
+import { Trophy } from "lucide-react"
+
+const tools = [
+  {
+    id: "wuerfel",
+    title: "Würfel",
+    description: "Virtuelle Würfel mit 3D-Animation. Unterstützt D4, D6, D8, D10, D12, D20 und D100.",
+    icon: GiRollingDices,
+    color: "red",
+    rotation: "rotate-1",
+    linkText: "Würfeln",
+  },
+  {
+    id: "timer",
+    title: "Timer",
+    description: "Countdown-Timer mit Presets und eigener Zeiteinstellung für zeitbasierte Spiele.",
+    icon: GiSandsOfTime,
+    color: "blue",
+    rotation: "-rotate-1",
+    linkText: "Zum Timer",
+  },
+  {
+    id: "punkte",
+    title: "Punkte-Tracker",
+    description: "Verfolge Spielstände mit Punkteziel, Verlauf und Rangliste für bis zu 8 Spieler.",
+    icon: Trophy,
+    color: "orange",
+    rotation: "rotate-1",
+    linkText: "Zum Punkte-Tracker",
+  },
+  {
+    id: "spieler",
+    title: "Spieler- & Zugreihenfolge",
+    description: "Verwalte Spieler, bestimme den Startspieler und verfolge die Zugreihenfolge.",
+    icon: FaUsersLine,
+    color: "green",
+    rotation: "-rotate-1",
+    linkText: "Spieler verwalten",
+  },
+  {
+    id: "zufallszahl",
+    title: "Zufallszahl",
+    description: "Generiere zufällige Zahlen in einem beliebigen Bereich mit Verlauf.",
+    icon: FaRandom,
+    color: "purple",
+    rotation: "rotate-1",
+    linkText: "Zahl generieren",
+  },
+  {
+    id: "zufallsbuchstaben",
+    title: "Zufallsbuchstaben",
+    description: "Generiere zufällige Buchstaben für Wortspiele wie Scrabble oder Stadt-Land-Fluss.",
+    icon: TiSortAlphabeticallyOutline,
+    color: "teal",
+    rotation: "-rotate-1",
+    linkText: "Buchstaben generieren",
+  },
+]
+
+const getColorClasses = (color: string) => {
+  const colorMap: Record<string, { icon: string; border: string; text: string; hover: string }> = {
+    red: {
+      icon: "bg-red-500",
+      border: "border-red-300",
+      text: "text-red-600",
+      hover: "hover:bg-red-500",
+    },
+    blue: {
+      icon: "bg-blue-500",
+      border: "border-blue-300",
+      text: "text-blue-600",
+      hover: "hover:bg-blue-500",
+    },
+    orange: {
+      icon: "bg-orange-500",
+      border: "border-orange-300",
+      text: "text-orange-600",
+      hover: "hover:bg-orange-500",
+    },
+    green: {
+      icon: "bg-green-500",
+      border: "border-green-300",
+      text: "text-green-600",
+      hover: "hover:bg-green-500",
+    },
+    purple: {
+      icon: "bg-purple-500",
+      border: "border-purple-300",
+      text: "text-purple-600",
+      hover: "hover:bg-purple-500",
+    },
+    teal: {
+      icon: "bg-teal-500",
+      border: "border-teal-300",
+      text: "text-teal-600",
+      hover: "hover:bg-teal-500",
+    },
+  }
+  return colorMap[color] || colorMap.teal
+}
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+}
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: { opacity: 1, scale: 1 },
+}
+
+export default function SpielHilfenPage() {
+  return (
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
+      <Navigation />
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          <h1 className="font-handwritten text-center text-gray-800 mb-4 transform rotate-1 text-2xl sm:text-3xl md:text-4xl">
+            Spielhilfen
+          </h1>
+          <p className="text-gray-600 text-center font-body transform -rotate-1 text-base max-w-2xl mx-auto">
+            Digitale Helfer für deine Spielrunden. Wähle ein Tool aus, um loszulegen.
+          </p>
+        </motion.div>
+
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto"
+        >
+          {tools.map((tool, index) => {
+            const IconComponent = tool.icon
+            const colors = getColorClasses(tool.color)
+            return (
+              <motion.div key={tool.id} variants={scaleIn} transition={{ duration: 0.5 }}>
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -8 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  className="relative"
+                >
+                  <Card
+                    className={`transform ${tool.rotation} transition-all border-2 ${colors.border} h-full hover:shadow-2xl`}
+                  >
+                    <CardContent className="p-6 text-center relative">
+                      <motion.div
+                        whileHover={{ rotate: 360, scale: 1.1 }}
+                        transition={{ duration: 0.6 }}
+                        className={`w-16 h-16 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12`}
+                      >
+                        <IconComponent className="w-8 h-8 text-white" />
+                      </motion.div>
+                      <h3 className="font-bold text-gray-800 mb-2 font-handwritten text-sm">{tool.title}</h3>
+                      <p className="text-gray-600 font-body mb-4 text-xs leading-relaxed">{tool.description}</p>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button
+                          asChild
+                          variant="outline"
+                          className={`${colors.border} ${colors.text} ${colors.hover} hover:text-white font-handwritten bg-transparent group`}
+                        >
+                          <Link
+                            href={`/spielhilfen/${tool.id}`}
+                            className="flex items-center text-xs justify-center gap-2"
+                          >
+                            {tool.linkText}
+                            <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          </Link>
+                        </Button>
+                      </motion.div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </motion.div>
+            )
+          })}
+        </motion.div>
+      </main>
+    </div>
+  )
+}

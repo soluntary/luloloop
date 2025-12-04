@@ -1227,6 +1227,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+      {/* Step Indicator */}
       <div className="mb-10">
         <div className="flex justify-between items-center">
           {[
@@ -1240,21 +1241,21 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${
                     step.num <= currentStep
-                      ? "bg-gray-900 text-white"
+                      ? "bg-teal-600 text-white"
                       : "bg-gray-100 text-gray-400 border-2 border-gray-200"
                   }`}
                 >
                   {step.num}
                 </div>
                 <span
-                  className={`text-xs mt-2 font-medium ${step.num <= currentStep ? "text-gray-900" : "text-gray-400"}`}
+                  className={`text-xs mt-2 font-medium ${step.num <= currentStep ? "text-teal-600" : "text-gray-400"}`}
                 >
                   {step.label}
                 </span>
               </div>
               {index < 3 && (
                 <div className="flex-1 h-0.5 mx-4 -mt-6">
-                  <div className={`h-full transition-all ${step.num < currentStep ? "bg-gray-900" : "bg-gray-200"}`} />
+                  <div className={`h-full transition-all ${step.num < currentStep ? "bg-teal-600" : "bg-gray-200"}`} />
                 </div>
               )}
             </div>
@@ -1269,19 +1270,19 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
       {/* Step 1: Ludo Event Details */}
       {currentStep === 1 && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg p-6 border border-teal-100">
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-2">
-              <Label htmlFor="title" className="text-sm font-medium text-teal-800">
+              <Label htmlFor="title" className="text-sm font-medium text-gray-700">
                 Event-Titel *
               </Label>
-              <span className="text-xs text-teal-600">{formData.title.length}/60</span>
+              <span className="text-xs text-gray-500">{formData.title.length}/60</span>
             </div>
             <Input
               id="title"
               placeholder="z.B. Gemütlicher CATAN Abend..."
               value={formData.title}
               onChange={(e) => handleInputChange("title", e.target.value)}
-              className="text-sm h-11 border-teal-200 focus:border-teal-500 focus:ring-teal-500 bg-white"
+              className="text-sm h-11 border-gray-300 focus:border-teal-500 focus:ring-teal-500"
               maxLength={60}
             />
             {fieldErrors.title && (
@@ -1298,9 +1299,10 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
             )}
           </div>
 
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-6 border border-amber-100">
-            <Label className="text-sm font-medium text-amber-800 mb-2 block">Event-Bild</Label>
-            <p className="text-xs text-amber-600 mb-4">
+          {/* Simplified image upload section */}
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <Label className="text-sm font-medium text-gray-700 mb-2 block">Event-Bild</Label>
+            <p className="text-xs text-gray-600 mb-4">
               Lade ein Bild hoch, um dein Event attraktiver zu gestalten (optional)
             </p>
 
@@ -1322,21 +1324,21 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
             ) : (
               <div
                 onClick={handleImageUpload}
-                className="border-2 border-dashed border-amber-300 rounded-lg p-8 text-center cursor-pointer hover:border-amber-500 hover:bg-amber-50 transition-all"
+                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition-all"
               >
                 <div className="flex flex-col items-center space-y-3">
                   {isUploadingImage ? (
-                    <Loader2 className="h-10 w-10 text-amber-700 animate-spin" />
+                    <Loader2 className="h-10 w-10 text-gray-900 animate-spin" />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                      <Upload className="h-6 w-6 text-amber-700" />
+                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Upload className="h-6 w-6 text-gray-700" />
                     </div>
                   )}
                   <div>
-                    <p className="text-amber-700 font-medium text-base">
+                    <p className="text-gray-700 font-medium text-base">
                       {isUploadingImage ? "Bild wird verarbeitet..." : "Klicken zum Hochladen"}
                     </p>
-                    <p className="text-xs text-amber-500 mt-1">JPG, PNG oder WebP (max. 5MB)</p>
+                    <p className="text-xs text-gray-500 mt-1">JPG, PNG oder WebP (max. 5MB)</p>
                   </div>
                 </div>
               </div>
@@ -1383,7 +1385,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                 type="checkbox"
                 checked={formData.organizerOnly}
                 onChange={(e) => handleInputChange("organizerOnly", e.target.checked)}
-                className="w-4 h-4 mt-1 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
+                className="w-4 h-4 mt-1 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
               />
               <div className="flex-1">
                 <Label htmlFor="organizerOnly" className="text-sm font-medium text-gray-700 cursor-pointer block mb-1">
@@ -1409,7 +1411,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                 handleInputChange("maxPlayers", e.target.value)
                 handleInputChange("maxParticipants", e.target.value)
               }}
-              className="h-11 text-sm border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+              className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
             />
             <p className="text-xs text-gray-500 mt-2">Leer lassen für unbegrenzte Teilnehmerzahl</p>
             {fieldErrors.maxPlayers && (
@@ -1441,7 +1443,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                 }
               }}
             >
-              <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-gray-900 bg-white">
+              <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500 bg-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1465,13 +1467,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                     placeholder="2"
                     value={formData.customIntervalNumber}
                     onChange={(e) => handleInputChange("customIntervalNumber", e.target.value)}
-                    className={`w-24 h-11 text-sm ${errors.customIntervalNumber ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-gray-900"}`}
+                    className={`w-24 h-11 text-sm ${errors.customIntervalNumber ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-teal-500"}`}
                   />
                   <Select
                     value={formData.customIntervalUnit}
                     onValueChange={(value) => handleInputChange("customIntervalUnit", value)}
                   >
-                    <SelectTrigger className="w-40 h-11 border-gray-300 focus:border-gray-900">
+                    <SelectTrigger className="w-40 h-11 border-gray-300 focus:border-teal-500">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1502,7 +1504,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                     }
                   }}
                 >
-                  <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-gray-900 bg-white">
+                  <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500 bg-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1532,7 +1534,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                             )
                           }
                         }}
-                        className="w-5 h-5"
+                        className="w-5 h-5 text-teal-600 focus:ring-teal-500"
                       />
                       <Label htmlFor={day} className="text-xs cursor-pointer mt-2 font-medium">
                         {day.slice(0, 2)}
@@ -1554,7 +1556,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                     value={formData.monthlyType}
                     onValueChange={(value) => handleInputChange("monthlyType", value)}
                   >
-                    <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900">
+                    <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1574,7 +1576,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                       placeholder="z.B. 7 für jeden 7. des Monats"
                       value={formData.monthlyDay}
                       onChange={(e) => handleInputChange("monthlyDay", e.target.value)}
-                      className="h-11 text-sm border-gray-300 focus:border-gray-900"
+                      className="h-11 text-sm border-gray-300 focus:border-teal-500"
                     />
                   </div>
                 )}
@@ -1587,7 +1589,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                         value={formData.monthlyWeekdayPosition}
                         onValueChange={(value) => handleInputChange("monthlyWeekdayPosition", value)}
                       >
-                        <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900">
+                        <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1602,7 +1604,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                         value={formData.monthlyWeekday}
                         onValueChange={(value) => handleInputChange("monthlyWeekday", value)}
                       >
-                        <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900">
+                        <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1628,7 +1630,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                   <Label className="text-sm font-medium text-gray-700 block">Wann soll die Serie enden?</Label>
 
                   <div className="space-y-4">
-                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-gray-900 transition-colors text-xs">
+                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-teal-500 transition-colors text-xs">
                       <input
                         type="radio"
                         id="endByCount"
@@ -1641,7 +1643,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                             handleInputChange("seriesEndDate", "")
                           }
                         }}
-                        className="w-4 h-4 text-gray-900 border-gray-300 focus:ring-gray-900"
+                        className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
                       />
                       <Label htmlFor="endByCount" className="text-sm font-medium text-gray-700 flex-shrink-0">
                         Endet nach
@@ -1657,13 +1659,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                             handleInputChange("seriesEndType", "count")
                           }
                         }}
-                        className={`w-24 h-11 text-sm ${formData.seriesEndType !== "count" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-gray-900"}`}
+                        className={`w-24 h-11 text-sm ${formData.seriesEndType !== "count" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-teal-500"}`}
                         disabled={formData.seriesEndType !== "count"}
                       />
                       <Label className="text-sm font-medium text-gray-700">Terminen</Label>
                     </div>
 
-                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-gray-900 transition-colors">
+                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-teal-500 transition-colors">
                       <input
                         type="radio"
                         id="endByDate"
@@ -1676,7 +1678,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                             handleInputChange("seriesEndCount", "")
                           }
                         }}
-                        className="w-4 h-4 text-gray-900 border-gray-300 focus:ring-gray-900"
+                        className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
                       />
                       <Label htmlFor="endByDate" className="text-sm font-medium text-gray-700 flex-shrink-0">
                         Endet am
@@ -1690,7 +1692,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                             handleInputChange("seriesEndType", "date")
                           }
                         }}
-                        className={`h-11 ${formData.seriesEndType !== "date" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-gray-900"}`}
+                        className={`h-11 ${formData.seriesEndType !== "date" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-teal-500"}`}
                         disabled={formData.seriesEndType !== "date"}
                       />
                     </div>
@@ -1709,7 +1711,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
             <Input
               id="eventDate"
               type="date"
-              className="h-11 text-sm border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+              className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
               value={formData.eventDate}
               onChange={(e) => {
                 handleInputChange("eventDate", e.target.value)
@@ -1741,7 +1743,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
               <Input
                 id="startTime"
                 type="time"
-                className="h-11 text-sm border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
                 value={formData.startTime}
                 onChange={(e) => handleInputChange("startTime", e.target.value)}
                 required
@@ -1766,7 +1768,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
               <Input
                 id="endTime"
                 type="time"
-                className="h-11 text-sm border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
                 value={formData.endTime}
                 onChange={(e) => handleInputChange("endTime", e.target.value)}
                 required
@@ -1808,7 +1810,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                             <div className="flex-1">
                               <Input
                                 type="date"
-                                className={`h-11 text-sm ${!isDateValid || !isFutureDate ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-gray-900"}`}
+                                className={`h-11 text-sm ${!isDateValid || !isFutureDate ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-teal-500"}`}
                                 value={date}
                                 onChange={(e) => {
                                   const newDates = [...formData.additionalDates]
@@ -1829,7 +1831,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                               <>
                                 <Input
                                   type="time"
-                                  className="h-11 text-sm border-gray-300 focus:border-gray-900 w-32"
+                                  className="h-11 text-sm border-gray-300 focus:border-teal-500 w-32"
                                   placeholder="Startzeit"
                                   value={formData.additionalStartTimes?.[index] || formData.startTime}
                                   onChange={(e) => {
@@ -1840,7 +1842,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                                 />
                                 <Input
                                   type="time"
-                                  className="h-11 text-sm border-gray-300 focus:border-gray-900 w-32"
+                                  className="h-11 text-sm border-gray-300 focus:border-teal-500 w-32"
                                   placeholder="Endzeit"
                                   value={formData.additionalEndTimes?.[index] || formData.endTime}
                                   onChange={(e) => {
@@ -2035,7 +2037,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                   handleInputChange("isOnline", value === "virtual")
                 }}
               >
-                <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-gray-900">
+                <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2051,7 +2053,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                     placeholder="Location, Adresse, PLZ oder Ort eingeben..."
                     value={formData.location}
                     onChange={(value) => handleInputChange("location", value)}
-                    className="h-11 text-sm border-gray-300 focus:border-gray-900"
+                    className="h-11 text-sm border-gray-300 focus:border-teal-500"
                     error={fieldErrors.location || errors.location}
                   />
                 </div>
@@ -2062,7 +2064,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                   placeholder="Einladungslink (Discord, Zoom, etc.)"
                   value={formData.onlinePlatform}
                   onChange={(e) => handleInputChange("onlinePlatform", e.target.value)}
-                  className="h-11 text-sm border-gray-300 focus:border-gray-900"
+                  className="h-11 text-sm border-gray-300 focus:border-teal-500"
                 />
               )}
               {errors.onlinePlatform && (
@@ -2090,7 +2092,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                   <Button
                     type="button"
                     onClick={() => setShowGameShelfModal(true)}
-                    className="bg-gray-900 text-white hover:bg-gray-800"
+                    className="bg-teal-600 text-white hover:bg-teal-700"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Aus Spielregal auswählen
@@ -2117,13 +2119,13 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                       setBggSearchTerm(e.target.value)
                       searchBoardGameGeek(e.target.value)
                     }}
-                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-xs"
+                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-xs"
                   />
                 </div>
 
                 {bggSearchLoading && (
                   <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-gray-900 mx-auto"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-teal-500 mx-auto"></div>
                     <p className="text-gray-600 mt-4 font-medium">Durchsuche Datenbank...</p>
                   </div>
                 )}
@@ -2137,8 +2139,8 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                           key={game.id}
                           className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                             isSelected
-                              ? "border-gray-900 bg-gray-50 shadow-md"
-                              : "border-gray-200 hover:border-gray-400"
+                              ? "border-teal-500 bg-teal-50 shadow-md"
+                              : "border-gray-200 hover:border-teal-400"
                           }`}
                           onClick={() => handleGameShelfSelection(game)}
                         >
@@ -2210,7 +2212,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
               Sichtbarkeit *
             </Label>
             <Select value={formData.visibility} onValueChange={(value) => handleInputChange("visibility", value)}>
-              <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-gray-900">
+              <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -2306,7 +2308,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                 value={formData.requiresApproval ? "manual" : "automatic"}
                 onValueChange={(value) => handleInputChange("requiresApproval", value === "manual")}
               >
-                <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-gray-900">
+                <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2376,7 +2378,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
             <Button
               type="button"
               onClick={nextStep}
-              className="h-11 px-8 text-sm bg-gray-900 text-white font-medium shadow-sm hover:bg-gray-800"
+              className="h-11 px-8 text-sm bg-teal-600 text-white font-medium shadow-sm hover:bg-teal-700"
               disabled={isSubmitting}
             >
               Weiter →
@@ -2386,7 +2388,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="h-11 px-8 text-sm bg-green-600 text-white font-medium shadow-sm hover:bg-green-700"
+              className="h-11 px-8 text-sm bg-teal-600 text-white font-medium shadow-sm hover:bg-teal-700"
             >
               {isSubmitting ? (
                 <div className="flex items-center">
@@ -2416,7 +2418,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
               placeholder="Freunde suchen..."
               value={friendSearchTerm}
               onChange={(e) => setFriendSearchTerm(e.target.value)}
-              className="border-2 border-gray-300 focus:border-gray-900 h-11 text-sm"
+              className="border-2 border-gray-300 focus:border-teal-500 h-11 text-sm"
             />
           </div>
 
@@ -2433,9 +2435,9 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                       <Checkbox
                         checked={selectedFriends.some((f) => f.id === friend.id)}
                         onChange={() => handleFriendToggle(friend)}
-                        className="w-5 h-5 border-gray-300 focus:ring-gray-900"
+                        className="w-5 h-5 text-teal-600 focus:ring-teal-500"
                       />
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                      <div className="w-10 h-10 bg-gradient-to-r from-teal-400 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
                         {friend.name[0].toUpperCase()}
                       </div>
                       <div className="flex-1">
@@ -2477,7 +2479,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                 setShowFriendDialog(false)
                 setFriendSearchTerm("")
               }}
-              className="h-11 px-8 text-sm bg-gray-900 text-white font-medium shadow-sm hover:bg-gray-800"
+              className="h-11 px-8 text-sm bg-teal-600 text-white font-medium shadow-sm hover:bg-teal-700"
             >
               Fertig ({selectedFriends.length} ausgewählt)
             </Button>
@@ -2505,7 +2507,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                 placeholder="Spiele durchsuchen..."
                 value={friendGameSearchTerm}
                 onChange={(e) => setFriendGameSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                className="w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               />
             </div>
 
@@ -2533,7 +2535,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                       key={game.id}
                       className={`border-2 rounded-lg p-4 relative transition-all ${
                         isAvailable ? "hover:shadow-lg cursor-pointer" : "opacity-60 cursor-not-allowed bg-gray-50"
-                      } ${isSelected ? "border-gray-900 bg-gray-50 shadow-md" : "border-gray-200 hover:border-gray-400"}`}
+                      } ${isSelected ? "border-teal-500 bg-teal-50 shadow-md" : "border-gray-200 hover:border-teal-400"}`}
                       onClick={() => isAvailable && handleGameShelfSelection(game)}
                     >
                       <div className="absolute top-3 left-3 z-10">
@@ -2586,7 +2588,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                   onClick={() => setAvailabilityFilter("all")}
                   className={`px-4 py-2 text-xs rounded-full font-medium transition-colors ${
                     availabilityFilter === "all"
-                      ? "bg-gray-900 text-white shadow-md"
+                      ? "bg-teal-600 text-white shadow-md"
                       : "bg-white text-gray-600 hover:bg-gray-100"
                   }`}
                 >
@@ -2641,7 +2643,7 @@ export default function CreateLudoEventForm({ onSuccess, onCancel, initialData }
                         key={game.id}
                         className={`border-2 rounded-lg p-4 relative transition-all ${
                           isAvailable ? "hover:shadow-lg cursor-pointer" : "opacity-60 cursor-not-allowed bg-gray-50"
-                        } ${isSelected ? "border-gray-900 bg-gray-50 shadow-md" : "border-gray-200 hover:border-gray-400"}`}
+                        } ${isSelected ? "border-teal-500 bg-teal-50 shadow-md" : "border-gray-200 hover:border-teal-400"}`}
                         onClick={() => isAvailable && handleGameShelfSelection(game)}
                       >
                         <div className="absolute top-3 left-3 z-10">
