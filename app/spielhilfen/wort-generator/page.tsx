@@ -520,7 +520,7 @@ export default function WortGeneratorPage() {
                     {currentWord}
                   </motion.div>
                 ) : (
-                  <span className="text-gray-400 text-lg">Klicke auf "Generieren"</span>
+                  <span className="text-gray-400 text-lg">Klicke auf "Wort generieren"</span>
                 )}
               </AnimatePresence>
             </div>

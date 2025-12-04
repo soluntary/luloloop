@@ -9,6 +9,7 @@ import { GiSandsOfTime, GiRollingDices } from "react-icons/gi"
 import { TiSortAlphabeticallyOutline } from "react-icons/ti"
 import { FaUsersLine } from "react-icons/fa6"
 import { FaRandom, FaArrowRight } from "react-icons/fa"
+import { FaUsersRectangle } from "react-icons/fa6"
 import { Trophy, MessageSquareText, Zap, Users, StickyNote, Cast as Mask } from "lucide-react"
 
 const tools = [
@@ -88,7 +89,7 @@ const tools = [
     id: "team-generator",
     title: "Team-Generator",
     description: "Teile Spieler zufällig in Teams auf. Perfekt für Mannschaftsspiele.",
-    icon: Users,
+    icon: FaUsersRectangle,
     color: "cyan",
     rotation: "rotate-1",
     linkText: "Teams bilden",

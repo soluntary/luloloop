@@ -6,8 +6,7 @@ import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, Play, Pause, RotateCcw } from "lucide-react"
-import { GiSandsOfTime } from "react-icons/gi"
+import { ArrowLeft, Play, Pause, RotateCcw, Timer } from "lucide-react"
 import { motion } from "framer-motion"
 
 export default function TimerPage() {
@@ -56,7 +55,9 @@ export default function TimerPage() {
     }
   }
 
-  const progress = initialTime > 0 ? ((initialTime - timeLeft) / initialTime) * 100 : 0
+  const progress = initialTime > 0 ? timeLeft / initialTime : 1
+  const circumference = 2 * Math.PI * 90 // radius = 90
+  const strokeDashoffset = circumference * (1 - progress)
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
@@ -77,101 +78,40 @@ export default function TimerPage() {
         <Card className="max-w-md mx-auto border-2 border-gray-200">
           <CardHeader className="text-center border-b bg-gradient-to-r from-blue-50 to-blue-100">
             <div className="w-14 h-14 rounded-xl bg-blue-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
-              <GiSandsOfTime className="w-8 h-8 text-white" />
+              <Timer className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-2xl">Sanduhr / Timer</CardTitle>
+            <CardTitle className="text-2xl">Timer</CardTitle>
             <p className="text-gray-500 text-sm">Countdown für zeitbasierte Spiele</p>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
-            <div className="relative w-48 h-64 mx-auto flex items-center justify-center">
-              {/* Hourglass Container */}
-              <div className="relative w-32 h-56">
-                {/* Top Glass */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-24 overflow-hidden">
-                  <div
-                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0"
-                    style={{
-                      borderLeft: "50px solid transparent",
-                      borderRight: "50px solid transparent",
-                      borderTop: "90px solid #e5e7eb",
-                    }}
+            <div className="flex flex-col items-center justify-center">
+              <div className="relative w-52 h-52">
+                {/* Background circle */}
+                <svg className="w-full h-full" viewBox="0 0 208 208" style={{ transform: "rotate(-90deg) scaleY(-1)" }}>
+                  <circle cx="104" cy="104" r="90" stroke="#e5e7eb" strokeWidth="12" fill="none" />
+                  {/* Progress circle */}
+                  <motion.circle
+                    cx="104"
+                    cy="104"
+                    r="90"
+                    stroke={timeLeft === 0 ? "#ef4444" : "#3b82f6"}
+                    strokeWidth="12"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    initial={{ strokeDashoffset: 0 }}
+                    animate={{ strokeDashoffset }}
+                    transition={{ duration: 0.5, ease: "linear" }}
                   />
-                  {/* Sand in top (decreases) */}
-                  <motion.div
-                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0"
-                    style={{
-                      borderLeft: `${50 - (progress / 100) * 45}px solid transparent`,
-                      borderRight: `${50 - (progress / 100) * 45}px solid transparent`,
-                      borderTop: `${90 - (progress / 100) * 85}px solid #f59e0b`,
-                    }}
-                    animate={{
-                      borderTopWidth: `${90 - (progress / 100) * 85}px`,
-                      borderLeftWidth: `${50 - (progress / 100) * 45}px`,
-                      borderRightWidth: `${50 - (progress / 100) * 45}px`,
-                    }}
-                    transition={{ duration: 0.5 }}
-                  />
+                </svg>
+                {/* Time display in center */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span
+                    className={`text-4xl font-bold ${timeLeft === 0 ? "text-red-500 animate-pulse" : "text-gray-800"}`}
+                  >
+                    {formatTime(timeLeft)}
+                  </span>
                 </div>
-
-                {/* Middle Neck */}
-                <div className="absolute top-24 left-1/2 -translate-x-1/2 w-3 h-8 bg-gray-300 z-10" />
-
-                {/* Falling Sand Animation */}
-                {isRunning && timeLeft > 0 && (
-                  <motion.div
-                    className="absolute top-24 left-1/2 -translate-x-1/2 w-1 bg-amber-500 z-20"
-                    initial={{ height: 0, opacity: 1 }}
-                    animate={{
-                      height: [0, 32, 32],
-                      opacity: [1, 1, 0],
-                    }}
-                    transition={{
-                      duration: 0.8,
-                      repeat: Number.POSITIVE_INFINITY,
-                      ease: "linear",
-                    }}
-                  />
-                )}
-
-                {/* Bottom Glass */}
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-28 h-24 overflow-hidden">
-                  <div
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-0 h-0"
-                    style={{
-                      borderLeft: "50px solid transparent",
-                      borderRight: "50px solid transparent",
-                      borderBottom: "90px solid #e5e7eb",
-                    }}
-                  />
-                  {/* Sand in bottom (increases) */}
-                  <motion.div
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-0 h-0"
-                    style={{
-                      borderLeft: `${5 + (progress / 100) * 45}px solid transparent`,
-                      borderRight: `${5 + (progress / 100) * 45}px solid transparent`,
-                      borderBottom: `${5 + (progress / 100) * 85}px solid #f59e0b`,
-                    }}
-                    animate={{
-                      borderBottomWidth: `${5 + (progress / 100) * 85}px`,
-                      borderLeftWidth: `${5 + (progress / 100) * 45}px`,
-                      borderRightWidth: `${5 + (progress / 100) * 45}px`,
-                    }}
-                    transition={{ duration: 0.5 }}
-                  />
-                </div>
-
-                {/* Glass Frame */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-2 bg-amber-800 rounded-t-lg" />
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-28 h-2 bg-amber-800 rounded-b-lg" />
-              </div>
-
-              {/* Time Display */}
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
-                <span
-                  className={`text-3xl font-bold ${timeLeft === 0 ? "text-red-500 animate-pulse" : "text-gray-800"}`}
-                >
-                  {formatTime(timeLeft)}
-                </span>
               </div>
             </div>
 
