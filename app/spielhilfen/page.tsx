@@ -10,7 +10,9 @@ import { TiSortAlphabeticallyOutline } from "react-icons/ti"
 import { FaUsersLine } from "react-icons/fa6"
 import { FaRandom, FaArrowRight } from "react-icons/fa"
 import { FaUsersRectangle } from "react-icons/fa6"
-import { Trophy, MessageSquareText, Zap, Users, StickyNote, Cast as Mask } from "lucide-react"
+import { Trophy, MessageSquareText } from "lucide-react"
+import { TbUserQuestion } from "react-icons/tb"
+import { MdOutlineStickyNote2 } from "react-icons/md"
 
 const tools = [
   {
@@ -24,8 +26,8 @@ const tools = [
   },
   {
     id: "timer",
-    title: "Sanduhr / Timer",
-    description: "Animierte Sanduhr mit Presets und eigener Zeiteinstellung für zeitbasierte Spiele.",
+    title: "Timer",
+    description: "Animierte Countdown Timer mit Presets und eigener Zeiteinstellung für zeitbasierte Spiele.",
     icon: GiSandsOfTime,
     color: "blue",
     rotation: "-rotate-1",
@@ -77,39 +79,30 @@ const tools = [
     linkText: "Wort generieren",
   },
   {
-    id: "buzzer",
-    title: "Buzzer",
-    description: "Sound-Buzzer für Quiz-Spiele. Wer zuerst drückt, gewinnt!",
-    icon: Zap,
-    color: "yellow",
-    rotation: "-rotate-1",
-    linkText: "Zum Buzzer",
-  },
-  {
     id: "team-generator",
     title: "Team-Generator",
     description: "Teile Spieler zufällig in Teams auf. Perfekt für Mannschaftsspiele.",
     icon: FaUsersRectangle,
     color: "cyan",
-    rotation: "rotate-1",
+    rotation: "-rotate-1",
     linkText: "Teams bilden",
   },
   {
     id: "rollen-verteiler",
     title: "Rollen-Verteiler",
     description: "Verteile geheime Rollen an Spieler für Spiele wie Werwolf oder Mafia.",
-    icon: Mask,
+    icon: TbUserQuestion,
     color: "indigo",
-    rotation: "-rotate-1",
+    rotation: "rotate-1",
     linkText: "Rollen verteilen",
   },
   {
     id: "notizblock",
     title: "Notizblock",
     description: "Schnelle Notizen während des Spiels. Mit Speicherfunktion für mehrere Notizen.",
-    icon: StickyNote,
+    icon: MdOutlineStickyNote2,
     color: "lime",
-    rotation: "rotate-1",
+    rotation: "-rotate-1",
     linkText: "Notizen öffnen",
   },
 ]

@@ -22,11 +22,12 @@ import {
   Cast as Mask,
   Info,
 } from "lucide-react"
+import { TbUserQuestion } from "react-icons/tb"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 const presetGames = {
   werwolf: {
-    name: "Werwölfe",
+    name: "Werwölfe (Grundspiel)",
     roles: [
       { name: "Werwolf", description: "Frisst nachts einen Dorfbewohner. Gewinnt, wenn alle Dorfbewohner tot sind." },
       { name: "Werwolf", description: "Frisst nachts einen Dorfbewohner. Gewinnt, wenn alle Dorfbewohner tot sind." },
@@ -180,7 +181,7 @@ export default function RollenVerteilerPage() {
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
               <div className="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mask className="w-8 h-8 text-white" />
+                <TbUserQuestion className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">Rollen-Verteiler</h1>
               <p className="text-gray-600">Verteile geheime Rollen für Social-Deduction-Spiele</p>

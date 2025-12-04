@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Trophy, Plus, Minus, Trash2, Crown, Undo2, History, RotateCcw } from "lucide-react"
 import { GiTargetPrize } from "react-icons/gi"
 
@@ -14,10 +14,30 @@ type Player = { id: number; name: string; score: number; inputValue: string; ori
 type HistoryEntry = { playerId: number; playerName: string; change: number; newScore: number; timestamp: Date }
 
 export default function PunktePage() {
-  const getInitialPlayers = (): Player[] => [
-    { id: 1, name: "Spieler 1", score: 0, inputValue: "", originalIndex: 0 },
-    { id: 2, name: "Spieler 2", score: 0, inputValue: "", originalIndex: 1 },
-  ]
+  const searchParams = useSearchParams()
+  const teamsParam = searchParams.get("teams")
+  const initializedFromUrl = useRef(false)
+
+  const getInitialPlayers = (): Player[] => {
+    if (teamsParam) {
+      try {
+        const teamNames = JSON.parse(teamsParam) as string[]
+        return teamNames.map((name, index) => ({
+          id: index + 1,
+          name,
+          score: 0,
+          inputValue: "",
+          originalIndex: index,
+        }))
+      } catch {
+        // fallback to default
+      }
+    }
+    return [
+      { id: 1, name: "Spieler 1", score: 0, inputValue: "", originalIndex: 0 },
+      { id: 2, name: "Spieler 2", score: 0, inputValue: "", originalIndex: 1 },
+    ]
+  }
 
   const [players, setPlayers] = useState<Player[]>(getInitialPlayers())
   const [targetScore, setTargetScore] = useState<number | null>(null)
@@ -25,288 +45,345 @@ export default function PunktePage() {
   const [winner, setWinner] = useState<Player | null>(null)
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [showHistory, setShowHistory] = useState(false)
+  const [newPlayerName, setNewPlayerName] = useState("")
+
+  useEffect(() => {
+    if (teamsParam && !initializedFromUrl.current) {
+      try {
+        const teamNames = JSON.parse(teamsParam) as string[]
+        setPlayers(
+          teamNames.map((name, index) => ({
+            id: index + 1,
+            name,
+            score: 0,
+            inputValue: "",
+            originalIndex: index,
+          })),
+        )
+        initializedFromUrl.current = true
+      } catch {
+        // ignore
+      }
+    }
+  }, [teamsParam])
 
   const addPlayer = () => {
-    if (players.length < 8) {
-      setPlayers([
-        ...players,
-        {
-          id: Date.now(),
-          name: `Spieler ${players.length + 1}`,
-          score: 0,
-          inputValue: "",
-          originalIndex: players.length,
-        },
-      ])
+    if (players.length < 12) {
+      const nextNumber = players.length + 1
+      const name = newPlayerName.trim() || `Spieler ${nextNumber}`
+      setPlayers([...players, { id: Date.now(), name, score: 0, inputValue: "", originalIndex: players.length }])
+      setNewPlayerName("")
     }
   }
 
   const removePlayer = (id: number) => {
-    if (players.length > 2) {
-      setPlayers(players.filter((p) => p.id !== id))
-    }
+    setPlayers(players.filter((p) => p.id !== id))
   }
 
-  const addFromInput = (id: number, subtract = false) => {
+  const updateScore = (id: number, change: number) => {
     if (winner) return
-    const player = players.find((p) => p.id === id)
-    if (!player || !player.inputValue) return
 
-    const value = Number.parseInt(player.inputValue)
-    if (isNaN(value) || value === 0) return
-
-    const change = subtract ? -value : value
-    const newScore = player.score + change
-
-    setPlayers((prevPlayers) => prevPlayers.map((p) => (p.id === id ? { ...p, score: newScore, inputValue: "" } : p)))
-
-    setHistory((prev) =>
-      [{ playerId: id, playerName: player.name, change, newScore, timestamp: new Date() }, ...prev].slice(0, 50),
+    setPlayers((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          const newScore = Math.max(0, p.score + change)
+          setHistory((h) => [...h, { playerId: id, playerName: p.name, change, newScore, timestamp: new Date() }])
+          if (targetScore && newScore >= targetScore) {
+            setWinner({ ...p, score: newScore })
+          }
+          return { ...p, score: newScore }
+        }
+        return p
+      }),
     )
+  }
 
-    if (targetScore && newScore >= targetScore) {
-      setWinner({ ...player, score: newScore })
+  const addFromInput = (id: number, isSubtract = false) => {
+    if (winner) return
+
+    setPlayers((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          const inputVal = Number.parseInt(p.inputValue) || 0
+          if (inputVal === 0) return p
+
+          const change = isSubtract ? -inputVal : inputVal
+          const newScore = Math.max(0, p.score + change)
+
+          setHistory((h) => [...h, { playerId: id, playerName: p.name, change, newScore, timestamp: new Date() }])
+
+          if (targetScore && newScore >= targetScore) {
+            setWinner({ ...p, score: newScore })
+          }
+
+          return { ...p, score: newScore, inputValue: "" }
+        }
+        return p
+      }),
+    )
+  }
+
+  const undo = () => {
+    if (history.length === 0) return
+
+    const lastEntry = history[history.length - 1]
+    setPlayers((prev) =>
+      prev.map((p) => {
+        if (p.id === lastEntry.playerId) {
+          return { ...p, score: Math.max(0, p.score - lastEntry.change) }
+        }
+        return p
+      }),
+    )
+    setHistory((h) => h.slice(0, -1))
+    if (winner && winner.id === lastEntry.playerId) {
+      setWinner(null)
     }
   }
 
   const setTarget = () => {
     const val = Number.parseInt(targetInput)
-    if (!isNaN(val) && val > 0) {
+    if (val > 0) {
       setTargetScore(val)
       setTargetInput("")
     }
   }
 
-  const undoLast = () => {
-    if (history.length === 0) return
-    const last = history[0]
-    setPlayers(players.map((p) => (p.id === last.playerId ? { ...p, score: p.score - last.change } : p)))
-    setHistory(history.slice(1))
-    setWinner(null)
-  }
-
   const resetAll = () => {
-    setPlayers(getInitialPlayers())
-    setHistory([])
-    setWinner(null)
+    setPlayers([
+      { id: 1, name: "Spieler 1", score: 0, inputValue: "", originalIndex: 0 },
+      { id: 2, name: "Spieler 2", score: 0, inputValue: "", originalIndex: 1 },
+    ])
     setTargetScore(null)
     setTargetInput("")
+    setWinner(null)
+    setHistory([])
     setShowHistory(false)
+    setNewPlayerName("")
   }
 
-  const sortedPlayers = [...players]
-    .map((p, originalIndex) => ({ ...p, originalIndex }))
-    .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score
-      return a.originalIndex - b.originalIndex
-    })
-
-  const getRankingStyle = (index: number, score: number) => {
-    if (index === 0 && score > 0) return "bg-gradient-to-r from-amber-100 to-amber-50 border border-amber-300"
-    if (index === 1 && score > 0) return "bg-gradient-to-r from-gray-100 to-gray-50 border border-gray-300"
-    if (index === 2 && score > 0) return "bg-gradient-to-r from-orange-100 to-orange-50 border border-orange-300"
-    return "bg-gray-50 border border-gray-200"
+  const getRankingStyle = (rank: number, hasPoints: boolean) => {
+    if (!hasPoints) return "bg-gray-100"
+    if (rank === 0) return "bg-yellow-100 border-yellow-300"
+    if (rank === 1) return "bg-gray-200 border-gray-300"
+    if (rank === 2) return "bg-orange-100 border-orange-300"
+    return "bg-gray-50"
   }
 
-  const getBadgeStyle = (index: number, score: number) => {
-    if (index === 0 && score > 0) return "bg-amber-500 text-white"
-    if (index === 1 && score > 0) return "bg-gray-400 text-white"
-    if (index === 2 && score > 0) return "bg-orange-400 text-white"
-    return "bg-gray-300 text-gray-600"
+  const getBadgeStyle = (rank: number, hasPoints: boolean) => {
+    if (!hasPoints) return "bg-gray-300 text-gray-600"
+    if (rank === 0) return "bg-yellow-500 text-white"
+    if (rank === 1) return "bg-gray-400 text-white"
+    if (rank === 2) return "bg-orange-400 text-white"
+    return "bg-gray-300 text-gray-700"
   }
+
+  const sortedPlayers = [...players].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score
+    return a.originalIndex - b.originalIndex
+  })
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Navigation />
-      <main className="flex-1 container mx-auto px-4 py-8">
+
+      <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Link
           href="/spielhilfen"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+          className="inline-flex items-center text-gray-600 hover:text-teal-600 mb-6 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Zurück zur Übersicht</span>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Zurück zur Übersicht
         </Link>
 
-        <Card className="max-w-2xl mx-auto border-2 border-gray-200">
-          <CardHeader className="text-center border-b bg-gradient-to-r from-amber-50 to-amber-100">
-            <div className="w-14 h-14 rounded-xl bg-amber-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
-              <Trophy className="w-8 h-8 text-white" />
-            </div>
-            <CardTitle className="text-2xl">Punkte-Tracker</CardTitle>
-            <p className="text-gray-500 text-sm">Verfolge Spielstände mit Punkteziel</p>
+        <Card className="border-2 border-green-200">
+          <CardHeader className="bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-t-lg">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <Trophy className="w-8 h-8" />
+              Punkte-Tracker
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             {/* Winner Banner */}
             {winner && (
-              <div className="bg-gradient-to-r from-yellow-400 to-amber-500 text-white p-4 rounded-xl text-center animate-pulse">
-                <Crown className="w-8 h-8 mx-auto mb-2" />
-                <p className="text-xl font-bold">{winner.name} gewinnt!</p>
-                <p className="text-sm opacity-90">mit {winner.score} Punkten</p>
+              <div className="p-6 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg border-2 border-yellow-300 text-center animate-pulse">
+                <Crown className="w-16 h-16 text-yellow-500 mx-auto mb-2" />
+                <h3 className="text-2xl font-bold text-yellow-700">{winner.name} gewinnt!</h3>
+                <p className="text-yellow-600">mit {winner.score} Punkten</p>
               </div>
             )}
 
-            {/* Target Score - Display target score properly when set */}
-            <div className="flex items-center gap-2 justify-center flex-wrap">
-              <GiTargetPrize className="w-5 h-5 text-amber-500" />
+            {/* Punkteziel */}
+            <div className="space-y-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <GiTargetPrize className="w-5 h-5 text-green-500" />
+                Punkteziel
+              </h3>
               {targetScore ? (
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-base text-amber-500">Punkteziel: {targetScore}</span>
-                  <button
-                    onClick={() => setTargetScore(null)}
-                    className="text-gray-400 hover:text-red-500 text-lg font-bold"
-                  >
-                    ×
-                  </button>
+                  <span className="text-lg font-bold text-green-600">Punkteziel: {targetScore}</span>
+                  <Button size="sm" variant="ghost" onClick={() => setTargetScore(null)} className="text-gray-500">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               ) : (
                 <div className="flex gap-2">
                   <Input
                     type="number"
-                    placeholder="Punkteziel"
+                    placeholder="z.B. 100"
                     value={targetInput}
                     onChange={(e) => setTargetInput(e.target.value)}
-                    className="w-28 h-9"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") setTarget()
-                    }}
+                    onKeyDown={(e) => e.key === "Enter" && setTarget()}
+                    className="w-32"
                   />
-                  <Button onClick={setTarget} size="sm" variant="secondary">
+                  <Button onClick={setTarget} variant="outline">
                     Setzen
                   </Button>
                 </div>
               )}
             </div>
 
-            {/* Players */}
+            {/* Spieler hinzufügen */}
             <div className="space-y-3">
-              {players.map((player, index) => (
+              <h3 className="font-semibold">Spieler / Team hinzufügen</h3>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Name (optional)"
+                  value={newPlayerName}
+                  onChange={(e) => setNewPlayerName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addPlayer()}
+                  className="flex-1"
+                />
+                <Button onClick={addPlayer} disabled={players.length >= 12} className="bg-green-500 hover:bg-green-600">
+                  <Plus className="w-4 h-4 mr-1" /> Hinzufügen
+                </Button>
+              </div>
+            </div>
+
+            {/* Spieler Liste */}
+            <div className="space-y-3">
+              {players.map((player) => (
                 <div
                   key={player.id}
-                  className={`flex items-center gap-2 p-3 rounded-lg border-2 ${winner?.id === player.id ? "border-amber-400 bg-amber-50" : "border-gray-200 bg-gray-50"}`}
+                  className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-gray-50 rounded-lg border"
                 >
-                  <span className="w-6 text-center font-bold text-gray-400">{index + 1}</span>
-                  <Input
-                    value={player.name}
-                    onChange={(e) =>
-                      setPlayers(players.map((p) => (p.id === player.id ? { ...p, name: e.target.value } : p)))
-                    }
-                    className="flex-1 h-9 font-medium"
-                    disabled={!!winner}
-                  />
-                  <div className="flex items-center gap-1">
+                  <div className="flex-1 w-full sm:w-auto">
                     <Input
-                      type="number"
-                      value={player.inputValue}
+                      value={player.name}
                       onChange={(e) =>
-                        setPlayers(players.map((p) => (p.id === player.id ? { ...p, inputValue: e.target.value } : p)))
+                        setPlayers((prev) => prev.map((p) => (p.id === player.id ? { ...p, name: e.target.value } : p)))
                       }
-                      className="w-16 h-9 text-center"
-                      placeholder="0"
-                      disabled={!!winner}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          addFromInput(player.id, false)
-                        }
-                      }}
+                      className="font-semibold"
                     />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addFromInput(player.id, true)}
-                      disabled={!!winner || !player.inputValue}
-                      className="h-9 w-9 p-0 text-red-500 hover:bg-red-50 hover:border-red-300"
-                    >
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => updateScore(player.id, -1)} disabled={!!winner}>
                       <Minus className="w-4 h-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addFromInput(player.id, false)}
-                      disabled={!!winner || !player.inputValue}
-                      className="h-9 w-9 p-0 text-green-500 hover:bg-green-50 hover:border-green-300"
-                    >
+                    <span className="text-2xl font-bold w-16 text-center">{player.score}</span>
+                    <Button size="sm" variant="outline" onClick={() => updateScore(player.id, 1)} disabled={!!winner}>
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
-                  <Badge variant="secondary" className="min-w-[60px] justify-center text-lg bg-white">
-                    {player.score}
-                  </Badge>
-                  {players.length > 2 && (
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      placeholder="Punkte"
+                      value={player.inputValue}
+                      onChange={(e) =>
+                        setPlayers((prev) =>
+                          prev.map((p) => (p.id === player.id ? { ...p, inputValue: e.target.value } : p)),
+                        )
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") addFromInput(player.id)
+                      }}
+                      className="w-20"
+                      disabled={!!winner}
+                    />
                     <Button
-                      variant="ghost"
                       size="sm"
-                      onClick={() => removePlayer(player.id)}
-                      className="h-8 w-8 p-0 text-gray-400 hover:text-red-500"
+                      onClick={() => addFromInput(player.id, false)}
+                      disabled={!!winner}
+                      className="bg-green-500 hover:bg-green-600"
                     >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => addFromInput(player.id, true)}
+                      disabled={!!winner}
+                      className="bg-red-500 hover:bg-red-600"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => removePlayer(player.id)} className="text-red-500">
                       <Trash2 className="w-4 h-4" />
                     </Button>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-2 justify-center">
-              <Button onClick={addPlayer} variant="outline" size="sm" disabled={players.length >= 8 || !!winner}>
-                <Plus className="w-4 h-4 mr-1" /> Spieler
-              </Button>
-              <Button onClick={undoLast} variant="outline" size="sm" disabled={history.length === 0}>
+            {/* Aktionen */}
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={undo} variant="outline" disabled={history.length === 0}>
                 <Undo2 className="w-4 h-4 mr-1" /> Rückgängig
               </Button>
-              <Button onClick={() => setShowHistory(!showHistory)} variant="outline" size="sm">
-                <History className="w-4 h-4 mr-1" /> Verlauf
+              <Button onClick={() => setShowHistory(!showHistory)} variant="outline">
+                <History className="w-4 h-4 mr-1" /> Verlauf {showHistory ? "ausblenden" : "anzeigen"}
               </Button>
-              <Button
-                onClick={resetAll}
-                variant="outline"
-                size="sm"
-                className="text-red-500 hover:bg-red-50 bg-transparent"
-              >
+              <Button onClick={resetAll} variant="outline" className="text-red-500 bg-transparent">
                 <RotateCcw className="w-4 h-4 mr-1" /> Reset
               </Button>
             </div>
 
-            {/* History */}
+            {/* Verlauf */}
             {showHistory && history.length > 0 && (
-              <div className="border-t pt-4">
-                <h4 className="font-medium text-gray-700 mb-2">Verlauf</h4>
-                <div className="space-y-1 max-h-40 overflow-y-auto">
-                  {history.map((h, i) => (
-                    <div key={i} className="text-sm flex justify-between text-gray-600 bg-gray-50 px-3 py-1.5 rounded">
+              <div className="p-4 bg-gray-50 rounded-lg max-h-60 overflow-y-auto">
+                <h4 className="font-semibold mb-2">Verlauf</h4>
+                <div className="space-y-1 text-sm">
+                  {[...history].reverse().map((entry, index) => (
+                    <div key={index} className="flex justify-between text-gray-600">
                       <span>
-                        {h.playerName}:{" "}
-                        <span className={h.change > 0 ? "text-green-600" : "text-red-600"}>
-                          {h.change > 0 ? "+" : ""}
-                          {h.change}
-                        </span>
+                        {entry.playerName}: {entry.change > 0 ? "+" : ""}
+                        {entry.change} → {entry.newScore}
                       </span>
-                      <span className="font-medium">→ {h.newScore}</span>
+                      <span className="text-gray-400">
+                        {entry.timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Ranking */}
-            <div className="border-t pt-4">
-              <h4 className="text-gray-700 mb-3 text-sm font-bold">Rangliste</h4>
+            {/* Rangliste */}
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-yellow-500" />
+                Rangliste
+              </h4>
               <div className="space-y-2">
-                {sortedPlayers.map((p, i) => (
-                  <div key={p.id} className={`flex items-center gap-3 p-2 rounded-lg ${getRankingStyle(i, p.score)}`}>
+                {sortedPlayers.map((player, rank) => {
+                  const hasPoints = player.score > 0
+                  return (
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${getBadgeStyle(i, p.score)}`}
+                      key={player.id}
+                      className={`flex items-center justify-between p-3 rounded-lg border ${getRankingStyle(rank, hasPoints)}`}
                     >
-                      {i + 1}
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${getBadgeStyle(rank, hasPoints)}`}
+                        >
+                          {rank + 1}
+                        </span>
+                        <span className="font-semibold">{player.name}</span>
+                      </div>
+                      <span className="text-xl font-bold">{player.score}</span>
                     </div>
-                    <span className="flex-1 font-medium text-gray-800 text-xs">{p.name}</span>
-                    <span
-                      className={`font-bold text-xs ${i === 0 && p.score > 0 ? "text-amber-600" : "text-gray-700"}`}
-                    >
-                      {p.score} Pkt.
-                    </span>
-                    {i === 0 && p.score > 0 && <Crown className="w-5 h-5 text-amber-500" />}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </CardContent>

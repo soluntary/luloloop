@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft, Plus, Trash2, Save, StickyNote, Clock, Search } from "lucide-react"
+import { MdOutlineStickyNote2 } from "react-icons/md"
 
 interface Note {
   id: string
@@ -113,7 +114,7 @@ export default function NotizblockPage() {
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
             <div className="w-16 h-16 bg-lime-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <StickyNote className="w-8 h-8 text-white" />
+              <MdOutlineStickyNote2 className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">Notizblock</h1>
             <p className="text-gray-600">Schnelle Notizen während des Spiels</p>
@@ -155,7 +156,7 @@ export default function NotizblockPage() {
                             activeNote?.id === note.id ? "ring-2 ring-lime-500" : "hover:shadow-md"
                           }`}
                         >
-                          <div className="font-medium text-gray-800 truncate">{note.title}</div>
+                          <div className="text-gray-800 truncate text-xs font-bold">{note.title}</div>
                           <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                             <Clock className="w-3 h-3" />
                             {formatDate(note.updatedAt)}
