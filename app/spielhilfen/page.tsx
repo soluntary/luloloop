@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { GiSandsOfTime, GiRollingDices } from "react-icons/gi"
+import { GiRollingDices, GiCartwheel } from "react-icons/gi"
 import { TiSortAlphabeticallyOutline } from "react-icons/ti"
 import { FaUsersLine } from "react-icons/fa6"
 import { FaRandom, FaArrowRight } from "react-icons/fa"
@@ -13,6 +13,7 @@ import { FaUsersRectangle } from "react-icons/fa6"
 import { Trophy, MessageSquareText } from "lucide-react"
 import { TbUserQuestion } from "react-icons/tb"
 import { MdOutlineStickyNote2 } from "react-icons/md"
+import { MdOutlineTimer } from "react-icons/md"
 
 const tools = [
   {
@@ -27,8 +28,8 @@ const tools = [
   {
     id: "timer",
     title: "Timer",
-    description: "Animierte Countdown Timer mit Presets und eigener Zeiteinstellung für zeitbasierte Spiele.",
-    icon: GiSandsOfTime,
+    description: "Countdown Timer mit Presets und eigener Zeiteinstellung für zeitbasierte Spiele.",
+    icon: MdOutlineTimer,
     color: "blue",
     rotation: "-rotate-1",
     linkText: "Zum Timer",
@@ -36,7 +37,7 @@ const tools = [
   {
     id: "punkte",
     title: "Punkte-Tracker",
-    description: "Verfolge Spielstände mit Punkteziel, Verlauf und Rangliste für bis zu 8 Spieler.",
+    description: "Verfolge Spielstände mit Punkteziel, Verlauf und Rangliste für bis zu 12 Spieler.",
     icon: Trophy,
     color: "orange",
     rotation: "rotate-1",
@@ -79,21 +80,30 @@ const tools = [
     linkText: "Wort generieren",
   },
   {
+    id: "gluecksrad",
+    title: "Glücksrad",
+    description: "Drehbares Rad mit anpassbaren Segmenten für zufällige Auswahl und Entscheidungen.",
+    icon: GiCartwheel,
+    color: "amber",
+    rotation: "-rotate-1",
+    linkText: "Rad drehen",
+  },
+  {
     id: "team-generator",
     title: "Team-Generator",
     description: "Teile Spieler zufällig in Teams auf. Perfekt für Mannschaftsspiele.",
     icon: FaUsersRectangle,
     color: "cyan",
-    rotation: "-rotate-1",
+    rotation: "rotate-1",
     linkText: "Teams bilden",
   },
   {
     id: "rollen-verteiler",
     title: "Rollen-Verteiler",
-    description: "Verteile geheime Rollen an Spieler für Spiele wie Werwolf oder Mafia.",
+    description: "Verteile geheime Rollen an Spieler für Spiele wie Werwolf.",
     icon: TbUserQuestion,
     color: "indigo",
-    rotation: "rotate-1",
+    rotation: "-rotate-1",
     linkText: "Rollen verteilen",
   },
   {
@@ -102,7 +112,7 @@ const tools = [
     description: "Schnelle Notizen während des Spiels. Mit Speicherfunktion für mehrere Notizen.",
     icon: MdOutlineStickyNote2,
     color: "lime",
-    rotation: "-rotate-1",
+    rotation: "rotate-1",
     linkText: "Notizen öffnen",
   },
 ]
@@ -174,6 +184,12 @@ const getColorClasses = (color: string) => {
       border: "border-lime-300",
       text: "text-lime-600",
       hover: "hover:bg-lime-500",
+    },
+    amber: {
+      icon: "bg-amber-500",
+      border: "border-amber-300",
+      text: "text-amber-600",
+      hover: "hover:bg-amber-500",
     },
   }
   return colorMap[color] || colorMap.teal

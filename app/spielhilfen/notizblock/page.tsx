@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft, Plus, Trash2, Save, StickyNote, Clock, Search } from "lucide-react"
 import { MdOutlineStickyNote2 } from "react-icons/md"
+import { motion } from "framer-motion"
 
 interface Note {
   id: string
@@ -35,7 +35,6 @@ export default function NotizblockPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedColor, setSelectedColor] = useState(noteColors[0])
 
-  // Load notes from localStorage
   useEffect(() => {
     const savedNotes = localStorage.getItem("spielhilfen-notes")
     if (savedNotes) {
@@ -50,7 +49,6 @@ export default function NotizblockPage() {
     }
   }, [])
 
-  // Save notes to localStorage
   useEffect(() => {
     if (notes.length > 0) {
       localStorage.setItem("spielhilfen-notes", JSON.stringify(notes))
@@ -103,145 +101,137 @@ export default function NotizblockPage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
       <Navigation />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <Link
             href="/spielhilfen"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-lime-600 mb-6 transition-colors"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
             Zurück zur Übersicht
           </Link>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
-            <div className="w-16 h-16 bg-lime-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MdOutlineStickyNote2 className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Notizblock</h1>
-            <p className="text-gray-600">Schnelle Notizen während des Spiels</p>
-          </motion.div>
+          <Card className="border-2 border-lime-200">
+            <CardHeader className="text-center border-b bg-gradient-to-r from-lime-50 to-lime-100">
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                className="w-14 h-14 rounded-xl bg-lime-500 flex items-center justify-center mx-auto mb-2 shadow-lg"
+              >
+                <MdOutlineStickyNote2 className="w-8 h-8 text-white" />
+              </motion.div>
+              <CardTitle className="text-2xl">Notizblock</CardTitle>
+              <p className="text-gray-500 text-sm">Schnelle Notizen während des Spiels</p>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="grid md:grid-cols-3 gap-4">
+                {/* Notes List */}
+                <div className="md:col-span-1 space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <h3 className="font-semibold text-sm">Notizen ({notes.length})</h3>
+                    <Button onClick={createNote} size="sm" className="bg-lime-500 hover:bg-lime-600 h-7 w-7 p-0">
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                  </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Notes List */}
-            <Card className="md:col-span-1">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Notizen ({notes.length})</CardTitle>
-                  <Button onClick={createNote} size="sm" className="bg-lime-500 hover:bg-lime-600">
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Suchen..."
-                    className="pl-9"
-                  />
-                </div>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Suchen..."
+                      className="pl-7 h-7 text-xs"
+                    />
+                  </div>
 
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  <AnimatePresence>
+                  <div className="space-y-1 max-h-80 overflow-y-auto">
                     {filteredNotes.length > 0 ? (
                       filteredNotes.map((note) => (
-                        <motion.div
+                        <div
                           key={note.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
                           onClick={() => setActiveNote(note)}
-                          className={`p-3 rounded-lg cursor-pointer transition-all ${note.color} ${
+                          className={`p-2 rounded-lg cursor-pointer transition-all ${note.color} ${
                             activeNote?.id === note.id ? "ring-2 ring-lime-500" : "hover:shadow-md"
                           }`}
                         >
                           <div className="text-gray-800 truncate text-xs font-bold">{note.title}</div>
-                          <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                            <Clock className="w-3 h-3" />
+                          <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                            <Clock className="w-2 h-2" />
                             {formatDate(note.updatedAt)}
                           </div>
-                        </motion.div>
+                        </div>
                       ))
                     ) : (
-                      <div className="text-center text-gray-400 py-8">
-                        <StickyNote className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>Keine Notizen vorhanden</p>
+                      <div className="text-center text-gray-400 py-6">
+                        <StickyNote className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                        <p className="text-xs">Keine Notizen vorhanden</p>
                       </div>
                     )}
-                  </AnimatePresence>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Note Editor */}
-            <Card className="md:col-span-2">
-              <CardContent className="p-6">
-                {activeNote ? (
-                  <motion.div
-                    key={activeNote.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="space-y-4"
-                  >
-                    <div className="flex items-center gap-4">
-                      <Input
-                        value={activeNote.title}
-                        onChange={(e) => updateNote(activeNote.id, { title: e.target.value })}
-                        className="text-xl font-bold border-none shadow-none focus-visible:ring-0 p-0"
-                        placeholder="Titel..."
+                {/* Note Editor */}
+                <div className="md:col-span-2">
+                  {activeNote ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Input
+                          value={activeNote.title}
+                          onChange={(e) => updateNote(activeNote.id, { title: e.target.value })}
+                          className="text-lg font-bold border-none shadow-none focus-visible:ring-0 p-0 h-8"
+                          placeholder="Titel..."
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteNote(activeNote.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+
+                      <div className="flex gap-1">
+                        {noteColors.map((color) => (
+                          <button
+                            key={color.name}
+                            onClick={() => updateNote(activeNote.id, { color: color.bg })}
+                            className={`w-5 h-5 rounded-full ${color.bg} ${color.border} border-2 ${
+                              activeNote.color === color.bg ? "ring-2 ring-offset-1 ring-lime-500" : ""
+                            }`}
+                            title={color.name}
+                          />
+                        ))}
+                      </div>
+
+                      <Textarea
+                        value={activeNote.content}
+                        onChange={(e) => updateNote(activeNote.id, { content: e.target.value })}
+                        placeholder="Schreibe deine Notizen hier..."
+                        className={`min-h-[250px] ${activeNote.color} border-none resize-none text-sm`}
                       />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteNote(activeNote.id)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
+
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>Erstellt: {formatDate(activeNote.createdAt)}</span>
+                        <span className="flex items-center gap-1">
+                          <Save className="w-2 h-2" />
+                          Automatisch gespeichert
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                      <StickyNote className="w-12 h-12 mb-3 opacity-50" />
+                      <p className="mb-3 text-sm">Wähle eine Notiz aus oder erstelle eine neue</p>
+                      <Button onClick={createNote} size="sm" className="bg-lime-500 hover:bg-lime-600 h-7 text-xs">
+                        <Plus className="w-3 h-3 mr-1" />
+                        Neue Notiz
                       </Button>
                     </div>
-
-                    <div className="flex gap-2">
-                      {noteColors.map((color) => (
-                        <button
-                          key={color.name}
-                          onClick={() => updateNote(activeNote.id, { color: color.bg })}
-                          className={`w-6 h-6 rounded-full ${color.bg} ${color.border} border-2 ${
-                            activeNote.color === color.bg ? "ring-2 ring-offset-2 ring-lime-500" : ""
-                          }`}
-                          title={color.name}
-                        />
-                      ))}
-                    </div>
-
-                    <Textarea
-                      value={activeNote.content}
-                      onChange={(e) => updateNote(activeNote.id, { content: e.target.value })}
-                      placeholder="Schreibe deine Notizen hier..."
-                      className={`min-h-[300px] ${activeNote.color} border-none resize-none`}
-                    />
-
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>Erstellt: {formatDate(activeNote.createdAt)}</span>
-                      <span className="flex items-center gap-1">
-                        <Save className="w-3 h-3" />
-                        Automatisch gespeichert
-                      </span>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-80 text-gray-400">
-                    <StickyNote className="w-16 h-16 mb-4 opacity-50" />
-                    <p className="mb-4">Wähle eine Notiz aus oder erstelle eine neue</p>
-                    <Button onClick={createNote} className="bg-lime-500 hover:bg-lime-600">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Neue Notiz
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>

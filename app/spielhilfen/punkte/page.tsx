@@ -7,8 +7,11 @@ import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, Trophy, Plus, Minus, Trash2, Crown, Undo2, History, RotateCcw } from "lucide-react"
+import { ArrowLeft, Trophy, Plus, Minus, Trash2, Crown, Undo2, History } from "lucide-react"
 import { GiTargetPrize } from "react-icons/gi"
+import { GiPodium } from "react-icons/gi"
+import { RiResetLeftFill } from "react-icons/ri"
+import { motion } from "framer-motion"
 
 type Player = { id: number; name: string; score: number; inputValue: string; originalIndex: number }
 type HistoryEntry = { playerId: number; playerName: string; change: number; newScore: number; timestamp: Date }
@@ -187,207 +190,259 @@ export default function PunktePage() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Navigation />
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+      <main className="container mx-auto px-4 py-8">
         <Link
           href="/spielhilfen"
-          className="inline-flex items-center text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+          className="inline-flex items-center text-gray-600 hover:text-teal-600 mb-6 transition-colors text-sm"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Zurück zur Übersicht
         </Link>
 
-        <Card className="border-2 border-green-200">
-          <CardHeader className="bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-t-lg">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <Trophy className="w-8 h-8" />
-              Punkte-Tracker
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            {/* Winner Banner */}
-            {winner && (
-              <div className="p-6 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg border-2 border-yellow-300 text-center animate-pulse">
-                <Crown className="w-16 h-16 text-yellow-500 mx-auto mb-2" />
-                <h3 className="text-2xl font-bold text-yellow-700">{winner.name} gewinnt!</h3>
-                <p className="text-yellow-600">mit {winner.score} Punkten</p>
-              </div>
-            )}
-
-            {/* Punkteziel */}
-            <div className="space-y-3">
-              <h3 className="font-semibold flex items-center gap-2">
-                <GiTargetPrize className="w-5 h-5 text-green-500" />
-                Punkteziel
-              </h3>
-              {targetScore ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-green-600">Punkteziel: {targetScore}</span>
-                  <Button size="sm" variant="ghost" onClick={() => setTargetScore(null)} className="text-gray-500">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    placeholder="z.B. 100"
-                    value={targetInput}
-                    onChange={(e) => setTargetInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && setTarget()}
-                    className="w-32"
-                  />
-                  <Button onClick={setTarget} variant="outline">
-                    Setzen
-                  </Button>
+        <div className="max-w-4xl mx-auto">
+          <Card className="border-2 border-green-200">
+            <CardHeader className="text-center border-b bg-gradient-to-r from-green-50 to-green-100">
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                className="w-14 h-14 rounded-xl bg-green-500 flex items-center justify-center mx-auto mb-2 shadow-lg"
+              >
+                <Trophy className="w-8 h-8 text-white" />
+              </motion.div>
+              <CardTitle className="text-2xl">Punkte-Tracker</CardTitle>
+              <p className="text-gray-500 text-sm">Spielstände verfolgen und auswerten</p>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              {/* Winner Banner */}
+              {winner && (
+                <div className="p-6 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg border-2 border-yellow-300 text-center animate-pulse">
+                  <Crown className="w-16 h-16 text-yellow-500 mx-auto mb-2" />
+                  <h3 className="text-2xl font-bold text-yellow-700">{winner.name} gewinnt!</h3>
+                  <p className="text-yellow-600">mit {winner.score} Punkten</p>
                 </div>
               )}
-            </div>
 
-            {/* Spieler hinzufügen */}
-            <div className="space-y-3">
-              <h3 className="font-semibold">Spieler / Team hinzufügen</h3>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Name (optional)"
-                  value={newPlayerName}
-                  onChange={(e) => setNewPlayerName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addPlayer()}
-                  className="flex-1"
-                />
-                <Button onClick={addPlayer} disabled={players.length >= 12} className="bg-green-500 hover:bg-green-600">
-                  <Plus className="w-4 h-4 mr-1" /> Hinzufügen
-                </Button>
-              </div>
-            </div>
-
-            {/* Spieler Liste */}
-            <div className="space-y-3">
-              {players.map((player) => (
-                <div
-                  key={player.id}
-                  className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-gray-50 rounded-lg border"
-                >
-                  <div className="flex-1 w-full sm:w-auto">
-                    <Input
-                      value={player.name}
-                      onChange={(e) =>
-                        setPlayers((prev) => prev.map((p) => (p.id === player.id ? { ...p, name: e.target.value } : p)))
-                      }
-                      className="font-semibold"
-                    />
-                  </div>
+              {/* Punkteziel */}
+              <div className="space-y-2">
+                <h3 className="font-semibold flex items-center gap-2 text-sm">
+                  <GiTargetPrize className="w-4 h-4 text-green-500" />
+                  Punkteziel
+                </h3>
+                {targetScore ? (
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => updateScore(player.id, -1)} disabled={!!winner}>
-                      <Minus className="w-4 h-4" />
-                    </Button>
-                    <span className="text-2xl font-bold w-16 text-center">{player.score}</span>
-                    <Button size="sm" variant="outline" onClick={() => updateScore(player.id, 1)} disabled={!!winner}>
-                      <Plus className="w-4 h-4" />
+                    <span className="text-sm font-bold text-green-600">Punkteziel: {targetScore}</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setTargetScore(null)}
+                      className="text-gray-500 h-6 w-6 p-0"
+                    >
+                      <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>
-                  <div className="flex items-center gap-1">
+                ) : (
+                  <div className="flex gap-2">
                     <Input
                       type="number"
-                      placeholder="Punkte"
-                      value={player.inputValue}
-                      onChange={(e) =>
-                        setPlayers((prev) =>
-                          prev.map((p) => (p.id === player.id ? { ...p, inputValue: e.target.value } : p)),
-                        )
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") addFromInput(player.id)
-                      }}
-                      className="w-20"
-                      disabled={!!winner}
+                      placeholder="z.B. 100"
+                      value={targetInput}
+                      onChange={(e) => setTargetInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && setTarget()}
+                      className="w-24 h-8 text-sm"
                     />
-                    <Button
-                      size="sm"
-                      onClick={() => addFromInput(player.id, false)}
-                      disabled={!!winner}
-                      className="bg-green-500 hover:bg-green-600"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => addFromInput(player.id, true)}
-                      disabled={!!winner}
-                      className="bg-red-500 hover:bg-red-600"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => removePlayer(player.id)} className="text-red-500">
-                      <Trash2 className="w-4 h-4" />
+                    <Button onClick={setTarget} variant="outline" size="sm" className="h-8 text-xs bg-transparent">
+                      Setzen
                     </Button>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Aktionen */}
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={undo} variant="outline" disabled={history.length === 0}>
-                <Undo2 className="w-4 h-4 mr-1" /> Rückgängig
-              </Button>
-              <Button onClick={() => setShowHistory(!showHistory)} variant="outline">
-                <History className="w-4 h-4 mr-1" /> Verlauf {showHistory ? "ausblenden" : "anzeigen"}
-              </Button>
-              <Button onClick={resetAll} variant="outline" className="text-red-500 bg-transparent">
-                <RotateCcw className="w-4 h-4 mr-1" /> Reset
-              </Button>
-            </div>
-
-            {/* Verlauf */}
-            {showHistory && history.length > 0 && (
-              <div className="p-4 bg-gray-50 rounded-lg max-h-60 overflow-y-auto">
-                <h4 className="font-semibold mb-2">Verlauf</h4>
-                <div className="space-y-1 text-sm">
-                  {[...history].reverse().map((entry, index) => (
-                    <div key={index} className="flex justify-between text-gray-600">
-                      <span>
-                        {entry.playerName}: {entry.change > 0 ? "+" : ""}
-                        {entry.change} → {entry.newScore}
-                      </span>
-                      <span className="text-gray-400">
-                        {entry.timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                )}
               </div>
-            )}
 
-            {/* Rangliste */}
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-500" />
-                Rangliste
-              </h4>
+              {/* Spieler hinzufügen */}
               <div className="space-y-2">
-                {sortedPlayers.map((player, rank) => {
-                  const hasPoints = player.score > 0
-                  return (
-                    <div
-                      key={player.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border ${getRankingStyle(rank, hasPoints)}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${getBadgeStyle(rank, hasPoints)}`}
-                        >
-                          {rank + 1}
-                        </span>
-                        <span className="font-semibold">{player.name}</span>
-                      </div>
-                      <span className="text-xl font-bold">{player.score}</span>
-                    </div>
-                  )
-                })}
+                <h3 className="font-semibold text-sm">Spieler / Team hinzufügen</h3>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Name (optional)"
+                    value={newPlayerName}
+                    onChange={(e) => setNewPlayerName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addPlayer()}
+                    className="flex-1 h-7 text-xs"
+                  />
+                  <Button
+                    onClick={addPlayer}
+                    disabled={players.length >= 12}
+                    size="sm"
+                    className="bg-green-500 hover:bg-green-600 h-7 text-xs"
+                  >
+                    <Plus className="w-3 h-3 mr-1" /> Hinzufügen
+                  </Button>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+
+              {/* Spieler Liste */}
+              <div className="space-y-2">
+                {players.map((player) => (
+                  <div
+                    key={player.id}
+                    className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-2 bg-gray-50 rounded-lg border"
+                  >
+                    <div className="flex-1 w-full sm:w-auto">
+                      <Input
+                        value={player.name}
+                        onChange={(e) =>
+                          setPlayers((prev) =>
+                            prev.map((p) => (p.id === player.id ? { ...p, name: e.target.value } : p)),
+                          )
+                        }
+                        className="font-semibold h-7 text-xs"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateScore(player.id, -1)}
+                        disabled={!!winner}
+                        className="h-7 w-7 p-0"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                      <span className="w-10 text-center font-medium text-xs">{player.score}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateScore(player.id, 1)}
+                        disabled={!!winner}
+                        className="h-7 w-7 p-0"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        placeholder="Pkte"
+                        value={player.inputValue}
+                        onChange={(e) =>
+                          setPlayers((prev) =>
+                            prev.map((p) => (p.id === player.id ? { ...p, inputValue: e.target.value } : p)),
+                          )
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") addFromInput(player.id)
+                        }}
+                        className="w-14 h-7 text-xs"
+                        disabled={!!winner}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => addFromInput(player.id, false)}
+                        disabled={!!winner}
+                        className="bg-green-500 hover:bg-green-600 h-7 w-7 p-0"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => addFromInput(player.id, true)}
+                        disabled={!!winner}
+                        className="bg-red-500 hover:bg-red-600 h-7 w-7 p-0"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removePlayer(player.id)}
+                        className="text-red-500 h-7 w-7 p-0"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Aktionen */}
+              <div className="flex flex-wrap gap-1">
+                <Button
+                  onClick={undo}
+                  variant="outline"
+                  size="sm"
+                  disabled={history.length === 0}
+                  className="h-7 text-xs bg-transparent"
+                >
+                  <Undo2 className="w-3 h-3 mr-1" /> Rückgängig
+                </Button>
+                <Button
+                  onClick={() => setShowHistory(!showHistory)}
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                >
+                  <History className="w-3 h-3 mr-1" /> Verlauf
+                </Button>
+                <Button
+                  onClick={resetAll}
+                  variant="outline"
+                  size="sm"
+                  className="text-red-500 bg-transparent h-7 text-xs"
+                >
+                  <RiResetLeftFill className="w-3 h-3 mr-1" /> Reset
+                </Button>
+              </div>
+
+              {/* Verlauf */}
+              {showHistory && history.length > 0 && (
+                <div className="p-4 bg-gray-50 rounded-lg max-h-60 overflow-y-auto">
+                  <h4 className="font-semibold mb-2">Verlauf</h4>
+                  <div className="space-y-1 text-sm">
+                    {[...history].reverse().map((entry, index) => (
+                      <div key={index} className="flex justify-between text-gray-600">
+                        <span>
+                          {entry.playerName}: {entry.change > 0 ? "+" : ""}
+                          {entry.change} → {entry.newScore}
+                        </span>
+                        <span className="text-gray-400">
+                          {entry.timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Rangliste */}
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm">
+                  <GiPodium className="w-4 h-4 text-yellow-500" />
+                  Rangliste
+                </h4>
+                <div className="space-y-1">
+                  {sortedPlayers.map((player, rank) => {
+                    const hasPoints = player.score > 0
+                    return (
+                      <div
+                        key={player.id}
+                        className={`flex items-center justify-between p-2 rounded-lg border ${getRankingStyle(rank, hasPoints)}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`rounded-full flex items-center justify-center text-xs font-bold w-5 h-5 ${getBadgeStyle(rank, hasPoints)}`}
+                          >
+                            {rank + 1}
+                          </span>
+                          <span className="text-xs font-medium">{player.name}</span>
+                        </div>
+                        <span className="font-bold text-xs">{player.score}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </main>
     </div>
   )

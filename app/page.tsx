@@ -5,21 +5,18 @@ import type React from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
-  FaUsers,
   FaStore,
   FaPlus,
   FaCheckCircle,
   FaHeart,
-  FaBullseye,
   FaCoins,
   FaShieldAlt,
   FaArrowRight,
-  FaUserPlus,
   FaCalendarAlt,
 } from "react-icons/fa"
 import { LiaUsersSolid } from "react-icons/lia"
 import { IoLibrary } from "react-icons/io5"
-import { GiReceiveMoney, GiBackForth, GiDiceTarget } from "react-icons/gi"
+import { GiReceiveMoney, GiBackForth, GiDiceTarget, GiRollingDices } from "react-icons/gi"
 import { TbExchange } from "react-icons/tb"
 import { MdForum } from "react-icons/md"
 import Link from "next/link"
@@ -439,7 +436,8 @@ export default function HomePage() {
             {
               icon: IoLibrary,
               title: "Digitales Spielregal",
-              description: "Leg im Handumdrehen deine gesamte Spielesammlung digital an und behalte den perfekten Überblick.",
+              description:
+                "Leg im Handumdrehen deine gesamte Spielesammlung digital an und behalte den perfekten Überblick.",
               link: "/library",
               linkText: "Spielesammlung digital anlegen",
               color: "pink",
@@ -521,6 +519,16 @@ export default function HomePage() {
               linkText: "Zum Forum",
               color: "orange",
               rotation: "rotate-1",
+            },
+            {
+              icon: GiRollingDices,
+              title: "Spielhilfen",
+              description:
+                "Nützliche Tools für deine Spielrunden: Würfel, Timer, Punktezähler, Glücksrad und vieles mehr - alles in einer App!",
+              link: "/spielhilfen",
+              linkText: "Zu den Spielhilfen",
+              color: "teal",
+              rotation: "-rotate-1",
             },
           ].map((feature, index) => {
             const colors = getColorClasses(feature.color)

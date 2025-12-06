@@ -6,9 +6,10 @@ import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, Type, Trash2 } from "lucide-react"
+import { ArrowLeft, Trash2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TiSortAlphabeticallyOutline } from "react-icons/ti"
+import { motion } from "framer-motion"
 
 export default function ZufallsbuchstabenPage() {
   const [letterCount, setLetterCount] = useState(1)
@@ -68,29 +69,33 @@ export default function ZufallsbuchstabenPage() {
           className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Zurück zur Übersicht</span>
+          <span className="text-sm">Zurück zur Übersicht</span>
         </Link>
 
-        <Card className="max-w-md mx-auto border-2 border-gray-200">
+        <Card className="max-w-2xl mx-auto border-2 border-gray-200">
           <CardHeader className="text-center border-b bg-gradient-to-r from-teal-50 to-teal-100">
-            <div className="w-14 h-14 rounded-xl bg-teal-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+              className="w-14 h-14 rounded-xl bg-teal-500 flex items-center justify-center mx-auto mb-2 shadow-lg"
+            >
               <TiSortAlphabeticallyOutline className="w-8 h-8 text-white" />
-            </div>
+            </motion.div>
             <CardTitle className="text-2xl">Zufallsbuchstaben</CardTitle>
             <p className="text-gray-500 text-sm">Für Wortspiele wie Stadt-Land-Fluss</p>
           </CardHeader>
-          <CardContent className="p-6 space-y-6">
+          <CardContent className="p-4 space-y-4">
             {/* Result Display */}
             <div
-              className={`flex justify-center gap-3 py-6 rounded-xl border-2 ${results.length > 0 ? "bg-teal-50 border-teal-200" : "bg-gray-50 border-gray-200"}`}
+              className={`flex justify-center gap-2 py-4 rounded-xl border-2 ${results.length > 0 ? "bg-teal-50 border-teal-200" : "bg-gray-50 border-gray-200"}`}
             >
               {results.length > 0 ? (
                 results.map((letter, i) => (
                   <div
                     key={i}
-                    className={`w-14 h-14 flex items-center justify-center rounded-lg bg-white border-2 border-teal-300 shadow ${isGenerating ? "animate-bounce" : ""}`}
+                    className={`w-12 h-12 flex items-center justify-center rounded-lg bg-white border-2 border-teal-300 shadow ${isGenerating ? "animate-bounce" : ""}`}
                   >
-                    <span className="text-3xl font-bold text-teal-600">{isGenerating ? "?" : letter}</span>
+                    <span className="text-2xl font-bold text-teal-600">{isGenerating ? "?" : letter}</span>
                   </div>
                 ))
               ) : (
@@ -99,11 +104,11 @@ export default function ZufallsbuchstabenPage() {
             </div>
 
             {/* Controls */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <p className="text-xs text-gray-500 mb-1">Anzahl</p>
+                <p className="text-gray-500 mb-1 font-bold text-sm">Anzahl</p>
                 <Select value={letterCount.toString()} onValueChange={(v) => setLetterCount(Number(v))}>
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -116,9 +121,9 @@ export default function ZufallsbuchstabenPage() {
                 </Select>
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-1">Buchstaben</p>
+                <p className="text-gray-500 mb-1 font-bold text-sm">Buchstaben</p>
                 <Select value={letterSet} onValueChange={(v) => setLetterSet(v as typeof letterSet)}>
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -137,7 +142,7 @@ export default function ZufallsbuchstabenPage() {
                 placeholder="Eigene Buchstaben (z.B. ABCDEF)"
                 value={customLetters}
                 onChange={(e) => setCustomLetters(e.target.value.toUpperCase())}
-                className="h-10"
+                className="h-8 text-xs"
               />
             )}
 
@@ -145,23 +150,23 @@ export default function ZufallsbuchstabenPage() {
             <Button
               onClick={generate}
               disabled={isGenerating}
-              className="w-full h-12 text-lg bg-teal-500 hover:bg-teal-600"
+              className="w-full h-8 text-sm bg-teal-500 hover:bg-teal-600"
             >
               {isGenerating ? "Generiert..." : "Buchstaben generieren"}
             </Button>
 
             {/* History */}
             {history.length > 0 && (
-              <div className="border-t pt-4">
+              <div className="border-t pt-3">
                 <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-gray-700 text-sm font-bold">Verlauf</h4>
-                  <Button variant="ghost" size="sm" onClick={() => setHistory([])}>
-                    <Trash2 className="w-4 h-4" />
+                  <h4 className="text-gray-700 font-bold text-sm">Verlauf</h4>
+                  <Button variant="ghost" size="sm" onClick={() => setHistory([])} className="h-6 w-6 p-0">
+                    <Trash2 className="w-3 h-3" />
                   </Button>
                 </div>
-                <div className="space-y-1 max-h-32 overflow-y-auto">
+                <div className="space-y-1 max-h-28 overflow-y-auto">
                   {history.map((h, i) => (
-                    <div key={i} className="flex justify-between text-gray-600 bg-gray-50 px-3 py-1.5 rounded text-xs">
+                    <div key={i} className="flex justify-between text-gray-600 bg-gray-50 px-2 py-1 rounded text-xs">
                       <span className="text-gray-400">{h.set}</span>
                       <span className="font-bold text-teal-600 tracking-widest">{h.letters.join(" ")}</span>
                     </div>

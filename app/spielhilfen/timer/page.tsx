@@ -6,7 +6,8 @@ import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, Play, Pause, RotateCcw, Timer } from "lucide-react"
+import { ArrowLeft, Play, Pause, RotateCcw } from "lucide-react"
+import { MdOutlineTimer } from "react-icons/md"
 import { motion } from "framer-motion"
 
 export default function TimerPage() {
@@ -72,30 +73,34 @@ export default function TimerPage() {
           className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Zurück zur Übersicht</span>
+          <span className="text-sm">Zurück zur Übersicht</span>
         </Link>
 
-        <Card className="max-w-md mx-auto border-2 border-gray-200">
+        <Card className="max-w-2xl mx-auto border-2 border-gray-200">
           <CardHeader className="text-center border-b bg-gradient-to-r from-blue-50 to-blue-100">
-            <div className="w-14 h-14 rounded-xl bg-blue-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
-              <Timer className="w-8 h-8 text-white" />
-            </div>
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+              className="w-14 h-14 rounded-xl bg-blue-500 flex items-center justify-center mx-auto mb-2 shadow-lg"
+            >
+              <MdOutlineTimer className="w-8 h-8 text-white" />
+            </motion.div>
             <CardTitle className="text-2xl">Timer</CardTitle>
             <p className="text-gray-500 text-sm">Countdown für zeitbasierte Spiele</p>
           </CardHeader>
-          <CardContent className="p-6 space-y-6">
+          <CardContent className="p-4 space-y-4">
             <div className="flex flex-col items-center justify-center">
-              <div className="relative w-52 h-52">
+              <div className="relative w-44 h-44">
                 {/* Background circle */}
                 <svg className="w-full h-full" viewBox="0 0 208 208" style={{ transform: "rotate(-90deg) scaleY(-1)" }}>
-                  <circle cx="104" cy="104" r="90" stroke="#e5e7eb" strokeWidth="12" fill="none" />
+                  <circle cx="104" cy="104" r="90" stroke="#e5e7eb" strokeWidth="10" fill="none" />
                   {/* Progress circle */}
                   <motion.circle
                     cx="104"
                     cy="104"
                     r="90"
                     stroke={timeLeft === 0 ? "#ef4444" : "#3b82f6"}
-                    strokeWidth="12"
+                    strokeWidth="10"
                     fill="none"
                     strokeLinecap="round"
                     strokeDasharray={circumference}
@@ -107,7 +112,7 @@ export default function TimerPage() {
                 {/* Time display in center */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span
-                    className={`text-4xl font-bold ${timeLeft === 0 ? "text-red-500 animate-pulse" : "text-gray-800"}`}
+                    className={`text-3xl font-bold ${timeLeft === 0 ? "text-red-500 animate-pulse" : "text-gray-800"}`}
                   >
                     {formatTime(timeLeft)}
                   </span>
@@ -115,31 +120,33 @@ export default function TimerPage() {
               </div>
             </div>
 
-            {/* Controls */}
-            <div className="flex justify-center gap-3">
+            {/* Controls - Reduced button sizes */}
+            <div className="flex justify-center gap-2">
               <Button
                 onClick={() => setIsRunning(!isRunning)}
-                className={`h-12 px-6 ${isRunning ? "bg-amber-500 hover:bg-amber-600" : "bg-blue-500 hover:bg-blue-600"}`}
+                size="sm"
+                className={`h-8 px-3 text-xs ${isRunning ? "bg-amber-500 hover:bg-amber-600" : "bg-blue-500 hover:bg-blue-600"}`}
               >
-                {isRunning ? <Pause className="w-5 h-5 mr-2" /> : <Play className="w-5 h-5 mr-2" />}
+                {isRunning ? <Pause className="w-3 h-3 mr-1" /> : <Play className="w-3 h-3 mr-1" />}
                 {isRunning ? "Pause" : "Start"}
               </Button>
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => {
                   setTimeLeft(initialTime)
                   setIsRunning(false)
                 }}
-                className="h-12 px-4"
+                className="h-8 w-8 p-0"
               >
-                <RotateCcw className="w-5 h-5" />
+                <RotateCcw className="w-3 h-3 text-red-500" />
               </Button>
             </div>
 
             {/* Presets */}
             <div>
-              <p className="text-sm text-gray-500 mb-2 text-center font-bold">Schnellauswahl</p>
-              <div className="flex flex-wrap justify-center gap-2">
+              <p className="text-xs mb-2 text-center font-bold text-black">Schnellauswahl</p>
+              <div className="flex flex-wrap justify-center gap-1">
                 {presets.map((p) => (
                   <Button
                     key={p.label}
@@ -150,7 +157,7 @@ export default function TimerPage() {
                       setInitialTime(p.seconds)
                       setIsRunning(false)
                     }}
-                    className="hover:bg-blue-50 hover:border-blue-300"
+                    className="h-7 text-xs hover:bg-blue-50 hover:border-blue-300"
                   >
                     {p.label}
                   </Button>
@@ -158,29 +165,29 @@ export default function TimerPage() {
               </div>
             </div>
 
-            {/* Custom Time */}
-            <div className="border-t pt-4">
-              <p className="text-sm text-gray-500 mb-2 text-center font-bold">Eigene Zeit</p>
+            {/* Custom Time - Reduced input sizes */}
+            <div className="border-t pt-3">
+              <p className="text-xs mb-2 text-center font-bold text-black">Eigene Zeit</p>
               <div className="flex gap-2 items-center justify-center">
                 <Input
                   type="number"
                   placeholder="Min"
                   value={customMinutes}
                   onChange={(e) => setCustomMinutes(e.target.value)}
-                  className="w-20 h-9 text-center"
+                  className="w-16 h-8 text-xs text-center"
                   min="0"
                 />
-                <span className="text-gray-400">:</span>
+                <span className="text-gray-400 text-xs">:</span>
                 <Input
                   type="number"
                   placeholder="Sek"
                   value={customSeconds}
                   onChange={(e) => setCustomSeconds(e.target.value)}
-                  className="w-20 h-9 text-center"
+                  className="w-16 h-8 text-xs text-center"
                   min="0"
                   max="59"
                 />
-                <Button onClick={setCustomTime} size="sm" variant="secondary">
+                <Button onClick={setCustomTime} size="sm" variant="secondary" className="h-8 text-xs">
                   Setzen
                 </Button>
               </div>

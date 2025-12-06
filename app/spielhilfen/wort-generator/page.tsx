@@ -376,7 +376,7 @@ const wordCategories: Record<string, string[]> = {
     "trocken",
   ],
   sport: [
-    "Fußball",
+    "Fussball",
     "Basketball",
     "Tennis",
     "Volleyball",
@@ -409,13 +409,23 @@ const wordCategories: Record<string, string[]> = {
     "Wandern",
     "Bergsteigen",
     "Fallschirmspringen",
-    "Bungee-Jumping",
-    "Paintball",
     "Bowling",
     "Darts",
     "Billard",
     "Schach",
     "Tischtennis",
+    "Badminton",
+    "Rugby",
+    "Baseball",
+    "Cricket",
+    "Crossfit",
+    "Triathlon",
+    "Squash",
+    "Windsurfen",
+    "Curling",
+    "Trampolin",
+    "Wrestling",
+    "Biathlon",
   ],
 }
 
@@ -439,7 +449,6 @@ export default function WortGeneratorPage() {
   const generateWord = () => {
     setIsGenerating(true)
 
-    // Animate through random words
     let count = 0
     const interval = setInterval(() => {
       const words = wordCategories[category]
@@ -470,21 +479,24 @@ export default function WortGeneratorPage() {
           className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Zurück zur Übersicht</span>
+          <span className="text-sm">Zurück zur Übersicht</span>
         </Link>
 
-        <Card className="max-w-md mx-auto border-2 border-gray-200">
+        <Card className="max-w-2xl mx-auto border-2 border-gray-200">
           <CardHeader className="text-center border-b bg-gradient-to-r from-pink-50 to-pink-100">
-            <div className="w-14 h-14 rounded-xl bg-pink-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+              className="w-14 h-14 rounded-xl bg-pink-500 flex items-center justify-center mx-auto mb-2 shadow-lg"
+            >
               <MessageSquareText className="w-8 h-8 text-white" />
-            </div>
+            </motion.div>
             <CardTitle className="text-2xl">Wort-Generator</CardTitle>
             <p className="text-gray-500 text-sm">Zufällige Wörter für Wortspiele</p>
           </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            {/* Category Selection */}
+          <CardContent className="p-4 space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Kategorie</label>
+              <label className="text-gray-700 mb-1 block font-bold text-sm">Kategorie</label>
               <Select
                 value={category}
                 onValueChange={(val) => {
@@ -493,7 +505,7 @@ export default function WortGeneratorPage() {
                   setHistory([])
                 }}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -506,8 +518,7 @@ export default function WortGeneratorPage() {
               </Select>
             </div>
 
-            {/* Word Display */}
-            <div className="bg-gray-50 rounded-xl p-8 text-center min-h-[120px] flex items-center justify-center border-2 border-gray-200">
+            <div className="bg-gray-50 rounded-xl p-6 text-center min-h-[100px] flex items-center justify-center border-2 border-gray-200">
               <AnimatePresence mode="wait">
                 {currentWord ? (
                   <motion.div
@@ -515,45 +526,43 @@ export default function WortGeneratorPage() {
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.5, opacity: 0 }}
-                    className={`text-4xl font-bold ${isGenerating ? "text-gray-400" : "text-pink-600"}`}
+                    className={`text-3xl font-bold ${isGenerating ? "text-gray-400" : "text-pink-600"}`}
                   >
                     {currentWord}
                   </motion.div>
                 ) : (
-                  <span className="text-gray-400 text-lg">Klicke auf "Wort generieren"</span>
+                  <span className="text-gray-400 text-xs">Klicke auf Wort generieren</span>
                 )}
               </AnimatePresence>
             </div>
 
-            {/* Generate Button */}
             <Button
               onClick={generateWord}
               disabled={isGenerating}
-              className="w-full h-14 text-lg bg-pink-500 hover:bg-pink-600"
+              className="w-full h-8 text-sm bg-pink-500 hover:bg-pink-600"
             >
-              <RefreshCw className={`w-5 h-5 mr-2 ${isGenerating ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-3 h-3 mr-2 ${isGenerating ? "animate-spin" : ""}`} />
               {isGenerating ? "Generiere..." : "Wort generieren"}
             </Button>
 
-            {/* History */}
             {history.length > 0 && (
-              <div className="border-t pt-4">
+              <div className="border-t pt-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Verlauf</span>
+                  <span className="text-gray-700 text-sm font-bold">Verlauf</span>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={clearHistory}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600 h-6 w-6 p-0"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3 h-3" />
                   </Button>
                 </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
+                <div className="space-y-1 max-h-40 overflow-y-auto">
                   {history.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
+                    <div key={i} className="flex items-center justify-between text-xs bg-gray-50 p-1.5 rounded">
                       <span className="font-medium text-gray-800">{item.word}</span>
-                      <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded">{item.category}</span>
+                      <span className="text-xs text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">{item.category}</span>
                     </div>
                   ))}
                 </div>
