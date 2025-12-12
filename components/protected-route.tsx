@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
@@ -13,19 +12,23 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth()
   const router = useRouter()
-  const [isChecking, setIsChecking] = useState(true)
+  const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push("/login")
-      } else {
-        setIsChecking(false)
-      }
+    if (loading) {
+      return
+    }
+
+    // Auth is done loading - now we can check if user exists
+    if (user) {
+      setIsReady(true)
+    } else {
+      // No user after loading complete - redirect to login
+      router.push("/login")
     }
   }, [user, loading, router])
 
-  if (loading || isChecking) {
+  if (loading || !isReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-pink-50 to-teal-50">
         <div className="text-center">
@@ -34,10 +37,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         </div>
       </div>
     )
-  }
-
-  if (!user) {
-    return null
   }
 
   return <>{children}</>

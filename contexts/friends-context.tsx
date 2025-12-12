@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react"
+import { createContext, useContext, useState, type ReactNode, useEffect, useCallback, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import { createNotificationIfEnabled } from "@/app/actions/notification-helpers"
@@ -48,16 +48,29 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   const [sentRequests, setSentRequests] = useState<FriendRequest[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const dataLoadedRef = useRef(false)
+  const lastUserIdRef = useRef<string | null>(null)
 
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const supabase = createClient()
 
   const refreshFriends = useCallback(async () => {
     if (!user?.id) {
-      console.log("[v0] FRIENDS: No user ID, clearing data")
-      setFriends([])
-      setPendingRequests([])
-      setSentRequests([])
+      if (authLoading) {
+        return
+      }
+      if (dataLoadedRef.current && lastUserIdRef.current) {
+        console.log("[v0] FRIENDS: Auth finished, no user, clearing data")
+        setFriends([])
+        setPendingRequests([])
+        setSentRequests([])
+        dataLoadedRef.current = false
+        lastUserIdRef.current = null
+      }
+      return
+    }
+
+    if (lastUserIdRef.current === user.id && dataLoadedRef.current) {
       return
     }
 
@@ -164,6 +177,9 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
       setSentRequests(transformedSent)
       setPendingRequests(transformedReceived)
 
+      dataLoadedRef.current = true
+      lastUserIdRef.current = user.id
+
       console.log("[v0] FRIENDS: Data loaded successfully:", {
         friends: transformedFriends.length,
         sent: transformedSent.length,
@@ -175,11 +191,13 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [user?.id, user?.username, user?.name, supabase])
+  }, [user?.id, user?.username, user?.name, supabase, authLoading])
 
   useEffect(() => {
-    refreshFriends()
-  }, [refreshFriends])
+    if (!authLoading) {
+      refreshFriends()
+    }
+  }, [refreshFriends, authLoading])
 
   const sendFriendRequest = async (toUserId: string, message?: string) => {
     if (!user?.id) {
@@ -248,7 +266,6 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         if (existingRequest.status === "accepted") {
           console.log("[v0] FRIENDS: Request already accepted, checking if friendship exists...")
 
-          // Check if friendship already exists
           const { data: friendship } = await supabase
             .from("friends")
             .select("id")

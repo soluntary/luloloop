@@ -7,13 +7,16 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { GiRollingDices, GiCartwheel } from "react-icons/gi"
 import { TiSortAlphabeticallyOutline } from "react-icons/ti"
-import { FaUsersLine } from "react-icons/fa6"
 import { FaRandom, FaArrowRight } from "react-icons/fa"
-import { FaUsersRectangle } from "react-icons/fa6"
 import { Trophy, MessageSquareText } from "lucide-react"
 import { TbUserQuestion } from "react-icons/tb"
 import { MdOutlineStickyNote2 } from "react-icons/md"
-import { MdOutlineTimer } from "react-icons/md"
+import { MdOutlineTimer as FaUsersRectangle } from "react-icons/md"
+import { GiSoundWaves } from "react-icons/gi"
+import { GiSoundOn } from "react-icons/gi"
+import { FaUsersLine } from "react-icons/fa6"
+import { PiClockCountdownFill } from "react-icons/pi"
+import { MdHowToVote } from "react-icons/md"
 
 const tools = [
   {
@@ -29,7 +32,7 @@ const tools = [
     id: "timer",
     title: "Timer",
     description: "Countdown Timer mit Presets und eigener Zeiteinstellung für zeitbasierte Spiele.",
-    icon: MdOutlineTimer,
+    icon: FaUsersRectangle,
     color: "blue",
     rotation: "-rotate-1",
     linkText: "Zum Timer",
@@ -86,7 +89,7 @@ const tools = [
     icon: GiCartwheel,
     color: "amber",
     rotation: "-rotate-1",
-    linkText: "Rad drehen",
+    linkText: "Zum Glücksrad",
   },
   {
     id: "team-generator",
@@ -114,6 +117,42 @@ const tools = [
     color: "lime",
     rotation: "rotate-1",
     linkText: "Notizen öffnen",
+  },
+  {
+    id: "schachuhr",
+    title: "Schachuhr",
+    description: "Zwei abwechselnde Timer für Spiele mit Zeitlimit. Perfekt für Schach und mehr.",
+    icon: PiClockCountdownFill,
+    color: "slate",
+    rotation: "-rotate-1",
+    linkText: "Zur Schachuhr",
+  },
+  {
+    id: "soundboard",
+    title: "Soundboard",
+    description: "Verschiedene Sounds für Spiele: Fanfare, Trommelwirbel, Buzzer, Applaus und mehr.",
+    icon: GiSoundOn,
+    color: "rose",
+    rotation: "rotate-1",
+    linkText: "Sounds abspielen",
+  },
+  {
+    id: "hintergrundmusik",
+    title: "Hintergrundmusik",
+    description: "Ambient-Musik für verschiedene Spielgenres: Spannung, Party, Fantasy und mehr.",
+    icon: GiSoundWaves,
+    color: "violet",
+    rotation: "-rotate-1",
+    linkText: "Musik starten",
+  },
+  {
+    id: "abstimmungen",
+    title: "Abstimmungen",
+    description: "Erstelle geheime Abstimmungen für Spieler. Perfekt für Werwolf, Mafia und andere Deduktionsspiele.",
+    icon: MdHowToVote,
+    color: "emerald",
+    rotation: "rotate-1",
+    linkText: "Abstimmung starten",
   },
 ]
 
@@ -190,6 +229,30 @@ const getColorClasses = (color: string) => {
       border: "border-amber-300",
       text: "text-amber-600",
       hover: "hover:bg-amber-500",
+    },
+    slate: {
+      icon: "bg-slate-600",
+      border: "border-slate-300",
+      text: "text-slate-600",
+      hover: "hover:bg-slate-600",
+    },
+    rose: {
+      icon: "bg-rose-500",
+      border: "border-rose-300",
+      text: "text-rose-600",
+      hover: "hover:bg-rose-500",
+    },
+    violet: {
+      icon: "bg-violet-500",
+      border: "border-violet-300",
+      text: "text-violet-600",
+      hover: "hover:bg-violet-500",
+    },
+    emerald: {
+      icon: "bg-emerald-500",
+      border: "border-emerald-300",
+      text: "text-emerald-600",
+      hover: "hover:bg-emerald-500",
     },
   }
   return colorMap[color] || colorMap.teal

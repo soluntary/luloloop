@@ -257,7 +257,7 @@ export default function RegisterPage() {
               </form>
 
               <div className="mt-6 text-center">
-                <p className="text-sm text-gray-600 font-body">
+                <p className="text-gray-600 font-body text-xs">
                   Bereits ein Konto?{" "}
                   <Link href="/login" className="text-teal-600 hover:text-teal-700 font-medium">
                     Hier anmelden

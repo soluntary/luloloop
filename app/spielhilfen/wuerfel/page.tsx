@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Trash2 } from "lucide-react"
+import { ArrowLeft, Trash2, Maximize2, X } from "lucide-react"
 import {
   GiRollingDices,
   GiPerspectiveDiceSixFacesSix,
@@ -14,6 +14,7 @@ import {
   GiPerspectiveDiceSixFacesRandom,
 } from "react-icons/gi"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { TemplateManager } from "@/components/spielhilfen/template-manager"
 
 export default function WuerfelPage() {
   const [diceCount, setDiceCount] = useState(2)
@@ -21,6 +22,19 @@ export default function WuerfelPage() {
   const [results, setResults] = useState<number[]>([])
   const [isRolling, setIsRolling] = useState(false)
   const [history, setHistory] = useState<{ dice: number[]; total: number; type: number }[]>([])
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  const getCurrentData = () => ({
+    diceCount,
+    diceType,
+  })
+
+  const handleLoadTemplate = (data: any) => {
+    if (data.diceCount) setDiceCount(data.diceCount)
+    if (data.diceType) setDiceType(data.diceType)
+    setResults([])
+    setHistory([])
+  }
 
   const rollDice = () => {
     setIsRolling(true)
@@ -51,7 +65,6 @@ export default function WuerfelPage() {
     diceType: number
     index: number
   }) => {
-    // Dice colors based on type
     const diceColors: Record<number, { bg: string; border: string; text: string; shadow: string; iconColor: string }> =
       {
         4: {
@@ -107,7 +120,11 @@ export default function WuerfelPage() {
 
     const colors = diceColors[diceType] || diceColors[6]
 
-    // D6 with dots
+    const diceSize = isExpanded ? "w-24 h-24" : "w-16 h-16"
+    const iconSize = isExpanded ? "w-24 h-24" : "w-16 h-16"
+    const textSize = isExpanded ? "text-4xl" : "text-2xl"
+    const dotSize = isExpanded ? "w-5 h-5" : "w-3 h-3"
+
     const renderD6Face = (val: number) => {
       const dotPositions: Record<number, string[]> = {
         1: ["col-start-2 row-start-2"],
@@ -132,9 +149,9 @@ export default function WuerfelPage() {
       }
 
       return (
-        <div className="grid grid-cols-3 grid-rows-3 gap-1 w-full h-full p-2">
+        <div className={`grid grid-cols-3 grid-rows-3 gap-1 w-full h-full ${isExpanded ? "p-3" : "p-2"}`}>
           {dotPositions[val]?.map((pos, i) => (
-            <div key={i} className={`${pos} w-3 h-3 rounded-full bg-gray-800 mx-auto my-auto`} />
+            <div key={i} className={`${pos} ${dotSize} rounded-full bg-gray-800 mx-auto my-auto`} />
           ))}
         </div>
       )
@@ -163,17 +180,17 @@ export default function WuerfelPage() {
           {rolling ? (
             diceType === 6 ? (
               index % 2 === 0 ? (
-                <GiPerspectiveDiceSixFacesSix className="w-16 h-16 text-gray-700" />
+                <GiPerspectiveDiceSixFacesSix className={`${iconSize} text-gray-700`} />
               ) : (
-                <GiPerspectiveDiceSixFacesThree className="w-16 h-16 text-gray-700" />
+                <GiPerspectiveDiceSixFacesThree className={`${iconSize} text-gray-700`} />
               )
             ) : (
-              <GiPerspectiveDiceSixFacesRandom className={`w-16 h-16 ${colors.iconColor}`} />
+              <GiPerspectiveDiceSixFacesRandom className={`${iconSize} ${colors.iconColor}`} />
             )
           ) : (
             <div
               className={`
-                w-16 h-16 rounded-xl 
+                ${diceSize} rounded-xl 
                 bg-gradient-to-br ${colors.bg} 
                 border-2 ${colors.border} 
                 shadow-lg ${colors.shadow}
@@ -192,17 +209,21 @@ export default function WuerfelPage() {
               {diceType === 6 ? (
                 renderD6Face(value)
               ) : (
-                <span className={`text-2xl font-bold ${colors.text}`}>{value}</span>
+                <span className={`${textSize} font-bold ${colors.text}`}>{value}</span>
               )}
             </div>
           )}
         </motion.div>
-        <span className="text-xs text-gray-500 font-medium">D{diceType}</span>
+        <span className={`${isExpanded ? "text-sm" : "text-xs"} text-gray-500 font-medium`}>D{diceType}</span>
       </div>
     )
   }
 
   const Dice_D100 = ({ value, rolling, index }: { value: number; rolling: boolean; index: number }) => {
+    const diceSize = isExpanded ? "w-24 h-24" : "w-16 h-16"
+    const iconSize = isExpanded ? "w-24 h-24" : "w-16 h-16"
+    const textSize = isExpanded ? "text-3xl" : "text-xl"
+
     return (
       <div className="flex flex-col items-center gap-2">
         <motion.div
@@ -220,10 +241,10 @@ export default function WuerfelPage() {
           transition={{ duration: 1.2, ease: "easeOut", delay: index * 0.1 }}
         >
           {rolling ? (
-            <GiPerspectiveDiceSixFacesRandom className="w-16 h-16 text-pink-600" />
+            <GiPerspectiveDiceSixFacesRandom className={`${iconSize} text-pink-600`} />
           ) : (
             <div
-              className="w-16 h-16 rounded-xl bg-gradient-to-br from-pink-500 to-pink-600 border-2 border-pink-700 shadow-lg flex items-center justify-center"
+              className={`${diceSize} rounded-xl bg-gradient-to-br from-pink-500 to-pink-600 border-2 border-pink-700 shadow-lg flex items-center justify-center`}
               style={{
                 boxShadow: `
                   0 4px 6px -1px rgba(0, 0, 0, 0.1),
@@ -232,11 +253,11 @@ export default function WuerfelPage() {
                 `,
               }}
             >
-              <span className="text-xl font-bold text-white">{value}</span>
+              <span className={`${textSize} font-bold text-white`}>{value}</span>
             </div>
           )}
         </motion.div>
-        <span className="text-xs text-gray-500 font-medium">D100</span>
+        <span className={`${isExpanded ? "text-sm" : "text-xs"} text-gray-500 font-medium`}>D100</span>
       </div>
     )
   }
@@ -246,6 +267,92 @@ export default function WuerfelPage() {
       return <Dice_D100 key={index} value={value} rolling={isRolling} index={index} />
     }
     return <Dice3D key={index} value={value} rolling={isRolling} diceType={diceType} index={index} />
+  }
+
+  if (isExpanded) {
+    return (
+      <div className="fixed inset-0 z-50 bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col">
+        <div className="flex justify-between items-center p-4">
+          <div className="flex items-center gap-3">
+            <GiRollingDices className="w-8 h-8 text-red-400" />
+            <span className="text-white font-bold text-xl">Würfel</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(false)}
+            className="text-white hover:bg-white/10"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4">
+          <div className="flex flex-wrap justify-center gap-6 min-h-[200px] items-center">
+            {results.length > 0 ? (
+              results.map((r, i) => renderDice(r, i))
+            ) : (
+              <p className="text-gray-400 text-lg">Tippe auf "Würfeln", um zu starten</p>
+            )}
+          </div>
+
+          {results.length > 0 && !isRolling && (
+            <div className="text-center py-4 px-8 bg-white/10 rounded-2xl">
+              <p className="text-sm text-gray-300 mb-2">Wurfergebnis</p>
+              <p className="text-6xl font-bold text-red-400">{total}</p>
+              {results.length > 1 && (
+                <p className="text-sm text-gray-400 mt-2">
+                  {results.join(" + ")} = {total}
+                </p>
+              )}
+            </div>
+          )}
+
+          <Button
+            onClick={rollDice}
+            disabled={isRolling}
+            size="lg"
+            className="h-14 px-12 text-lg bg-red-500 hover:bg-red-600"
+          >
+            <GiRollingDices className="w-6 h-6 mr-3" />
+            {isRolling ? "Würfelt..." : "Würfeln"}
+          </Button>
+        </div>
+
+        <div className="p-4 flex justify-center gap-4">
+          <Select value={diceCount.toString()} onValueChange={(v) => setDiceCount(Number(v))}>
+            <SelectTrigger className="w-32 h-10 bg-white/10 border-white/20 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <SelectItem key={n} value={n.toString()}>
+                  {n} Würfel
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={diceType.toString()}
+            onValueChange={(v) => {
+              setDiceType(Number(v))
+              setResults([])
+            }}
+          >
+            <SelectTrigger className="w-28 h-10 bg-white/10 border-white/20 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[4, 6, 8, 10, 12, 20, 100].map((t) => (
+                <SelectItem key={t} value={t.toString()}>
+                  D{t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -262,6 +369,13 @@ export default function WuerfelPage() {
 
         <Card className="max-w-2xl mx-auto border-2 border-gray-200">
           <CardHeader className="text-center border-b bg-gradient-to-r from-red-50 to-red-100">
+            <div className="flex justify-end mb-2">
+              <TemplateManager
+                spielhilfeType="wuerfel"
+                currentData={getCurrentData()}
+                onLoadTemplate={handleLoadTemplate}
+              />
+            </div>
             <div className="flex flex-col items-center gap-3">
               <motion.div
                 className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg"
@@ -277,7 +391,6 @@ export default function WuerfelPage() {
             </div>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
-            {/* Controls */}
             <div className="flex flex-wrap gap-2 justify-center">
               <Select value={diceCount.toString()} onValueChange={(v) => setDiceCount(Number(v))}>
                 <SelectTrigger className="w-28 h-8 text-xs">
@@ -312,13 +425,23 @@ export default function WuerfelPage() {
               </Select>
             </div>
 
-            {/* Dice Display */}
-            <div className="flex flex-wrap justify-center gap-4 min-h-[120px] items-center py-4 bg-gradient-to-b from-gray-100 to-gray-50 rounded-xl border border-gray-200">
-              {results.length > 0 ? (
-                results.map((r, i) => renderDice(r, i))
-              ) : (
-                <p className="text-gray-400 text-xs">Klicke auf "Würfeln", um zu starten</p>
-              )}
+            <div className="relative">
+              <div className="flex flex-wrap justify-center gap-4 min-h-[140px] items-center py-4 bg-gradient-to-b from-gray-100 to-gray-50 rounded-xl border border-gray-200">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsExpanded(true)}
+                  className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 z-10"
+                  title="Vergrössern"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </Button>
+                {results.length > 0 ? (
+                  results.map((r, i) => renderDice(r, i))
+                ) : (
+                  <p className="text-gray-400 text-xs">Klicke auf "Würfeln", um zu starten</p>
+                )}
+              </div>
             </div>
 
             {results.length > 0 && !isRolling && (
@@ -333,17 +456,15 @@ export default function WuerfelPage() {
               </div>
             )}
 
-            {/* Roll Button */}
             <Button onClick={rollDice} disabled={isRolling} className="w-full h-8 text-sm bg-red-500 hover:bg-red-600">
               <GiRollingDices className="w-4 h-4 mr-2" />
               {isRolling ? "Würfelt..." : "Würfeln"}
             </Button>
 
-            {/* History */}
             {history.length > 0 && (
               <div className="border-t pt-3">
                 <div className="flex justify-between items-center mb-2 text-xs">
-                  <h4 className="text-gray-700 font-bold text-sm text-sm">Verlauf</h4>
+                  <h4 className="text-gray-700 font-bold text-sm">Verlauf</h4>
                   <Button variant="ghost" size="sm" onClick={() => setHistory([])} className="h-6 w-6 p-0">
                     <Trash2 className="w-3 h-3" />
                   </Button>

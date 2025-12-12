@@ -7,11 +7,11 @@ import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, Trophy, Plus, Minus, Trash2, Crown, Undo2, History } from "lucide-react"
+import { ArrowLeft, Trophy, Plus, Minus, Trash2, Crown, Undo2, History, RotateCcw } from "lucide-react"
 import { GiTargetPrize } from "react-icons/gi"
 import { GiPodium } from "react-icons/gi"
-import { RiResetLeftFill } from "react-icons/ri"
 import { motion } from "framer-motion"
+import { TemplateManager } from "@/components/spielhilfen/template-manager"
 
 type Player = { id: number; name: string; score: number; inputValue: string; originalIndex: number }
 type HistoryEntry = { playerId: number; playerName: string; change: number; newScore: number; timestamp: Date }
@@ -49,6 +49,31 @@ export default function PunktePage() {
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [newPlayerName, setNewPlayerName] = useState("")
+
+  const getCurrentData = () => ({
+    players: players.map((p) => ({ name: p.name })),
+    targetScore,
+  })
+
+  const handleLoadTemplate = (data: any) => {
+    if (data.players) {
+      setPlayers(
+        data.players.map((p: any, index: number) => ({
+          id: index + 1,
+          name: p.name || `Spieler ${index + 1}`,
+          score: 0,
+          inputValue: "",
+          originalIndex: index,
+        })),
+      )
+    }
+    if (data.targetScore) {
+      setTargetScore(data.targetScore)
+    }
+    setWinner(null)
+    setHistory([])
+    setShowHistory(false)
+  }
 
   useEffect(() => {
     if (teamsParam && !initializedFromUrl.current) {
@@ -202,6 +227,13 @@ export default function PunktePage() {
         <div className="max-w-4xl mx-auto">
           <Card className="border-2 border-green-200">
             <CardHeader className="text-center border-b bg-gradient-to-r from-green-50 to-green-100">
+              <div className="flex justify-end mb-2">
+                <TemplateManager
+                  spielhilfeType="punkte"
+                  currentData={getCurrentData()}
+                  onLoadTemplate={handleLoadTemplate}
+                />
+              </div>
               <motion.div
                 animate={{ rotate: [0, 10, -10, 0] }}
                 transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
@@ -213,7 +245,6 @@ export default function PunktePage() {
               <p className="text-gray-500 text-sm">Spielstände verfolgen und auswerten</p>
             </CardHeader>
             <CardContent className="p-4 space-y-4">
-              {/* Winner Banner */}
               {winner && (
                 <div className="p-6 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg border-2 border-yellow-300 text-center animate-pulse">
                   <Crown className="w-16 h-16 text-yellow-500 mx-auto mb-2" />
@@ -222,7 +253,6 @@ export default function PunktePage() {
                 </div>
               )}
 
-              {/* Punkteziel */}
               <div className="space-y-2">
                 <h3 className="font-semibold flex items-center gap-2 text-sm">
                   <GiTargetPrize className="w-4 h-4 text-green-500" />
@@ -257,7 +287,6 @@ export default function PunktePage() {
                 )}
               </div>
 
-              {/* Spieler hinzufügen */}
               <div className="space-y-2">
                 <h3 className="font-semibold text-sm">Spieler / Team hinzufügen</h3>
                 <div className="flex gap-2">
@@ -279,7 +308,6 @@ export default function PunktePage() {
                 </div>
               </div>
 
-              {/* Spieler Liste */}
               <div className="space-y-2">
                 {players.map((player) => (
                   <div
@@ -363,7 +391,6 @@ export default function PunktePage() {
                 ))}
               </div>
 
-              {/* Aktionen */}
               <div className="flex flex-wrap gap-1">
                 <Button
                   onClick={undo}
@@ -386,13 +413,13 @@ export default function PunktePage() {
                   onClick={resetAll}
                   variant="outline"
                   size="sm"
-                  className="text-red-500 bg-transparent h-7 text-xs"
+                  disabled={false}
+                  className="h-7 text-xs bg-transparent"
                 >
-                  <RiResetLeftFill className="w-3 h-3 mr-1" /> Reset
+                  <RotateCcw className="w-3 h-3 mr-1" /> Zurücksetzen
                 </Button>
               </div>
 
-              {/* Verlauf */}
               {showHistory && history.length > 0 && (
                 <div className="p-4 bg-gray-50 rounded-lg max-h-60 overflow-y-auto">
                   <h4 className="font-semibold mb-2">Verlauf</h4>
@@ -412,7 +439,6 @@ export default function PunktePage() {
                 </div>
               )}
 
-              {/* Rangliste */}
               <div className="p-3 bg-gray-50 rounded-lg">
                 <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm">
                   <GiPodium className="w-4 h-4 text-yellow-500" />

@@ -6,7 +6,7 @@ import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, Trash2 } from "lucide-react"
+import { ArrowLeft, Trash2, Maximize2, X } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TiSortAlphabeticallyOutline } from "react-icons/ti"
 import { motion } from "framer-motion"
@@ -18,6 +18,7 @@ export default function ZufallsbuchstabenPage() {
   const [results, setResults] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [history, setHistory] = useState<{ letters: string[]; set: string }[]>([])
+  const [isExpanded, setIsExpanded] = useState(false)
 
   const allLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
   const vowels = "AEIOU"
@@ -60,6 +61,79 @@ export default function ZufallsbuchstabenPage() {
     }, 300)
   }
 
+  if (isExpanded) {
+    return (
+      <div className="fixed inset-0 z-50 bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col">
+        <div className="flex justify-between items-center p-4">
+          <div className="flex items-center gap-3">
+            <TiSortAlphabeticallyOutline className="w-8 h-8 text-teal-400" />
+            <span className="text-white font-bold text-xl">Zufallsbuchstaben</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(false)}
+            className="text-white hover:bg-white/10"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4">
+          <div className="flex justify-center gap-4">
+            {results.length > 0 ? (
+              results.map((letter, i) => (
+                <div
+                  key={i}
+                  className={`w-24 h-24 flex items-center justify-center rounded-2xl bg-white/10 border-2 border-teal-400 ${isGenerating ? "animate-bounce" : ""}`}
+                >
+                  <span className="text-6xl font-bold text-teal-400">{isGenerating ? "?" : letter}</span>
+                </div>
+              ))
+            ) : (
+              <span className="text-gray-400 text-xl">Tippe auf "Buchstaben generieren"</span>
+            )}
+          </div>
+
+          <Button
+            onClick={generate}
+            disabled={isGenerating}
+            size="lg"
+            className="h-14 px-12 text-lg bg-teal-500 hover:bg-teal-600"
+          >
+            {isGenerating ? "Generiert..." : "Buchstaben generieren"}
+          </Button>
+        </div>
+
+        <div className="p-4 flex justify-center gap-4">
+          <Select value={letterCount.toString()} onValueChange={(v) => setLetterCount(Number(v))}>
+            <SelectTrigger className="w-40 h-10 bg-white/10 border-white/20 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                <SelectItem key={n} value={n.toString()}>
+                  {n} Buchstabe{n > 1 ? "n" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={letterSet} onValueChange={(v) => setLetterSet(v as typeof letterSet)}>
+            <SelectTrigger className="w-36 h-10 bg-white/10 border-white/20 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle (A-Z)</SelectItem>
+              <SelectItem value="vowels">Vokale</SelectItem>
+              <SelectItem value="consonants">Konsonanten</SelectItem>
+              <SelectItem value="custom">Eigene</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
       <Navigation />
@@ -85,28 +159,9 @@ export default function ZufallsbuchstabenPage() {
             <p className="text-gray-500 text-sm">Für Wortspiele wie Stadt-Land-Fluss</p>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
-            {/* Result Display */}
-            <div
-              className={`flex justify-center gap-2 py-4 rounded-xl border-2 ${results.length > 0 ? "bg-teal-50 border-teal-200" : "bg-gray-50 border-gray-200"}`}
-            >
-              {results.length > 0 ? (
-                results.map((letter, i) => (
-                  <div
-                    key={i}
-                    className={`w-12 h-12 flex items-center justify-center rounded-lg bg-white border-2 border-teal-300 shadow ${isGenerating ? "animate-bounce" : ""}`}
-                  >
-                    <span className="text-2xl font-bold text-teal-600">{isGenerating ? "?" : letter}</span>
-                  </div>
-                ))
-              ) : (
-                <span className="text-gray-400 text-xs">Klicke auf "Buchstaben generieren"</span>
-              )}
-            </div>
-
-            {/* Controls */}
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <p className="text-gray-500 mb-1 font-bold text-sm">Anzahl</p>
+                <p className="mb-1 font-bold text-sm text-black">Anzahl</p>
                 <Select value={letterCount.toString()} onValueChange={(v) => setLetterCount(Number(v))}>
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
@@ -121,7 +176,7 @@ export default function ZufallsbuchstabenPage() {
                 </Select>
               </div>
               <div>
-                <p className="text-gray-500 mb-1 font-bold text-sm">Buchstaben</p>
+                <p className="mb-1 font-bold text-sm text-foreground">Buchstaben</p>
                 <Select value={letterSet} onValueChange={(v) => setLetterSet(v as typeof letterSet)}>
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
@@ -136,7 +191,6 @@ export default function ZufallsbuchstabenPage() {
               </div>
             </div>
 
-            {/* Custom Letters Input */}
             {letterSet === "custom" && (
               <Input
                 placeholder="Eigene Buchstaben (z.B. ABCDEF)"
@@ -146,7 +200,34 @@ export default function ZufallsbuchstabenPage() {
               />
             )}
 
-            {/* Generate Button */}
+            <div className="relative">
+              <div
+                className={`flex flex-wrap justify-center gap-2 py-4 min-h-[140px] items-center rounded-xl border-2 ${results.length > 0 ? "bg-teal-50 border-teal-200" : "bg-gray-50 border-gray-200"}`}
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsExpanded(true)}
+                  className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 z-10"
+                  title="Vergrössern"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </Button>
+                {results.length > 0 ? (
+                  results.map((letter, i) => (
+                    <div
+                      key={i}
+                      className={`w-12 h-12 flex items-center justify-center rounded-lg bg-white border-2 border-teal-300 shadow ${isGenerating ? "animate-bounce" : ""}`}
+                    >
+                      <span className="text-2xl font-bold text-teal-600">{isGenerating ? "?" : letter}</span>
+                    </div>
+                  ))
+                ) : (
+                  <span className="text-gray-400 text-xs">Klicke auf "Buchstaben generieren"</span>
+                )}
+              </div>
+            </div>
+
             <Button
               onClick={generate}
               disabled={isGenerating}
@@ -155,7 +236,6 @@ export default function ZufallsbuchstabenPage() {
               {isGenerating ? "Generiert..." : "Buchstaben generieren"}
             </Button>
 
-            {/* History */}
             {history.length > 0 && (
               <div className="border-t pt-3">
                 <div className="flex justify-between items-center mb-2">

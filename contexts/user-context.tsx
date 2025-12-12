@@ -21,9 +21,10 @@ const UserContext = createContext<UserContextType | undefined>(undefined)
 export function UserProvider({ children }: { children: ReactNode }) {
   const auth = useAuth()
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
 
   const authUser = auth?.user
+  const authLoading = auth?.loading ?? true
+
   useEffect(() => {
     if (authUser) {
       // Map auth user to user context format
@@ -37,10 +38,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } else {
       setUser(null)
     }
-    setLoading(false)
   }, [authUser])
 
-  return <UserContext.Provider value={{ user, loading }}>{children}</UserContext.Provider>
+  const loading = authLoading || (authUser && !user)
+
+  return <UserContext.Provider value={{ user, loading: !!loading }}>{children}</UserContext.Provider>
 }
 
 export function useUser() {

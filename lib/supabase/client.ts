@@ -1,10 +1,24 @@
-import { createBrowserClient } from "@supabase/ssr"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 
-let clientInstance: ReturnType<typeof createBrowserClient> | null = null
+declare global {
+  interface Window {
+    __supabaseClient?: ReturnType<typeof createSupabaseClient>
+  }
+}
+
+let serverClientInstance: ReturnType<typeof createSupabaseClient> | null = null
 
 export function createClient() {
-  if (clientInstance) {
-    return clientInstance
+  // In browser, use window global to persist across hot reloads
+  if (typeof window !== "undefined") {
+    if (window.__supabaseClient) {
+      return window.__supabaseClient
+    }
+  } else {
+    // On server, use module-level singleton
+    if (serverClientInstance) {
+      return serverClientInstance
+    }
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://kezntrzgpfmnmibnsrbt.supabase.co"
@@ -12,19 +26,21 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtlem50cnpncGZtbm1pYm5zcmJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2MDQ3MzYsImV4cCI6MjA3MDE4MDczNn0.0czVmiNiu3o2LnNuUB-PLDW9I61129Jj_BUps_TFsaw"
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn("[v0] Supabase environment variables not found. Using placeholder values.")
-    // Return a client with placeholder values that won't crash the app
-    // In v0 environment, the actual values will be injected at runtime
-    clientInstance = createBrowserClient(
-      supabaseUrl || "https://placeholder.supabase.co",
-      supabaseAnonKey || "placeholder-anon-key",
-    )
-    return clientInstance
+  const client = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      storageKey: "sb-kezntrzgpfmnmibnsrbt-auth-token",
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  })
+
+  // Store in appropriate location
+  if (typeof window !== "undefined") {
+    window.__supabaseClient = client
+  } else {
+    serverClientInstance = client
   }
 
-  clientInstance = createBrowserClient(supabaseUrl, supabaseAnonKey)
-  console.log("[v0] Supabase client created successfully")
-
-  return clientInstance
+  return client
 }

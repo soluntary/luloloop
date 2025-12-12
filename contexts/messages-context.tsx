@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { useUser } from "@/contexts/user-context"
+import { useAuth } from "@/contexts/auth-context"
 import { withRateLimit, checkGlobalRateLimit } from "@/lib/supabase/rate-limit"
 import { createNotificationIfEnabled } from "@/app/actions/notification-helpers"
 import { canSendMessage } from "@/app/actions/privacy-helpers"
@@ -48,7 +48,7 @@ const MessagesContext = createContext<MessagesContextType | undefined>(undefined
 export function MessagesProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
-  const { user } = useUser()
+  const { user } = useAuth()
 
   const supabase = createClient()
 

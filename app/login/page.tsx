@@ -141,7 +141,7 @@ export default function LoginPage() {
 
               <div className="mt-6 space-y-4">
                 <div className="text-center">
-                  <Link href="/reset-password" className="text-teal-600 hover:text-teal-700 font-body text-xs">
+                  <Link href="/forgot-password" className="text-teal-600 hover:text-teal-700 font-body text-xs">
                     Passwort vergessen?
                   </Link>
                 </div>

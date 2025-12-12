@@ -1,15 +1,20 @@
 "use client"
 
+import type React from "react"
+
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Dice6, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
 import { useState, useEffect, Suspense } from "react"
 import { useAuth } from "@/contexts/auth-context"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
+import { Navigation } from "@/components/navigation"
+import { createClient } from "@/lib/supabase/client"
+import "@/styles/font-handwritten.css"
+import "@/styles/font-body.css"
 
 function ResetPasswordForm() {
   const [password, setPassword] = useState("")
@@ -19,23 +24,66 @@ function ResetPasswordForm() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { resetPassword } = useAuth()
+  const [isValidSession, setIsValidSession] = useState<boolean | null>(null)
+  const { updatePassword } = useAuth()
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const token = searchParams.get('token')
 
   useEffect(() => {
-    if (!token) {
-      setError("Ungültiger Reset-Link. Bitte fordere einen neuen Link an.")
+    const checkSession = async () => {
+      const supabase = createClient()
+
+      // Check if there's a valid session (created when user clicks reset link)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (session) {
+        console.log("[v0] Valid session found for password reset")
+        setIsValidSession(true)
+      } else {
+        // Also check for hash fragments (Supabase sometimes uses these)
+        const hash = window.location.hash
+        if (hash && (hash.includes("access_token") || hash.includes("type=recovery"))) {
+          console.log("[v0] Recovery token found in URL hash, exchanging...")
+          // Supabase will automatically handle the token exchange
+          const { data, error } = await supabase.auth.getSession()
+          if (data.session) {
+            setIsValidSession(true)
+            return
+          }
+        }
+
+        console.log("[v0] No valid session for password reset")
+        setIsValidSession(false)
+        setError("Ungültiger oder abgelaufener Reset-Link. Bitte fordere einen neuen Link an.")
+      }
     }
-  }, [token])
+
+    checkSession()
+
+    // Listen for auth state changes (in case token is processed after mount)
+    const supabase = createClient()
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[v0] Auth state change in reset-password:", event)
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+        setIsValidSession(true)
+        setError("")
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
 
-    if (!token) {
+    if (!isValidSession) {
       setError("Ungültiger Reset-Link")
       setIsLoading(false)
       return
@@ -47,12 +95,17 @@ function ResetPasswordForm() {
       return
     }
 
-    const result = await resetPassword(token, password)
+    if (password.length < 6) {
+      setError("Das Passwort muss mindestens 6 Zeichen lang sein")
+      setIsLoading(false)
+      return
+    }
+
+    const result = await updatePassword(password)
     setIsLoading(false)
 
     if (result.success) {
       setSuccess(true)
-      // Redirect to login after 3 seconds
       setTimeout(() => {
         router.push("/login")
       }, 3000)
@@ -61,7 +114,6 @@ function ResetPasswordForm() {
     }
   }
 
-  // Password strength indicator
   const getPasswordStrength = (password: string) => {
     if (password.length === 0) return { strength: 0, text: "", color: "" }
     if (password.length < 6) return { strength: 1, text: "Zu kurz", color: "text-red-500" }
@@ -72,105 +124,90 @@ function ResetPasswordForm() {
 
   const passwordStrength = getPasswordStrength(password)
 
+  // Loading state while checking session
+  if (isValidSession === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
+        <Navigation currentPage="reset-password" />
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-md mx-auto text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto mb-4"></div>
+            <p className="text-gray-600 font-body">Link wird überprüft...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
-        <Card className="max-w-md mx-4 transform rotate-1 border-2 border-green-200 shadow-xl">
-          <CardContent className="p-8 text-center">
-            <div className="w-20 h-20 bg-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-10 h-10 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 font-handwritten">
-              Passwort erfolgreich zurückgesetzt!
-            </h2>
-            <p className="text-gray-600 mb-6 font-body">
-              Dein Passwort wurde erfolgreich geändert. Du wirst automatisch zur Anmeldung weitergeleitet.
-            </p>
-            <Button asChild className="bg-green-400 hover:bg-green-500 text-white font-handwritten">
-              <Link href="/login">
-                Zur Anmeldung
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
+        <Navigation currentPage="reset-password" />
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-md mx-auto">
+            <Card className="transform rotate-1 hover:rotate-0 transition-all border-2 border-green-200 shadow-xl">
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 bg-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-8 h-8 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-4 font-handwritten">
+                  Passwort erfolgreich zurückgesetzt!
+                </h2>
+                <p className="text-gray-600 mb-6 font-body text-sm">
+                  Dein Passwort wurde erfolgreich geändert. Du wirst automatisch zur Anmeldung weitergeleitet.
+                </p>
+                <Button asChild className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten">
+                  <Link href="/login">Zur Anmeldung</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
-      {/* Header */}
-      <header className="bg-white shadow-lg border-b-4 border-teal-400">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-3">
-              <Image
-                src="/images/ludoloop-logo.png"
-                alt="Ludoloop Logo"
-                width={300}
-                height={80}
-                className="h-20 w-auto"
-                priority
-              />
-            </Link>
-            <nav className="hidden md:flex space-x-6">
-              <Link href="/login" className="text-gray-700 hover:text-teal-600 font-medium font-handwritten">
-                Login
-              </Link>
-              <Link href="/marketplace" className="text-gray-700 hover:text-orange-500 font-medium font-handwritten">
-                Marktplatz
-              </Link>
-              <Link href="/groups" className="text-gray-700 hover:text-pink-500 font-medium font-handwritten">
-                Community
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Navigation currentPage="reset-password" />
 
-      <div className="container mx-auto px-4 py-8 md:py-16">
+      <div className="container mx-auto px-4 py-16">
         <div className="max-w-md mx-auto">
-          <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-purple-200 shadow-xl">
-            <CardHeader className="text-center">
-              <div className="w-20 h-20 bg-purple-400 rounded-full flex items-center justify-center mx-auto mb-4 transform rotate-12">
-                <Lock className="w-10 h-10 text-white" />
-              </div>
-              <CardTitle className="text-3xl font-bold text-gray-800 font-handwritten">
-                Neues Passwort setzen
-              </CardTitle>
-              <p className="text-gray-600 font-body">
+          <Card className="transform -rotate-1 hover:rotate-0 transition-all border-2 border-teal-200 shadow-xl">
+            <CardHeader className="text-center flex-col items-center space-y-2">
+              <CardTitle className="text-2xl font-bold text-gray-800 font-handwritten">Neues Passwort setzen</CardTitle>
+              <CardDescription className="font-body text-center">
                 Wähle ein sicheres neues Passwort für dein Konto
-              </p>
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="font-handwritten font-body">
+                  <Label htmlFor="password" className="font-body text-xs">
                     Neues Passwort
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Mindestens 6 Zeichen"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10 border-2 border-purple-200 focus:border-purple-400 font-body text-base"
-                      disabled={isLoading}
+                      className="font-body pr-10"
+                      disabled={isLoading || !isValidSession}
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       disabled={isLoading}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                   {password && (
-                    <div className="flex items-center space-x-2 text-sm">
+                    <div className="flex items-center space-x-2 text-xs">
                       <div className="flex space-x-1">
                         {[1, 2, 3, 4].map((level) => (
                           <div
@@ -178,59 +215,56 @@ function ResetPasswordForm() {
                             className={`w-2 h-2 rounded-full ${
                               level <= passwordStrength.strength
                                 ? passwordStrength.strength === 1
-                                  ? 'bg-red-500'
+                                  ? "bg-red-500"
                                   : passwordStrength.strength === 2
-                                  ? 'bg-orange-500'
-                                  : passwordStrength.strength === 3
-                                  ? 'bg-yellow-500'
-                                  : 'bg-green-500'
-                                : 'bg-gray-200'
+                                    ? "bg-orange-500"
+                                    : passwordStrength.strength === 3
+                                      ? "bg-yellow-500"
+                                      : "bg-green-500"
+                                : "bg-gray-200"
                             }`}
                           />
                         ))}
                       </div>
-                      <span className={`${passwordStrength.color} font-body`}>
-                        {passwordStrength.text}
-                      </span>
+                      <span className={`${passwordStrength.color} font-body`}>{passwordStrength.text}</span>
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="font-handwritten font-body">
+                  <Label htmlFor="confirmPassword" className="font-body text-xs">
                     Passwort bestätigen
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="Passwort wiederholen"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="pl-10 pr-10 border-2 border-purple-200 focus:border-purple-400 font-body text-base"
-                      disabled={isLoading}
+                      className="font-body pr-10"
+                      disabled={isLoading || !isValidSession}
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       disabled={isLoading}
                     >
                       {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                   {confirmPassword && password && (
-                    <div className="flex items-center space-x-2 text-sm">
+                    <div className="flex items-center space-x-2 text-xs">
                       {password === confirmPassword ? (
                         <>
-                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <CheckCircle className="w-3 h-3 text-green-500" />
                           <span className="text-green-500 font-body">Passwörter stimmen überein</span>
                         </>
                       ) : (
                         <>
-                          <AlertCircle className="w-4 h-4 text-red-500" />
+                          <AlertCircle className="w-3 h-3 text-red-500" />
                           <span className="text-red-500 font-body">Passwörter stimmen nicht überein</span>
                         </>
                       )}
@@ -239,23 +273,22 @@ function ResetPasswordForm() {
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3 flex items-start space-x-2">
-                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-red-600 text-sm font-body">{error}</p>
+                  <div className="text-red-600 text-sm font-body bg-red-50 p-3 rounded-md border border-red-200">
+                    {error}
                   </div>
                 )}
 
                 <Button
                   type="submit"
-                  className="w-full bg-purple-400 hover:bg-purple-500 text-white py-3 transform hover:rotate-1 transition-all font-handwritten"
-                  disabled={isLoading || !token || password !== confirmPassword}
+                  className="w-full bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
+                  disabled={isLoading || !isValidSession || password !== confirmPassword || password.length < 6}
                 >
                   {isLoading ? "Passwort wird gesetzt..." : "Passwort zurücksetzen"}
                 </Button>
               </form>
 
               <div className="mt-6 text-center">
-                <Link href="/login" className="text-purple-600 hover:text-purple-700 font-handwritten">
+                <Link href="/login" className="text-teal-600 hover:text-teal-700 font-body text-xs">
                   ← Zurück zur Anmeldung
                 </Link>
               </div>
@@ -269,7 +302,16 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto mb-4"></div>
+            <p className="text-gray-600 font-body">Lade...</p>
+          </div>
+        </div>
+      }
+    >
       <ResetPasswordForm />
     </Suspense>
   )

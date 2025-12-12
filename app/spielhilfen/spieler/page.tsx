@@ -263,7 +263,7 @@ export default function SpielerPage() {
                     className="bg-green-500 hover:bg-green-600 h-8 text-xs"
                   >
                     <Shuffle className="w-3 h-3 mr-1" />
-                    {isShuffling ? "Mischt..." : "Mischen & Startspieler"}
+                    {isShuffling ? "Mischt..." : "Mischen & Startspieler bestimmen"}
                   </Button>
                   {firstPlayer && (
                     <Button onClick={startGame} variant="outline" size="sm" className="h-8 text-xs bg-transparent">
@@ -276,9 +276,9 @@ export default function SpielerPage() {
                   onClick={resetGame}
                   variant="outline"
                   size="sm"
-                  className="text-red-500 hover:bg-red-50 bg-transparent h-8 text-xs"
+                  className="text-red-500 bg-transparent h-7 text-xs"
                 >
-                  <RotateCcw className="w-3 h-3 mr-1" /> Neues Spiel
+                  <RotateCcw className="w-3 h-3 mr-1" /> Zurücksetzen
                 </Button>
               )}
             </div>

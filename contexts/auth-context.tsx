@@ -3,7 +3,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode, useCallback, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { checkGlobalRateLimit, withRateLimit } from "@/lib/supabase/rate-limit"
-import { logSecurityEvent } from "@/app/actions/security-notifications"
 import type { User } from "@supabase/supabase-js"
 
 interface AuthUser {
@@ -32,7 +31,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string, username?: string) => Promise<void>
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
-  resetPassword: (email: string) => Promise<void>
+  requestPasswordReset: (email: string) => Promise<void>
+  updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>
   updateProfile: (data: Partial<AuthUser>) => Promise<boolean>
   networkError: boolean
   retryCount: number
@@ -43,11 +43,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const [initialized, setInitialized] = useState(false)
   const [networkError, setNetworkError] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
   const pendingAuthPromisesRef = useRef<Map<string, { resolve: () => void; reject: (error: any) => void }>>(new Map())
-  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  const initializedRef = useRef(false)
+  const wasAuthenticatedRef = useRef(false)
+  const lastUserIdRef = useRef<string | null>(null)
 
   const isNetworkError = (error: any): boolean => {
     return (
@@ -61,123 +63,125 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-  const loadUserProfile = useCallback(
-    async (authUser: User) => {
-      if (!supabase) {
-        console.error("[v0] Supabase client not available")
-        setLoading(false)
-        return
-      }
+  const loadUserProfile = useCallback(async (authUser: User) => {
+    const supabase = supabaseRef.current
+    if (!supabase) {
+      console.error("[v0] Supabase client not available")
+      setLoading(false)
+      return
+    }
 
-      if (checkGlobalRateLimit()) {
-        console.log("[v0] Rate limited, using fallback profile")
+    wasAuthenticatedRef.current = true
+    lastUserIdRef.current = authUser.id
+
+    if (checkGlobalRateLimit()) {
+      console.log("[v0] Rate limited, using fallback profile")
+      const fallbackProfile = {
+        id: authUser.id,
+        email: authUser.email || "",
+        name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+        username: authUser.user_metadata?.username,
+      }
+      setUser(fallbackProfile)
+      setLoading(false)
+      return
+    }
+
+    let attempts = 0
+    const maxAttempts = 3
+
+    while (attempts < maxAttempts) {
+      try {
+        console.log("[v0] Loading user profile for:", authUser.id, `(attempt ${attempts + 1})`)
+
+        const existingUser = await withRateLimit(async () => {
+          const { data, error } = await supabase.from("users").select("*").eq("id", authUser.id).maybeSingle()
+          if (error && error.code !== "PGRST116") {
+            throw error
+          }
+          return data
+        }, null)
+
+        let userProfile
+
+        if (!existingUser) {
+          console.log("[v0] Creating new user profile...")
+          const newUserProfile = {
+            id: authUser.id,
+            email: authUser.email || "",
+            name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+            username: authUser.user_metadata?.username,
+            anzeigename: null,
+            birthDate: null,
+            phone: null,
+            address: null,
+            location: null,
+            favoriteGames: [],
+            preferredGameTypes: [],
+            avatar: authUser.user_metadata?.avatar_url,
+            bio: null,
+            website: null,
+            twitter: null,
+            instagram: null,
+            settings: {
+              notifications: { email: true, push: true, marketing: false, security: true },
+              privacy: { profileVisible: true, emailVisible: false, onlineStatus: true, allowMessages: true },
+              security: { twoFactor: false, loginNotifications: true, sessionTimeout: 30 },
+            },
+          }
+
+          userProfile = await withRateLimit(async () => {
+            const { data: createdUser, error: createError } = await supabase
+              .from("users")
+              .insert([newUserProfile])
+              .select()
+              .single()
+
+            if (createError) throw createError
+            return createdUser
+          }, newUserProfile)
+        } else {
+          userProfile = existingUser
+        }
+
+        console.log("[v0] User profile loaded successfully:", userProfile.name)
+        setUser(userProfile)
+        setLoading(false)
+        setNetworkError(false)
+        setRetryCount(0)
+        return
+      } catch (error) {
+        attempts++
+        console.error(`[v0] Profile loading error (attempt ${attempts}):`, error)
+
+        if (isNetworkError(error) && attempts < maxAttempts) {
+          setNetworkError(true)
+          const delayMs = Math.pow(2, attempts) * 1000 // Exponential backoff
+          console.log(`[v0] Network error detected, retrying in ${delayMs}ms...`)
+          await delay(delayMs)
+          continue
+        }
+
+        console.log("[v0] All retries failed, using fallback profile")
         const fallbackProfile = {
           id: authUser.id,
           email: authUser.email || "",
           name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
           username: authUser.user_metadata?.username,
         }
+
         setUser(fallbackProfile)
         setLoading(false)
+        setNetworkError(true)
+        setRetryCount(attempts)
         return
       }
-
-      let attempts = 0
-      const maxAttempts = 3
-
-      while (attempts < maxAttempts) {
-        try {
-          console.log("[v0] Loading user profile for:", authUser.id, `(attempt ${attempts + 1})`)
-
-          const existingUser = await withRateLimit(async () => {
-            const { data, error } = await supabase.from("users").select("*").eq("id", authUser.id).maybeSingle()
-            if (error && error.code !== "PGRST116") {
-              throw error
-            }
-            return data
-          }, null)
-
-          let userProfile
-
-          if (!existingUser) {
-            console.log("[v0] Creating new user profile...")
-            const newUserProfile = {
-              id: authUser.id,
-              email: authUser.email || "",
-              name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-              username: authUser.user_metadata?.username,
-              anzeigename: null,
-              birthDate: null,
-              phone: null,
-              address: null,
-              location: null,
-              favoriteGames: [],
-              preferredGameTypes: [],
-              avatar: authUser.user_metadata?.avatar_url,
-              bio: null,
-              website: null,
-              twitter: null,
-              instagram: null,
-              settings: {
-                notifications: { email: true, push: true, marketing: false, security: true },
-                privacy: { profileVisible: true, emailVisible: false, onlineStatus: true, allowMessages: true },
-                security: { twoFactor: false, loginNotifications: true, sessionTimeout: 30 },
-              },
-            }
-
-            userProfile = await withRateLimit(async () => {
-              const { data: createdUser, error: createError } = await supabase
-                .from("users")
-                .insert([newUserProfile])
-                .select()
-                .single()
-
-              if (createError) throw createError
-              return createdUser
-            }, newUserProfile)
-          } else {
-            userProfile = existingUser
-          }
-
-          console.log("[v0] User profile loaded successfully:", userProfile.name)
-          setUser(userProfile)
-          setLoading(false)
-          setNetworkError(false)
-          setRetryCount(0)
-          return
-        } catch (error) {
-          attempts++
-          console.error(`[v0] Profile loading error (attempt ${attempts}):`, error)
-
-          if (isNetworkError(error) && attempts < maxAttempts) {
-            setNetworkError(true)
-            const delayMs = Math.pow(2, attempts) * 1000 // Exponential backoff
-            console.log(`[v0] Network error detected, retrying in ${delayMs}ms...`)
-            await delay(delayMs)
-            continue
-          }
-
-          console.log("[v0] All retries failed, using fallback profile")
-          const fallbackProfile = {
-            id: authUser.id,
-            email: authUser.email || "",
-            name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-            username: authUser.user_metadata?.username,
-          }
-
-          setUser(fallbackProfile)
-          setLoading(false)
-          setNetworkError(true)
-          setRetryCount(attempts)
-          return
-        }
-      }
-    },
-    [supabase],
-  )
+    }
+  }, [])
 
   const signIn = useCallback(
     async (email: string, password: string) => {
+      const supabase = supabaseRef.current
       if (!supabase) throw new Error("Supabase client not available")
 
       console.log("[v0] SignIn attempt started for:", email)
@@ -191,19 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) {
           console.log("[v0] SignIn failed with error:", error.message)
 
-          try {
-            await logSecurityEvent({
-              eventType: "login_attempt",
-              success: false,
-              additionalData: {
-                error: error.message,
-                email: email,
-                timestamp: new Date().toISOString(),
-              },
-            })
-          } catch (logError) {
-            console.error("[v0] Failed to log security event:", logError)
-          }
+          console.log("[v0] Security event: login_attempt failed for", email)
 
           if (isNetworkError(error)) {
             throw new Error("Network connection failed. Please check your internet connection and try again.")
@@ -219,19 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(true)
           await loadUserProfile(data.session.user)
 
-          try {
-            await logSecurityEvent({
-              eventType: "login_attempt",
-              success: true,
-              additionalData: {
-                loginMethod: "email_password",
-                email: email,
-                timestamp: new Date().toISOString(),
-              },
-            })
-          } catch (logError) {
-            console.error("[v0] Failed to log security event:", logError)
-          }
+          console.log("[v0] Security event: login_attempt successful for", email)
 
           console.log("[v0] SignIn completed successfully")
         } else {
@@ -247,11 +227,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error
       }
     },
-    [supabase, loadUserProfile],
+    [loadUserProfile],
   )
 
   const signUp = useCallback(
     async (email: string, password: string, name: string, username?: string) => {
+      const supabase = supabaseRef.current
       if (!supabase) throw new Error("Supabase client not available")
 
       console.log("[v0] Starting signup process for:", email)
@@ -340,45 +321,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error
       }
     },
-    [supabase, signIn],
+    [signIn],
   )
 
   const signOut = useCallback(async () => {
+    const supabase = supabaseRef.current
     if (!supabase) throw new Error("Supabase client not available")
 
     if (user) {
-      try {
-        await logSecurityEvent({
-          eventType: "login_attempt",
-          success: true,
-          additionalData: {
-            action: "logout",
-            timestamp: new Date().toISOString(),
-          },
-        })
-      } catch (logError) {
-        console.error("[v0] Failed to log logout event:", logError)
-      }
+      console.log("[v0] Security event: logout for user", user.email)
     }
+
+    wasAuthenticatedRef.current = false
+    lastUserIdRef.current = null
 
     const { error } = await supabase.auth.signOut()
     if (error) throw error
-  }, [supabase, user])
+  }, [user])
 
-  const resetPassword = useCallback(
-    async (email: string) => {
-      if (!supabase) throw new Error("Supabase client not available")
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const supabase = supabaseRef.current
+    if (!supabase) throw new Error("Supabase client not available")
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      })
-      if (error) throw error
-    },
-    [supabase],
-  )
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/reset-password`,
+    })
+    if (error) throw error
+  }, [])
+
+  const updatePassword = useCallback(async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    const supabase = supabaseRef.current
+    if (!supabase) return { success: false, error: "Supabase client not available" }
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+
+      if (error) {
+        console.error("[v0] Password update error:", error.message)
+        return { success: false, error: error.message }
+      }
+
+      console.log("[v0] Password updated successfully")
+      return { success: true }
+    } catch (error: any) {
+      console.error("[v0] Password update exception:", error)
+      return { success: false, error: error.message || "Unbekannter Fehler" }
+    }
+  }, [])
 
   const updateProfile = useCallback(
     async (data: Partial<AuthUser>) => {
+      const supabase = supabaseRef.current
       if (!supabase) throw new Error("Supabase client not available")
       if (!user) throw new Error("No user logged in")
 
@@ -417,17 +410,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           data.settings?.security &&
           JSON.stringify(data.settings.security) !== JSON.stringify(user.settings?.security)
         ) {
-          try {
-            await logSecurityEvent({
-              eventType: "security_settings_change",
-              additionalData: {
-                changedSettings: data.settings.security,
-                timestamp: new Date().toISOString(),
-              },
-            })
-          } catch (logError) {
-            console.error("[v0] Failed to log security settings change:", logError)
-          }
+          console.log("[v0] Security event: security_settings_change")
         }
 
         const updatedUser = {
@@ -443,75 +426,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error
       }
     },
-    [user, supabase],
+    [user],
   )
 
   useEffect(() => {
+    if (initializedRef.current) return
+    initializedRef.current = true
+
     try {
-      const client = createClient()
-      setSupabase(client)
-      console.log("[v0] Supabase client created successfully")
+      supabaseRef.current = createClient()
     } catch (error) {
       console.error("[v0] Failed to create Supabase client:", error)
       setLoading(false)
       setNetworkError(true)
+      return
     }
-  }, [])
 
-  useEffect(() => {
-    if (initialized || !supabase) return
-
-    console.log("[v0] Initializing authentication...")
-    setInitialized(true)
+    const supabase = supabaseRef.current
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("[v0] Auth state change:", event, session?.user?.id)
-      console.log(
-        "[v0] Auth state change details - Event:",
-        event,
-        "Session exists:",
-        !!session,
-        "User exists:",
-        !!session?.user,
-      )
-      console.log("[v0] Current pending promises count:", pendingAuthPromisesRef.current.size)
-
       try {
-        if (event === "SIGNED_OUT" || !session?.user) {
-          console.log("[v0] User signed out or no session")
+        console.log("[v0] Auth state change:", event, session?.user?.id)
+
+        if (event === "SIGNED_OUT") {
+          console.log("[v0] Explicit sign out detected")
+          wasAuthenticatedRef.current = false
+          lastUserIdRef.current = null
           setUser(null)
           setLoading(false)
           setNetworkError(false)
           return
         }
 
-        if (event === "SIGNED_IN" && session?.user) {
-          console.log("[v0] User signed in, resolving pending promises...")
-          console.log("[v0] About to resolve", pendingAuthPromisesRef.current.size, "pending promises")
+        if (!session?.user) {
+          if (wasAuthenticatedRef.current && lastUserIdRef.current) {
+            console.log("[v0] Session temporarily null, keeping user state")
+            return
+          }
+          setUser(null)
+          setLoading(false)
+          setNetworkError(false)
+          return
+        }
 
-          pendingAuthPromisesRef.current.forEach(({ resolve }, key) => {
-            console.log("[v0] Resolving promise for key:", key)
-            resolve()
-          })
-
-          pendingAuthPromisesRef.current.clear()
-          console.log("[v0] All promises resolved and cleared")
-
-          console.log("[v0] Loading profile...")
+        if (event === "INITIAL_SESSION" && session?.user) {
+          if (lastUserIdRef.current === session.user.id && user) {
+            console.log("[v0] INITIAL_SESSION for same user, skipping reload")
+            setLoading(false)
+            return
+          }
           setLoading(true)
           await loadUserProfile(session.user)
-          console.log("[v0] Auth state update completed, user ready")
+          return
+        }
+
+        if (event === "SIGNED_IN" && session?.user) {
+          if (lastUserIdRef.current === session.user.id && user) {
+            console.log("[v0] SIGNED_IN for same user, skipping reload")
+            setLoading(false)
+            return
+          }
+
+          pendingAuthPromisesRef.current.forEach(({ resolve }) => {
+            resolve()
+          })
+          pendingAuthPromisesRef.current.clear()
+
+          setLoading(true)
+          await loadUserProfile(session.user)
           return
         }
 
         if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
-          console.log("[v0] Token refreshed or user updated")
+          if (session?.user && lastUserIdRef.current === session.user.id) {
+            console.log("[v0] Token refreshed/user updated, session still valid")
+          }
           return
         }
       } catch (error) {
-        console.error("[v0] Auth state change error:", error)
+        console.error("Auth state change error:", error)
         if (isNetworkError(error)) {
           setNetworkError(true)
         }
@@ -544,17 +539,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           if (session?.user) {
-            console.log("[v0] Valid session found, loading user profile")
             await loadUserProfile(session.user)
           } else {
-            console.log("[v0] No session found")
             setUser(null)
             setLoading(false)
           }
           return
         } catch (error) {
           attempts++
-          console.error(`[v0] Auth initialization error (attempt ${attempts}):`, error)
+          console.error(`Auth initialization error (attempt ${attempts}):`, error)
 
           if (isNetworkError(error) && attempts < maxAttempts) {
             setNetworkError(true)
@@ -575,7 +568,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [initialized, loadUserProfile, supabase])
+  }, [loadUserProfile, user])
 
   const value = {
     user,
@@ -583,7 +576,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signIn,
     signOut,
-    resetPassword,
+    requestPasswordReset,
+    updatePassword,
     updateProfile,
     networkError,
     retryCount,

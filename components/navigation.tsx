@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   FaHome,
@@ -27,7 +26,6 @@ import { IoLibrary } from "react-icons/io5"
 import { MdForum } from "react-icons/md"
 import { RiUserCommunityFill } from "react-icons/ri"
 import { useAuth } from "@/contexts/auth-context"
-import { useMessages } from "@/contexts/messages-context"
 import { useAvatar } from "@/contexts/avatar-context"
 import { NotificationBell } from "@/components/notification-bell"
 
@@ -55,7 +53,17 @@ function Navigation({ currentPage }: NavigationProps) {
   const { user, signOut } = useAuth() || { user: null, signOut: null }
   const { getAvatar } = useAvatar()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const { getUnreadCount } = useMessages()
+  const [unreadCount] = useState(0)
+  const [avatarKey, setAvatarKey] = useState(0)
+
+  useEffect(() => {
+    const handleAvatarUpdate = () => {
+      setAvatarKey((prev) => prev + 1)
+    }
+
+    window.addEventListener("avatarUpdated", handleAvatarUpdate)
+    return () => window.removeEventListener("avatarUpdated", handleAvatarUpdate)
+  }, [])
 
   const loggedInNavItems: NavItem[] = [
     { href: "/", label: "Home", icon: FaHome, key: "home" },
@@ -133,15 +141,11 @@ function Navigation({ currentPage }: NavigationProps) {
     }
   }
 
-  const unreadCount = user ? getUnreadCount() : 0
-
   const userAvatar = useMemo(() => {
     if (!user) return null
-    // First priority: user.avatar from database
     if (user.avatar) return user.avatar
-    // Second priority: cached avatar
     return getAvatar(user.id, user.email)
-  }, [user])
+  }, [user, avatarKey]) // Added avatarKey dependency
 
   const avatarSrc = userAvatar || "/placeholder.svg"
 
@@ -167,8 +171,7 @@ function Navigation({ currentPage }: NavigationProps) {
                 return (
                   <DropdownMenu key={item.key}>
                     <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
+                      <button
                         className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${
                           active
                             ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
@@ -178,14 +181,17 @@ function Navigation({ currentPage }: NavigationProps) {
                         <Icon className="w-5 h-5" />
                         <span>{item.label}</span>
                         <FaChevronDown className="w-4 h-4" />
-                      </Button>
+                      </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-48 font-body">
                       {item.dropdown.items.map((dropdownItem) => {
                         const DropdownIcon = dropdownItem.icon
                         return (
                           <DropdownMenuItem key={dropdownItem.key} asChild>
-                            <Link href={dropdownItem.href} className="flex items-center space-x-2 cursor-pointer">
+                            <Link
+                              href={dropdownItem.href}
+                              className="flex items-center space-x-2 cursor-pointer w-full"
+                            >
                               <DropdownIcon className="w-4 h-4" />
                               <span>{dropdownItem.label}</span>
                             </Link>
@@ -197,26 +203,24 @@ function Navigation({ currentPage }: NavigationProps) {
                 )
               }
 
-              // Regular navigation item
               const active = isActive(item.href!, item.key)
               return (
-                <Link key={item.href} href={item.href!}>
-                  <Button
-                    variant="ghost"
-                    className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${
-                      active
-                        ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
-                        : "text-gray-700 hover:bg-teal-400 hover:text-white"
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span>{item.label}</span>
-                    {item.key === "messages" && unreadCount > 0 && (
-                      <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse text-xs">
-                        {unreadCount > 99 ? "99+" : unreadCount}
-                      </div>
-                    )}
-                  </Button>
+                <Link
+                  key={item.href}
+                  href={item.href!}
+                  className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${
+                    active
+                      ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
+                      : "text-gray-700 hover:bg-teal-400 hover:text-white"
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span>{item.label}</span>
+                  {item.key === "messages" && unreadCount > 0 && (
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse text-xs">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </div>
+                  )}
                 </Link>
               )
             })}
@@ -224,33 +228,26 @@ function Navigation({ currentPage }: NavigationProps) {
 
           {/* User Menu / Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {user && (
-              <>
-                <NotificationBell />
-              </>
-            )}
+            {user && <NotificationBell />}
 
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 font-handwritten text-sm transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent"
-                  >
+                  <button className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 font-handwritten text-sm transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent">
                     <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-teal-400">
                       <img
                         src={avatarSrc || "/placeholder.svg"}
                         alt={user.username || user.name}
                         className="w-full h-full object-cover"
-                        key={avatarSrc}
+                        key={`${avatarSrc}-${avatarKey}`}
                       />
                     </div>
                     <span className="text-gray-700 font-medium">{user.username || user.name || "Benutzer"}</span>
-                  </Button>
+                  </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 text-sm font-body">
                   <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center space-x-2 cursor-pointer">
+                    <Link href="/profile" className="flex items-center space-x-2 cursor-pointer w-full">
                       <FaCog className="w-4 h-4" />
                       <span>Profil</span>
                     </Link>
@@ -263,39 +260,30 @@ function Navigation({ currentPage }: NavigationProps) {
               </DropdownMenu>
             ) : (
               <div className="flex items-center space-x-2">
-                <Button
-                  asChild
-                  variant="outline"
-                  className="border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all bg-white flex items-center space-x-2"
+                <Link
+                  href="/login"
+                  className="border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all bg-white flex items-center space-x-2 px-4 py-2 rounded-lg"
                 >
-                  <Link href="/login">
-                    <FaSignInAlt className="w-4 h-4" />
-                    <span>Anmelden</span>
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all flex items-center space-x-2"
+                  <FaSignInAlt className="w-4 h-4" />
+                  <span>Anmelden</span>
+                </Link>
+                <Link
+                  href="/register"
+                  className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all flex items-center space-x-2 px-4 py-2 rounded-lg"
                 >
-                  <Link href="/register">
-                    <FaUserPlus className="w-4 h-4" />
-                    <span>Registrieren</span>
-                  </Link>
-                </Button>
+                  <FaUserPlus className="w-4 h-4" />
+                  <span>Registrieren</span>
+                </Link>
               </div>
             )}
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-2">
-            {user && (
-              <>
-                <NotificationBell />
-              </>
-            )}
-            <Button variant="ghost" size="sm" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2">
+            {user && <NotificationBell />}
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2">
               {isMobileMenuOpen ? <FaTimes className="w-6 h-6" /> : <FaBars className="w-6 h-6" />}
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -324,18 +312,14 @@ function Navigation({ currentPage }: NavigationProps) {
                             key={dropdownItem.key}
                             href={dropdownItem.href}
                             onClick={() => setIsMobileMenuOpen(false)}
+                            className={`w-full flex items-center space-x-3 px-8 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${
+                              active
+                                ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
+                                : "text-gray-700 hover:bg-teal-400 hover:text-white"
+                            }`}
                           >
-                            <Button
-                              variant="ghost"
-                              className={`w-full justify-start flex items-center space-x-3 px-8 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${
-                                active
-                                  ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
-                                  : "text-gray-700 hover:bg-teal-400 hover:text-white"
-                              }`}
-                            >
-                              <DropdownIcon className="w-5 h-5" />
-                              <span>{dropdownItem.label}</span>
-                            </Button>
+                            <DropdownIcon className="w-5 h-5" />
+                            <span>{dropdownItem.label}</span>
                           </Link>
                         )
                       })}
@@ -343,88 +327,84 @@ function Navigation({ currentPage }: NavigationProps) {
                   )
                 }
 
-                // Regular mobile navigation item
                 const active = isActive(item.href!, item.key)
                 return (
-                  <Link key={item.href} href={item.href!} onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button
-                      variant="ghost"
-                      className={`relative w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${
-                        active
-                          ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
-                          : "text-gray-700 hover:bg-teal-400 hover:text-white"
-                      }`}
-                    >
-                      <Icon className="w-5 h-5 text-foreground" />
-                      <span className="text-foreground">{item.label}</span>
-                      {item.key === "messages" && unreadCount > 0 && (
-                        <div className="absolute right-4 bg-red-500 text-white text-sm rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
-                          {unreadCount > 99 ? "99+" : unreadCount}
-                        </div>
-                      )}
-                    </Button>
+                  <Link
+                    key={item.href}
+                    href={item.href!}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${
+                      active
+                        ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
+                        : "text-gray-700 hover:bg-teal-400 hover:text-white"
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{item.label}</span>
+                    {item.key === "messages" && unreadCount > 0 && (
+                      <span className="bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center font-bold text-xs ml-auto">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
                   </Link>
                 )
               })}
 
-              {/* Mobile Auth Section */}
-              <div className="pt-4 border-t border-gray-200 mt-4">
-                {user ? (
-                  <div className="space-y-2">
-                    <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transform hover:scale-105 hover:rotate-1 transition-all"
-                      >
-                        <div className="w-5 h-5 rounded-full overflow-hidden border border-teal-400">
-                          <img
-                            src={avatarSrc || "/placeholder.svg"}
-                            alt={user.username || user.name}
-                            className="w-full h-full object-cover"
-                            key={avatarSrc}
-                          />
-                        </div>
-                        <span>Profil ({user.username || user.name || "Benutzer"})</span>
-                      </Button>
-                    </Link>
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        handleLogout()
-                        setIsMobileMenuOpen(false)
-                      }}
-                      className="w-full justify-start flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transform hover:scale-105 hover:rotate-1 transition-all"
-                    >
-                      <FaSignOutAlt className="w-5 h-5" />
-                      <span>Abmelden</span>
-                    </Button>
+              {/* Mobile User Menu */}
+              {user ? (
+                <div className="border-t border-gray-200 pt-4 mt-2">
+                  <div className="px-4 py-2 flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-teal-400">
+                      <img
+                        src={avatarSrc || "/placeholder.svg"}
+                        alt={user.username || user.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800">{user.username || user.name || "Benutzer"}</p>
+                      <p className="text-sm text-gray-500">{user.email}</p>
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="w-full border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten bg-white"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <Link href="/login">
-                        <FaSignInAlt className="w-4 h-4" />
-                        Anmelden
-                      </Link>
-                    </Button>
-                    <Button
-                      asChild
-                      className="w-full bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <Link href="/register">
-                        <FaUserPlus className="w-4 h-4" />
-                        Registrieren
-                      </Link>
-                    </Button>
-                  </div>
-                )}
-              </div>
+                  <Link
+                    href="/profile"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm text-gray-700 hover:bg-teal-400 hover:text-white"
+                  >
+                    <FaCog className="w-5 h-5" />
+                    <span>Profil</span>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false)
+                      handleLogout()
+                    }}
+                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm text-red-600 hover:bg-red-50"
+                  >
+                    <FaSignOutAlt className="w-5 h-5" />
+                    <span>Abmelden</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="border-t border-gray-200 pt-4 mt-2 px-4 space-y-2">
+                  <Link
+                    href="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="w-full flex items-center justify-center space-x-2 border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent px-4 py-2 rounded-lg"
+                  >
+                    <FaSignInAlt className="w-4 h-4" />
+                    <span>Anmelden</span>
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="w-full flex items-center justify-center space-x-2 bg-teal-400 hover:bg-teal-500 text-white font-handwritten px-4 py-2 rounded-lg"
+                  >
+                    <FaUserPlus className="w-4 h-4" />
+                    <span>Registrieren</span>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}

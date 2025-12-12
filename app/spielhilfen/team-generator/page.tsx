@@ -11,10 +11,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Plus, Trash2, Shuffle, Trophy, ArrowRight, ArrowLeft, Check, Pencil } from "lucide-react"
+import { Plus, Trash2, Shuffle, Trophy, ArrowRight, ArrowLeft, Check, Pencil, RotateCcw } from "lucide-react"
 import { FaUsersRectangle } from "react-icons/fa6"
 import { GiPodium } from "react-icons/gi"
-import { RiResetLeftFill } from "react-icons/ri"
+import { TemplateManager } from "@/components/spielhilfen/template-manager"
 
 const teamColors = [
   { name: "Team Rot", bg: "bg-red-500", border: "border-red-500", light: "bg-red-50", text: "text-red-600" },
@@ -290,11 +290,22 @@ export default function TeamGeneratorPage() {
       .sort((a, b) => b.points - a.points)
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      <Navigation />
+  const getCurrentData = () => ({
+    players,
+    teamCount,
+  })
 
-      <main className="container mx-auto px-4 py-8">
+  const handleLoadTemplate = (data: any) => {
+    if (data.players) setPlayers(data.players)
+    if (data.teamCount) setTeamCount(data.teamCount)
+    setTeams([])
+    setTournamentStarted(false)
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
+      <Navigation />
+      <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <Link
             href="/spielhilfen"
@@ -306,6 +317,13 @@ export default function TeamGeneratorPage() {
 
           <Card className="border-2 border-indigo-200">
             <CardHeader className="text-center border-b bg-gradient-to-r from-indigo-50 to-indigo-100">
+              <div className="flex justify-end mb-2">
+                <TemplateManager
+                  spielhilfeType="team-generator"
+                  currentData={getCurrentData()}
+                  onLoadTemplate={handleLoadTemplate}
+                />
+              </div>
               <motion.div
                 animate={{ rotate: [0, 10, -10, 0] }}
                 transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
@@ -418,7 +436,7 @@ export default function TeamGeneratorPage() {
                       onClick={shuffleTeams}
                       disabled={players.length < teamCount || isShuffling}
                       size="sm"
-                      className="h-8 text-xs bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
+                      className="h-7 text-xs bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
                     >
                       <Shuffle className={`w-3 h-3 mr-1 ${isShuffling ? "animate-spin" : ""}`} />
                       {isShuffling ? "Mische..." : "Teams mischen"}
@@ -427,9 +445,9 @@ export default function TeamGeneratorPage() {
                       onClick={reset}
                       variant="outline"
                       size="sm"
-                      className="text-red-500 bg-transparent h-8 text-xs"
+                      className="text-red-500 bg-transparent h-7 text-xs"
                     >
-                      <RiResetLeftFill className="w-3 h-3 mr-1" /> Reset
+                      <RotateCcw className="w-3 h-3 mr-1" /> Zurücksetzen
                     </Button>
                   </div>
                   {/* Teams anzeigen */}

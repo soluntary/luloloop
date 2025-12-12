@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { logSecurityEvent } from "@/app/actions/security-notifications"
 
@@ -11,14 +11,21 @@ interface SecurityEventLoggerProps {
 }
 
 export function SecurityEventLogger({ children }: SecurityEventLoggerProps) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+  const hasLoggedRef = useRef(false)
 
   useEffect(() => {
-    if (!user) return
+    if (loading || !user || hasLoggedRef.current) return
 
     // Log successful login event
     const logLoginEvent = async () => {
-      await logSecurityEvent({
+      // Only log if this is a fresh login (not a page refresh)
+      const hasLoggedLogin = sessionStorage.getItem("login_logged")
+      if (hasLoggedLogin) return
+
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      const result = await logSecurityEvent({
         eventType: "login_attempt",
         success: true,
         additionalData: {
@@ -26,20 +33,23 @@ export function SecurityEventLogger({ children }: SecurityEventLoggerProps) {
           timestamp: new Date().toISOString(),
         },
       })
+
+      if (result.success) {
+        sessionStorage.setItem("login_logged", "true")
+        hasLoggedRef.current = true
+      }
     }
 
-    // Only log if this is a fresh login (not a page refresh)
-    const hasLoggedLogin = sessionStorage.getItem("login_logged")
-    if (!hasLoggedLogin) {
-      logLoginEvent()
-      sessionStorage.setItem("login_logged", "true")
-    }
+    logLoginEvent()
+  }, [user, loading])
 
-    // Clear the flag when the user logs out
-    return () => {
+  // Clear the flag when the user logs out
+  useEffect(() => {
+    if (!user && !loading) {
       sessionStorage.removeItem("login_logged")
+      hasLoggedRef.current = false
     }
-  }, [user])
+  }, [user, loading])
 
   return <>{children}</>
 }

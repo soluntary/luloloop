@@ -24,7 +24,9 @@ export async function logSecurityEvent(data: SecurityEventData) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      throw new Error("User not authenticated")
+      // This can happen when the client-side session is ahead of the server-side session
+      // It's not a critical error, just skip logging
+      return { success: false, error: "Session not synchronized" }
     }
 
     const headersList = await headers()
@@ -61,7 +63,9 @@ export async function logSecurityEvent(data: SecurityEventData) {
 
     return { success: true, eventId: eventData }
   } catch (error) {
-    console.error("Error in logSecurityEvent:", error)
+    if (error instanceof Error && error.message !== "User not authenticated") {
+      console.error("Error in logSecurityEvent:", error)
+    }
     return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
   }
 }
