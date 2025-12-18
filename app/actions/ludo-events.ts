@@ -3,6 +3,12 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { withRateLimit } from "@/lib/supabase/rate-limit"
+import {
+  notifyEventInvitation,
+  notifyEventCancelled,
+  notifyEventParticipantJoined,
+  notifyEventParticipantLeft,
+} from "@/app/actions/notification-system"
 
 export interface LudoEventData {
   title: string
@@ -542,6 +548,18 @@ export async function deleteLudoEvent(eventId: string, userId: string) {
 
     if (error) throw error
 
+    const { data: participants } = await supabase
+      .from("ludo_event_participants")
+      .select("user_id, users(username)")
+      .eq("event_id", eventId)
+      .neq("user_id", userId)
+
+    if (participants && participants.length > 0) {
+      for (const participant of participants) {
+        await notifyEventCancelled(participant.user_id, eventId, event.title)
+      }
+    }
+
     revalidatePath("/ludo-events")
     return { success: true }
   } catch (error) {
@@ -595,6 +613,24 @@ export async function joinLudoEvent(eventId: string, userId: string) {
 
     if (error) throw error
 
+    // Notify organizer about participant joining
+    const { data: eventData } = await supabase
+      .from("ludo_events")
+      .select("title, creator_id")
+      .eq("id", eventId)
+      .single()
+
+    const { data: participantData } = await supabase.from("users").select("username, name").eq("id", userId).single()
+
+    if (eventData && participantData) {
+      await notifyEventParticipantJoined(
+        eventData.creator_id,
+        eventId,
+        eventData.title,
+        participantData.name || participantData.username || "Ein Benutzer",
+      )
+    }
+
     revalidatePath("/ludo-events")
     return {
       success: true,
@@ -617,6 +653,24 @@ export async function leaveLudoEvent(eventId: string, userId: string) {
       .eq("user_id", userId)
 
     if (error) throw error
+
+    // Notify organizer about participant leaving
+    const { data: eventData } = await supabase
+      .from("ludo_events")
+      .select("title, creator_id")
+      .eq("id", eventId)
+      .single()
+
+    const { data: participantData } = await supabase.from("users").select("username, name").eq("id", userId).single()
+
+    if (eventData && participantData) {
+      await notifyEventParticipantLeft(
+        eventData.creator_id,
+        eventId,
+        eventData.title,
+        participantData.name || participantData.username || "Ein Benutzer",
+      )
+    }
 
     revalidatePath("/ludo-events")
     return { success: true, message: "Erfolgreich vom Event abgemeldet" }
@@ -659,6 +713,19 @@ export async function approveParticipant(eventId: string, participantId: string,
 
     if (error) throw error
 
+    // Notify participant about approval
+    const { data: participantData } = await supabase
+      .from("ludo_event_participants")
+      .select("user_id")
+      .eq("id", participantId)
+      .single()
+
+    const { data: eventData } = await supabase.from("ludo_events").select("title").eq("id", eventId).single()
+
+    if (participantData && eventData) {
+      await notifyEventInvitation(participantData.user_id, eventId, eventData.title, creatorId)
+    }
+
     revalidatePath("/ludo-events")
     return { success: true, message: "Teilnahme angenommen" }
   } catch (error) {
@@ -689,6 +756,19 @@ export async function rejectParticipant(eventId: string, participantId: string, 
       .eq("event_id", eventId)
 
     if (error) throw error
+
+    // Notify participant about rejection
+    const { data: participantData } = await supabase
+      .from("ludo_event_participants")
+      .select("user_id")
+      .eq("id", participantId)
+      .single()
+
+    const { data: eventData } = await supabase.from("ludo_events").select("title").eq("id", eventId).single()
+
+    if (participantData && eventData) {
+      await notifyEventInvitation(participantData.user_id, eventId, eventData.title, creatorId)
+    }
 
     revalidatePath("/ludo-events")
     return { success: true, message: "Teilnahme abgelehnt" }
@@ -938,4 +1018,51 @@ export async function getUserEventInvitations(userId: string) {
     },
     { success: true, data: [] },
   )
+}
+
+export async function inviteFriendsToEvent(eventId: string, friendIds: string[]) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "Nicht authentifiziert" }
+  }
+
+  const invitations = friendIds.map((friendId) => ({
+    event_id: eventId,
+    inviter_id: user.id,
+    invitee_id: friendId,
+    status: "pending",
+    message: `Du wurdest zu einem Event eingeladen!`,
+    created_at: new Date().toISOString(),
+  }))
+
+  const { error: invitationError } = await supabase.from("ludo_event_invitations").insert(invitations)
+
+  if (invitationError) {
+    console.error("[v0] Error creating invitations:", invitationError)
+    return { success: false, error: "Fehler beim Erstellen der Einladungen" }
+  }
+
+  console.log("[v0] Created invitations for", invitations.length, "friends")
+
+  const { data: event } = await supabase.from("ludo_events").select("title, organizer_id").eq("id", eventId).single()
+
+  const { data: organizer } = await supabase.from("users").select("username, name").eq("id", user.id).single()
+
+  if (event && organizer) {
+    for (const friendId of friendIds) {
+      await notifyEventInvitation(
+        friendId,
+        eventId,
+        event.title,
+        organizer.name || organizer.username || "Ein Benutzer",
+      )
+    }
+  }
+
+  return { success: true }
 }

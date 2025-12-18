@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { notifyGroupInvitation, notifyGroupJoinApproved } from "@/app/actions/notification-system"
 
 export async function sendCommunityInvitations(communityId: string, inviteeIds: string[], message?: string) {
   const supabase = await createClient()
@@ -61,6 +62,21 @@ export async function sendCommunityInvitations(communityId: string, inviteeIds: 
       return { error: "Fehler beim Erstellen der Einladungen" }
     }
 
+    const { data: communityData } = await supabase.from("communities").select("name").eq("id", communityId).single()
+
+    const { data: inviterData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
+
+    if (communityData && inviterData) {
+      for (const inviteeId of inviteeIds) {
+        await notifyGroupInvitation(
+          inviteeId,
+          communityId,
+          communityData.name,
+          inviterData.name || inviterData.username || "Ein Benutzer",
+        )
+      }
+    }
+
     console.log("[v0] Invitations created successfully")
     return { success: true }
   } catch (error) {
@@ -84,7 +100,13 @@ export async function respondToCommunityInvitation(invitationId: string, action:
     // Get invitation details
     const { data: invitation, error: fetchError } = await supabase
       .from("community_invitations")
-      .select("*, communities(name)")
+      .select(
+        `
+        *,
+        communities(name, image),
+        inviter:users!community_invitations_inviter_id_fkey(username, avatar)
+      `,
+      )
       .eq("id", invitationId)
       .eq("invitee_id", user.id)
       .single()
@@ -120,6 +142,8 @@ export async function respondToCommunityInvitation(invitationId: string, action:
           throw memberError
         }
       }
+
+      await notifyGroupJoinApproved(invitation.inviter_id, invitation.community_id, invitation.communities.name)
     }
 
     return { success: true }

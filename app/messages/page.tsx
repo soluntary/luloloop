@@ -252,7 +252,7 @@ export default function MessagesPage() {
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <span className="font-medium truncate text-sm">{conv.partnerName}</span>
+                            <span className="font-medium truncate text-xs">{conv.partnerName}</span>
                             {conv.unreadCount > 0 && (
                               <Badge className="bg-teal-500 text-white flex-shrink-0">{conv.unreadCount}</Badge>
                             )}
@@ -383,7 +383,7 @@ export default function MessagesPage() {
                 <div className="flex-1 flex items-center justify-center text-gray-500">
                   <div className="text-center px-4">
                     <MessageCircle className="w-16 h-16 mx-auto mb-4 text-teal-200" />
-                    <h3 className="font-handwritten text-xl text-teal-700 mb-2">Wähle eine Unterhaltung</h3>
+                    <h3 className="font-handwritten text-teal-700 mb-2 text-sm">Wähle eine Unterhaltung</h3>
                     <p className="text-gray-500 text-sm">Klicke links auf eine Unterhaltung, um sie zu öffnen</p>
                   </div>
                 </div>

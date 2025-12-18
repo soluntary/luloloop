@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import type React from "react"
+import { useSearchParams, useRouter } from "next/navigation" // Changed to useSearchParams and useRouter
 
 import {
   FaPlus,
@@ -18,6 +19,7 @@ import {
   FaChevronDown,
   FaUserTimes,
   FaUserMinus,
+  FaBullhorn, // Added for broadcast
 } from "react-icons/fa"
 import { MdEventRepeat, MdOutlineManageSearch } from "react-icons/md"
 import { FiFilter } from "react-icons/fi"
@@ -27,7 +29,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 // </CHANGE> REMOVED lucide-react imports
@@ -41,15 +50,30 @@ import UserLink from "@/components/user-link"
 import { SkyscraperAd } from "@/components/advertising/ad-placements"
 import DateSelectionDialog from "@/components/date-selection-dialog"
 import { MessageComposerModal } from "@/components/message-composer-modal"
-import { LudoEventManagementDialog } from "@/components/ludo-event-management-dialog"
+// Removed LudoEventManagementDialog import
+// import { LudoEventManagementDialog } from "@/components/ludo-event-management-dialog"
+// </CHANGE>
 import { ShareButton } from "@/components/share-button"
 import { SimpleLocationSearch } from "@/components/simple-location-search"
 import { useLocationSearch } from "@/contexts/location-search-context"
 import { DistanceBadge } from "@/components/distance-badge"
 import { LocationMap } from "@/components/location-map"
-import CreateLudoEventForm from "@/components/create-ludo-event-form-advanced"
 import { ExpandableDescription } from "@/components/expandable-description"
 import { convertMarkdownToHtml } from "@/lib/utils"
+import { Textarea } from "@/components/ui/textarea"
+import { motion } from "framer-motion" // Import motion
+import { UserProfileModal } from "@/components/user-profile-modal"
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
+// </CHANGE>
+// Import for new management dropdown
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Edit, Trash2, Settings, CalendarDaysIcon, UserPlus, MessageCircle } from "lucide-react"
 
 interface LudoEvent {
   id: string
@@ -94,10 +118,13 @@ interface LudoEvent {
   }
   // Add distance property for location-based filtering
   distance?: number
+  // Add images property for event carousel
+  images?: string[]
 }
 
 export default function LudoEventsPage() {
-  const { user } = useAuth()
+  const searchParams = useSearchParams() // Changed to useSearchParams
+  const router = useRouter() // Initialize router
   const [events, setEvents] = useState<LudoEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -111,8 +138,13 @@ export default function LudoEventsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<LudoEvent | null>(null)
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
-  const [managementEvent, setManagementEvent] = useState<LudoEvent | null>(null)
   const [isManagementDialogOpen, setIsManagementDialogOpen] = useState(false)
+  const [managementEvent, setManagementEvent] = useState<LudoEvent | null>(null)
+  const [eventParticipants, setEventParticipants] = useState<any[]>([])
+  const [loadingParticipants, setLoadingParticipants] = useState(false)
+  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false)
+  const [broadcastMessage, setBroadcastMessage] = useState("")
+  // </CHANGE>
   const [approvalEvent, setApprovalEvent] = useState<LudoEvent | null>(null)
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false)
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false)
@@ -136,8 +168,59 @@ export default function LudoEventsPage() {
   const [locationSearchResults, setLocationSearchResults] = useState<any[]>([])
   const [showLocationResults, setShowLocationResults] = useState(false)
   const { searchByAddress, searchEventsNearby } = useLocationSearch()
+  const [profileModalUserId, setProfileModalUserId] = useState<string | null>(null)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+  // </CHANGE>
+
+  // State for event editing and inviting friends
+  const [selectedCommunity, setSelectedCommunity] = useState<LudoEvent | null>(null) // Assuming this should be LudoEvent based on usage
+  const [showInviteDialog, setShowInviteDialog] = useState(false)
+
+  const [hasProcessedURLParams, setHasProcessedURLParams] = useState(false)
 
   const supabase = createClient()
+  const { user } = useAuth() // Correctly access user from useAuth
+
+  useEffect(() => {
+    loadEvents()
+  }, [])
+  // </CHANGE>
+
+  useEffect(() => {
+    if (!events.length) return
+
+    const viewId = searchParams.get("view")
+    const shouldManage = searchParams.get("manage") === "true"
+    const shouldBroadcast = searchParams.get("broadcast") === "true"
+
+    console.log("[v0] Events URL params:", { viewId, shouldManage, shouldBroadcast })
+
+    if (viewId && !hasProcessedURLParams) {
+      const event = events.find((e) => e.id === viewId)
+      if (event) {
+        console.log("[v0] Found event from URL param:", event.title)
+        setSelectedEvent(event)
+        setIsDetailsDialogOpen(true)
+        setHasProcessedURLParams(true)
+
+        // Open specific management dialogs based on URL params
+        if (shouldManage) {
+          console.log("[v0] Opening management dialog from URL param")
+          openEventManagement(event)
+        } else if (shouldBroadcast) {
+          console.log("[v0] Opening broadcast dialog from URL param")
+          setManagementEvent(event)
+          loadEventParticipants(event.id)
+          setIsBroadcastModalOpen(true)
+        }
+      }
+    }
+
+    if (!viewId && hasProcessedURLParams) {
+      setHasProcessedURLParams(false)
+    }
+  }, [searchParams, events, hasProcessedURLParams])
+  // </CHANGE>
 
   const getNextUpcomingDate = (event: any, dates?: Array<{ event_date: string; start_time?: string }>) => {
     const now = new Date()
@@ -184,8 +267,99 @@ export default function LudoEventsPage() {
     return upcomingDate && upcomingDate.event_date === dateStr
   }
 
+  const openEventManagement = (event: LudoEvent) => {
+    setManagementEvent(event)
+    setIsManagementDialogOpen(true)
+    loadEventParticipants(event.id)
+  }
+
+  const loadEventParticipants = async (eventId: string) => {
+    setLoadingParticipants(true)
+    try {
+      const { data, error } = await supabase
+        .from("ludo_event_participants")
+        .select(`
+          *,
+          user:users!ludo_event_participants_user_id_fkey(id, username, avatar, name)
+        `)
+        .eq("event_id", eventId)
+
+      if (error) throw error
+      setEventParticipants(data || [])
+    } catch (error) {
+      console.error("Error loading participants:", error)
+      toast.error("Fehler beim Laden der Teilnehmer")
+    } finally {
+      setLoadingParticipants(false)
+    }
+  }
+
+  const removeParticipant = async (participantId: string, username: string) => {
+    try {
+      const { error } = await supabase.from("ludo_event_participants").delete().eq("id", participantId)
+
+      if (error) throw error
+
+      toast.success(`${username} wurde entfernt`)
+      if (managementEvent) loadEventParticipants(managementEvent.id)
+      loadEvents()
+    } catch (error) {
+      console.error("Error removing participant:", error)
+      toast.error("Fehler beim Entfernen des Teilnehmers")
+    }
+  }
+
+  const sendEventBroadcast = async () => {
+    if (!user || !managementEvent || !broadcastMessage.trim()) return
+
+    try {
+      // Send notification to all participants
+      for (const participant of eventParticipants) {
+        await supabase.from("notifications").insert({
+          user_id: participant.user_id,
+          type: "event_broadcast",
+          title: `Nachricht von ${managementEvent.title}`,
+          message: broadcastMessage,
+          data: {
+            event_id: managementEvent.id,
+            event_title: managementEvent.title,
+          },
+        })
+      }
+
+      toast.success("Nachricht wurde an alle Teilnehmer gesendet")
+      setIsBroadcastModalOpen(false)
+      setBroadcastMessage("")
+    } catch (error) {
+      console.error("Error sending broadcast:", error)
+      toast.error("Fehler beim Senden der Nachricht")
+    }
+  }
+  // </CHANGE>
+
+  // Function to load friends (needed for invite dialog)
+  const loadFriends = async () => {
+    // Placeholder: Implement logic to fetch friends if needed
+  }
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!user) return
+
+    try {
+      const { error } = await supabase.from("ludo_events").delete().eq("id", eventId)
+      if (error) throw error
+
+      toast.success("Event erfolgreich gelöscht!")
+      loadEvents() // Refresh the event list
+      setIsDetailsDialogOpen(false) // Close the dialog if it was open
+    } catch (error) {
+      console.error("Error deleting event:", error)
+      toast.error("Fehler beim Löschen des Events")
+    }
+  }
+
   useEffect(() => {
-    loadEvents()
+    // </CHANGE>
 
     const channel = supabase
       .channel("ludo-event-participants-changes")
@@ -724,7 +898,13 @@ export default function LudoEventsPage() {
 
     // If the current user is the organizer
     if (event.creator_id === user.id) {
-      return { text: "Dein Event", disabled: true, variant: "secondary" as const, icon: FaUserCog }
+      return {
+        text: "Dein Event",
+        disabled: true,
+        variant: "secondary" as const,
+        icon: FaUserCog,
+        className: "border-2",
+      }
     }
 
     // If the user is already participating
@@ -791,14 +971,7 @@ export default function LudoEventsPage() {
       loadAdditionalDates(event.id)
     }
   }
-
-  const openEventManagement = (event: LudoEvent, e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation() // Prevent triggering showEventDetails
-    }
-    setManagementEvent(event)
-    setIsManagementDialogOpen(true)
-  }
+  // </CHANGE>
 
   const openApprovalManagement = (event: LudoEvent, e?: React.MouseEvent) => {
     if (e) {
@@ -1127,7 +1300,7 @@ export default function LudoEventsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-teal-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-cyan-50">
       <Navigation currentPage="ludo-events" />
 
       <div className="container mx-auto px-4 py-8">
@@ -1188,9 +1361,9 @@ export default function LudoEventsPage() {
             )}
 
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4 sm:gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 <div>
-                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren</Label>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren nach</Label>
                   <Select value={sortBy} onValueChange={setSortBy}>
                     <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                       <SelectValue />
@@ -1276,11 +1449,12 @@ export default function LudoEventsPage() {
                   </Select>
                 </div>
 
-                <div className="col-span-2 md:col-span-1 flex gap-2">
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Filter</Label>
                   <Button
                     variant="outline"
                     onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                    className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
+                    className="h-9 w-full border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
                   >
                     <FiFilter className="w-3 h-3 mr-1" />
                     <span className="hidden sm:inline">Erweiterte Filter</span>
@@ -1289,6 +1463,10 @@ export default function LudoEventsPage() {
                       className={`w-3 h-3 ml-1 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
                     />
                   </Button>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium invisible">Zurücksetzen</Label>
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -1302,7 +1480,7 @@ export default function LudoEventsPage() {
                       setShowLocationResults(false)
                       setLocationSearchResults([])
                     }}
-                    className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
+                    className="h-9 w-full border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
                   >
                     <span className="hidden sm:inline">Filter zurücksetzen</span>
                     <span className="sm:hidden">Reset</span>
@@ -1523,7 +1701,7 @@ export default function LudoEventsPage() {
                         )}
                         <div className="space-y-1.5 mt-auto border-t border-gray-100 pt-2">
                           <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <FaCalendarAlt className="h-3.5 w-3.5 text-teal-600" /> {/* Changed to FaCalendarAlt */}
+                            <FaCalendarAlt className="text-teal-600 h-3.5 w-3.5" /> {/* Changed to FaCalendarAlt */}
                             <span className="text-xs">
                               {(() => {
                                 console.log(`[v0] Card view for event "${event.title}":`, {
@@ -1540,7 +1718,7 @@ export default function LudoEventsPage() {
                           </div>
 
                           <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <FaClock className="h-3.5 w-3.5 text-teal-600" /> {/* Changed to FaClock */}
+                            <FaClock className="text-teal-600 h-3.5 w-3.5" /> {/* Changed to FaClock */}
                             <span className="text-xs">
                               {event.start_time.slice(0, 5)}
                               {event.end_time && ` - ${event.end_time.slice(0, 5)}`}
@@ -1555,7 +1733,7 @@ export default function LudoEventsPage() {
                           )}
 
                           <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <FaMapMarkerAlt className="h-3.5 w-3.5 text-teal-600" /> {/* Changed to FaMapMarkerAlt */}
+                            <FaMapMarkerAlt className="text-teal-600 h-3.5 w-3.5" /> {/* Changed to FaMapMarkerAlt */}
                             {event.location_type === "virtual" ? (
                               <span className="truncate">Online Event</span>
                             ) : event.location ? (
@@ -1575,7 +1753,7 @@ export default function LudoEventsPage() {
 
                           {event.selected_games && event.selected_games.length > 0 && (
                             <div className="flex items-center gap-2 text-xs text-gray-600">
-                              <FaDice className="h-3.5 w-3.5 text-teal-600" /> {/* Changed to FaDice */}
+                              <FaDice className="text-teal-600 h-3.5 w-3.5" /> {/* Changed to FaDice */}
                               <span className="truncate">
                                 {(() => {
                                   const gameNames = event.selected_games
@@ -1618,12 +1796,12 @@ export default function LudoEventsPage() {
                           )}
 
                           <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <FaUsers className="h-3.5 w-3.5 text-teal-600" /> {/* Changed to FaUsers */}
+                            <FaUsers className="text-teal-600 h-3.5 w-3.5" /> {/* Changed to FaUsers */}
                             <span>{formatParticipantCount(event)}</span>
                           </div>
 
                           <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <FaUserCog className="h-3.5 w-3.5 text-teal-600" /> {/* Changed to FaUserCog */}
+                            <FaUserCog className="text-teal-600 h-3.5 w-3.5" /> {/* Changed to FaUserCog */}
                             <Avatar className="h-4 w-4">
                               <AvatarImage src={event.creator.avatar || "/placeholder.svg"} />
                               <AvatarFallback className="text-xs">
@@ -1671,7 +1849,7 @@ export default function LudoEventsPage() {
                               buttonProps.action === "manage"
                                 ? "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-blue-500"
                                 : buttonProps.action === "leave"
-                                  ? "bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white border-red-500"
+                                  ? "bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-500 text-white border-red-500"
                                   : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:from-gray-400"
                             }`}
                           >
@@ -1694,9 +1872,8 @@ export default function LudoEventsPage() {
                                 window.location.href = "/login"
                                 return
                               }
-                              // If user is the organizer, open management; otherwise, open message composer
                               if (user && event.creator_id === user.id) {
-                                openEventManagement(event)
+                                openMessageComposer(event) // Directly open message composer for yourself
                               } else {
                                 openMessageComposer(event)
                               }
@@ -1725,40 +1902,117 @@ export default function LudoEventsPage() {
         </div>
 
         {/* Event Details Dialog */}
-        <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <Dialog
+          open={isDetailsDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              // First clear the dialog state
+              setIsDetailsDialogOpen(false)
+              setSelectedEvent(null)
+              // Don't reset hasProcessedURLParams here - let useEffect handle it when URL changes
+              // Update URL to remove parameters
+              router.push("/ludo-events", { scroll: false })
+            } else {
+              setIsDetailsDialogOpen(true)
+            }
+            // </CHANGE>
+          }}
+        >
           <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="font-handwritten text-base text-gray-800 flex items-center justify-between">
-                {selectedEvent?.title}
-                {user && selectedEvent && selectedEvent.creator_id === user.id && (
-                  <Button
-                    size="xs"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      openEventManagement(selectedEvent, e)
-                    }}
-                    className="ml-2"
-                  >
-                    <FaCog className="h-4 w-4 mr-2" /> {/* Changed to FaCog */}
-                    Verwalten
-                  </Button>
-                )}
-              </DialogTitle>
+            <DialogHeader className="px-4 pt-4 pb-3 border-b">
+              {user && selectedEvent && selectedEvent.creator_id === user.id && (
+                <div className="flex justify-end mb-3">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="outline" className="h-9 px-3 bg-transparent">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Verwalten
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          router.push(`/edit/event/${selectedEvent.id}`)
+                          setIsDetailsDialogOpen(false)
+                        }}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Event bearbeiten
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openEventManagement(selectedEvent)
+                        }}
+                      >
+                        <FaUsers className="h-4 w-4 mr-2" />
+                        Teilnehmer verwalten
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedCommunity(selectedEvent) // Assuming setSelectedCommunity should be LudoEvent
+                          loadFriends()
+                          setShowInviteDialog(true)
+                        }}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Freunde einladen
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setIsDetailsDialogOpen(false)
+                          setDateSelectionEvent(selectedEvent)
+                          setIsDateSelectionOpen(true)
+                        }}
+                      >
+                        <CalendarDaysIcon className="h-4 w-4 mr-2" />
+                        Termin auswählen
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteEvent(selectedEvent.id)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Event löschen
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
+              <DialogTitle className="font-handwritten text-base text-gray-800">{selectedEvent?.title}</DialogTitle>
               <DialogDescription>Event Details und Informationen</DialogDescription>
             </DialogHeader>
+            {/* </CHANGE> */}
 
             {selectedEvent && (
               <div className="space-y-6">
-                {/* Event Image or Placeholder */}
-                {!selectedEvent.image_url && (
+                {/* Event Image or Placeholder - MERGED UPDATE */}
+                {selectedEvent.images && selectedEvent.images.length > 1 ? (
+                  <Carousel className="w-full">
+                    <CarouselContent>
+                      {selectedEvent.images.map((image: string, index: number) => (
+                        <CarouselItem key={index}>
+                          <div className="w-full h-48 rounded-lg overflow-hidden">
+                            <img
+                              src={image || "/placeholder.svg"}
+                              alt={`${selectedEvent.title} - Bild ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="left-2" />
+                    <CarouselNext className="right-2" />
+                  </Carousel>
+                ) : !selectedEvent.image_url ? (
                   <div className="w-full h-48 rounded-lg overflow-hidden bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
                     <div className="text-center">
-                      <FaDice className="h-16 w-16 text-teal-400 mx-auto mb-2" /> {/* Changed to FaDice */}
+                      <FaDice className="h-16 w-16 text-teal-400 mx-auto mb-2" />
                     </div>
                   </div>
-                )}
-                {selectedEvent.image_url && (
+                ) : (
                   <div className="w-full h-48 rounded-lg overflow-hidden">
                     <img
                       src={selectedEvent.image_url || "/placeholder.svg"}
@@ -2209,83 +2463,65 @@ export default function LudoEventsPage() {
                   </div>
                 )}
 
-                <div className="flex gap-3 pt-4 border-t">
-                  {(() => {
-                    const buttonProps = getJoinButtonProps(selectedEvent)
-                    const IconComponent = buttonProps.icon
+                <div className="sticky bottom-0 bg-white border-t pt-4 -mx-6 px-6 -mb-6 pb-6">
+                  <div className="flex gap-3">
+                    {(() => {
+                      const buttonConfig = getJoinButtonProps(selectedEvent)
+                      const Icon = buttonConfig.icon
 
-                    return (
-                      // Changed blue gradient buttons to teal
+                      return (
+                        <Button
+                          variant={buttonConfig.variant}
+                          disabled={buttonConfig.disabled}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (buttonConfig.action === "leave") {
+                              leaveEvent(selectedEvent)
+                            } else if (buttonConfig.action === "manage") {
+                              setDateSelectionEvent(selectedEvent)
+                              setIsDateSelectionOpen(true)
+                            } else {
+                              handleJoinEvent(selectedEvent)
+                            }
+                          }}
+                          className="flex-1 px-4 h-11 font-handwritten text-base border-2 shadow-sm"
+                        >
+                          {Icon ? <Icon className="h-5 w-5 mr-2" /> : <FaUserPlus className="h-5 w-5 mr-2" />}
+                          {buttonConfig.text}
+                        </Button>
+                      )
+                    })()}
+
+                    <ShareButton
+                      url={`${typeof window !== "undefined" ? window.location.origin : ""}/ludo-events/${selectedEvent.id}`}
+                      title={selectedEvent.title}
+                      description={selectedEvent.description || "Schau dir dieses Event an!"}
+                      className="px-4 h-11 font-handwritten text-base border-2"
+                    />
+
+                    {(!user || (user && selectedEvent.creator_id !== user.id)) && (
                       <Button
+                        variant="outline"
+                        className="px-4 h-11 bg-transparent font-handwritten text-base"
                         onClick={() => {
                           if (!user) {
-                            toast.info("Bitte melde dich an, um an Events teilzunehmen")
+                            toast.info("Bitte melde dich an, um Nachrichten zu senden")
                             window.location.href = "/login"
                             return
                           }
-                          if (buttonProps.action === "leave") {
-                            leaveEvent(selectedEvent)
-                          } else if (buttonProps.action === "manage") {
-                            setDateSelectionEvent(selectedEvent)
-                            setIsDateSelectionOpen(true)
-                          } else {
-                            handleJoinEvent(selectedEvent)
+                          if (selectedEvent) {
+                            openMessageComposer(selectedEvent)
+                            setIsDetailsDialogOpen(false)
                           }
                         }}
-                        disabled={buttonProps.disabled}
-                        variant={buttonProps.variant}
-                        className={`flex-1 font-handwritten ${
-                          buttonProps.action === "manage"
-                            ? "bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white border-teal-500"
-                            : buttonProps.action === "leave"
-                              ? "bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white border-red-500"
-                              : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:to-gray-400"
-                        }`}
                       >
-                        {IconComponent ? (
-                          <IconComponent className="h-4 w-4 mr-2" />
-                        ) : (
-                          <FaUserPlus className="h-4 w-4 mr-2" /> // Changed to FaUserPlus
-                        )}
-                        {buttonProps.text}
-                      </Button>
-                    )
-                  })()}
-
-                  <ShareButton
-                    url={`${typeof window !== "undefined" ? window.location.origin : ""}/ludo-events/${selectedEvent.id}`}
-                    title={selectedEvent.title}
-                    description={selectedEvent.description || "Schau dir dieses Event an!"}
-                    variant="outline"
-                    className="px-4 bg-transparent font-handwritten ml-auto"
-                  />
-
-                  <Button
-                    variant="outline"
-                    className="px-4 bg-transparent font-handwritten"
-                    onClick={(e) => {
-                      if (!user) {
-                        toast.info("Bitte melde dich an, um Nachrichten zu senden")
-                        window.location.href = "/login"
-                        return
-                      }
-                      if (user && selectedEvent.creator_id === user.id) {
-                        openEventManagement(selectedEvent)
-                      } else {
-                        openMessageComposer(selectedEvent)
-                      }
-                    }}
-                  >
-                    {user && selectedEvent.creator_id === user.id ? (
-                      <FaCog className="h-4 w-4" /> // Changed to FaCog
-                    ) : (
-                      <>
-                        <FaComment className="h-4 w-4 mr-2" /> {/* Changed to FaComment */}
+                        <MessageCircle className="h-5 w-5 mr-2" />
                         Nachricht
-                      </>
+                      </Button>
                     )}
-                  </Button>
+                  </div>
                 </div>
+                {/* </CHANGE> */}
               </div>
             )}
           </DialogContent>
@@ -2294,11 +2530,19 @@ export default function LudoEventsPage() {
         {/* Join Event Dialog */}
         <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
           <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="font-handwritten text-base text-gray-800">Event beitreten</DialogTitle>
-              <DialogDescription>Dieses Event erfordert eine Genehmigung des Organisators.</DialogDescription>
+            <DialogHeader className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg">
+                  <FaUsers className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+                    Event beitreten
+                  </DialogTitle>
+                  <p className="text-sm text-gray-500 mt-1">Teilnahme für "{joinEvent?.title}"</p>
+                </div>
+              </div>
             </DialogHeader>
-
             {joinEvent && (
               <div className="space-y-4">
                 <div>
@@ -2325,7 +2569,7 @@ export default function LudoEventsPage() {
                   </Button>
                   <Button
                     onClick={() => processJoinEvent(joinEvent, joinMessage)}
-                    className="flex-1 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-handwritten"
+                    className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-handwritten"
                   >
                     Anfrage senden
                   </Button>
@@ -2375,39 +2619,173 @@ export default function LudoEventsPage() {
           />
         )}
 
-        {/* Ludo Event Management Dialog */}
-        {managementEvent && (
-          <LudoEventManagementDialog
-            isOpen={isManagementDialogOpen}
-            onClose={() => {
-              setIsManagementDialogOpen(false)
-              setManagementEvent(null)
-              loadEvents() // Refresh event list after management actions
-            }}
-            event={managementEvent}
-          />
-        )}
+        {/* Management Dialog */}
+        <Dialog open={isManagementDialogOpen} onOpenChange={setIsManagementDialogOpen}>
+          <DialogContent className="sm:max-w-xl max-h-[75vh] overflow-y-auto">
+            <DialogHeader className="px-4 pt-4 pb-3 border-b">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                  className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg"
+                >
+                  <FaUsers className="h-7 w-7 text-white" />
+                </motion.div>
+                <div>
+                  <DialogTitle className="text-xl font-bold text-gray-900">Teilnehmer verwalten</DialogTitle>
+                  <DialogDescription className="text-sm text-gray-500">{managementEvent?.title}</DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+            {/* </CHANGE> */}
 
-        {/* Create Event Dialog */}
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 -m-6 mb-6 z-10">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">Neues Event erstellen</DialogTitle>
-                <p className="text-sm text-gray-600">Erstelle ein neues Spielevent und finde Gleichgesinnte</p>
-              </DialogHeader>
+            <div className="px-4 py-3">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsBroadcastModalOpen(true)}
+                className="w-full h-9 text-xs border-2 border-cyan-500 text-cyan-700 hover:bg-cyan-50 font-medium"
+              >
+                <FaBullhorn className="h-3.5 w-3.5 mr-1.5" />
+                Nachricht an alle Teilnehmer senden
+              </Button>
             </div>
+            {/* </CHANGE> */}
 
-            <CreateLudoEventForm
-              onSuccess={() => {
-                setIsCreateDialogOpen(false)
-                loadEvents()
-                toast.success("Viel Spass! Dein Event wurde erstellt!")
-              }}
-              onCancel={() => setIsCreateDialogOpen(false)}
-            />
+            <div className="space-y-2 px-4 pb-4 max-h-[55vh] overflow-y-auto">
+              {loadingParticipants ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500 mb-3"></div>
+                  <p className="text-sm text-gray-600 font-medium">Lade Teilnehmer...</p>
+                </div>
+              ) : eventParticipants.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                    <FaUsers className="h-6 w-6 text-gray-400" />
+                  </div>
+                  <p className="text-sm text-gray-600 font-medium">Keine Teilnehmer in diesem Event</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Warte auf neue Anmeldungen</p>
+                </div>
+              ) : (
+                eventParticipants.map((participant) => (
+                  <div
+                    key={participant.id}
+                    className="flex items-center justify-between p-2 border border-gray-200 rounded-lg shadow-sm bg-white hover:border-teal-200 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={participant.user.avatar || "/placeholder.svg"} />
+                        <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-500 text-white text-xs">
+                          {participant.user.username?.[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <button
+                          onClick={() => {
+                            setProfileModalUserId(participant.user_id)
+                            setIsProfileModalOpen(true)
+                          }}
+                          className="text-xs font-medium text-gray-800 hover:text-teal-600 hover:underline transition-colors text-left"
+                        >
+                          {participant.user.username}
+                        </button>
+                        {/* </CHANGE> */}
+                        <span className="text-xs text-gray-500">
+                          Beigetreten am {new Date(participant.joined_at).toLocaleDateString("de-DE")}
+                        </span>
+                      </div>
+                    </div>
+                    {participant.user_id !== user?.id && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => removeParticipant(participant.id, participant.user.username)}
+                        className="h-7 px-2 group relative hover:bg-red-600 active:scale-95 transition-all duration-150"
+                      >
+                        <FaUserMinus className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+            {/* </CHANGE> */}
           </DialogContent>
         </Dialog>
+
+        {/* Broadcast Dialog */}
+        <Dialog open={isBroadcastModalOpen} onOpenChange={setIsBroadcastModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
+                  <FaBullhorn className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    Nachricht an alle Teilnehmer
+                  </DialogTitle>
+                </div>
+              </div>
+            </DialogHeader>
+            {/* </CHANGE> */}
+            <div className="space-y-3">
+              <div className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-700">
+                  <span className="block text-xs mt-0.5">Alle Teilnehmer werden benachrichtigt</span>
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="broadcast-message" className="text-xs font-bold text-gray-700">
+                  Nachricht
+                </Label>
+                <Textarea
+                  id="broadcast-message"
+                  placeholder="Schreibe deine Nachricht..."
+                  value={broadcastMessage}
+                  onChange={(e) => setBroadcastMessage(e.target.value)}
+                  rows={5}
+                  className="text-xs min-h-[120px] resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500">{broadcastMessage.length}/500</p>
+              </div>
+            </div>
+            <DialogFooter className="pt-3 border-t gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsBroadcastModalOpen(false)
+                  setBroadcastMessage("")
+                }}
+                className="flex-1 h-8 text-xs"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                size="sm"
+                onClick={sendEventBroadcast}
+                disabled={!broadcastMessage.trim()}
+                className="flex-1 h-8 text-xs bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg"
+              >
+                <FaBullhorn className="mr-1.5 h-3 w-3" />
+                Senden
+              </Button>
+            </DialogFooter>
+            {/* </CHANGE> */}
+          </DialogContent>
+        </Dialog>
+
+        <UserProfileModal
+          userId={profileModalUserId}
+          isOpen={isProfileModalOpen}
+          onClose={() => {
+            setIsProfileModalOpen(false)
+            setProfileModalUserId(null)
+          }}
+        />
+        {/* </CHANGE> */}
       </div>
     </div>
   )

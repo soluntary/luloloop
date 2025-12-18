@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { revalidatePath } from "next/cache"
 import { createNotificationIfEnabled } from "./notification-helpers"
 
@@ -8,69 +9,86 @@ export async function createForumReply(formData: {
   content: string
   post_id: string
   parent_reply_id?: string
+  user_id: string
 }) {
   try {
+    console.log("[v0] createForumReply called with:", {
+      post_id: formData.post_id,
+      user_id: formData.user_id,
+      parent_reply_id: formData.parent_reply_id,
+    })
+
+    if (!formData.content.trim() || !formData.post_id || !formData.user_id) {
+      console.error("[v0] Validation failed - missing required fields")
+      return { success: false, error: "Inhalt, Post-ID und User-ID sind erforderlich" }
+    }
+
     const supabase = await createClient()
 
-    // Check authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: "Du musst angemeldet sein, um zu antworten" }
+    const { data: userExists, error: userError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("id", formData.user_id)
+      .single()
+
+    if (userError || !userExists) {
+      console.error("[v0] User validation failed:", userError)
+      return { success: false, error: "Ungültige Benutzer-ID" }
     }
 
-    // Validate input
-    if (!formData.content.trim() || !formData.post_id) {
-      return { success: false, error: "Inhalt und Post-ID sind erforderlich" }
-    }
+    console.log("[v0] User validated successfully:", formData.user_id)
 
+    // Determine who to notify
     let notificationUserId: string | null = null
     let notificationType: "forum_reply" | "comment_reply" = "forum_reply"
 
     if (formData.parent_reply_id) {
-      // Replying to a comment
       const { data: parentReply } = await supabase
         .from("forum_replies")
         .select("author_id")
         .eq("id", formData.parent_reply_id)
         .single()
 
-      if (parentReply && parentReply.author_id !== user.id) {
+      if (parentReply && parentReply.author_id !== formData.user_id) {
         notificationUserId = parentReply.author_id
         notificationType = "comment_reply"
       }
     } else {
-      // Replying to a post
       const { data: post } = await supabase.from("forum_posts").select("author_id").eq("id", formData.post_id).single()
 
-      if (post && post.author_id !== user.id) {
+      if (post && post.author_id !== formData.user_id) {
         notificationUserId = post.author_id
         notificationType = "forum_reply"
       }
     }
 
-    // Create the forum reply
-    const { data, error } = await supabase
+    const adminClient = createAdminClient()
+    const { data, error } = await adminClient
       .from("forum_replies")
       .insert({
         content: formData.content.trim(),
         post_id: formData.post_id,
         parent_reply_id: formData.parent_reply_id || null,
-        author_id: user.id,
+        author_id: formData.user_id,
         likes_count: 0,
       })
       .select()
       .single()
 
     if (error) {
-      console.error("Error creating forum reply:", error)
-      return { success: false, error: "Fehler beim Erstellen der Antwort" }
+      console.error("[v0] Error creating forum reply:", error)
+      return { success: false, error: "Fehler beim Erstellen der Antwort: " + error.message }
     }
 
+    console.log("[v0] Forum reply created successfully:", data.id)
+
+    // Create notification if needed
     if (notificationUserId) {
-      const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
+      const { data: userData } = await supabase
+        .from("users")
+        .select("username, name")
+        .eq("id", formData.user_id)
+        .single()
 
       const authorName = userData?.username || userData?.name || "Ein Nutzer"
 
@@ -82,25 +100,25 @@ export async function createForumReply(formData: {
         {
           post_id: formData.post_id,
           reply_id: data.id,
-          author_id: user.id,
+          author_id: formData.user_id,
           author_name: authorName,
         },
       )
     }
 
-    // Update replies count on the post
+    // Increment replies count
     const { error: updateError } = await supabase.rpc("increment_post_replies", {
       post_id: formData.post_id,
     })
 
     if (updateError) {
-      console.error("Error incrementing replies count:", updateError)
+      console.error("[v0] Error incrementing replies count:", updateError)
     }
 
     revalidatePath(`/ludo-forum/${formData.post_id}`)
     return { success: true, data }
   } catch (error) {
-    console.error("Exception creating forum reply:", error)
+    console.error("[v0] Exception creating forum reply:", error)
     return { success: false, error: "Ein unerwarteter Fehler ist aufgetreten" }
   }
 }
@@ -109,7 +127,6 @@ export async function likeForumReply(replyId: string) {
   try {
     const supabase = await createClient()
 
-    // Check authentication
     const {
       data: { user },
       error: authError,
@@ -118,7 +135,6 @@ export async function likeForumReply(replyId: string) {
       return { success: false, error: "Du musst angemeldet sein" }
     }
 
-    // Check if already liked
     const { data: existingLike } = await supabase
       .from("forum_reply_likes")
       .select("id")
@@ -127,7 +143,6 @@ export async function likeForumReply(replyId: string) {
       .single()
 
     if (existingLike) {
-      // Unlike
       const { error: deleteError } = await supabase
         .from("forum_reply_likes")
         .delete()
@@ -138,7 +153,6 @@ export async function likeForumReply(replyId: string) {
         return { success: false, error: "Fehler beim Entfernen des Likes" }
       }
 
-      // Update likes count
       const { error: updateError } = await supabase.rpc("decrement_reply_likes", {
         reply_id: replyId,
       })
@@ -149,7 +163,6 @@ export async function likeForumReply(replyId: string) {
 
       return { success: true, liked: false }
     } else {
-      // Like
       const { error: insertError } = await supabase.from("forum_reply_likes").insert({
         reply_id: replyId,
         user_id: user.id,
@@ -159,7 +172,6 @@ export async function likeForumReply(replyId: string) {
         return { success: false, error: "Fehler beim Hinzufügen des Likes" }
       }
 
-      // Update likes count
       const { error: updateError } = await supabase.rpc("increment_reply_likes", {
         reply_id: replyId,
       })

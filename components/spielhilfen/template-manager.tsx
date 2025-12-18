@@ -36,12 +36,19 @@ interface Template {
 
 interface TemplateManagerProps {
   spielhilfeType: string
-  currentData: any
+  currentData?: any
+  getCurrentData?: () => any
   onLoadTemplate: (data: any) => void
   className?: string
 }
 
-export function TemplateManager({ spielhilfeType, currentData, onLoadTemplate, className }: TemplateManagerProps) {
+export function TemplateManager({
+  spielhilfeType,
+  currentData,
+  getCurrentData,
+  onLoadTemplate,
+  className,
+}: TemplateManagerProps) {
   const { user } = useAuth()
   const [templates, setTemplates] = useState<Template[]>([])
   const [loading, setLoading] = useState(false)
@@ -88,6 +95,30 @@ export function TemplateManager({ spielhilfeType, currentData, onLoadTemplate, c
       return
     }
 
+    const dataToSave = getCurrentData ? getCurrentData() : currentData
+
+    console.log("[v0] Template save attempt:", {
+      spielhilfeType,
+      templateName,
+      currentDataType: typeof dataToSave,
+      currentData: dataToSave,
+      hasData: dataToSave && Object.keys(dataToSave).length > 0,
+    })
+
+    if (!dataToSave || (typeof dataToSave === "object" && Object.keys(dataToSave).length === 0)) {
+      console.error("[v0] Cannot save template for", spielhilfeType, "- currentData is empty or undefined:", dataToSave)
+      setSaveError(
+        `Keine Daten zum Speichern vorhanden. Bitte konfiguriere zuerst die ${spielhilfeType === "timer" ? "Timer-Einstellungen" : spielhilfeType === "wuerfel" ? "Würfel-Einstellungen" : spielhilfeType === "punkte" ? "Spieler/Teams" : "Spielhilfe"}.`,
+      )
+      return
+    }
+
+    console.log("[v0] Saving template with data:", {
+      name: templateName,
+      spielhilfe_type: spielhilfeType,
+      template_data: dataToSave,
+    })
+
     setLoading(true)
     setSaveError("")
     setSaveSuccess("")
@@ -98,7 +129,7 @@ export function TemplateManager({ spielhilfeType, currentData, onLoadTemplate, c
         spielhilfe_type: spielhilfeType,
         name: templateName.trim(),
         description: templateDescription.trim() || null,
-        template_data: currentData,
+        template_data: dataToSave,
         is_default: false,
       })
 
@@ -114,7 +145,7 @@ export function TemplateManager({ spielhilfeType, currentData, onLoadTemplate, c
         setSaveSuccess("")
       }, 1500)
     } catch (error: any) {
-      console.error("[v0] Error saving template:", error)
+      console.error("[v0] Error saving template:", error.message || error)
       setSaveError("Fehler beim Speichern der Vorlage.")
     } finally {
       setLoading(false)

@@ -421,10 +421,16 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     try {
       const availabilityStatus = isAvailable ? ["available"] : ["not_available"]
+      const trackingStatus = isAvailable ? "available" : "rented"
 
       const { data, error } = await supabase
         .from("games")
-        .update({ available: availabilityStatus })
+        .update({
+          available: availabilityStatus,
+          tracking_info: {
+            status: trackingStatus,
+          },
+        })
         .eq("id", gameId)
         .eq("user_id", user.id)
         .select()

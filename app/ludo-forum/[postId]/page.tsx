@@ -65,7 +65,7 @@ interface ForumReply {
 export default function ForumThreadPage() {
   const params = useParams()
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [post, setPost] = useState<ForumPost | null>(null)
   const [replies, setReplies] = useState<ForumReply[]>([])
   const [loading, setLoading] = useState(true)
@@ -85,6 +85,10 @@ export default function ForumThreadPage() {
       incrementViewCount()
     }
   }, [postId])
+
+  useEffect(() => {
+    console.log("[v0] Forum user state:", { user: user?.id, isLoading: authLoading })
+  }, [user, authLoading])
 
   const loadThreadData = async () => {
     try {
@@ -173,7 +177,7 @@ export default function ForumThreadPage() {
         .single()
 
       if (fetchError) {
-        console.error("[v0] Error fetching current view count:", fetchError)
+        console.log("[v0] Error fetching current view count:", fetchError)
         return
       }
 
@@ -363,12 +367,17 @@ export default function ForumThreadPage() {
                     size="sm"
                     variant="ghost"
                     className="text-xs h-7 px-2"
-                    onClick={() => {
-                      if (!user) {
-                        toast.info("Bitte melde dich an, um zu antworten")
-                        window.location.href = "/login"
+                    onClick={async () => {
+                      if (authLoading) {
+                        console.log("[v0] Auth still loading, please wait")
                         return
                       }
+                      if (!user) {
+                        console.log("[v0] No user found when trying to reply")
+                        toast.error("Du musst angemeldet sein, um zu antworten")
+                        return
+                      }
+                      console.log("[v0] User found, opening reply form:", user.id)
                       setReplyingTo(reply.id)
                       setShowReplyForm(true)
                     }}
@@ -505,12 +514,17 @@ export default function ForumThreadPage() {
 
               {!post.is_locked && (
                 <Button
-                  onClick={() => {
-                    if (!user) {
-                      toast.info("Bitte melde dich an, um zu antworten")
-                      window.location.href = "/login"
+                  onClick={async () => {
+                    if (authLoading) {
+                      console.log("[v0] Auth still loading, please wait")
                       return
                     }
+                    if (!user) {
+                      console.log("[v0] No user found when trying to reply")
+                      toast.error("Du musst angemeldet sein, um zu antworten")
+                      return
+                    }
+                    console.log("[v0] User found, opening reply form:", user.id)
                     setReplyingTo(null)
                     setShowReplyForm(true)
                   }}
@@ -532,6 +546,7 @@ export default function ForumThreadPage() {
               <CreateForumReplyForm
                 postId={postId}
                 parentReplyId={replyingTo}
+                userId={user?.id || ""}
                 onSuccess={handleReplyCreated}
                 onCancel={() => {
                   setShowReplyForm(false)
@@ -560,12 +575,17 @@ export default function ForumThreadPage() {
             <p className="text-gray-500 mb-4">Sei der Erste und starte die Diskussion!</p>
             {!post.is_locked && (
               <Button
-                onClick={() => {
-                  if (!user) {
-                    toast.info("Bitte melde dich an, um zu antworten")
-                    window.location.href = "/login"
+                onClick={async () => {
+                  if (authLoading) {
+                    console.log("[v0] Auth still loading, please wait")
                     return
                   }
+                  if (!user) {
+                    console.log("[v0] No user found when trying to reply")
+                    toast.error("Du musst angemeldet sein, um zu antworten")
+                    return
+                  }
+                  console.log("[v0] User found, opening reply form:", user.id)
                   setReplyingTo(null)
                   setShowReplyForm(true)
                 }}

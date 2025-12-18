@@ -1665,7 +1665,7 @@ export function CreateMarketplaceOfferForm({
                     {deliveryPickup && (
                       <div className="space-y-3">
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-                          <FaInfo className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <FaInfo className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0" />
                           <p className="text-xs text-blue-700">
                             Standardmässig zeigen wir nur die Postleitzahl und den Ort an. Wenn du die vollständige
                             Adresse anzeigen lassen möchtest, setze bitte einen Haken im Kasten.

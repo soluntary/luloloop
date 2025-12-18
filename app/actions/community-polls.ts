@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { notifyGroupPollCreated } from "@/app/actions/notification-system"
 
 export interface PollOption {
   id: string
@@ -120,26 +121,8 @@ export async function createPollAction(
         .neq("user_id", user.id)
 
       if (!membersError && members && members.length > 0) {
-        // Create notifications for all members
-        const notifications = members.map((member) => ({
-          user_id: member.user_id,
-          type: "poll_created",
-          title: "Neue Abstimmung",
-          message: `Eine neue Abstimmung wurde in ${community.name} erstellt: ${question}`,
-          data: {
-            poll_id: poll.id,
-            community_id: communityId,
-            community_name: community.name,
-          },
-          read: false,
-        }))
-
-        const { error: notificationError } = await supabase.from("notifications").insert(notifications)
-
-        if (notificationError) {
-          console.error("Error creating notifications:", notificationError)
-          // Don't fail the poll creation if notifications fail
-        }
+        const memberIds = members.map((m) => m.user_id)
+        await notifyGroupPollCreated(memberIds, question, community.name, communityId, poll.id)
       }
     } catch (notificationError) {
       console.error("Error sending poll notifications:", notificationError)

@@ -13,6 +13,7 @@ import { createForumReply } from "@/app/actions/forum-replies"
 interface CreateForumReplyFormProps {
   postId: string
   parentReplyId?: string | null
+  userId: string
   onSuccess: () => void
   onCancel: () => void
 }
@@ -20,6 +21,7 @@ interface CreateForumReplyFormProps {
 export default function CreateForumReplyForm({
   postId,
   parentReplyId,
+  userId,
   onSuccess,
   onCancel,
 }: CreateForumReplyFormProps) {
@@ -57,6 +59,7 @@ export default function CreateForumReplyForm({
         content: content.trim(),
         post_id: postId,
         parent_reply_id: parentReplyId,
+        user_id: userId,
       })
 
       if (result.success) {

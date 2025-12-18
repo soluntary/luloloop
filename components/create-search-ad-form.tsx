@@ -197,7 +197,9 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <Label className="text-sm font-medium text-gray-700">Name des gesuchtes Spiels *</Label>
+                      <Label className="text-sm font-medium text-gray-700">
+                        Name des gesuchtes Spiels <span className="text-red-500">*</span>
+                      </Label>
                       <span className="text-xs text-gray-500">{title.length}/60</span>
                     </div>
                     <Input
@@ -217,7 +219,9 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium text-gray-700 mb-2 block"> Ich möchte das Spiel ...? *</Label>
+                    <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                      Ich möchte das Spiel ...? <span className="text-red-500">*</span>
+                    </Label>
                     <Select value={type} onValueChange={setType} required>
                       <SelectTrigger className="h-11 border-gray-300 focus:border-gray-900 rounded-lg bg-white">
                         <SelectValue placeholder="Wähle eine Option" />

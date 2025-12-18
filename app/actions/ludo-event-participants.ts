@@ -2,6 +2,13 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import {
+  notifyEventJoinRequest,
+  notifyEventJoinAccepted,
+  notifyEventJoinRejected,
+  notifyEventParticipantJoined,
+  notifyEventParticipantLeft,
+} from "@/app/actions/notification-system"
 
 export interface ParticipantActionResult {
   success: boolean
@@ -98,6 +105,23 @@ export async function joinLudoEvent(
         }
       }
 
+      const { data: eventData } = await supabase
+        .from("ludo_events")
+        .select("title, creator_id")
+        .eq("id", eventId)
+        .single()
+
+      const { data: userData } = await supabase.from("users").select("username, name").eq("id", userId).single()
+
+      if (eventData && userData) {
+        await notifyEventParticipantJoined(
+          eventData.creator_id,
+          userData.name || userData.username || "Ein Benutzer",
+          eventData.title,
+          eventId,
+        )
+      }
+
       revalidatePath("/ludo-events")
       return {
         success: true,
@@ -124,6 +148,24 @@ export async function joinLudoEvent(
         }
       }
 
+      const { data: eventData } = await supabase
+        .from("ludo_events")
+        .select("title, creator_id")
+        .eq("id", eventId)
+        .single()
+
+      const { data: userData } = await supabase.from("users").select("username, name").eq("id", userId).single()
+
+      if (eventData && userData) {
+        await notifyEventJoinRequest(
+          eventData.creator_id,
+          userData.name || userData.username || "Ein Benutzer",
+          eventData.title,
+          eventId,
+          data.id,
+        )
+      }
+
       revalidatePath("/ludo-events")
       return {
         success: true,
@@ -144,6 +186,14 @@ export async function leaveLudoEvent(eventId: string, userId: string): Promise<P
   try {
     const supabase = await createClient()
 
+    const { data: eventData } = await supabase
+      .from("ludo_events")
+      .select("title, creator_id")
+      .eq("id", eventId)
+      .single()
+
+    const { data: userData } = await supabase.from("users").select("username, name").eq("id", userId).single()
+
     // Remove participant or cancel request
     const { error } = await supabase
       .from("ludo_event_participants")
@@ -157,6 +207,15 @@ export async function leaveLudoEvent(eventId: string, userId: string): Promise<P
         success: false,
         error: "Fehler beim Verlassen des Events",
       }
+    }
+
+    if (eventData && userData) {
+      await notifyEventParticipantLeft(
+        eventData.creator_id,
+        userData.name || userData.username || "Ein Benutzer",
+        eventData.title,
+        eventId,
+      )
     }
 
     revalidatePath("/ludo-events")
@@ -358,6 +417,12 @@ export async function approveJoinRequest(
       }
     }
 
+    const { data: eventData } = await supabase.from("ludo_events").select("title").eq("id", request.event_id).single()
+
+    if (eventData) {
+      await notifyEventJoinAccepted(request.user_id, eventData.title, request.event_id)
+    }
+
     revalidatePath("/ludo-events")
     return {
       success: true,
@@ -376,6 +441,12 @@ export async function rejectJoinRequest(requestId: string, creatorId: string): P
   try {
     const supabase = await createClient()
 
+    const { data: request } = await supabase
+      .from("ludo_event_join_requests")
+      .select("event_id, user_id")
+      .eq("id", requestId)
+      .single()
+
     const { data, error } = await supabase
       .from("ludo_event_join_requests")
       .update({
@@ -392,6 +463,14 @@ export async function rejectJoinRequest(requestId: string, creatorId: string): P
       return {
         success: false,
         error: "Fehler beim Ablehnen der Beitrittsanfrage",
+      }
+    }
+
+    if (request) {
+      const { data: eventData } = await supabase.from("ludo_events").select("title").eq("id", request.event_id).single()
+
+      if (eventData) {
+        await notifyEventJoinRejected(request.user_id, eventData.title)
       }
     }
 

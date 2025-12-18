@@ -65,7 +65,9 @@ export function EditCommunityForm({ community, onClose, onSuccess }: EditCommuni
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Label htmlFor="name">Name der Spielgruppe *</Label>
+        <Label htmlFor="name">
+          Name der Spielgruppe <span className="text-red-500">*</span>
+        </Label>
         <Input
           id="name"
           value={formData.name}

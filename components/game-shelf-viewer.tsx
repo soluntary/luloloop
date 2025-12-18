@@ -28,6 +28,13 @@ interface Game {
   latitude?: number
   longitude?: number
   location?: string
+  tracking_info?: {
+    status: "available" | "rented" | "swapped" | "lent"
+    rented_to?: string
+    rented_until?: string
+    swapped_with?: string
+    notes?: string
+  }
 }
 
 interface GameShelfViewerProps {
@@ -140,9 +147,19 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
                 <div className="absolute top-1 left-1 z-10">
                   <div
                     className={`w-4 h-4 rounded-full border border-white shadow-sm ${
-                      game.available?.includes("available") ? "bg-green-500" : "bg-red-500"
+                      !game.tracking_info?.status || game.tracking_info.status === "available"
+                        ? "bg-green-500"
+                        : "bg-red-500"
                     }`}
-                    title={game.available?.includes("available") ? "Verfügbar" : "Nicht verfügbar"}
+                    title={
+                      !game.tracking_info?.status || game.tracking_info.status === "available"
+                        ? "Verfügbar"
+                        : game.tracking_info.status === "rented"
+                          ? "Vermietet / Verliehen"
+                          : game.tracking_info.status === "swapped"
+                            ? "Getauscht"
+                            : "Leih"
+                    }
                   />
                 </div>
 
@@ -227,10 +244,16 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
               {/* Game Details */}
               <div className="space-y-3">
                 <div className="flex items-center text-xs text-gray-600">
-                  {selectedGame.available?.includes("available") ? (
+                  {!selectedGame.tracking_info?.status || selectedGame.tracking_info.status === "available" ? (
                     <Badge className="bg-green-100 text-green-800">Verfügbar</Badge>
                   ) : (
-                    <Badge variant="destructive">Nicht verfügbar</Badge>
+                    <Badge variant="destructive">
+                      {selectedGame.tracking_info.status === "rented"
+                        ? "Vermietet / Verliehen"
+                        : selectedGame.tracking_info.status === "swapped"
+                          ? "Getauscht"
+                          : "Leih"}
+                    </Badge>
                   )}
                 </div>
 
@@ -291,46 +314,75 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
                     <span>{selectedGame.location}</span>
                   </div>
                 )}
+
+                {selectedGame.tracking_info?.rented_to && (
+                  <div className="flex items-center text-xs text-gray-600">
+                    <span className="text-xs text-gray-900 font-semibold mr-1">Vermietet an:</span>
+                    <span>{selectedGame.tracking_info.rented_to}</span>
+                  </div>
+                )}
+
+                {selectedGame.tracking_info?.rented_until && (
+                  <div className="flex items-center text-xs text-gray-600">
+                    <span className="text-xs text-gray-900 font-semibold mr-1">Rückgabe bis:</span>
+                    <span>{selectedGame.tracking_info.rented_until}</span>
+                  </div>
+                )}
+
+                {selectedGame.tracking_info?.swapped_with && (
+                  <div className="flex items-center text-xs text-gray-600">
+                    <span className="text-xs text-gray-900 font-semibold mr-1">Getauscht mit:</span>
+                    <span>{selectedGame.tracking_info.swapped_with}</span>
+                  </div>
+                )}
+
+                {selectedGame.tracking_info?.notes && (
+                  <div className="flex items-center text-xs text-gray-600">
+                    <span className="text-xs text-gray-900 font-semibold mr-1">Notizen:</span>
+                    <span>{selectedGame.tracking_info.notes}</span>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
-              {selectedGame.available?.includes("available") && currentUser && (
-                <div className="space-y-2 pt-4 border-t">
-                  <p className="text-xs text-gray-900 mb-3 font-semibold">Interesse an diesem Spiel?</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button
-                      onClick={() => handleRequestClick("trade")}
-                      variant="outline"
-                      size="sm"
-                      className="flex flex-col items-center p-3 h-auto"
-                    >
-                      <Repeat className="h-4 w-4 mb-1" />
-                      <span className="text-xs">Tauschanfrage</span>
-                      <span className="text-xs">senden</span>
-                    </Button>
-                    <Button
-                      onClick={() => handleRequestClick("buy")}
-                      variant="outline"
-                      size="sm"
-                      className="flex flex-col items-center p-3 h-auto"
-                    >
-                      <ShoppingCart className="h-4 w-4 mb-1" />
-                      <span className="text-xs">Kaufanfrage</span>
-                      <span className="text-xs">senden</span>
-                    </Button>
-                    <Button
-                      onClick={() => handleRequestClick("rent")}
-                      variant="outline"
-                      size="sm"
-                      className="flex flex-col items-center p-3 h-auto"
-                    >
-                      <Calendar className="h-4 w-4 mb-1" />
-                      <span className="text-xs">Mietanfrage</span>
-                      <span className="text-xs">senden</span>
-                    </Button>
+              {(!selectedGame.tracking_info?.status || selectedGame.tracking_info.status === "available") &&
+                currentUser && (
+                  <div className="space-y-2 pt-4 border-t">
+                    <p className="text-xs text-gray-900 mb-3 font-semibold">Interesse an diesem Spiel?</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button
+                        onClick={() => handleRequestClick("trade")}
+                        variant="outline"
+                        size="sm"
+                        className="flex flex-col items-center p-3 h-auto"
+                      >
+                        <Repeat className="h-4 w-4 mb-1" />
+                        <span className="text-xs">Tauschanfrage</span>
+                        <span className="text-xs">senden</span>
+                      </Button>
+                      <Button
+                        onClick={() => handleRequestClick("buy")}
+                        variant="outline"
+                        size="sm"
+                        className="flex flex-col items-center p-3 h-auto"
+                      >
+                        <ShoppingCart className="h-4 w-4 mb-1" />
+                        <span className="text-xs">Kaufanfrage</span>
+                        <span className="text-xs">senden</span>
+                      </Button>
+                      <Button
+                        onClick={() => handleRequestClick("rent")}
+                        variant="outline"
+                        size="sm"
+                        className="flex flex-col items-center p-3 h-auto"
+                      >
+                        <Calendar className="h-4 w-4 mb-1" />
+                        <span className="text-xs">Mietanfrage</span>
+                        <span className="text-xs">senden</span>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           </DialogContent>
         </Dialog>

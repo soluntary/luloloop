@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 type NotificationType =
   | "friend_request"
@@ -168,7 +169,7 @@ export async function createNotificationIfEnabled(
     return null
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: notification, error } = await supabase
     .from("notifications")
@@ -184,7 +185,7 @@ export async function createNotificationIfEnabled(
     .single()
 
   if (error) {
-    console.error(`[v0] Error creating notification:`, error)
+    console.error(`[v0] Error creating notification:`, error.message)
     return null
   }
 

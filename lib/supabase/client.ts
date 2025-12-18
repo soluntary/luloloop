@@ -44,3 +44,5 @@ export function createClient() {
 
   return client
 }
+
+export const createBrowserClient = createClient

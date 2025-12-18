@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -230,14 +230,7 @@ const gamePresets: Record<string, GamePreset> = {
 }
 
 export default function RollenVerteilerPage() {
-  const [players, setPlayers] = useState<string[]>([
-    "Spieler 1",
-    "Spieler 2",
-    "Spieler 3",
-    "Spieler 4",
-    "Spieler 5",
-    "Spieler 6",
-  ])
+  const [players, setPlayers] = useState<string[]>(["Spieler 1", "Spieler 2", "Spieler 3", "Spieler 4", "Spieler 5"])
   const [selectedPreset, setSelectedPreset] = useState<string>("werwolf")
   const [customRoles, setCustomRoles] = useState<Role[]>([])
   const [assignedRoles, setAssignedRoles] = useState<{ player: string; role: Role }[]>([])
@@ -256,12 +249,17 @@ export default function RollenVerteilerPage() {
   const [thiefSelectedCard, setThiefSelectedCard] = useState<number | null>(null)
   const [thiefKeptOriginal, setThiefKeptOriginal] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
-  const getCurrentData = () => ({
-    players,
-    selectedPreset,
-    customRoles,
-    selectedRoles,
-  })
+
+  const getCurrentData = useCallback(() => {
+    const data = {
+      players,
+      selectedPreset,
+      customRoles,
+      selectedRoles,
+    }
+    console.log("[v0] RollenVerteiler getCurrentData called:", data)
+    return data
+  }, [players, selectedPreset, customRoles, selectedRoles])
 
   const handleLoadTemplate = (data: {
     players?: string[]

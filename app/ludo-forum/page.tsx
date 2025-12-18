@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Search, Plus, Pin, Lock } from "lucide-react"
 import { MdQuestionAnswer } from "react-icons/md"
@@ -15,9 +14,10 @@ import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import Navigation from "@/components/navigation"
 import UserLink from "@/components/user-link"
-import CreateForumPostForm from "@/components/create-forum-post-form"
 import { SkyscraperAd } from "@/components/advertising/ad-placements"
 import { ForumPostReactions } from "@/components/forum-post-reactions"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 
 interface ForumPost {
   id: string
@@ -46,6 +46,10 @@ export default function LudoForumPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("recent")
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [newPost, setNewPost] = useState({
+    title: "",
+    content: "",
+  })
   const router = useRouter()
 
   const supabase = createClient()
@@ -151,29 +155,12 @@ export default function LudoForumPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="font-handwritten text-3xl sm:text-4xl md:text-5xl text-gray-800 mb-4">Forum</h1>
-          <div className="mt-6">
-            {user && (
-              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 font-handwritten">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Neue Diskussion
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-                  <div className="sticky top-0 bg-white border-b border-gray-200 p-6 -m-6 mb-6 z-10">
-                    <DialogHeader>
-                      <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">
-                        Neue Diskussion erstellen
-                      </DialogTitle>
-                      <p className="text-xs text-gray-600">Starte eine neue Diskussion in der Community</p>
-                    </DialogHeader>
-                  </div>
-                  <CreateForumPostForm onSuccess={handlePostCreated} onCancel={() => setShowCreateDialog(false)} />
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
+          {user && (
+            <Button onClick={() => setShowCreateDialog(true)} className="bg-teal-500 hover:bg-teal-600 text-white">
+              <Plus className="h-4 w-4 mr-2" />
+              Neue Diskussion
+            </Button>
+          )}
         </div>
 
         {/* Search and Filter Section */}
@@ -375,6 +362,88 @@ export default function LudoForumPage() {
             </div>
           </div>
         </div>
+
+        {/* Create Discussion Dialog */}
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-handwritten text-gray-800">Neue Diskussion erstellen</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="post-title">Titel</Label>
+                <Input
+                  id="post-title"
+                  value={newPost.title}
+                  onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                  placeholder="Gib deiner Diskussion einen aussagekräftigen Titel..."
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="post-content">Inhalt</Label>
+                <textarea
+                  id="post-content"
+                  value={newPost.content}
+                  onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+                  className="w-full h-64 p-3 border rounded-lg resize-none mt-1"
+                  placeholder="Beschreibe dein Anliegen oder stelle deine Frage..."
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowCreateDialog(false)
+                    setNewPost({ title: "", content: "" })
+                  }}
+                >
+                  Abbrechen
+                </Button>
+                <Button
+                  onClick={async () => {
+                    console.log("[v0] Creating forum post...")
+                    if (!user) {
+                      toast.error("Du musst angemeldet sein")
+                      return
+                    }
+                    if (!newPost.title.trim() || !newPost.content.trim()) {
+                      toast.error("Bitte fülle alle Felder aus")
+                      return
+                    }
+
+                    try {
+                      const { error } = await supabase.from("forum_posts").insert({
+                        title: newPost.title.trim(),
+                        content: newPost.content.trim(),
+                        author_id: user.id,
+                        post_type: "discussion", // Required field in database
+                      })
+
+                      if (error) {
+                        console.error("[v0] Error creating post:", error)
+                        throw error
+                      }
+
+                      console.log("[v0] Post created successfully")
+                      toast.success("Diskussion wurde erstellt!")
+                      setNewPost({ title: "", content: "" })
+                      setShowCreateDialog(false)
+                      loadForumData()
+                    } catch (error) {
+                      console.error("[v0] Error:", error)
+                      toast.error("Fehler beim Erstellen der Diskussion")
+                    }
+                  }}
+                  disabled={!newPost.title.trim() || !newPost.content.trim()}
+                  className="bg-teal-500 hover:bg-teal-600"
+                >
+                  Erstellen
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

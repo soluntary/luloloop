@@ -121,7 +121,7 @@ export function CreatePollDialog({
           {/* Question */}
           <div>
             <Label htmlFor="poll-question" className="text-base font-semibold text-gray-900 mb-2 block">
-              Frage *
+              Frage <span className="text-red-500">*</span>
             </Label>
             <Input
               id="poll-question"
@@ -147,7 +147,9 @@ export function CreatePollDialog({
 
           {/* Options */}
           <div>
-            <Label className="text-base font-semibold text-gray-900 mb-3 block">Optionen * (mindestens 2)</Label>
+            <Label className="text-base font-semibold text-gray-900 mb-3 block">
+              Optionen <span className="text-red-500">*</span> (mindestens 2)
+            </Label>
             <div className="space-y-3">
               {options.map((option, index) => (
                 <div key={index} className="flex gap-2">

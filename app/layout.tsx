@@ -15,6 +15,7 @@ import { ProfileSyncProvider } from "@/contexts/profile-sync-context"
 import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
 import { SecurityEventLogger } from "@/components/security-event-logger"
+import { Toaster as SonnerToaster } from "sonner"
 
 const galindo = Galindo({
   subsets: ["latin"],
@@ -66,6 +67,7 @@ export default function RootLayout({
                               </div>
                             </SecurityEventLogger>
                             <Toaster />
+                            <SonnerToaster position="top-center" richColors />
                           </RequestsProvider>
                         </LocationSearchProvider>
                       </GeolocationProvider>

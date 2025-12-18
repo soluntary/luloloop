@@ -1814,7 +1814,7 @@ function LibraryContent() {
             {/* Hauptfilter */}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6 sm:gap-3 items-end">
               <div>
-                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren</Label>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren nach</Label>
                 <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
                   <SelectTrigger className="h-9 text-xs border-gray-200 bg-white/80 focus:border-teal-400">
                     <SelectValue />

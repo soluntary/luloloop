@@ -145,10 +145,36 @@ export default function MarketplacePage() {
   const { searchByAddress, searchMarketplaceOffersNearby } = useLocationSearch()
 
   useEffect(() => {
+    const viewId = searchParams.get("view")
+    const editId = searchParams.get("edit")
     const createOffer = searchParams.get("createOffer")
     const gameId = searchParams.get("gameId")
     const offerType = searchParams.get("offerType")
 
+    console.log("[v0] Marketplace URL params:", { viewId, editId, createOffer, gameId, offerType })
+
+    // Handle view mode - show offer details
+    if (viewId && marketplaceOffers.length > 0) {
+      const offer = marketplaceOffers.find((o) => o.id === viewId)
+      if (offer) {
+        console.log("[v0] Found offer from URL param:", offer.title)
+        handleOfferClick(offer)
+      }
+    }
+
+    // Handle edit mode - open edit dialog
+    if (editId && marketplaceOffers.length > 0) {
+      const offer = marketplaceOffers.find((o) => o.id === editId)
+      if (offer && user && offer.user_id === user.id) {
+        console.log("[v0] Opening edit dialog from URL param for offer:", offer.title)
+        // TODO: Implement edit functionality
+        // For now, we'll just show the details
+        handleOfferClick(offer)
+        toast.info("Bearbeitungsfunktion wird implementiert")
+      }
+    }
+
+    // Handle create offer mode
     if (createOffer === "true" && gameId && offerType) {
       console.log("[v0] Auto-opening offer form with gameId:", gameId, "offerType:", offerType)
       setPreSelectedGameId(gameId)
@@ -165,7 +191,8 @@ export default function MarketplacePage() {
 
       setIsCreateOfferOpen(true)
     }
-  }, [searchParams, games])
+  }, [searchParams, games, marketplaceOffers, user])
+  // </CHANGE>
 
   const handleLocationSearch = async (address: string, radius: number) => {
     console.log("[v0] Location search initiated for:", address, "radius:", radius)
@@ -931,7 +958,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 sm:gap-3">
                 <div>
-                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren</Label>
+                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren nach</Label>
                   <Select value={sortBy} onValueChange={setSortBy} disabled={!databaseConnected}>
                     <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
                       <SelectValue />

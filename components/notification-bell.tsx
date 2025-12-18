@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,15 +12,29 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { FaBell, FaCheck, FaTrash, FaExchangeAlt, FaStar, FaEnvelope, FaUserPlus, FaComments, FaBook, FaChartBar } from "react-icons/fa"
+import {
+  FaBell,
+  FaCheck,
+  FaTrash,
+  FaExchangeAlt,
+  FaStar,
+  FaEnvelope,
+  FaUserPlus,
+  FaComments,
+  FaBook,
+  FaChartBar,
+  FaCog,
+} from "react-icons/fa"
 import {
   getUserNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
   deleteNotification,
 } from "@/app/actions/notifications"
-import { useRouter } from 'next/navigation'
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 
 export function NotificationBell() {
   const router = useRouter()
@@ -30,9 +46,44 @@ export function NotificationBell() {
   useEffect(() => {
     loadNotifications()
 
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(loadNotifications, 30000)
-    return () => clearInterval(interval)
+    const supabase = createClient()
+
+    const channel = supabase
+      .channel("notifications-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+        },
+        (payload) => {
+          console.log("[v0] New notification received:", payload)
+          loadNotifications()
+
+          // Show toast for new notification
+          if (payload.new) {
+            toast.info(payload.new.title || "Neue Benachrichtigung")
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "notifications",
+        },
+        (payload) => {
+          console.log("[v0] Notification updated:", payload)
+          loadNotifications()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      channel.unsubscribe()
+    }
   }, [])
 
   const loadNotifications = async () => {
@@ -186,30 +237,57 @@ export function NotificationBell() {
             <p className="text-sm">Du bist auf dem neuesten Stand</p>
           </div>
         ) : (
-          notifications.map((notification) => (
-            <DropdownMenuItem
-              key={notification.id}
-              className={`p-4 cursor-pointer ${!notification.read ? "bg-blue-50" : ""}`}
-              onClick={() => handleNotificationClick(notification)}
-            >
-              <div className="flex gap-3 w-full">
-                <div className="flex-shrink-0 mt-1">{getNotificationIcon(notification.type)}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm mb-1">{notification.title}</p>
-                  <p className="text-xs text-gray-600 line-clamp-2">{notification.message}</p>
-                  <p className="text-xs text-gray-400 mt-1">{formatTime(notification.created_at)}</p>
+          <>
+            {notifications.slice(0, 5).map((notification) => (
+              <DropdownMenuItem
+                key={notification.id}
+                className={`p-4 cursor-pointer ${!notification.read ? "bg-blue-50" : ""}`}
+                onClick={() => handleNotificationClick(notification)}
+              >
+                <div className="flex gap-3 w-full">
+                  <div className="flex-shrink-0 mt-1">{getNotificationIcon(notification.type)}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm mb-1">{notification.title}</p>
+                    <p className="text-xs text-gray-600 line-clamp-2">{notification.message}</p>
+                    <p className="text-xs text-gray-400 mt-1">{formatTime(notification.created_at)}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="flex-shrink-0 h-8 w-8"
+                    onClick={(e) => handleDelete(e, notification.id)}
+                  >
+                    <FaTrash className="w-3 h-3 text-gray-400 hover:text-red-500" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="flex-shrink-0 h-8 w-8"
-                  onClick={(e) => handleDelete(e, notification.id)}
-                >
-                  <FaTrash className="w-3 h-3 text-gray-400 hover:text-red-500" />
-                </Button>
-              </div>
-            </DropdownMenuItem>
-          ))
+              </DropdownMenuItem>
+            ))}
+
+            {notifications.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/profile"
+                    className="w-full text-center text-sm text-teal-600 hover:text-teal-700 font-medium py-3 cursor-pointer flex items-center justify-center gap-2"
+                    onClick={() => {
+                      setOpen(false)
+                      // Trigger a small delay to ensure navigation happens first
+                      setTimeout(() => {
+                        // The profile page will default to the notifications tab when opened
+                        const url = new URL(window.location.href)
+                        url.searchParams.set("tab", "notifications")
+                        window.history.replaceState({}, "", url)
+                      }, 100)
+                    }}
+                  >
+                    <FaCog className="w-4 h-4" />
+                    Alle Benachrichtigungen & Einstellungen
+                  </Link>
+                </DropdownMenuItem>
+              </>
+            )}
+          </>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

@@ -262,14 +262,14 @@ function Navigation({ currentPage }: NavigationProps) {
               <div className="flex items-center space-x-2">
                 <Link
                   href="/login"
-                  className="border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all bg-white flex items-center space-x-2 px-4 py-2 rounded-lg"
+                  className="border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all bg-white flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm"
                 >
                   <FaSignInAlt className="w-4 h-4" />
                   <span>Anmelden</span>
                 </Link>
                 <Link
                   href="/register"
-                  className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all flex items-center space-x-2 px-4 py-2 rounded-lg"
+                  className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm"
                 >
                   <FaUserPlus className="w-4 h-4" />
                   <span>Registrieren</span>
@@ -390,7 +390,7 @@ function Navigation({ currentPage }: NavigationProps) {
                   <Link
                     href="/login"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full flex items-center justify-center space-x-2 border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent px-4 py-2 rounded-lg"
+                    className="w-full flex items-center justify-center space-x-2 border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent px-4 py-2 rounded-lg text-sm"
                   >
                     <FaSignInAlt className="w-4 h-4" />
                     <span>Anmelden</span>
@@ -398,7 +398,7 @@ function Navigation({ currentPage }: NavigationProps) {
                   <Link
                     href="/register"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full flex items-center justify-center space-x-2 bg-teal-400 hover:bg-teal-500 text-white font-handwritten px-4 py-2 rounded-lg"
+                    className="w-full flex items-center justify-center space-x-2 bg-teal-400 hover:bg-teal-500 text-white font-handwritten px-4 py-2 rounded-lg text-sm"
                   >
                     <FaUserPlus className="w-4 h-4" />
                     <span>Registrieren</span>

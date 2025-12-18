@@ -1,5 +1,7 @@
 "use client"
 
+import { DialogFooter } from "@/components/ui/dialog"
+
 import type React from "react"
 
 import { useState, useEffect } from "react"
@@ -11,29 +13,29 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MessageComposerModal } from "@/components/message-composer-modal"
-import { BroadcastMessageModal } from "@/components/broadcast-message-modal"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   FaPlus,
   FaMapMarkerAlt,
   FaUsers,
   FaUserPlus,
   FaComment,
-  FaCog,
   FaClock,
   FaCheckCircle,
   FaUserCog,
   FaTimes,
-  FaChartBar,
   FaUserMinus,
   FaImage,
   FaUserTimes,
-  FaChevronDown,
+  FaBullhorn, // Added for broadcast
+  FaPoll, // Replaced FaVote with FaPoll (valid icon)
+  FaTimesCircle, // Added for poll closing
+  FaInfoCircle, // Added for poll information
+  FaTrash, // Added for poll deletion
 } from "react-icons/fa"
 import { MdOutlineManageSearch } from "react-icons/md"
 import { GiRollingDices } from "react-icons/gi"
-import { FiFilter } from "react-icons/fi"
-// </CHANGE>
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
@@ -47,20 +49,30 @@ import { handleJoinRequestAction } from "@/app/actions/handle-join-request"
 import { removeGroupMemberAction } from "@/app/actions/remove-group-member"
 import { loadUserMembershipsAction } from "@/app/actions/load-user-memberships"
 import { ShareButton } from "@/components/share-button"
-import { InviteFriendsToCommunityDialog } from "@/components/invite-friends-to-community-dialog"
 import { SimpleLocationSearch } from "@/components/simple-location-search"
 import { useLocationSearch } from "@/contexts/location-search-context"
 import { DistanceBadge } from "@/components/distance-badge"
 import { LocationMap } from "@/components/location-map"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-// Added for polls
-import { CreatePollDialog } from "@/components/create-poll-dialog"
-import { PollCard } from "@/components/poll-card"
-import { getCommunityPollsAction, type Poll } from "@/app/actions/community-polls"
+import type { Poll } from "@/app/actions/community-polls"
 import { convertMarkdownToHtml } from "@/lib/utils"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
+import { useSearchParams, useRouter } from "next/navigation" // Added useRouter
+import { Plus } from "lucide-react" // Added for polls
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs" // Added for tabs
+import { motion } from "framer-motion" // Added for animations
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel" // Added for carousel
+
+import { UserProfileModal } from "@/components/user-profile-modal"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
+import { Settings, Edit, UserPlus, Trash2, MessageCircle } from "lucide-react"
+// </CHANGE>
 
 interface LudoGroup {
   id: string
@@ -68,6 +80,7 @@ interface LudoGroup {
   description: string
   location: string
   image: string
+  images?: string[] // Added for multiple images
   creator_id: string
   max_members: number | null
   member_count: number
@@ -107,6 +120,7 @@ interface GroupMember {
   role: "member" | "admin" // Added role type
   joined_at: string
   users: {
+    // Corrected from 'users' to 'user' to match the update
     id: string
     username: string
     avatar: string
@@ -114,6 +128,8 @@ interface GroupMember {
 }
 
 export default function LudoGruppenPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter() // Initialize useRouter
   const { user } = useAuth()
   const { sendMessage } = useMessages()
   const [ludoGroups, setLudoGroups] = useState<LudoGroup[]>([])
@@ -125,26 +141,7 @@ export default function LudoGruppenPage() {
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState<LudoGroup | null>(null)
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [sortBy, setSortBy] = useState("all")
-  const [groupTypeFilter, setGroupTypeFilter] = useState("all") // Added for filter by type
-  const [availableSpotsFilter, setAvailableSpotsFilter] = useState("all")
-  const [approvalModeFilter, setApprovalModeFilter] = useState("all")
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false) // State for showing/hiding advanced filters
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [selectedGroup, setSelectedGroup] = useState<LudoGroup | null>(null)
-  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
-  const [isMessageModalOpen, setIsMessageModalOpen] = useState(false)
-  const [messageRecipient, setMessageRecipient] = useState<{
-    id: string
-    name: string
-    avatar?: string
-    context: { title: string; image?: string; type: "group" | "event" | "member" }
-  } | null>(null)
+  const [broadcastMessage, setBroadcastMessage] = useState("")
   const [newGroup, setNewGroup] = useState({
     name: "",
     description: "",
@@ -153,22 +150,71 @@ export default function LudoGruppenPage() {
     type: "casual" as "casual" | "competitive",
     approval_mode: "automatic" as "automatic" | "manual",
   })
-  // const [locationPLZ, setLocationPLZ] = useState("")
-  // const [locationOrt, setLocationOrt] = useState("")
-  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false)
-  const [selectedGroupForBroadcast, setSelectedGroupForBroadcast] = useState<LudoGroup | null>(null)
+
+  const [imageFiles, setImageFiles] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [sortBy, setSortBy] = useState("all")
+  const [groupTypeFilter, setGroupTypeFilter] = useState("all") // Added for filter by type
+  const [availableSpotsFilter, setAvailableSpotsFilter] = useState("all")
+  const [approvalModeFilter, setApprovalModeFilter] = useState("all")
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [selectedGroup, setSelectedGroup] = useState<LudoGroup | null>(null)
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
+  // Removed imageFile and imagePreview as they are replaced by imageFiles and imagePreviews
+  const [isUploading, setIsUploading] = useState(false)
+  const [isMessageModalOpen, setIsMessageModalOpen] = useState(false)
+  const [messageRecipient, setMessageRecipient] = useState<{
+    id: string
+    name: string
+    avatar?: string
+    context: { title: string; image?: string; type: "group" | "event" | "member" }
+  } | null>(null)
+  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false) // Moved up
+  const [selectedGroupForBroadcast, setSelectedGroupForBroadcast] = useState<LudoGroup | null>(null) // Moved up
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
   const [inviteGroup, setInviteGroup] = useState<LudoGroup | null>(null)
+  const [newPoll, setNewPoll] = useState({
+    question: "",
+    description: "",
+    options: ["", ""],
+    allow_multiple_votes: false,
+    expires_at: "",
+  })
 
   const [locationSearchResults, setLocationSearchResults] = useState<any[]>([])
   const [showLocationResults, setShowLocationResults] = useState(false)
   const { searchByAddress, searchCommunitiesNearby } = useLocationSearch() // Ensure searchCommunitiesNearby is destructured
 
-  const [isCreatePollDialogOpen, setIsCreatePollDialogOpen] = useState(false)
-  const [selectedGroupForPolls, setSelectedGroupForPolls] = useState<LudoGroup | null>(null) // Corrected state variable name
+  const [isCreatePollDialogOpen, setIsCreatePollDialogOpen] = useState(false) // Moved up
+  const [selectedGroupForPolls, setSelectedGroupForPolls] = useState<LudoGroup | null>(null) // Corrected state variable name, moved up
   const [isPollsDialogOpen, setIsPollsDialogOpen] = useState(false)
   const [groupPolls, setGroupPolls] = useState<Poll[]>([])
   const [loadingPolls, setLoadingPolls] = useState(false)
+
+  // State for the new dialogs
+  const [showInviteDialog, setShowInviteDialog] = useState(false)
+  const [showBroadcastDialog, setShowBroadcastDialog] = useState(false)
+  const [showPollDialog, setShowPollDialog] = useState(false)
+  const [showMembersDialog, setShowMembersDialog] = useState(false)
+  const [selectedCommunity, setSelectedCommunity] = useState<any>(null) // Used for new dialogs
+  const [friends, setFriends] = useState<any[]>([]) // For invite dialog
+  const [selectedFriends, setSelectedFriends] = useState<string[]>([]) // For invite dialog
+  // broadcastMessage is already defined
+  const [pollQuestion, setPollQuestion] = useState("") // For poll dialog
+  const [pollOptions, setPollOptions] = useState(["", ""]) // For poll dialog
+  const [members, setMembers] = useState<any[]>([]) // For members dialog
+  const [communityPolls, setCommunityPolls] = useState<any[]>([]) // For poll dialog
+
+  const [profileModalUserId, setProfileModalUserId] = useState<string | null>(null)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+
+  const [hasProcessedURLParams, setHasProcessedURLParams] = useState(false)
+
+  const [activePollTab, setActivePollTab] = useState<"active" | "completed" | "create">("active")
+  const [userVotes, setUserVotes] = useState<Record<string, string[]>>({})
 
   const supabase = createClient()
 
@@ -176,10 +222,85 @@ export default function LudoGruppenPage() {
     loadLudoGroups()
     if (user) {
       loadJoinRequests()
-      loadCreatorJoinRequests() // Load creator join requests on component mount
+      loadCreatorJoinRequests()
       loadUserMemberships()
     }
   }, [user])
+
+  // Kept the original useEffect for URL parameter processing
+  useEffect(() => {
+    const viewId = searchParams.get("view")
+    const shouldShowMembers = searchParams.get("members") === "true"
+    const shouldShowBroadcast = searchParams.get("broadcast") === "true"
+    const shouldShowInvite = searchParams.get("invite") === "true"
+    const shouldShowCreatePoll = searchParams.get("createPoll") === "true"
+    const shouldShowPolls = searchParams.get("polls") === "true"
+
+    console.log("[v0] URL params:", {
+      viewId,
+      shouldShowMembers,
+      shouldShowBroadcast,
+      shouldShowInvite,
+      shouldShowCreatePoll,
+      shouldShowPolls,
+    })
+
+    if (viewId && ludoGroups.length > 0 && !hasProcessedURLParams) {
+      const group = ludoGroups.find((g) => g.id === viewId)
+      if (group) {
+        console.log("[v0] Found group from URL param:", group.name)
+        setSelectedGroup(group)
+        setIsDetailsDialogOpen(true)
+        setHasProcessedURLParams(true) // Mark as processed
+
+        // Open specific management dialogs based on URL params
+        if (shouldShowMembers) {
+          console.log("[v0] Opening member management dialog from URL param")
+          showMemberManagement(group) // Corrected: Directly call showMemberManagement
+        } else if (shouldShowBroadcast) {
+          console.log("[v0] Opening broadcast dialog from URL param")
+          setSelectedGroupForBroadcast(group)
+          setIsBroadcastModalOpen(true)
+        } else if (shouldShowInvite) {
+          console.log("[v0] Opening invite dialog from URL param")
+          setInviteGroup(group)
+          setIsInviteDialogOpen(true)
+        } else if (shouldShowCreatePoll) {
+          console.log("[v0] Opening create poll dialog from URL param")
+          setSelectedGroupForPolls(group)
+          setIsCreatePollDialogOpen(true)
+        } else if (shouldShowPolls) {
+          console.log("[v0] Opening polls dialog from URL param")
+          setSelectedGroupForPolls(group)
+          setIsPollsDialogOpen(true)
+          // loadGroupPolls(group.id) // REMOVED
+        }
+      }
+    }
+
+    if (!viewId && hasProcessedURLParams) {
+      setHasProcessedURLParams(false)
+    }
+
+    // Handle edit mode
+    const editId = searchParams.get("edit")
+    if (editId && ludoGroups.length > 0) {
+      const group = ludoGroups.find((g) => g.id === editId)
+      if (group && user && group.creator_id === user.id) {
+        console.log("[v0] Opening edit dialog from URL param for group:", group.name)
+        // TODO: Implement edit dialog/form
+        setIsCreateDialogOpen(true)
+        setNewGroup({
+          name: group.name,
+          description: group.description || "",
+          location: group.location || "",
+          max_members: group.max_members,
+          type: group.type || "casual",
+          approval_mode: group.approval_mode || "automatic",
+        })
+      }
+    }
+  }, [searchParams, ludoGroups, user, hasProcessedURLParams]) // Added hasProcessedURLParams to dependency array
 
   const loadJoinRequests = async () => {
     if (!user) return
@@ -299,6 +420,101 @@ export default function LudoGruppenPage() {
     loadGroupMembers(group.id)
   }
 
+  const handleBroadcastMessage = (group: LudoGroup) => {
+    setSelectedGroupForBroadcast(group)
+    setIsBroadcastModalOpen(true)
+  }
+
+  const sendBroadcastMessage = async () => {
+    if (!user || !selectedGroupForBroadcast || !broadcastMessage.trim()) return
+
+    try {
+      // Get all group members
+      const { data: members, error: membersError } = await supabase
+        .from("community_members")
+        .select("user_id")
+        .eq("community_id", selectedGroupForBroadcast.id)
+        .neq("user_id", user.id)
+
+      if (membersError) throw membersError
+
+      // Send notification to each member
+      for (const member of members || []) {
+        await supabase.from("notifications").insert({
+          user_id: member.user_id,
+          type: "community_broadcast",
+          title: `Nachricht von ${selectedGroupForBroadcast.name}`,
+          message: broadcastMessage,
+          data: {
+            community_id: selectedGroupForBroadcast.id,
+            community_name: selectedGroupForBroadcast.name,
+          },
+        })
+      }
+
+      toast.success("Nachricht wurde an alle Mitglieder gesendet")
+      setIsBroadcastModalOpen(false)
+      setBroadcastMessage("")
+    } catch (error) {
+      console.error("Error sending broadcast:", error)
+      toast.error("Fehler beim Senden der Nachricht")
+    }
+  }
+
+  const createPoll = async () => {
+    if (!user || !selectedGroupForPolls) return
+
+    if (!newPoll.question.trim() || newPoll.options.filter((o) => o.trim()).length < 2) {
+      toast.error("Bitte fülle die Frage und mindestens 2 Optionen aus")
+      return
+    }
+
+    try {
+      // Create poll
+      const { data: pollData, error: pollError } = await supabase
+        .from("community_polls")
+        .insert({
+          community_id: selectedGroupForPolls.id,
+          creator_id: user.id,
+          question: newPoll.question,
+          description: newPoll.description,
+          allow_multiple_votes: newPoll.allow_multiple_votes,
+          expires_at: newPoll.expires_at || null,
+          is_active: true,
+        })
+        .select()
+        .single()
+
+      if (pollError) throw pollError
+
+      // Create poll options
+      const options = newPoll.options
+        .filter((o) => o.trim())
+        .map((option) => ({
+          poll_id: pollData.id,
+          option_text: option,
+          votes_count: 0,
+        }))
+
+      const { error: optionsError } = await supabase.from("community_poll_options").insert(options)
+
+      if (optionsError) throw optionsError
+
+      toast.success("Abstimmung erfolgreich erstellt!")
+      setIsCreatePollDialogOpen(false)
+      setNewPoll({
+        question: "",
+        description: "",
+        options: ["", ""],
+        allow_multiple_votes: false,
+        expires_at: "",
+      })
+    } catch (error) {
+      console.error("Error creating poll:", error)
+      toast.error("Fehler beim Erstellen der Abstimmung")
+    }
+  }
+
   const createLudoGroup = async () => {
     if (!user || !newGroup.name.trim()) {
       toast.error("Bitte füllen Sie alle Pflichtfelder aus")
@@ -308,28 +524,32 @@ export default function LudoGruppenPage() {
     setIsUploading(true)
 
     try {
-      let imageUrl = ""
+      const imageUrls: string[] = []
 
-      if (imageFile) {
-        const fileExt = imageFile.name.split(".").pop()
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`
+      // Upload all images
+      for (const file of imageFiles) {
+        const fileExt = file.name.split(".").pop()
+        const fileName = `${user.id}-${Date.now()}-${Math.random()}.${fileExt}`
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("community-images")
-          .upload(fileName, imageFile)
+          .upload(fileName, file)
 
         if (uploadError) {
           console.error("Image upload error:", uploadError)
-          toast.error("Fehler beim Hochladen des Bildes")
-          return
+          toast.error(`Fehler beim Hochladen von ${file.name}`)
+          continue
         }
 
         const {
           data: { publicUrl },
         } = supabase.storage.from("community-images").getPublicUrl(fileName)
 
-        imageUrl = publicUrl
+        imageUrls.push(publicUrl)
       }
+
+      // Use first image as main image, store all in images array
+      const mainImage = imageUrls[0] || ""
 
       const { data, error } = await supabase
         .from("communities")
@@ -342,7 +562,8 @@ export default function LudoGruppenPage() {
             type: "casual",
             creator_id: user.id,
             approval_mode: newGroup.approval_mode,
-            image: imageUrl,
+            image: mainImage,
+            images: imageUrls, // Store all images
           },
         ])
         .select()
@@ -383,8 +604,9 @@ export default function LudoGruppenPage() {
         type: "casual",
         approval_mode: "automatic",
       })
-      setImageFile(null)
-      setImagePreview(null)
+      // Clear all uploaded images
+      setImageFiles([])
+      setImagePreviews([])
       loadLudoGroups()
     } catch (error) {
       console.error("Error creating Ludo group:", error)
@@ -394,11 +616,12 @@ export default function LudoGruppenPage() {
     }
   }
 
-  const joinLudoGroup = async (group: LudoGroup) => {
+  // Renaming joinLudoGroup to handleJoinGroup
+  const handleJoinGroup = async (group: LudoGroup) => {
     if (!user) return
 
     console.log("[v0] Beitreten button clicked - user:", !!user, "group:", group.id)
-    console.log("[v0] joinLudoGroup called - user:", !!user, "group:", group.id)
+    console.log("[v0] handleJoinGroup called - user:", !!user, "group:", group.id)
     console.log("[v0] User authenticated, proceeding with group join")
     console.log("[v0] Group approval mode:", group.approval_mode)
 
@@ -522,7 +745,8 @@ export default function LudoGruppenPage() {
     }
   }
 
-  const leaveLudoGroup = async (group: LudoGroup) => {
+  // Renaming leaveLudoGroup to leaveGroup
+  const leaveGroup = async (group: LudoGroup) => {
     if (!user) {
       console.log("[v0] No authenticated user - redirecting to login")
       toast.info("Bitte melde dich an, um eine Spielgruppe zu verlassen")
@@ -801,8 +1025,9 @@ export default function LudoGruppenPage() {
     )
   }
 
-  const getJoinButtonProps = (group: LudoGroup) => {
-    console.log("[v0] getJoinButtonProps called for group:", group.id)
+  // Renaming getJoinButtonProps to getGroupJoinButtonProps
+  const getGroupJoinButtonProps = (group: LudoGroup) => {
+    console.log("[v0] getGroupJoinButtonProps called for group:", group.id)
     console.log("[v0] User:", !!user, "User ID:", user?.id)
     console.log("[v0] User memberships:", userMemberships)
     console.log("[v0] Is user member of this group:", userMemberships.includes(group.id))
@@ -873,6 +1098,8 @@ export default function LudoGruppenPage() {
   const showGroupDetails = (group: LudoGroup) => {
     setSelectedGroup(group)
     setIsDetailsDialogOpen(true)
+    // Update URL to include 'view' parameter
+    router.push(`/ludo-gruppen?view=${group.id}`, { scroll: false })
   }
 
   const openInviteDialog = (group: LudoGroup, e?: React.MouseEvent) => {
@@ -928,26 +1155,40 @@ export default function LudoGruppenPage() {
   const filteredGroups = getFilteredGroups()
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
+    const files = event.target.files
+    if (!files) return
+
+    const newFiles: File[] = []
+    const newPreviews: string[] = []
+
+    Array.from(files).forEach((file) => {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("Bild ist zu groß. Maximale Größe: 5MB")
+        toast.error(`${file.name} ist zu groß. Maximale Größe: 5MB`)
         return
       }
 
       if (!file.type.startsWith("image/")) {
-        toast.error("Bitte wählen Sie eine Bilddatei aus")
+        toast.error(`${file.name} ist keine Bilddatei`)
         return
       }
 
-      setImageFile(file)
+      newFiles.push(file)
 
       const reader = new FileReader()
       reader.onload = (e) => {
-        setImagePreview(e.target?.result as string)
+        newPreviews.push(e.target?.result as string)
+        if (newPreviews.length === newFiles.length) {
+          setImageFiles((prev) => [...prev, ...newFiles])
+          setImagePreviews((prev) => [...prev, ...newPreviews])
+        }
       }
       reader.readAsDataURL(file)
-    }
+    })
+  }
+
+  const handleRemoveImage = (index: number) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index))
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleSendGroupMessage = async (group: LudoGroup) => {
@@ -969,60 +1210,356 @@ export default function LudoGruppenPage() {
     setIsMessageModalOpen(true)
   }
 
-  const handleBroadcastMessage = (group: LudoGroup) => {
-    console.log("[v0] handleBroadcastMessage called with group:", group.id, group.name)
-    console.log("[v0] Setting selectedGroupForBroadcast and opening modal")
-    setSelectedGroupForBroadcast(group)
-    setIsBroadcastModalOpen(true)
-    console.log("[v0] Modal state should now be open")
-  }
+  // New functions for invite, broadcast, poll, and member management dialogs
+  const loadFriends = async () => {
+    if (!user) return
+    console.log("[v0] Loading friends for invite...")
 
-  const loadGroupPolls = async (groupId: string) => {
-    setLoadingPolls(true)
-    console.log("[v0] Loading polls for group:", groupId)
     try {
-      const result = await getCommunityPollsAction(groupId)
+      // Get friends where current user is either user_id or friend_id with status 'active'
+      const { data: friendships1, error: error1 } = await supabase
+        .from("friends")
+        .select(`
+          friend_id,
+          users!friends_friend_id_fkey (
+            id,
+            username,
+            name,
+            avatar
+          )
+        `)
+        .eq("user_id", user.id)
+        .eq("status", "active")
 
-      if (result.error) {
-        console.error("Error loading polls:", result.error)
-        toast.error(result.error)
+      const { data: friendships2, error: error2 } = await supabase
+        .from("friends")
+        .select(`
+          user_id,
+          users!friends_user_id_fkey (
+            id,
+            username,
+            name,
+            avatar
+          )
+        `)
+        .eq("friend_id", user.id)
+        .eq("status", "active")
+
+      if (error1 || error2) {
+        console.error("[v0] Error loading friends:", error1 || error2)
+        toast.error("Fehler beim Laden der Freunde")
         return
       }
 
-      console.log("[v0] Loaded polls:", result.data?.length || 0)
-      console.log(
-        "[v0] Poll details:",
-        result.data?.map((p) => ({
-          id: p.id,
-          question: p.question,
-          is_active: p.is_active,
-          expires_at: p.expires_at,
-          isExpired: p.expires_at ? new Date(p.expires_at) < new Date() : false,
-        })),
-      )
+      const friends1 = friendships1?.map((f) => f.users).filter(Boolean) || []
+      const friends2 = friendships2?.map((f) => f.users).filter(Boolean) || []
 
-      setGroupPolls(result.data || [])
-    } catch (error) {
-      console.error("Error loading polls:", error)
-      toast.error("Fehler beim Laden der Abstimmungen")
-    } finally {
-      setLoadingPolls(false)
+      const allFriendsMap = new Map()
+      friends1.forEach((friend) => {
+        if (friend.id) allFriendsMap.set(friend.id, friend)
+      })
+      friends2.forEach((friend) => {
+        if (friend.id) allFriendsMap.set(friend.id, friend)
+      })
+      const allFriends = Array.from(allFriendsMap.values())
+
+      console.log("[v0] Loaded friends for invite:", allFriends.length)
+      setFriends(allFriends)
+    } catch (err) {
+      console.error("[v0] Unexpected error loading friends:", err)
+      toast.error("Fehler beim Laden der Freunde")
     }
   }
 
-  const showGroupPolls = (group: LudoGroup) => {
-    setSelectedGroupForPolls(group) // Use the corrected state setter
-    setIsPollsDialogOpen(true)
-    loadGroupPolls(group.id)
+  const handleInviteFriends = async () => {
+    if (!selectedCommunity || selectedFriends.length === 0) {
+      toast.error("Bitte wählen Sie mindestens einen Freund aus")
+      return
+    }
+
+    console.log("[v0] Inviting friends:", selectedFriends, "to community:", selectedCommunity.id)
+
+    try {
+      for (const friendId of selectedFriends) {
+        const { error } = await supabase.from("community_invitations").insert({
+          community_id: selectedCommunity.id,
+          invited_user_id: friendId,
+          invited_by_user_id: user?.id,
+        })
+
+        if (error) {
+          console.error("[v0] Error inviting friend:", error)
+        }
+      }
+
+      toast.success(`${selectedFriends.length} Freunde eingeladen`)
+      setShowInviteDialog(false)
+      setSelectedFriends([])
+    } catch (error) {
+      console.error("[v0] Error inviting friends:", error)
+      toast.error("Fehler beim Einladen")
+    }
   }
 
-  const openCreatePollDialog = (group: LudoGroup) => {
-    setSelectedGroupForPolls(group) // Use the corrected state setter
-    setIsCreatePollDialogOpen(true)
+  const handleBroadcast = async () => {
+    if (!selectedCommunity || !broadcastMessage.trim()) {
+      toast.error("Bitte geben Sie eine Nachricht ein")
+      return
+    }
+
+    console.log("[v0] Sending broadcast to community:", selectedCommunity.id)
+
+    try {
+      const { data: membersList } = await supabase
+        .from("community_members")
+        .select("user_id")
+        .eq("community_id", selectedCommunity.id)
+
+      if (membersList) {
+        for (const member of membersList) {
+          if (member.user_id !== user?.id) {
+            await supabase.from("notifications").insert({
+              user_id: member.user_id,
+              title: `Nachricht von ${selectedCommunity.name}`,
+              message: broadcastMessage,
+              type: "community_broadcast",
+              reference_id: selectedCommunity.id,
+            })
+          }
+        }
+
+        toast.success("Nachricht an alle Mitglieder gesendet")
+        setShowBroadcastDialog(false)
+        setBroadcastMessage("")
+      }
+    } catch (error) {
+      console.error("[v0] Error sending broadcast:", error)
+      toast.error("Fehler beim Senden")
+    }
+  }
+
+  const handleCreatePoll = async () => {
+    if (!selectedCommunity || !pollQuestion.trim()) {
+      toast.error("Bitte geben Sie eine Frage ein")
+      return
+    }
+
+    const validOptions = pollOptions.filter((o) => o.trim())
+    if (validOptions.length < 2) {
+      toast.error("Bitte geben Sie mindestens 2 Optionen ein")
+      return
+    }
+
+    console.log("[v0] Creating poll for community:", selectedCommunity.id)
+
+    try {
+      const { data: poll, error: pollError } = await supabase
+        .from("community_polls")
+        .insert({
+          community_id: selectedCommunity.id,
+          creator_id: user?.id,
+          question: pollQuestion,
+          is_active: true,
+        })
+        .select()
+        .single()
+
+      if (pollError) {
+        console.error("[v0] Error creating poll:", pollError)
+        toast.error("Fehler beim Erstellen der Abstimmung")
+        return
+      }
+
+      for (const option of validOptions) {
+        await supabase.from("community_poll_options").insert({
+          poll_id: poll.id,
+          option_text: option,
+        })
+      }
+
+      toast.success("Abstimmung erstellt")
+      setShowPollDialog(false)
+      setPollQuestion("")
+      setPollOptions(["", ""])
+      loadCommunityPolls(selectedCommunity.id)
+    } catch (error) {
+      console.error("[v0] Error creating poll:", error)
+      toast.error("Fehler beim Erstellen")
+    }
+  }
+
+  const loadCommunityPolls = async (communityId: string) => {
+    console.log("[v0] Loading polls for community:", communityId)
+
+    const { data, error } = await supabase
+      .from("community_polls")
+      .select(`
+        *,
+        creator:users!community_polls_creator_id_fkey(id, username, name),
+        options:community_poll_options(*),
+        votes:community_poll_votes(*)
+      `)
+      .eq("community_id", communityId)
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("[v0] Error loading polls:", error)
+      return
+    }
+
+    console.log("[v0] Loaded polls:", data?.length || 0)
+    setCommunityPolls(data || [])
+
+    // Load user's votes
+    if (user) {
+      const votes: Record<string, string[]> = {}
+      data?.forEach((poll) => {
+        const userPollVotes = poll.votes?.filter((v: any) => v.user_id === user.id).map((v: any) => v.option_id) || []
+        if (userPollVotes.length > 0) {
+          votes[poll.id] = userPollVotes
+        }
+      })
+      setUserVotes(votes)
+    }
+  }
+
+  const loadMembers = async (communityId: string) => {
+    console.log("[v0] Loading members for community:", communityId)
+
+    const { data, error } = await supabase
+      .from("community_members")
+      .select(`
+        *,
+        user:users!community_members_user_id_fkey(id, username, name, avatar)
+      `)
+      .eq("community_id", communityId)
+
+    if (error) {
+      console.error("[v0] Error loading members:", error)
+      return
+    }
+
+    console.log("[v0] Loaded members:", data?.length || 0)
+    setMembers(data || [])
+  }
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!selectedCommunity) return
+
+    console.log("[v0] Removing member:", memberId)
+
+    try {
+      const { error } = await supabase
+        .from("community_members")
+        .delete()
+        .eq("community_id", selectedCommunity.id)
+        .eq("user_id", memberId)
+
+      if (error) throw error
+
+      toast.success("Mitglied entfernt")
+      loadMembers(selectedCommunity.id)
+    } catch (error) {
+      console.error("[v0] Error removing member:", error)
+      toast.error("Fehler beim Entfernen")
+    }
+  }
+
+  const handleVote = async (pollId: string, optionId: string) => {
+    if (!user) {
+      toast.error("Bitte melde dich an um abzustimmen")
+      return
+    }
+
+    console.log("[v0] Voting on poll:", pollId, "option:", optionId)
+
+    try {
+      const poll = communityPolls.find((p) => p.id === pollId)
+      const hasVoted = userVotes[pollId]?.includes(optionId)
+
+      if (hasVoted) {
+        // Remove vote
+        const { error } = await supabase
+          .from("community_poll_votes")
+          .delete()
+          .eq("poll_id", pollId)
+          .eq("option_id", optionId)
+          .eq("user_id", user.id)
+
+        if (error) throw error
+
+        toast.success("Stimme entfernt")
+      } else {
+        // Check if multiple votes allowed
+        if (!poll?.allow_multiple_votes && userVotes[pollId]?.length > 0) {
+          // Remove existing vote first
+          await supabase.from("community_poll_votes").delete().eq("poll_id", pollId).eq("user_id", user.id)
+        }
+
+        // Add vote
+        const { error } = await supabase.from("community_poll_votes").insert({
+          poll_id: pollId,
+          option_id: optionId,
+          user_id: user.id,
+        })
+
+        if (error) throw error
+
+        toast.success("Stimme abgegeben")
+      }
+
+      // Reload polls
+      if (selectedCommunity) {
+        loadCommunityPolls(selectedCommunity.id)
+      }
+    } catch (error) {
+      console.error("[v0] Error voting:", error)
+      toast.error("Fehler beim Abstimmen")
+    }
+  }
+
+  // Function to handle group deletion
+  const handleDeleteGroup = async (groupId: string) => {
+    if (!user || !selectedGroup || selectedGroup.id !== groupId) return
+
+    toast(
+      <div className="flex flex-col">
+        <p className="text-sm font-medium mb-1">Bist du sicher?</p>
+        <p className="text-xs text-gray-500 mb-3">
+          Das Löschen der Gruppe "{selectedGroup.name}" kann nicht rückgå³ngig gemacht werden.
+        </p>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={async () => {
+            try {
+              const { error } = await supabase.from("communities").delete().eq("id", groupId)
+              if (error) throw error
+
+              toast.success("Gruppe erfolgreich gelöscht!")
+              setIsDetailsDialogOpen(false)
+              loadLudoGroups() // Reload the list of groups
+            } catch (err) {
+              console.error("Error deleting group:", err)
+              toast.error("Fehler beim Löschen der Gruppe")
+            }
+          }}
+          className="h-8 text-xs w-full"
+        >
+          Gruppe löschen
+        </Button>
+      </div>,
+      {
+        action: {
+          label: "Abbrechen",
+          onClick: () => {},
+        },
+      },
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-teal-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-cyan-50">
       <Navigation currentPage="ludo-gruppen" />
 
       <div className="container mx-auto px-4 py-8">
@@ -1049,7 +1586,7 @@ export default function LudoGruppenPage() {
         {/* Search and Filter Bar */}
         <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-gray-100 shadow-sm mb-8">
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex gap-3">
               <div className="relative flex-1">
                 <MdOutlineManageSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -1059,8 +1596,10 @@ export default function LudoGruppenPage() {
                   className="pl-9 h-9 bg-white/80 border-gray-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 text-xs"
                 />
               </div>
-              <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
             </div>
+
+            <SimpleLocationSearch onLocationSearch={handleLocationSearch} onNearbySearch={handleNearbySearch} />
+            {/* </CHANGE> */}
 
             {showLocationResults && (
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -1084,121 +1623,103 @@ export default function LudoGruppenPage() {
               </div>
             )}
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4 sm:gap-3">
-                <div>
-                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren nach</Label>
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all" className="text-xs">
-                        Alle
-                      </SelectItem>
-                      <SelectItem value="newest" className="text-xs">
-                        Neueste
-                      </SelectItem>
-                      <SelectItem value="members" className="text-xs">
-                        Mitglieder
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Kapazität</Label>
-                  <Select value={availableSpotsFilter} onValueChange={setAvailableSpotsFilter}>
-                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all" className="text-xs">
-                        Alle
-                      </SelectItem>
-                      <SelectItem value="available" className="text-xs">
-                        Freie Plätze
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Beitrittsmodus</Label>
-                  <Select value={approvalModeFilter} onValueChange={setApprovalModeFilter}>
-                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all" className="text-xs">
-                        Alle
-                      </SelectItem>
-                      <SelectItem value="automatic" className="text-xs">
-                        Sofortiger Beitritt
-                      </SelectItem>
-                      <SelectItem value="manual" className="text-xs">
-                        Beitritt erst nach Genehmigung
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Typ</Label>
-                  <Select value={groupTypeFilter} onValueChange={setGroupTypeFilter}>
-                    <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all" className="text-xs">
-                        Alle
-                      </SelectItem>
-                      <SelectItem value="casual" className="text-xs">
-                        Casual
-                      </SelectItem>
-                      <SelectItem value="competitive" className="text-xs">
-                        Competitive
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="col-span-2 md:col-span-1 flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                    className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
-                  >
-                    <FiFilter className="w-3 h-3 mr-1" />
-                    <span className="hidden sm:inline">Erweiterte Filter</span>
-                    <span className="sm:hidden">Filter</span>
-                    <FaChevronDown
-                      className={`w-3 h-3 ml-1 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
-                    />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSearchTerm("")
-                      setSortBy("all")
-                      setGroupTypeFilter("all") // Reset group type filter
-                      setShowLocationResults(false)
-                      setLocationSearchResults([])
-                    }}
-                    className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
-                  >
-                    <span className="hidden sm:inline">Filter zurücksetzen</span>
-                    <span className="sm:hidden">Reset</span>
-                  </Button>
-                </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 sm:gap-3">
+              <div>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Sortieren nach</Label>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-xs">
+                      Alle
+                    </SelectItem>
+                    <SelectItem value="newest" className="text-xs">
+                      Neueste
+                    </SelectItem>
+                    <SelectItem value="members" className="text-xs">
+                      Mitglieder
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {showAdvancedFilters && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-4">
-                  {/* Additional filters can be added here */}
-                </div>
-              )}
+              <div>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Kapazität</Label>
+                <Select value={availableSpotsFilter} onValueChange={setAvailableSpotsFilter}>
+                  <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-xs">
+                      Alle
+                    </SelectItem>
+                    <SelectItem value="available" className="text-xs">
+                      Freie Plätze
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Beitrittsmodus</Label>
+                <Select value={approvalModeFilter} onValueChange={setApprovalModeFilter}>
+                  <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-xs">
+                      Alle
+                    </SelectItem>
+                    <SelectItem value="automatic" className="text-xs">
+                      Sofortiger Beitritt
+                    </SelectItem>
+                    <SelectItem value="manual" className="text-xs">
+                      Beitritt erst nach Genehmigung
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs text-gray-500 mb-1.5 block font-medium">Typ</Label>
+                <Select value={groupTypeFilter} onValueChange={setGroupTypeFilter}>
+                  <SelectTrigger className="h-9 bg-white/80 border-gray-200 focus:border-teal-400 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-xs">
+                      Alle
+                    </SelectItem>
+                    <SelectItem value="casual" className="text-xs">
+                      Casual
+                    </SelectItem>
+                    <SelectItem value="competitive" className="text-xs">
+                      Competitive
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm("")
+                    setSortBy("all")
+                    setGroupTypeFilter("all")
+                    setAvailableSpotsFilter("all")
+                    setApprovalModeFilter("all")
+                    setShowLocationResults(false)
+                    setLocationSearchResults([])
+                  }}
+                  className="h-9 w-full border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
+                >
+                  Filter zurücksetzen
+                </Button>
+              </div>
             </div>
+            {/* </CHANGE> */}
           </div>
         </div>
 
@@ -1238,7 +1759,7 @@ export default function LudoGruppenPage() {
                 </div>
               ) : (
                 filteredGroups.map((group) => {
-                  const buttonProps = getJoinButtonProps(group)
+                  const buttonProps = getGroupJoinButtonProps(group)
                   const IconComponent = buttonProps.icon
 
                   return (
@@ -1345,11 +1866,11 @@ export default function LudoGruppenPage() {
                                 window.location.href = "/login"
                                 return
                               }
-                              const buttonProps = getJoinButtonProps(group)
+                              const buttonProps = getGroupJoinButtonProps(group)
                               if (buttonProps.action === "leave") {
-                                leaveLudoGroup(group)
+                                leaveGroup(group)
                               } else {
-                                joinLudoGroup(group)
+                                handleJoinGroup(group)
                               }
                             }}
                             disabled={buttonProps.disabled}
@@ -1368,7 +1889,7 @@ export default function LudoGruppenPage() {
                             {buttonProps.text}
                           </Button>
 
-                          {(!user || group.creator_id !== user.id) && (
+                          {(!user || (user && group.creator_id !== user.id)) && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -1384,49 +1905,6 @@ export default function LudoGruppenPage() {
                               }}
                             >
                               <FaComment className="h-4 w-4" />
-                            </Button>
-                          )}
-
-                          {user && canManageMembers(group) && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="px-3 bg-transparent font-handwritten"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  showMemberManagement(group)
-                                }}
-                              >
-                                <FaUsers className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="px-3 bg-transparent font-handwritten"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleBroadcastMessage(group)
-                                }}
-                                title="Nachricht an alle Mitglieder senden"
-                              >
-                                <FaComment className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-
-                          {user && userMemberships.includes(group.id) && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="px-3 bg-transparent font-handwritten"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                showGroupPolls(group)
-                              }}
-                              title="Abstimmungen anzeigen"
-                            >
-                              <FaChartBar className="h-4 w-4" />
                             </Button>
                           )}
                         </div>
@@ -1519,44 +1997,73 @@ export default function LudoGruppenPage() {
                     />
                   </div>
 
+                  {/* Updated UI to show multiple image upload */}
                   <div>
                     <Label htmlFor="group-image" className="text-xs font-medium text-gray-700 mb-3 block">
-                      Spielgruppenbild (optional)
+                      Spielgruppenbilder (optional - bis zu 5 Bilder)
                     </Label>
 
-                    {!imagePreview ? (
+                    {imagePreviews.length === 0 ? (
                       <div
                         onClick={() => document.getElementById("group-image")?.click()}
                         className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition-all duration-200 bg-gray-50"
                       >
                         <FaImage className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                         <p className="text-xs font-medium text-gray-700 mb-1">Klicken zum Hochladen</p>
-                        <p className="text-xs text-gray-500">JPG, PNG oder WebP (max. 5MB)</p>
+                        <p className="text-xs text-gray-500">JPG, PNG oder WebP (max. 5MB pro Bild)</p>
                         <Input
                           id="group-image"
                           type="file"
                           accept="image/*"
+                          multiple
                           onChange={handleImageUpload}
                           className="hidden"
                         />
                       </div>
                     ) : (
-                      <div className="relative rounded-xl overflow-hidden border-2 border-gray-300">
-                        <img
-                          src={imagePreview || "/placeholder.svg"}
-                          alt="Preview"
-                          className="w-full h-64 object-cover"
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {imagePreviews.map((preview, index) => (
+                            <div key={index} className="relative rounded-xl overflow-hidden border-2 border-gray-300">
+                              <img
+                                src={preview || "/placeholder.svg"}
+                                alt={`Preview ${index + 1}`}
+                                className="w-full h-32 object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveImage(index)}
+                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg z-10"
+                              >
+                                <FaTimes className="h-3 w-3" />
+                              </button>
+                              {index === 0 && (
+                                <div className="absolute bottom-2 left-2 bg-teal-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg z-10">
+                                  Hauptbild
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {imagePreviews.length < 5 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => document.getElementById("group-image")?.click()}
+                            className="w-full text-xs"
+                          >
+                            <FaPlus className="h-3 w-3 mr-2" />
+                            Weitere Bilder hinzufügen ({imagePreviews.length}/5)
+                          </Button>
+                        )}
+                        <Input
+                          id="group-image"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageUpload}
+                          className="hidden"
                         />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setImageFile(null)
-                            setImagePreview(null)
-                          }}
-                          className="absolute top-3 right-3 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
-                        >
-                          <FaTimes className="h-4 w-4" />
-                        </button>
                       </div>
                     )}
                   </div>
@@ -1650,8 +2157,9 @@ export default function LudoGruppenPage() {
                       type: "casual",
                       approval_mode: "automatic",
                     })
-                    setImageFile(null)
-                    setImagePreview(null)
+                    // Clear all uploaded images
+                    setImageFiles([])
+                    setImagePreviews([])
                   }}
                   className="flex-1 h-11 text-sm border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-medium bg-transparent"
                 >
@@ -1679,55 +2187,117 @@ export default function LudoGruppenPage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <Dialog
+          open={isDetailsDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              // First clear the dialog state
+              setIsDetailsDialogOpen(false)
+              setSelectedGroup(null)
+              // Don't reset hasProcessedURLParams here - let useEffect handle it when URL changes
+              // Update URL to remove parameters
+              router.push("/ludo-gruppen", { scroll: false })
+            } else {
+              setIsDetailsDialogOpen(true)
+            }
+            // </CHANGE>
+          }}
+        >
           <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              {user && selectedGroup && selectedGroup.creator_id === user.id && (
-                <div className="flex gap-2 justify-end mb-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      openInviteDialog(selectedGroup, e)
-                    }}
-                  >
-                    <FaUserPlus className="h-4 w-4 mr-2" />
-                    Einladen
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedGroupForPolls(selectedGroup)
-                      setIsCreatePollDialogOpen(true)
-                    }}
-                  >
-                    <FaChartBar className="h-4 w-4 mr-2" />
-                    Abstimmung
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      showMemberManagement(selectedGroup)
-                    }}
-                  >
-                    <FaCog className="h-4 w-4 mr-2" />
-                    Verwalten
-                  </Button>
+            <DialogHeader className="px-4 pt-4 pb-3 border-b">
+              {selectedGroup && selectedGroup.creator_id === user?.id && (
+                <div className="flex justify-end mb-3">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="outline" className="h-9 px-3 bg-transparent">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Verwalten
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          router.push(`/ludo-gruppen?edit=${selectedGroup.id}`) // Updated to include edit param
+                          setIsDetailsDialogOpen(false)
+                        }}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Gruppe bearbeiten
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedCommunity(selectedGroup)
+                          loadMembers(selectedGroup.id)
+                          setShowMembersDialog(true)
+                          // Update URL to include 'members' parameter
+                          router.push(`/ludo-gruppen?view=${selectedGroup.id}&members=true`, { scroll: false })
+                        }}
+                      >
+                        <FaUsers className="h-4 w-4 mr-2" />
+                        Teilnehmer verwalten
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedCommunity(selectedGroup)
+                          loadFriends()
+                          setShowInviteDialog(true)
+                          // Update URL to include 'invite' parameter
+                          router.push(`/ludo-gruppen?view=${selectedGroup.id}&invite=true`, { scroll: false })
+                        }}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Freunde einladen
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedCommunity(selectedGroup)
+                          loadCommunityPolls(selectedGroup.id)
+                          setShowPollDialog(true)
+                          // Update URL to include 'polls' parameter
+                          router.push(`/ludo-gruppen?view=${selectedGroup.id}&polls=true`, { scroll: false })
+                        }}
+                      >
+                        <FaPoll className="h-4 w-4 mr-2" />
+                        Abstimmungen
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteGroup(selectedGroup.id)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Gruppe löschen
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               )}
-              <DialogTitle className="font-handwritten text-base text-gray-800">{selectedGroup?.name}</DialogTitle>
+              <DialogTitle className="font-handwritten text-lg text-gray-800">{selectedGroup?.name}</DialogTitle>
               <DialogDescription>Spielgruppe Details und Informationen</DialogDescription>
             </DialogHeader>
+            {/* </CHANGE> */}
 
             {selectedGroup && (
               <div className="space-y-6">
+                {/* Added image carousel for multiple group images in detail view */}
                 <div className="w-full h-48 rounded-lg overflow-hidden flex items-center justify-center bg-gradient-to-br from-teal-50 to-cyan-100">
-                  {selectedGroup.image ? (
+                  {selectedGroup.images && selectedGroup.images.length > 1 ? (
+                    <Carousel className="w-full h-full">
+                      <CarouselContent>
+                        {selectedGroup.images.map((image: string, index: number) => (
+                          <CarouselItem key={index}>
+                            <img
+                              src={image || "/placeholder.svg"}
+                              alt={`${selectedGroup.name} - Bild ${index + 1}`}
+                              className="w-full h-48 object-cover"
+                            />
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious className="left-2" />
+                      <CarouselNext className="right-2" />
+                    </Carousel>
+                  ) : selectedGroup.image ? (
                     <img
                       src={selectedGroup.image || "/placeholder.svg"}
                       alt={selectedGroup.name}
@@ -1737,6 +2307,8 @@ export default function LudoGruppenPage() {
                     <GiRollingDices className="w-16 h-16 text-teal-400" />
                   )}
                 </div>
+                {/* ... existing code ... */}
+                {/* </CHANGE> */}
 
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center gap-3">
@@ -1795,384 +2367,839 @@ export default function LudoGruppenPage() {
                   )}
                 </div>
 
-                <div className="flex gap-3 pt-4">
-                  {(() => {
-                    const buttonProps = getJoinButtonProps(selectedGroup)
-                    const IconComponent = buttonProps.icon
+                <div className="sticky bottom-0 bg-white border-t pt-4 -mx-6 px-6 -mb-6 pb-6">
+                  <div className="flex gap-3">
+                    {(() => {
+                      const buttonProps = getGroupJoinButtonProps(selectedGroup)
+                      const IconComponent = buttonProps.icon
+                      return (
+                        <Button
+                          variant={buttonProps.variant}
+                          disabled={buttonProps.disabled}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (buttonProps.action === "leave") {
+                              leaveGroup(selectedGroup)
+                            } else {
+                              handleJoinGroup(selectedGroup)
+                            }
+                          }}
+                          className="flex-1 px-4 h-11 bg-transparent font-handwritten text-base shadow-sm"
+                        >
+                          {IconComponent ? (
+                            <IconComponent className="h-5 w-5 mr-2" />
+                          ) : (
+                            <FaUserPlus className="h-5 w-5 mr-2" />
+                          )}
+                          {buttonProps.text}
+                        </Button>
+                      )
+                    })()}
 
-                    return (
+                    <ShareButton
+                      url={`${typeof window !== "undefined" ? window.location.origin : ""}/ludo-gruppen/${selectedGroup.id}`}
+                      title={selectedGroup.name}
+                      description={selectedGroup.description || "Schau dir diese Spielgruppe an!"}
+                      className="px-4 h-11 bg-transparent font-handwritten text-base"
+                    />
+
+                    {(!user || (user && selectedGroup.creator_id !== user.id)) && (
                       <Button
+                        variant="outline"
+                        className="px-4 h-11 bg-transparent font-handwritten text-base"
                         onClick={() => {
                           if (!user) {
-                            toast.info("Bitte melde dich an, um einer Spielgruppe beizutreten")
+                            toast.info("Bitte melde dich an, um Nachrichten zu senden")
                             window.location.href = "/login"
                             return
                           }
-                          const buttonProps = getJoinButtonProps(selectedGroup)
-                          if (buttonProps.action === "leave") {
-                            leaveLudoGroup(selectedGroup)
-                          } else {
-                            joinLudoGroup(selectedGroup)
+                          if (selectedGroup) {
+                            handleSendGroupMessage(selectedGroup)
+                            setIsDetailsDialogOpen(false)
                           }
-                          setIsDetailsDialogOpen(false)
                         }}
-                        disabled={buttonProps.disabled}
-                        variant={buttonProps.variant}
-                        className={`flex-1 font-handwritten ${
-                          buttonProps.action === "leave"
-                            ? "bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white border-red-500"
-                            : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:from-gray-400"
-                        }`}
                       >
-                        {IconComponent ? (
-                          <IconComponent className="h-4 w-4 mr-2" />
-                        ) : (
-                          <FaUserPlus className="h-4 w-4 mr-2" />
-                        )}
-                        {buttonProps.text}
+                        <MessageCircle className="h-5 w-5 mr-2" />
+                        Nachricht
                       </Button>
-                    )
-                  })()}
-
-                  <ShareButton
-                    url={`${typeof window !== "undefined" ? window.location.origin : ""}/ludo-gruppen/${selectedGroup.id}`}
-                    title={selectedGroup.name}
-                    description={selectedGroup.description || "Schau dir diese Spielgruppe an!"}
-                    variant="outline"
-                    className="px-4 bg-transparent font-handwritten"
-                  />
-
-                  {(!user || (user && selectedGroup.creator_id !== user.id)) && (
-                    <Button
-                      variant="outline"
-                      className="px-4 bg-transparent font-handwritten"
-                      onClick={() => {
-                        if (!user) {
-                          toast.info("Bitte melde dich an, um Nachrichten zu senden")
-                          window.location.href = "/login"
-                          return
-                        }
-                        if (selectedGroup) {
-                          handleSendGroupMessage(selectedGroup)
-                          setIsDetailsDialogOpen(false)
-                        }
-                      }}
-                    >
-                      <FaComment className="h-4 w-4 mr-2" />
-                      Nachricht
-                    </Button>
-                  )}
+                    )}
+                  </div>
                 </div>
+                {/* </CHANGE> */}
               </div>
             )}
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isMemberManagementDialogOpen} onOpenChange={setIsMemberManagementDialogOpen}>
-          <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="font-handwritten text-xl text-gray-800">Mitglieder verwalten</DialogTitle>
-              <DialogDescription>
-                {selectedGroupForMembers?.name} - Verwalte die Mitglieder dieser Spielgruppe
-              </DialogDescription>
+        {/* Invite Friends Dialog */}
+        <Dialog
+          open={showInviteDialog}
+          onOpenChange={(open) => {
+            setShowInviteDialog(open)
+            if (open) {
+              console.log("[v0] Opening invite dialog, loading friends...")
+              loadFriends()
+              // Update URL to include 'invite' parameter if it was not already set
+              if (selectedCommunity && !searchParams.get("invite")) {
+                router.push(`/ludo-gruppen?view=${selectedCommunity.id}&invite=true`, { scroll: false })
+              }
+            } else {
+              // Reset URL when dialog closes
+              if (selectedCommunity && searchParams.get("invite") === "true") {
+                router.push(`/ludo-gruppen?view=${selectedCommunity.id}`, { scroll: false })
+              }
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader className="space-y-2">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                  className="w-14 h-14 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-lg"
+                >
+                  <FaUserPlus className="h-7 w-7 text-white" />
+                </motion.div>
+                <div>
+                  <DialogTitle className="text-xl font-bold text-gray-900">Freunde einladen</DialogTitle>
+                  <DialogDescription className="text-sm text-gray-500">
+                    zu "{selectedCommunity?.name}"
+                  </DialogDescription>
+                </div>
+              </div>
             </DialogHeader>
+            <div className="space-y-3">
+              <div className="px-3 py-1.5 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-200">
+                <p className="text-xs font-semibold text-teal-700">
+                  {friends.length} {friends.length === 1 ? "Freund" : "Freunde"} verfügbar
+                </p>
+              </div>
 
-            <div className="space-y-4">
-              {loadingMembers ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto"></div>
-                  <p className="text-gray-500 mt-2">Lade Mitglieder...</p>
-                </div>
-              ) : groupMembers.length === 0 ? (
-                <div className="text-center py-8">
-                  <FaUsers className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-600 mb-2">Keine Mitglieder gefunden</h3>
-                  <p className="text-gray-500">Diese Spielgruppe hat noch keine Mitglieder.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-semibold text-gray-800">
-                      {groupMembers.length} Mitglied{groupMembers.length !== 1 ? "er" : ""}
-                    </h4>
-                    {user && selectedGroupForMembers && selectedGroupForMembers.creator_id === user.id && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleBroadcastMessage(selectedGroupForMembers)}
-                        className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-handwritten"
-                      >
-                        <FaComment className="h-4 w-4 mr-2" />
-                        Nachricht an alle senden
-                      </Button>
-                    )}
+              <div className="max-h-[300px] overflow-y-auto space-y-1.5 pr-1">
+                {friends.length === 0 ? (
+                  <div className="text-center py-8 px-4">
+                    <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                      <FaUserPlus className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <p className="text-xs font-medium text-gray-700 mb-1">Keine Freunde zum Einladen</p>
+                    <p className="text-xs text-gray-500">Füge Freunde hinzu</p>
                   </div>
-
-                  {groupMembers.map((member) => (
-                    <Card key={member.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={member.users?.avatar || "/placeholder.svg"} />
-                            <AvatarFallback>{member.users?.username?.[0]?.toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <UserLink
-                                userId={member.users?.id || ""}
-                                className="text-gray-800 hover:text-teal-600 transition-colors"
-                              >
-                                <p className="font-medium cursor-pointer hover:text-teal-600 transition-colors">
-                                  {member.users?.username}
-                                </p>
-                              </UserLink>
-                              {member.role === "admin" && (
-                                <Badge className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-xs px-2 py-0.5">
-                                  Admin
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-500">
-                              Beigetreten am{" "}
-                              {new Date(member.joined_at).toLocaleDateString("de-DE", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              })}
-                            </p>
-                          </div>
-                        </div>
-
-                        {user &&
-                          selectedGroupForMembers &&
-                          canManageMembers(selectedGroupForMembers) &&
-                          member.user_id !== user.id &&
-                          selectedGroupForMembers.creator_id !== member.user_id && (
-                            <div className="flex gap-2">
-                              {(selectedGroupForMembers.creator_id === user.id || member.role !== "admin") && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    console.log("[v0] Remove button clicked for member:", member.users?.username)
-                                    removeMemberFromGroup(member.id, member.users?.username || "Unbekannt")
-                                  }}
-                                  className="border-red-200 text-red-600 hover:bg-red-50 text-xs"
-                                >
-                                  <FaTimes className="h-3 w-3 mr-1" />
-                                  Entfernen
-                                </Button>
-                              )}
-                            </div>
-                          )}
+                ) : (
+                  friends.map((friend) => (
+                    <div
+                      key={friend.id}
+                      className={`flex items-center gap-2 p-2 rounded-lg border-2 transition-all cursor-pointer hover:shadow-sm ${
+                        selectedFriends.includes(friend.id)
+                          ? "border-teal-500 bg-gradient-to-r from-teal-50 to-cyan-50"
+                          : "border-gray-200 bg-white hover:border-gray-300"
+                      }`}
+                      onClick={() => {
+                        if (selectedFriends.includes(friend.id)) {
+                          setSelectedFriends(selectedFriends.filter((id) => id !== friend.id))
+                        } else {
+                          setSelectedFriends([...selectedFriends, friend.id])
+                        }
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedFriends.includes(friend.id)}
+                        id={`friend-${friend.id}`}
+                        className="h-4 w-4 text-teal-500 rounded border-gray-300 focus:ring-teal-500"
+                      />
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={friend.avatar || "/placeholder.svg"} />
+                        <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-500 text-white text-xs">
+                          {friend.name?.[0] || friend.username?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-gray-900">{friend.username}</p>
+                        {/* </CHANGE> */}
                       </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
+            <DialogFooter className="pt-3 border-t gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowInviteDialog(false)
+                  setSelectedFriends([])
+                  // Reset URL if invite parameter is present
+                  if (selectedCommunity && searchParams.get("invite") === "true") {
+                    router.push(`/ludo-gruppen?view=${selectedCommunity.id}`, { scroll: false })
+                  }
+                }}
+                className="flex-1 h-8 text-xs"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleInviteFriends}
+                disabled={selectedFriends.length === 0}
+                className="flex-1 h-8 text-xs bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white shadow-lg"
+              >
+                <FaUserPlus className="mr-1.5 h-3 w-3" />
+                {selectedFriends.length > 0 ? `${selectedFriends.length} einladen` : "Einladen"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isPollsDialogOpen} onOpenChange={setIsPollsDialogOpen}>
-          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <DialogTitle className="font-handwritten text-2xl text-gray-800 flex items-center gap-2">
-                    <FaChartBar className="h-6 w-6 text-teal-600" />
-                    Abstimmungen
-                  </DialogTitle>
-                  <DialogDescription>{selectedGroupForPolls?.name} - Abstimmungen und Umfragen</DialogDescription>
+        {/* Broadcast Dialog */}
+        <Dialog
+          open={showBroadcastDialog}
+          onOpenChange={(open) => {
+            setShowBroadcastDialog(open)
+            if (open) {
+              // Update URL if broadcast parameter is not present
+              if (selectedCommunity && !searchParams.get("broadcast")) {
+                router.push(`/ludo-gruppen?view=${selectedCommunity.id}&broadcast=true`, { scroll: false })
+              }
+            } else {
+              // Reset URL if broadcast parameter is present
+              if (selectedCommunity && searchParams.get("broadcast") === "true") {
+                router.push(`/ludo-gruppen?view=${selectedCommunity.id}`, { scroll: false })
+              }
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
+                  <FaBullhorn className="h-4 w-4 text-white" />
                 </div>
-                {user && selectedGroupForPolls && selectedGroupForPolls.creator_id === user.id && (
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setIsPollsDialogOpen(false)
-                      openCreatePollDialog(selectedGroupForPolls)
-                    }}
-                    className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600"
-                  >
-                    <FaChartBar className="h-4 w-4 mr-2" />
-                    Neue Abstimmung
-                  </Button>
-                )}
+                <div>
+                  <DialogTitle className="text-base font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    Nachricht an alle Mitglieder
+                  </DialogTitle>
+                </div>
+              </div>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-700">
+                  <span className="font-medium">Alle Mitglieder werden benachrichtigt</span>
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="broadcast-message" className="text-xs font-bold text-gray-700">
+                  Nachricht
+                </Label>
+                <Textarea
+                  id="broadcast-message"
+                  placeholder="Schreibe deine Nachricht..."
+                  value={broadcastMessage}
+                  onChange={(e) => setBroadcastMessage(e.target.value)}
+                  rows={5}
+                  className="text-xs min-h-[120px] resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500">{broadcastMessage.length}/500</p>
+              </div>
+            </div>
+            <DialogFooter className="pt-3 border-t gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowBroadcastDialog(false)
+                  setBroadcastMessage("")
+                  // Reset URL if broadcast parameter is present
+                  if (selectedCommunity && searchParams.get("broadcast") === "true") {
+                    router.push(`/ludo-gruppen?view=${selectedCommunity.id}`, { scroll: false })
+                  }
+                }}
+                className="flex-1 h-8 text-xs"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleBroadcast}
+                disabled={!broadcastMessage.trim()}
+                className="flex-1 h-8 text-xs bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg"
+              >
+                <FaBullhorn className="mr-1.5 h-3 w-3" />
+                Senden
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Create Poll Dialog */}
+        <Dialog
+          open={showPollDialog}
+          onOpenChange={(open) => {
+            setShowPollDialog(open)
+            if (open && selectedCommunity) {
+              console.log("[v0] Opening poll dialog, loading polls...")
+              loadCommunityPolls(selectedCommunity.id)
+              // Update URL if createPoll parameter is not present
+              if (!searchParams.get("createPoll")) {
+                router.push(`/ludo-gruppen?view=${selectedCommunity.id}&polls=true`, { scroll: false })
+              }
+            } else if (!open) {
+              // Reset URL if polls parameter is present
+              if (searchParams.get("polls") === "true") {
+                router.push(`/ludo-gruppen?view=${selectedCommunity?.id}`, { scroll: false })
+              }
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col p-0">
+            <DialogHeader className="px-4 pt-4 pb-3 border-b">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                  className="w-14 h-14 rounded-xl bg-gradient-to-br from-teal-500 to-blue-500 flex items-center justify-center shadow-lg"
+                >
+                  <FaPoll className="h-7 w-7 text-white" />
+                </motion.div>
+                <div>
+                  <DialogTitle className="text-xl font-bold text-gray-900">Abstimmungen</DialogTitle>
+                  <DialogDescription className="text-sm text-gray-500 mt-0">
+                    {selectedCommunity?.name}
+                  </DialogDescription>
+                </div>
               </div>
             </DialogHeader>
 
-            <Tabs defaultValue="active" className="mt-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="active">
-                  Laufende Abstimmungen
-                  {(() => {
-                    const activePolls = groupPolls.filter((poll) => {
-                      const isExpired = poll.expires_at ? new Date(poll.expires_at) < new Date() : false
-                      return poll.is_active && !isExpired
-                    })
-                    return activePolls.length > 0 ? ` (${activePolls.length})` : ""
-                  })()}
+            <Tabs
+              value={activePollTab}
+              onValueChange={(v) => setActivePollTab(v as "active" | "completed" | "create")}
+              className="flex-1 flex flex-col"
+            >
+              <TabsList className="mx-4 mt-3 grid w-auto grid-cols-3 bg-gray-100/80 p-0.5 rounded-lg">
+                <TabsTrigger
+                  value="active"
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs font-medium py-1.5"
+                >
+                  Laufend
                 </TabsTrigger>
-                <TabsTrigger value="completed">
-                  Abgeschlossene Abstimmungen
-                  {(() => {
-                    const completedPolls = groupPolls.filter((poll) => {
-                      const isExpired = poll.expires_at ? new Date(poll.expires_at) < new Date() : false
-                      return !poll.is_active || isExpired
-                    })
-                    return completedPolls.length > 0 ? ` (${completedPolls.length})` : ""
-                  })()}
+                <TabsTrigger
+                  value="completed"
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs font-medium py-1.5"
+                >
+                  Abgeschlossen
+                </TabsTrigger>
+                <TabsTrigger
+                  value="create"
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs font-medium py-1.5"
+                >
+                  Neue Abstimmung
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="active" className="space-y-4 mt-4">
-                {loadingPolls ? (
-                  <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
-                    <p className="text-gray-500">Lade Abstimmungen...</p>
+              <TabsContent value="active" className="px-4 pb-4 space-y-3 flex-1 overflow-y-auto mt-3">
+                {communityPolls.filter(
+                  (poll) => poll.is_active && (!poll.expires_at || new Date(poll.expires_at) > new Date()),
+                ).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                      <FaPoll className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-600">Keine laufenden Abstimmungen</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Erstelle die erste Abstimmung</p>
                   </div>
                 ) : (
-                  (() => {
-                    const activePolls = groupPolls.filter((poll) => {
-                      const isExpired = poll.expires_at ? new Date(poll.expires_at) < new Date() : false
-                      return poll.is_active && !isExpired
+                  communityPolls
+                    .filter((poll) => poll.is_active && (!poll.expires_at || new Date(poll.expires_at) > new Date()))
+                    .map((poll) => {
+                      const totalVotes = poll.votes?.length || 0
+                      const userHasVoted = userVotes[poll.id]?.length > 0
+                      const isCreator = poll.creator_id === user?.id
+
+                      return (
+                        <Card key={poll.id} className="border-2 hover:border-teal-200 transition-colors">
+                          <CardHeader className="pb-2">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-sm text-gray-900 leading-tight">{poll.question}</h4>
+                                <div className="flex flex-col gap-1 mt-1.5">
+                                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                    <span>
+                                      {totalVotes} {totalVotes === 1 ? "Stimme" : "Stimmen"}
+                                    </span>
+                                  </div>
+                                  {poll.expires_at && (
+                                    <div className="text-xs text-orange-600 font-medium">
+                                      Läuft ab am:{" "}
+                                      {new Date(poll.expires_at).toLocaleDateString("de-DE", {
+                                        day: "2-digit",
+                                        month: "short",
+                                        year: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {userHasVoted && (
+                                  <Badge variant="default" className="bg-teal-500 text-white text-xs px-1.5 h-5">
+                                    <FaCheckCircle className="h-3 w-3 mr-1" />
+                                    Abgestimmt
+                                  </Badge>
+                                )}
+                                {isCreator && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={async () => {
+                                      try {
+                                        const { error } = await supabase
+                                          .from("community_polls")
+                                          .update({ is_active: false })
+                                          .eq("id", poll.id)
+
+                                        if (error) throw error
+
+                                        toast.success("Abstimmung wurde abgeschlossen")
+                                        if (selectedCommunity) loadCommunityPolls(selectedCommunity.id)
+                                      } catch (error) {
+                                        console.error("[v0] Error closing poll:", error)
+                                        toast.error("Fehler beim Abschließen der Abstimmung")
+                                      }
+                                    }}
+                                    className="text-red-600 hover:bg-red-50 border-red-300 px-2 h-7 text-xs"
+                                  >
+                                    <FaTimesCircle className="h-3 w-3 mr-1" />
+                                    Schließen
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-1.5 pt-0">
+                            {poll.options?.map((option: any) => {
+                              const optionVotes = poll.votes?.filter((v: any) => v.option_id === option.id).length || 0
+                              const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0
+                              const userVoted = userVotes[poll.id]?.includes(option.id)
+
+                              return (
+                                <button
+                                  key={option.id}
+                                  onClick={() => handleVote(poll.id, option.id)}
+                                  className={`w-full group relative rounded-lg border-2 transition-all duration-150 overflow-hidden ${
+                                    userVoted
+                                      ? "border-teal-500 bg-teal-50"
+                                      : "border-gray-200 bg-white hover:border-teal-300"
+                                  }`}
+                                >
+                                  <div
+                                    className={`absolute inset-0 transition-all duration-300 ${
+                                      userVoted ? "bg-teal-100" : "bg-gray-50"
+                                    }`}
+                                    style={{ width: `${percentage}%` }}
+                                  />
+
+                                  <div className="relative flex items-center justify-between px-3 py-2">
+                                    <div className="flex items-center gap-2">
+                                      {userVoted && (
+                                        <FaCheckCircle className="h-3.5 w-3.5 text-teal-600 flex-shrink-0" />
+                                      )}
+                                      <span
+                                        className={`text-xs font-medium text-left ${
+                                          userVoted ? "text-teal-900" : "text-gray-700"
+                                        }`}
+                                      >
+                                        {option.option_text}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span
+                                        className={`text-xs font-semibold ${
+                                          userVoted ? "text-teal-700" : "text-gray-600"
+                                        }`}
+                                      >
+                                        {percentage.toFixed(0)}%
+                                      </span>
+                                      <span className="text-xs text-gray-500 min-w-[3rem] text-right">
+                                        {optionVotes} {optionVotes === 1 ? "Stimme" : "Stimmen"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </button>
+                              )
+                            })}
+                            {poll.allow_multiple_votes && (
+                              <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
+                                <FaInfoCircle className="h-3 w-3" />
+                                Mehrfachauswahl möglich
+                              </p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )
                     })
-                    return activePolls.length === 0 ? (
-                      <div className="text-center py-12">
-                        <FaChartBar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-600 mb-2">Keine laufenden Abstimmungen</h3>
-                        <p className="text-gray-500 mb-4">
-                          {user && selectedGroupForPolls && selectedGroupForPolls.creator_id === user.id
-                            ? "Erstelle die erste Abstimmung für diese Spielgruppe!"
-                            : "Diese Spielgruppe hat derzeit keine laufenden Abstimmungen."}
-                        </p>
-                        {user && selectedGroupForPolls && selectedGroupForPolls.creator_id === user.id && (
-                          <Button
-                            onClick={() => {
-                              setIsPollsDialogOpen(false)
-                              openCreatePollDialog(selectedGroupForPolls)
-                            }}
-                            className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600"
-                          >
-                            <FaChartBar className="h-4 w-4 mr-2" />
-                            Erste Abstimmung erstellen
-                          </Button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {activePolls.map((poll) => (
-                          <PollCard
-                            key={poll.id}
-                            poll={poll}
-                            currentUserId={user?.id || ""}
-                            isCreator={selectedGroupForPolls?.creator_id === user?.id}
-                            onPollUpdated={() => {
-                              if (selectedGroupForPolls) {
-                                loadGroupPolls(selectedGroupForPolls.id)
-                              }
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )
-                  })()
                 )}
               </TabsContent>
 
-              <TabsContent value="completed" className="space-y-4 mt-4">
-                {loadingPolls ? (
-                  <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
-                    <p className="text-gray-500">Lade Abstimmungen...</p>
+              <TabsContent value="completed" className="px-4 pb-4 space-y-3 flex-1 overflow-y-auto mt-3">
+                {communityPolls.filter(
+                  (poll) => !poll.is_active || (poll.expires_at && new Date(poll.expires_at) <= new Date()),
+                ).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                      <FaPoll className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-600">Keine abgeschlossenen Abstimmungen</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Abgeschlossene Abstimmungen erscheinen hier</p>
                   </div>
                 ) : (
-                  (() => {
-                    const completedPolls = groupPolls.filter((poll) => {
-                      const isExpired = poll.expires_at ? new Date(poll.expires_at) < new Date() : false
-                      return !poll.is_active || isExpired
+                  communityPolls
+                    .filter((poll) => !poll.is_active || (poll.expires_at && new Date(poll.expires_at) <= new Date()))
+                    .map((poll) => {
+                      const totalVotes = poll.votes?.length || 0
+                      const isCreator = poll.creator_id === user?.id
+
+                      return (
+                        <Card key={poll.id} className="border-2 border-gray-200">
+                          <CardHeader className="pb-2">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-sm text-gray-900 leading-tight">{poll.question}</h4>
+                                <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1.5">
+                                  <span>
+                                    {totalVotes} {totalVotes === 1 ? "Stimme" : "Stimmen"}
+                                  </span>
+                                  <Badge variant="secondary" className="bg-gray-200 text-gray-700 text-xs px-1.5 h-5">
+                                    Abgeschlossen
+                                  </Badge>
+                                </div>
+                              </div>
+                              {isCreator && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={async () => {
+                                    try {
+                                      const { error } = await supabase
+                                        .from("community_polls")
+                                        .delete()
+                                        .eq("id", poll.id)
+
+                                      if (error) throw error
+
+                                      toast.success("Abstimmung wurde gelöscht")
+                                      if (selectedCommunity) loadCommunityPolls(selectedCommunity.id)
+                                    } catch (error) {
+                                      console.error("[v0] Error deleting poll:", error)
+                                      toast.error("Fehler beim Löschen der Abstimmung")
+                                    }
+                                  }}
+                                  className="text-red-600 hover:bg-red-50 border-red-300 px-2 h-7 text-xs"
+                                >
+                                  <FaTrash className="h-3 w-3" />
+                                </Button>
+                              )}
+                              {/* </CHANGE> */}
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-1.5 pt-0">
+                            {poll.options?.map((option: any) => {
+                              const optionVotes = poll.votes?.filter((v: any) => v.option_id === option.id).length || 0
+                              const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0
+                              const maxVotes = Math.max(
+                                ...poll.options.map(
+                                  (o: any) => poll.votes?.filter((v: any) => v.option_id === o.id).length || 0,
+                                ),
+                              )
+                              const isWinner = optionVotes === maxVotes && optionVotes > 0
+
+                              return (
+                                <div
+                                  key={option.id}
+                                  className="relative rounded-lg border-2 border-gray-200 bg-white overflow-hidden"
+                                >
+                                  <div
+                                    className="absolute inset-0 transition-all duration-300 bg-gray-100"
+                                    style={{ width: `${percentage}%` }}
+                                  />
+
+                                  <div className="relative flex items-center justify-between px-3 py-2">
+                                    <div className="flex items-center gap-2">
+                                      {isWinner && (
+                                        <FaCheckCircle className="h-3.5 w-3.5 text-teal-600 flex-shrink-0" />
+                                      )}
+                                      <span className="text-xs font-medium text-gray-700">{option.option_text}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-semibold text-gray-600">
+                                        {percentage.toFixed(0)}%
+                                      </span>
+                                      <span className="text-xs text-gray-500 min-w-[3rem] text-right">
+                                        {optionVotes} {optionVotes === 1 ? "Stimme" : "Stimmen"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </CardContent>
+                        </Card>
+                      )
                     })
-                    return completedPolls.length === 0 ? (
-                      <div className="text-center py-12">
-                        <FaChartBar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-600 mb-2">Keine abgeschlossenen Abstimmungen</h3>
-                        <p className="text-gray-500">
-                          Abgeschlossene oder abgelaufene Abstimmungen werden hier angezeigt.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {completedPolls.map((poll) => (
-                          <PollCard
-                            key={poll.id}
-                            poll={poll}
-                            currentUserId={user?.id || ""}
-                            isCreator={selectedGroupForPolls?.creator_id === user?.id}
-                            onPollUpdated={() => {
-                              if (selectedGroupForPolls) {
-                                loadGroupPolls(selectedGroupForPolls.id)
-                              }
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )
-                  })()
                 )}
+              </TabsContent>
+
+              <TabsContent value="create" className="px-4 pb-4 space-y-4 flex-1 overflow-y-auto mt-3">
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <Label htmlFor="poll-question" className="text-sm font-semibold text-gray-900">
+                        Frage <span className="text-red-500">*</span>
+                      </Label>
+                      <span className="text-xs text-gray-500">{pollQuestion.length}/120</span>
+                    </div>
+                    <Input
+                      id="poll-question"
+                      value={pollQuestion}
+                      onChange={(e) => setPollQuestion(e.target.value)}
+                      placeholder="z.B. Welches Spiel wollen wir diese Woche spielen?"
+                      maxLength={120}
+                      className="h-10 text-xs border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-900 mb-2 block">
+                      Antwortoptionen <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="space-y-1.5">
+                      {pollOptions.map((option, idx) => (
+                        <div key={idx} className="flex gap-1.5">
+                          <div className="flex items-center justify-center w-6 h-10 text-xs font-medium text-gray-500">
+                            {idx + 1}.
+                          </div>
+                          <Input
+                            value={option}
+                            onChange={(e) => {
+                              const newOptions = [...pollOptions]
+                              newOptions[idx] = e.target.value
+                              setPollOptions(newOptions)
+                            }}
+                            placeholder={`Option ${idx + 1}`}
+                            className="flex-1 h-10 text-xs border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                          />
+                          {pollOptions.length > 2 && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                const newOptions = pollOptions.filter((_, i) => i !== idx)
+                                setPollOptions(newOptions)
+                              }}
+                              className="h-10 w-10 text-red-500 hover:bg-red-50 hover:text-red-600"
+                            >
+                              <FaTimes className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setPollOptions([...pollOptions, ""])}
+                      className="mt-2 w-full h-10 border-dashed border-2 border-gray-300 text-gray-600 hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 text-xs"
+                    >
+                      <Plus className="h-4 w-4 mr-1.5" />
+                      Option hinzufügen
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-3 border-t">
+                  <div className="flex items-center gap-1.5">
+                    <Checkbox
+                      id="allow-multiple-votes"
+                      checked={newPoll.allow_multiple_votes}
+                      onCheckedChange={(checked) =>
+                        setNewPoll({ ...newPoll, allow_multiple_votes: checked as boolean })
+                      }
+                      className="h-4 w-4 text-teal-500 rounded border-gray-300 focus:ring-teal-500"
+                    />
+                    <Label htmlFor="allow-multiple-votes" className="text-xs font-bold text-gray-700 cursor-pointer">
+                      Mehrere Antworten erlauben
+                    </Label>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="poll-expires-at" className="text-xs font-bold text-gray-700">
+                      Läuft ab am:
+                    </Label>
+                    <Input
+                      type="datetime-local"
+                      id="poll-expires-at"
+                      value={newPoll.expires_at}
+                      onChange={(e) => setNewPoll({ ...newPoll, expires_at: e.target.value })}
+                      className="h-10 text-xs border-gray-300 focus:border-teal-500 focus:ring-teal-500 w-full"
+                    />
+                  </div>
+                </div>
+                <DialogFooter className="pt-3 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setActivePollTab("active")
+                      setPollQuestion("")
+                      setPollOptions(["", ""])
+                      setNewPoll({ ...newPoll, allow_multiple_votes: false, expires_at: "" })
+                      // Reset URL if createPoll parameter is present
+                      if (selectedCommunity && searchParams.get("createPoll") === "true") {
+                        router.push(`/ludo-gruppen?view=${selectedCommunity.id}`, { scroll: false })
+                      }
+                    }}
+                    className="flex-1 h-9 text-xs"
+                  >
+                    Abbrechen
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleCreatePoll}
+                    disabled={!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2}
+                    className="flex-1 h-9 text-xs"
+                  >
+                    Abstimmung erstellen
+                  </Button>
+                </DialogFooter>
               </TabsContent>
             </Tabs>
           </DialogContent>
         </Dialog>
 
-        <CreatePollDialog
-          isOpen={isCreatePollDialogOpen}
-          onClose={() => {
-            setIsCreatePollDialogOpen(false)
-            setSelectedGroupForPolls(null) // Reset the selected group for polls
-          }}
-          communityId={selectedGroupForPolls?.id || ""}
-          communityName={selectedGroupForPolls?.name || ""}
-          onPollCreated={() => {
-            if (selectedGroupForPolls) {
-              loadGroupPolls(selectedGroupForPolls.id)
-              setIsPollsDialogOpen(true)
+        {/* Members Management Dialog */}
+        <Dialog
+          open={showMembersDialog}
+          onOpenChange={(open) => {
+            setShowMembersDialog(open)
+            if (open) {
+              // Update URL if members parameter is not present
+              if (selectedCommunity && !searchParams.get("members")) {
+                router.push(`/ludo-gruppen?view=${selectedCommunity.id}&members=true`, { scroll: false })
+              }
+            } else {
+              // Reset URL if members parameter is present
+              if (selectedCommunity && searchParams.get("members") === "true") {
+                router.push(`/ludo-gruppen?view=${selectedCommunity.id}`, { scroll: false })
+              }
             }
           }}
-        />
+        >
+          <DialogContent className="sm:max-w-xl max-h-[75vh] overflow-y-auto">
+            <DialogHeader className="px-4 pt-4 pb-3 border-b">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                  className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg"
+                >
+                  <FaUsers className="h-7 w-7 text-white" />
+                </motion.div>
+                <div>
+                  <DialogTitle className="text-xl font-bold text-gray-900">Teilnehmer verwalten</DialogTitle>
+                  <DialogDescription className="text-sm text-gray-500 mt-0">
+                    {selectedCommunity?.name}
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
 
-        <MessageComposerModal
-          isOpen={isMessageModalOpen}
-          onClose={() => {
-            setIsMessageModalOpen(false)
-            setMessageRecipient(null)
-          }}
-          recipientId={messageRecipient?.id || ""}
-          recipientName={messageRecipient?.name || ""}
-          recipientAvatar={messageRecipient?.avatar}
-          context={messageRecipient?.context || { title: "", type: "group" }}
-        />
+            <div className="px-4 py-3">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setShowBroadcastDialog(true) // Open broadcast dialog
+                  setShowMembersDialog(false) // Close members dialog
+                }}
+                className="w-full h-9 text-xs border-2 border-cyan-500 text-cyan-700 hover:bg-cyan-50 font-medium"
+              >
+                <FaBullhorn className="h-3.5 w-3.5 mr-1.5" />
+                Nachricht an alle Mitglieder senden
+              </Button>
+            </div>
 
-        <BroadcastMessageModal
-          isOpen={isBroadcastModalOpen}
-          onClose={() => {
-            setIsBroadcastModalOpen(false)
-            setSelectedGroupForBroadcast(null)
-          }}
-          groupId={selectedGroupForBroadcast?.id || ""}
-          groupName={selectedGroupForBroadcast?.name || ""}
-        />
+            <div className="space-y-2 px-4 pb-4 max-h-[55vh] overflow-y-auto">
+              {members.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                    <FaUsers className="h-6 w-6 text-gray-400" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-600">Keine Mitglieder in dieser Gruppe</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Warte auf neue Beitrittsanfragen</p>
+                </div>
+              ) : (
+                members.map((member) => (
+                  <div
+                    key={member.user_id}
+                    className="flex items-center justify-between p-2 border border-gray-200 rounded-lg shadow-sm bg-white hover:border-teal-200 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={member.user?.avatar || "/placeholder.svg"} />
+                        <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-500 text-white text-xs">
+                          {member.user?.name?.[0] || member.user?.username?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <button
+                          onClick={() => {
+                            setProfileModalUserId(member.user_id)
+                            setIsProfileModalOpen(true)
+                          }}
+                          className="font-medium text-gray-800 text-xs hover:text-teal-600 hover:underline transition-colors text-left"
+                        >
+                          {member.user?.username}
+                        </button>
+                        {/* </CHANGE> */}
+                        <span className="text-[10px] text-gray-500">
+                          {member.role === "creator"
+                            ? "Ersteller"
+                            : member.role === "admin"
+                              ? "Admin"
+                              : member.role === "moderator"
+                                ? "Moderator"
+                                : "Mitglied"}
+                        </span>
+                      </div>
+                    </div>
+                    {member.user_id !== user?.id && member.user_id !== selectedCommunity?.creator_id && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleRemoveMember(member.user_id)}
+                        className="h-7 px-2 group relative hover:bg-red-600 active:scale-95 transition-all duration-150"
+                      >
+                        <FaUserMinus className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
-        <InviteFriendsToCommunityDialog
-          isOpen={isInviteDialogOpen}
+        <UserProfileModal
+          userId={profileModalUserId}
+          isOpen={isProfileModalOpen}
           onClose={() => {
-            setIsInviteDialogOpen(false)
-            setInviteGroup(null)
+            setIsProfileModalOpen(false)
+            setProfileModalUserId(null)
           }}
-          communityId={inviteGroup?.id || ""}
-          communityName={inviteGroup?.name || ""}
         />
+        {/* </CHANGE> */}
       </div>
     </div>
   )

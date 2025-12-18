@@ -35,20 +35,26 @@ import {
   X,
   Upload,
   RefreshCw,
-  Activity,
   AlertTriangle,
   Users,
   Store,
-  CalendarDays,
-  UserPlus,
-  Pencil,
-  Search,
-  UserCheck,
-  UserX,
   Check,
   Trash2,
-  Vote,
+  Pause,
+  Play,
+  Edit,
+  BarChart3,
+  Pencil,
+  Bell,
+  Settings,
+  CheckCircle,
+  Calendar,
 } from "lucide-react"
+import { IoSearchCircle } from "react-icons/io5"
+import { PiUserCirclePlus } from "react-icons/pi"
+import { PiUserCircleGear } from "react-icons/pi"
+import { PiUserCircleCheck } from "react-icons/pi"
+import { RxActivityLog } from "react-icons/rx"
 import { CgProfile } from "react-icons/cg"
 import { FaBell } from "react-icons/fa"
 import { IoColorPaletteOutline } from "react-icons/io5"
@@ -57,16 +63,37 @@ import { getAddressSuggestions } from "@/lib/actions/geocoding"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/components/ui/use-toast"
+import { Separator } from "@/components/ui/separator"
+import { Mail } from "lucide-react"
+import { MessageSquare } from "lucide-react"
+import { Book } from "lucide-react"
+import { FaExchangeAlt } from "react-icons/fa"
+import { FaStar } from "react-icons/fa"
+import { FaEnvelope } from "react-icons/fa"
+import { FaUserPlus } from "react-icons/fa"
+import { FaComments } from "react-icons/fa"
+import { FaBook } from "react-icons/fa"
+import { FaChartBar } from "react-icons/fa"
+import { getUserNotifications, markAllNotificationsAsRead, deleteNotification } from "@/app/actions/notifications"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const AVATAR_STYLES = [
-  { id: "avataaars", name: "Professionell", description: "Klassische Business-Avatare" },
+  {
+    id: "avataaars",
+    name: "Flat (Vektorstil)",
+    description: "Flächiger 2D-Stil ohne Tiefenwirkung; klare Konturen, leuchtende Vollfarben.",
+  },
   { id: "micah", name: "Modern", description: "Stilvolle, minimalistische Avatare" },
-  { id: "lorelei", name: "Elegant", description: "Elegante, kunstvolle Avatare" },
+  { id: "lorelei", name: "Minimalistisch", description: "Einfache Avatare, wenige Farben." },
   { id: "lorelei-neutral", name: "Klassisch", description: "Zeitlose, neutrale Avatare" },
-  { id: "adventurer", name: "Spielerisch", description: "Lustige Abenteurer-Avatare" },
-  { id: "croodles", name: "Verspielt", description: "Handgezeichnete, verspielte Avatare" },
-  { id: "croodles-neutral", name: "Kreativ", description: "Kreative, neutrale Avatare" },
-  { id: "notionists", name: "Minimalistisch", description: "Schlichte, klare Avatare" },
+  {
+    id: "adventurer",
+    name: "Cartoon / Comic",
+    description: "Vereinfachte, oft humorvolle Zeichnungen mit übertriebenen Figuren.",
+  },
+  { id: "croodles", name: "Skizziert", description: "Handgezeichnete, verspielte Avatare" },
+  { id: "croodles-neutral", name: "Doodle", description: "Bewusst roh und handgezeichnet wirkend." },
+  { id: "notionists", name: "Professionell", description: "Schlichte, klare Avatare" },
   { id: "open-peeps", name: "Illustriert", description: "Handgezeichnete Illustrationen" },
 ]
 
@@ -105,6 +132,8 @@ interface ActivityData {
   marketplaceOffers: any[]
   // Search ads
   searchAds: any[]
+  // Communities user is member of (for new tab structure)
+  communityMemberships: any[] // Added for the new structure
 }
 
 interface ActivityItem {
@@ -115,6 +144,45 @@ interface ActivityItem {
   timestamp: Date
   icon: any
   status?: string
+}
+
+const getNotificationIcon = (type: string) => {
+  switch (type) {
+    case "trade_match":
+    case "trade_match_accepted":
+      return <FaExchangeAlt className="text-blue-500" />
+    case "ai_recommendation":
+      return <FaStar className="text-yellow-500" />
+    case "new_message":
+      return <FaEnvelope className="text-purple-500" />
+    case "friend_request":
+    case "friend_accepted":
+      return <FaUserPlus className="text-green-500" />
+    case "forum_reply":
+    case "comment_reply":
+      return <FaComments className="text-teal-500" />
+    case "game_shelf_request":
+      return <FaBook className="text-orange-500" />
+    case "poll_created":
+      return <FaChartBar className="text-indigo-500" />
+    default:
+      return <Bell className="text-gray-500" />
+  }
+}
+
+const formatNotificationTime = (timestamp: string) => {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return "Gerade eben"
+  if (diffMins < 60) return `vor ${diffMins}m`
+  if (diffHours < 24) return `vor ${diffHours}h`
+  if (diffDays < 7) return `vor ${diffDays}d`
+  return date.toLocaleDateString("de-DE")
 }
 
 export default function ProfilePage() {
@@ -155,6 +223,35 @@ export default function ProfilePage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
 
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    social: {
+      friend_requests: 2,
+      friend_accepts: 2,
+      community_invitations: 2,
+      community_events: 2,
+      event_reminders: 2,
+      forum_replies: 1,
+      forum_mentions: 2,
+    },
+    events: {},
+    marketplace: {
+      // Added for marketplace notifications
+      matching_offers: 2, // Default to 'Sofort'
+      offer_responses: 2,
+      price_changes: 1, // Default to 'Einmal pro Woche'
+      expiring_offers: 2,
+      new_releases: 1, // Default to 'Einmal pro Woche'
+    },
+    security: {
+      login_attempts: 2,
+      password_changes: 2,
+      new_device_login: 2,
+    },
+  })
+  const [loadingNotifPrefs, setLoadingNotifPrefs] = useState(false)
+
+  const [activeTab, setActiveTab] = useState("profile") // Added for nested tabs
+
   const [activityData, setActivityData] = useState<ActivityData>({
     createdEvents: [],
     eventParticipations: [],
@@ -164,9 +261,277 @@ export default function ProfilePage() {
     createdCommunities: [],
     marketplaceOffers: [],
     searchAds: [],
+    communityMemberships: [], // Initialized for new structure
   })
-  const [loadingActivities, setLoadingActivities] = useState(false)
-  const [activityFilter, setActivityFilter] = useState<string>("all")
+  const [loadingActivities, setLoadingActivities] = useState(true) // Changed to true to show spinner initially
+
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [notificationPreferences, setNotificationPreferences] = useState({
+    // Soziales
+    friend_request_in_app: true,
+    friend_request_email: true,
+    friend_accepted_in_app: true,
+    friend_accepted_email: false,
+    friend_declined_in_app: true,
+    friend_declined_email: false,
+
+    // Spielgruppen
+    group_invitation_in_app: true,
+    group_invitation_email: true,
+    group_join_request_in_app: true,
+    group_join_request_email: true,
+    group_join_accepted_in_app: true,
+    group_join_accepted_email: true,
+    group_join_rejected_in_app: true,
+    group_join_rejected_email: false,
+    group_member_joined_in_app: true,
+    group_member_joined_email: false,
+    group_member_left_in_app: true,
+    group_member_left_email: false,
+    group_poll_created_in_app: true,
+    group_poll_created_email: false,
+
+    // Events
+    event_invitation_in_app: true,
+    event_invitation_email: true,
+    event_join_request_in_app: true,
+    event_join_request_email: true,
+    event_join_accepted_in_app: true,
+    event_join_accepted_email: true,
+    event_join_rejected_in_app: true,
+    event_join_rejected_email: false,
+    event_participant_joined_in_app: true,
+    event_participant_joined_email: false,
+    event_participant_immediate_in_app: true,
+    event_participant_immediate_email: false,
+    // ADDED: event participant left and event cancellation notifications
+    event_participant_left_in_app: true,
+    event_participant_left_email: false,
+    event_cancelled_in_app: true,
+    event_cancelled_email: false,
+
+    // Forum & Kommentare
+    forum_reply_in_app: true,
+    forum_reply_email: true,
+    forum_reaction_in_app: true,
+    forum_reaction_email: false,
+    comment_reply_in_app: true,
+    comment_reply_email: false,
+
+    // Nachrichten
+    // REMOVED: message_group_in_app, message_group_email, message_event_in_app, message_event_email, message_search_ad_in_app, message_search_ad_email, message_offer_in_app, message_offer_email
+    // (These were removed in the updates, so they are not included here)
+
+    // Spiel-Interaktionen
+    game_shelf_request_in_app: true,
+    game_shelf_request_email: true,
+    game_interaction_request_in_app: true,
+    game_interaction_request_email: true,
+    marketplace_offer_request_in_app: true,
+    marketplace_offer_request_email: true,
+
+    // System
+    system_maintenance_in_app: true,
+    system_maintenance_email: true,
+    system_feature_in_app: true,
+    system_feature_email: false,
+  })
+  const [notificationTab, setNotificationTab] = useState("inbox")
+
+  const userId = user?.id // Get user ID for notification functions
+
+  const handleToggleOfferStatus = async (offerId: string, currentStatus: boolean) => {
+    console.log("DEBUG: Toggling offer status for offerId:", offerId, "currentStatus:", currentStatus)
+    try {
+      const { error } = await supabase.from("marketplace_offers").update({ active: !currentStatus }).eq("id", offerId)
+      if (error) throw error
+      toast({
+        title: "Erfolg",
+        description: `Angebot ${!currentStatus ? "aktiviert" : "pausiert"}.`,
+      })
+      loadActivities()
+    } catch (error) {
+      console.error("Error toggling offer status:", error)
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Aktualisieren des Angebots.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteOffer = async (offerId: string) => {
+    console.log("DEBUG: Deleting offer with offerId:", offerId)
+    if (confirm("Sind Sie sicher, dass Sie dieses Angebot löschen möchten?")) {
+      try {
+        const { error } = await supabase.from("marketplace_offers").delete().eq("id", offerId)
+        if (error) throw error
+        toast({
+          title: "Erfolg",
+          description: "Angebot erfolgreich gelöscht.",
+        })
+        loadActivities()
+      } catch (error) {
+        console.error("Error deleting offer:", error)
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Löschen des Angebots.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  const handleToggleAdStatus = async (adId: string, currentStatus: boolean) => {
+    console.log("DEBUG: Toggling ad status for adId:", adId, "currentStatus:", currentStatus)
+    try {
+      const { error } = await supabase.from("search_ads").update({ active: !currentStatus }).eq("id", adId)
+      if (error) throw error
+      toast({
+        title: "Erfolg",
+        description: `Suchanzeige ${!currentStatus ? "aktiviert" : "pausiert"}.`,
+      })
+      loadActivities()
+    } catch (error) {
+      console.error("Error toggling ad status:", error)
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Aktualisieren der Suchanzeige.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteAd = async (adId: string) => {
+    console.log("DEBUG: Deleting ad with adId:", adId)
+    if (confirm("Sind Sie sicher, dass Sie diese Suchanzeige löschen möchten?")) {
+      try {
+        const { error } = await supabase.from("search_ads").delete().eq("id", adId)
+        if (error) throw error
+        toast({
+          title: "Erfolg",
+          description: "Suchanzeige erfolgreich gelöscht.",
+        })
+        loadActivities()
+      } catch (error) {
+        console.error("Error deleting ad:", error)
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Löschen der Suchanzeige.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  const handleDeleteCommunity = async (communityId: string) => {
+    console.log("DEBUG: Deleting community with communityId:", communityId)
+    if (confirm("Sind Sie sicher, dass Sie diese Spielgruppe löschen möchten?")) {
+      try {
+        const { error } = await supabase.from("communities").delete().eq("id", communityId)
+        if (error) throw error
+        toast({
+          title: "Erfolg",
+          description: "Spielgruppe erfolgreich gelöscht.",
+        })
+        loadActivities()
+      } catch (error) {
+        console.error("Error deleting community:", error)
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Löschen der Spielgruppe.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  const handleAcceptFriendRequest = async (requestId: string) => {
+    console.log("DEBUG: Accepting friend request with requestId:", requestId)
+    try {
+      const { error: updateError } = await supabase
+        .from("friend_requests")
+        .update({ status: "accepted" })
+        .eq("id", requestId)
+      if (updateError) throw updateError
+      toast({
+        title: "Erfolg",
+        description: "Freundschaftsanfrage angenommen.",
+      })
+      loadActivities()
+    } catch (error) {
+      console.error("Error accepting friend request:", error)
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Annehmen der Anfrage.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleRejectFriendRequest = async (requestId: string) => {
+    console.log("DEBUG: Rejecting friend request with requestId:", requestId)
+    try {
+      const { error } = await supabase.from("friend_requests").update({ status: "declined" }).eq("id", requestId)
+      if (error) throw error
+      toast({
+        title: "Erfolg",
+        description: "Freundschaftsanfrage abgelehnt.",
+      })
+      loadActivities()
+    } catch (error) {
+      console.error("Error rejecting friend request:", error)
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Ablehnen der Anfrage.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteEvent = async (eventId: string) => {
+    console.log("DEBUG: Deleting event with eventId:", eventId)
+    if (confirm("Sind Sie sicher, dass Sie dieses Event löschen möchten?")) {
+      try {
+        const { error } = await supabase.from("ludo_events").delete().eq("id", eventId)
+        if (error) throw error
+        toast({
+          title: "Erfolg",
+          description: "Event erfolgreich gelöscht.",
+        })
+        loadActivities() // Reload activities after deletion
+      } catch (error) {
+        console.error("Error deleting event:", error)
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Löschen des Events.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  const handleLeaveCommunity = async (memberId: string) => {
+    console.log("DEBUG: Leaving community with memberId:", memberId)
+    if (confirm("Sind Sie sicher, dass Sie diese Spielgruppe verlassen möchten?")) {
+      try {
+        const { error } = await supabase.from("community_members").delete().eq("id", memberId)
+        if (error) throw error
+        toast({
+          title: "Erfolg",
+          description: "Spielgruppe erfolgreich verlassen.",
+        })
+        loadActivities() // Reload activities after leaving
+      } catch (error) {
+        console.error("Error leaving community:", error)
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Verlassen der Spielgruppe.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
 
   useEffect(() => {
     async function loadProfile() {
@@ -193,6 +558,13 @@ export default function ProfilePage() {
       loadProfile()
     }
   }, [user, authLoading, supabase])
+
+  // Load activities on component mount
+  useEffect(() => {
+    if (user) {
+      loadActivities()
+    }
+  }, [user])
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -271,6 +643,7 @@ export default function ProfilePage() {
   }, [avatarStyle, avatarBgColor, showAvatarCreator, avatarSeed])
 
   const handleAvatarSave = async () => {
+    console.log("DEBUG: Saving generated avatar:", generatedAvatar)
     if (!user || !profile || !generatedAvatar) return // Ensure generatedAvatar is available
 
     try {
@@ -338,6 +711,7 @@ export default function ProfilePage() {
   }
 
   const handleSelectAddress = (address: string) => {
+    console.log("DEBUG: Selected address:", address)
     setEditedProfile({ ...editedProfile, address })
     setShowAddressSuggestions(false)
     setAddressSuggestions([])
@@ -348,7 +722,6 @@ export default function ProfilePage() {
     setSaving(true)
     try {
       const { error } = await supabase
-        .from("users")
         .update({
           name: editedProfile.name,
           username: editedProfile.username,
@@ -362,6 +735,7 @@ export default function ProfilePage() {
           favorite_games: editedProfile.favorite_games,
         })
         .eq("id", user.id)
+        .from("users")
 
       if (error) throw error
 
@@ -384,6 +758,7 @@ export default function ProfilePage() {
   }
 
   const handleLogout = async () => {
+    console.log("DEBUG: Logging out user.")
     await signOut()
     router.push("/")
   }
@@ -420,6 +795,7 @@ export default function ProfilePage() {
           id,
           status,
           joined_at,
+          event_id,
           event:ludo_events(id, title, first_instance_date, start_time, location, creator_id, selected_games, frequency, ludo_event_instances(id, instance_date))
         `)
         .eq("user_id", user.id)
@@ -463,7 +839,7 @@ export default function ProfilePage() {
           id,
           role,
           joined_at,
-          community:communities(id, name, image, creator_id, type, location, community_members(id))
+          community:communities(id, name, image, creator_id, type, location, community_members(id), active)
         `)
         .eq("user_id", user.id)
         .order("joined_at", { ascending: false })
@@ -521,10 +897,13 @@ export default function ProfilePage() {
         eventParticipations: eventParticipations || [],
         friendRequests: friendRequests || [],
         eventJoinRequests: eventJoinRequests || [],
+        // Filter out communities where the user is the creator for memberCommunities
         memberCommunities: memberCommunities?.filter((m) => m.community?.creator_id !== user.id) || [],
         createdCommunities: createdCommunities || [],
         marketplaceOffers: marketplaceOffers || [],
         searchAds: searchAds || [],
+        // Assigning communityMemberships for the new structure
+        communityMemberships: memberCommunities?.filter((m) => m.community?.creator_id !== user.id) || [],
       })
     } catch (error) {
       console.error("Error loading activities:", error)
@@ -533,45 +912,149 @@ export default function ProfilePage() {
     }
   }
 
-  const handleDeleteEvent = async (eventId: string) => {
-    if (confirm("Sind Sie sicher, dass Sie dieses Event löschen möchten?")) {
-      try {
-        const { error } = await supabase.from("ludo_events").delete().eq("id", eventId)
-        if (error) throw error
-        toast({
-          title: "Erfolg",
-          description: "Event erfolgreich gelöscht.",
-        })
-        loadActivities() // Reload activities after deletion
-      } catch (error) {
-        console.error("Error deleting event:", error)
-        toast({
-          title: "Fehler",
-          description: "Fehler beim Löschen des Events.",
-          variant: "destructive",
-        })
-      }
+  const loadNotificationPrefs = async () => {
+    if (!userId) return
+
+    const result = await getUserNotifications()
+    if (result.success) {
+      setNotifications(result.notifications || [])
     }
   }
 
-  const handleLeaveCommunity = async (memberId: string) => {
-    if (confirm("Sind Sie sicher, dass Sie diese Spielgruppe verlassen möchten?")) {
-      try {
-        const { error } = await supabase.from("community_members").delete().eq("id", memberId)
-        if (error) throw error
-        toast({
-          title: "Erfolg",
-          description: "Spielgruppe erfolgreich verlassen.",
-        })
-        loadActivities() // Reload activities after leaving
-      } catch (error) {
-        console.error("Error leaving community:", error)
-        toast({
-          title: "Fehler",
-          description: "Fehler beim Verlassen der Spielgruppe.",
-          variant: "destructive",
-        })
+  const handleMarkAllNotificationsRead = async () => {
+    const result = await markAllNotificationsAsRead()
+    if (result.success) {
+      toast({ title: "Erfolg", description: "Alle Benachrichtigungen als gelesen markiert" })
+      loadNotificationPrefs()
+    }
+  }
+
+  const handleDeleteNotification = async (notificationId: string) => {
+    const result = await deleteNotification(notificationId)
+    if (result.success) {
+      toast({ title: "Erfolg", description: "Benachrichtigung gelöscht" })
+      loadNotificationPrefs()
+    }
+  }
+
+  const handleNotificationPreferenceChange = (key: string, value: boolean) => {
+    setNotificationPreferences((prev) => ({ ...prev, [key]: value }))
+    // We need to save this to the backend here. For now, just updating local state.
+    // In a real application, you would trigger a backend save operation here.
+    // For example: await saveNotificationPreferenceToBackend(key, value);
+    toast({ title: "Gespeichert", description: "Einstellung gespeichert" })
+  }
+
+  // NotificationPreferenceRow component moved inside ProfilePage to use its state and handlers directly.
+  const NotificationPreferenceRow = ({
+    label,
+    inAppKey,
+    emailKey,
+  }: { label: string; inAppKey: string; emailKey: string }) => {
+    const isEnabledInApp = notificationPreferences[inAppKey as keyof typeof notificationPreferences]
+    const isEnabledEmail = notificationPreferences[emailKey as keyof typeof notificationPreferences]
+
+    return (
+      <div className="flex items-center justify-between py-3">
+        <Label className="text-sm font-medium">{label}</Label>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <Bell className="w-4 h-4 text-gray-400" />
+            <Switch
+              checked={isEnabledInApp}
+              onCheckedChange={(checked) => handleNotificationPreferenceChange(inAppKey, checked)}
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Mail className="w-4 h-4 text-gray-400" />
+            <Switch
+              checked={isEnabledEmail}
+              onCheckedChange={(checked) => handleNotificationPreferenceChange(emailKey, checked)}
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500"
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const saveNotificationPref = async (category: string, key: string, value: number) => {
+    if (!user) return
+    try {
+      console.log("[v0] Saving notification pref:", { category, key, value })
+
+      let table = ""
+      let dbKey = key
+
+      if (category === "social") {
+        table = "social_notification_preferences"
+      } else if (category === "security") {
+        table = "security_notification_preferences"
+      } else if (category === "marketplace") {
+        table = "marketing_notification_preferences"
+        const keyMap: Record<string, string> = {
+          matching_offers: "game_recommendations",
+          offer_responses: "feedback_requests",
+          price_changes: "trending_games",
+          expiring_offers: "event_suggestions",
+          new_releases: "new_game_releases",
+        }
+        dbKey = keyMap[key] || key
+      } else {
+        return
       }
+
+      const numValue = Number(value)
+      const clampedValue = Math.max(0, Math.min(2, numValue))
+
+      const dbValue = category === "marketplace" ? Boolean(clampedValue) : clampedValue
+
+      const { data: existing, error: selectError } = await supabase
+        .from(table)
+        .select("id")
+        .eq("user_id", user.id)
+        .single()
+
+      if (selectError && selectError.code !== "PGRST116") {
+        // PGRST116 = no rows returned, which is expected for new records
+        throw selectError
+      }
+
+      if (existing) {
+        // Update existing record
+        const { error } = await supabase
+          .from(table)
+          .update({ [dbKey]: dbValue })
+          .eq("user_id", user.id)
+
+        if (error) throw error
+      } else {
+        // Insert new record with default values
+        const { error } = await supabase.from(table).insert({ user_id: user.id, [dbKey]: dbValue })
+
+        if (error) throw error
+      }
+
+      setNotificationPrefs((prev) => ({
+        ...prev,
+        [category]: {
+          ...prev[category as keyof typeof prev],
+          [key]: clampedValue,
+        },
+      }))
+
+      toast({
+        title: "Gespeichert",
+        description: "Benachrichtigungseinstellung aktualisiert.",
+      })
+    } catch (error: any) {
+      console.error("Error saving notification preference:", error)
+      toast({
+        title: "Fehler",
+        description: `Fehler beim Speichern: ${error.message}`,
+        variant: "destructive",
+      })
     }
   }
 
@@ -625,6 +1108,7 @@ export default function ProfilePage() {
   }
 
   const handleDeleteAccount = async () => {
+    console.log("DEBUG: Deleting account.")
     if (deleteConfirmText !== "LÖSCHEN") {
       return
     }
@@ -850,8 +1334,8 @@ export default function ProfilePage() {
           </Dialog>
 
           {/* Profile Tabs */}
-          <Tabs defaultValue="profile" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-5 bg-white border-2 border-teal-200">
+          <Tabs defaultValue={activeTab} onValueChange={(value) => setActiveTab(value)} className="space-y-4">
+            <TabsList className="grid grid-cols-4 gap-1 bg-gray-50">
               <TabsTrigger value="profile" className="data-[state=active]:bg-teal-100 text-xs">
                 <CgProfile className="w-3 h-3 mr-1" />
                 Profil
@@ -859,12 +1343,16 @@ export default function ProfilePage() {
               <TabsTrigger
                 value="activities"
                 className="data-[state=active]:bg-teal-100 text-xs"
-                onClick={loadActivities}
+                // Removed onClick={loadActivities} as it's now loaded on mount
               >
-                <Activity className="w-3 h-3 mr-1" />
-                Aktivitäten
+                <RxActivityLog className="w-3 h-3 mr-1" />
+                Meine Aktivitäten
               </TabsTrigger>
-              <TabsTrigger value="notifications" className="data-[state=active]:bg-teal-100 text-xs">
+              <TabsTrigger
+                value="notifications"
+                className="data-[state=active]:bg-teal-100 text-xs"
+                onClick={loadNotificationPrefs} // Corrected from loadNotificationPreferences
+              >
                 <FaBell className="w-3 h-3 mr-1" />
                 Benachrichtigungen
               </TabsTrigger>
@@ -1145,685 +1633,765 @@ export default function ProfilePage() {
                   </p>
                 </CardHeader>
                 <CardContent>
-                  {loadingActivities ? (
-                    <div className="flex items-center justify-center py-8">
-                      <RefreshCw className="w-6 h-6 animate-spin text-teal-500" />
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {/* Filter Tabs */}
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        <Button
-                          variant={activityFilter === "all" ? "default" : "outline"}
-                          size="sm"
-                          className={`h-6 text-[10px] ${activityFilter === "all" ? "bg-teal-600" : ""}`}
-                          onClick={() => setActivityFilter("all")}
-                        >
-                          Alle
-                        </Button>
-                        <Button
-                          variant={activityFilter === "events" ? "default" : "ghost"}
-                          size="sm"
-                          className={`h-6 text-[10px] ${activityFilter === "events" ? "bg-blue-600" : ""}`}
-                          onClick={() => setActivityFilter("events")}
-                        >
-                          <CalendarDays className="w-3 h-3 mr-1" />
-                          Events
-                        </Button>
-                        <Button
-                          variant={activityFilter === "requests" ? "default" : "ghost"}
-                          size="sm"
-                          className={`h-6 text-[10px] ${activityFilter === "requests" ? "bg-purple-600" : ""}`}
-                          onClick={() => setActivityFilter("requests")}
-                        >
-                          <UserPlus className="w-3 h-3 mr-1" />
-                          Anfragen
-                        </Button>
-                        <Button
-                          variant={activityFilter === "groups" ? "default" : "ghost"}
-                          size="sm"
-                          className={`h-6 text-[10px] ${activityFilter === "groups" ? "bg-green-600" : ""}`}
-                          onClick={() => setActivityFilter("groups")}
-                        >
-                          <Users className="w-3 h-3 mr-1" />
-                          Gruppen
-                        </Button>
-                        <Button
-                          variant={activityFilter === "market" ? "default" : "ghost"}
-                          size="sm"
-                          className={`h-6 text-[10px] ${activityFilter === "market" ? "bg-orange-600" : ""}`}
-                          onClick={() => setActivityFilter("market")}
-                        >
-                          <Store className="w-3 h-3 mr-1" />
-                          Markt
-                        </Button>
-                      </div>
+                  <Tabs
+                    defaultValue={
+                      activeTab === "activities" ? "events-member" : activeTab.split("-")[0] || "events-member"
+                    }
+                    className="w-full"
+                  >
+                    {/* Changed TabsList to grid with 4 columns for better layout */}
+                    <TabsList className="grid grid-cols-4 w-full gap-1 bg-gray-50">
+                      <TabsTrigger value="events-member" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
+                        <PiUserCircleCheck className="w-3 h-3 mr-1" />
+                        Events (Mitglied)
+                      </TabsTrigger>
+                      <TabsTrigger value="my-events" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
+                        <PiUserCircleGear className="w-3 h-3 mr-1" />
+                        Meine Events
+                      </TabsTrigger>
+                      <TabsTrigger value="groups-member" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
+                        <PiUserCircleCheck className="w-3 h-3 mr-1" />
+                        Spielgruppe (Mitglied)
+                      </TabsTrigger>
+                      <TabsTrigger value="my-groups" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
+                        <PiUserCircleGear className="w-3 h-3 mr-1" />
+                        Meine Spielgruppen
+                      </TabsTrigger>
+                      <TabsTrigger value="requests" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
+                        <PiUserCirclePlus className="w-3 h-3 mr-1" />
+                        Anfragen
+                      </TabsTrigger>
+                      <TabsTrigger value="offers" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
+                        <Store className="w-3 h-3 mr-1" />
+                        Angebote
+                      </TabsTrigger>
+                      <TabsTrigger value="search-ads" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
+                        <IoSearchCircle className="w-3 h-3 mr-1" />
+                        Suchanzeigen
+                      </TabsTrigger>
+                    </TabsList>
 
-                      <ScrollArea className="h-[500px] pr-4">
-                        <div className="space-y-4">
-                          {/* EVENTS SECTION */}
-                          {(activityFilter === "all" || activityFilter === "events") && (
-                            <div className="space-y-2">
-                              <h3 className="text-sm font-semibold text-blue-700 flex items-center gap-2">
-                                <CalendarDays className="w-4 h-4" />
-                                Events
-                              </h3>
+                    <ScrollArea className="h-[500px] pr-4 mt-10">
+                      {/* Events (Mitglied) Tab */}
+                      <TabsContent value="events-member" className="mt-0">
+                        <div className="space-y-2">
+                          {activityData.eventParticipations.length > 0 ? (
+                            activityData.eventParticipations.map((participation) => {
+                              const event = participation.event
+                              const instances = event?.ludo_event_instances || []
 
-                              {/* Created Events */}
-                              {activityData.createdEvents.length > 0 && (
-                                <div className="space-y-1">
-                                  <p className="text-xs text-gray-500 font-medium">Erstellte Events</p>
-                                  {activityData.createdEvents.map((event) => {
-                                    const instances = event.ludo_event_instances || []
-                                    const sortedInstances = [...instances].sort(
-                                      (a: any, b: any) =>
-                                        new Date(a.instance_date).getTime() - new Date(b.instance_date).getTime(),
-                                    )
-                                    const participantCount = event.ludo_event_participants?.length || 0
+                              const isInactive =
+                                instances.length > 0
+                                  ? instances.every((inst: any) => new Date(inst.instance_date) < new Date())
+                                  : event?.first_instance_date && new Date(event.first_instance_date) < new Date()
 
-                                    const games = event.selected_games || []
-                                    let gameTitle = ""
-                                    if (games.length > 0) {
-                                      const firstGame = games[0]
-                                      if (typeof firstGame === "string") {
-                                        // Try to parse JSON string if it looks like JSON
-                                        try {
-                                          const parsed = JSON.parse(firstGame)
-                                          gameTitle = parsed.title || firstGame
-                                        } catch {
-                                          gameTitle = firstGame
-                                        }
-                                      } else if (firstGame && typeof firstGame === "object" && "title" in firstGame) {
-                                        gameTitle = firstGame.title
-                                      }
-                                    }
+                              const sortedInstances = [...instances].sort(
+                                (a: any, b: any) =>
+                                  new Date(a.instance_date).getTime() - new Date(b.instance_date).getTime(),
+                              )
 
-                                    let datesDisplay = ""
-                                    if (sortedInstances.length > 0) {
-                                      const firstDates = sortedInstances.slice(0, 3).map((i: any) =>
-                                        new Date(i.instance_date).toLocaleDateString("de-DE", {
-                                          day: "2-digit",
-                                          month: "2-digit",
-                                          year: "numeric",
-                                        }),
-                                      )
-                                      datesDisplay = firstDates.join(", ")
-                                      if (sortedInstances.length > 3) datesDisplay += " ..."
-                                    } else if (event.first_instance_date) {
-                                      datesDisplay = new Date(event.first_instance_date).toLocaleDateString("de-DE", {
-                                        day: "2-digit",
-                                        month: "2-digit",
-                                        year: "numeric",
-                                      })
-                                    }
+                              const games = event?.selected_games || []
+                              let gameTitle = ""
+                              if (games.length > 0) {
+                                const firstGame = games[0]
+                                if (typeof firstGame === "string") {
+                                  try {
+                                    const parsed = JSON.parse(firstGame)
+                                    gameTitle = parsed.title || firstGame
+                                  } catch {
+                                    gameTitle = firstGame
+                                  }
+                                } else if (firstGame && typeof firstGame === "object" && "title" in firstGame) {
+                                  gameTitle = firstGame.title
+                                }
+                              }
 
-                                    return (
-                                      <div
-                                        key={event.id}
-                                        className="flex items-center justify-between p-2 bg-blue-50 rounded-lg border border-blue-100"
-                                      >
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-xs font-medium text-gray-900 truncate">{event.title}</p>
-                                          <p className="text-[10px] text-gray-500">
-                                            {datesDisplay}
-                                            {event.location && ` • ${event.location}`}
-                                            {gameTitle && ` • ${gameTitle}`}
-                                            {` • ${participantCount}/${event.max_participants || "∞"} Teilnehmer`}
-                                          </p>
-                                        </div>
-                                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              router.push(`/events/${event.id}/edit`)
-                                            }}
-                                            title="Bearbeiten"
-                                          >
-                                            <Pencil className="w-3 h-3 text-blue-600" />
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              router.push(`/events/${event.id}/participants`)
-                                            }}
-                                            title="Teilnehmerliste"
-                                          >
-                                            <Users className="w-3 h-3 text-blue-600" />
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              handleDeleteEvent(event.id)
-                                            }}
-                                            title="Löschen"
-                                          >
-                                            <Trash2 className="w-3 h-3 text-red-600" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    )
-                                  })}
+                              let datesDisplay = ""
+                              if (sortedInstances.length > 0) {
+                                const firstDates = sortedInstances.slice(0, 3).map((i: any) =>
+                                  new Date(i.instance_date).toLocaleDateString("de-DE", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  }),
+                                )
+                                datesDisplay = firstDates.join(", ")
+                                if (sortedInstances.length > 3) datesDisplay += " ..."
+                              } else if (event?.first_instance_date) {
+                                datesDisplay = new Date(event.first_instance_date).toLocaleDateString("de-DE", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })
+                              }
+
+                              return (
+                                <div
+                                  key={participation.id}
+                                  className="flex items-center justify-between p-2 bg-blue-50 rounded-lg border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors"
+                                  onClick={() => router.push(`/ludo-events?view=${participation.event_id}`)}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-gray-900 truncate">
+                                      {event?.title || "Unbekanntes Event"}
+                                    </p>
+                                    <p className="text-[10px] text-gray-500">
+                                      {datesDisplay} • {event?.location}
+                                      {gameTitle && ` • ${gameTitle}`}
+                                    </p>
+                                  </div>
+                                  <Badge
+                                    className={`text-[9px] h-4 ${
+                                      participation.status === "confirmed"
+                                        ? "bg-green-100 text-green-700"
+                                        : participation.status === "pending"
+                                          ? "bg-yellow-100 text-yellow-700"
+                                          : "bg-gray-100 text-gray-700"
+                                    }`}
+                                  >
+                                    {participation.status === "confirmed"
+                                      ? "Bestätigt"
+                                      : participation.status === "pending"
+                                        ? "Ausstehend"
+                                        : participation.status}
+                                  </Badge>
+                                  {isInactive && (
+                                    <Badge className="ml-1 h-4 px-1 text-[8px] bg-gray-100 text-gray-600">
+                                      Abgelaufen
+                                    </Badge>
+                                  )}
                                 </div>
-                              )}
-
-                              {/* Event Participations */}
-                              {activityData.eventParticipations.length > 0 && (
-                                <div className="space-y-1">
-                                  <p className="text-xs text-gray-500 font-medium">Teilnahmen</p>
-                                  {activityData.eventParticipations.map((participation) => {
-                                    const event = participation.event
-                                    const instances = event?.ludo_event_instances || []
-                                    const sortedInstances = [...instances].sort(
-                                      (a: any, b: any) =>
-                                        new Date(a.instance_date).getTime() - new Date(b.instance_date).getTime(),
-                                    )
-
-                                    const games = event?.selected_games || []
-                                    let gameTitle = ""
-                                    if (games.length > 0) {
-                                      const firstGame = games[0]
-                                      if (typeof firstGame === "string") {
-                                        // Try to parse JSON string if it looks like JSON
-                                        try {
-                                          const parsed = JSON.parse(firstGame)
-                                          gameTitle = parsed.title || firstGame
-                                        } catch {
-                                          gameTitle = firstGame
-                                        }
-                                      } else if (firstGame && typeof firstGame === "object" && "title" in firstGame) {
-                                        gameTitle = firstGame.title
-                                      }
-                                    }
-
-                                    let datesDisplay = ""
-                                    if (sortedInstances.length > 0) {
-                                      const firstDates = sortedInstances.slice(0, 3).map((i: any) =>
-                                        new Date(i.instance_date).toLocaleDateString("de-DE", {
-                                          day: "2-digit",
-                                          month: "2-digit",
-                                          year: "numeric",
-                                        }),
-                                      )
-                                      datesDisplay = firstDates.join(", ")
-                                      if (sortedInstances.length > 3) datesDisplay += " ..."
-                                    } else if (event?.first_instance_date) {
-                                      datesDisplay = new Date(event.first_instance_date).toLocaleDateString("de-DE", {
-                                        day: "2-digit",
-                                        month: "2-digit",
-                                        year: "numeric",
-                                      })
-                                    }
-
-                                    return (
-                                      <div
-                                        key={participation.id}
-                                        className="flex items-center justify-between p-2 bg-blue-50/50 rounded-lg border border-blue-100/50"
-                                      >
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-xs font-medium text-gray-900 truncate">{event?.title}</p>
-                                          <p className="text-[10px] text-gray-500">
-                                            {datesDisplay}
-                                            {event?.location && ` • ${event.location}`}
-                                            {gameTitle && ` • ${gameTitle}`}
-                                          </p>
-                                        </div>
-                                        <Badge
-                                          className={`text-[9px] h-4 ${
-                                            participation.status === "confirmed"
-                                              ? "bg-green-100 text-green-700"
-                                              : participation.status === "pending"
-                                                ? "bg-yellow-100 text-yellow-700"
-                                                : "bg-gray-100 text-gray-700"
-                                          }`}
-                                        >
-                                          {participation.status === "confirmed"
-                                            ? "Bestätigt"
-                                            : participation.status === "pending"
-                                              ? "Ausstehend"
-                                              : participation.status}
-                                        </Badge>
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              )}
-
-                              {activityData.createdEvents.length === 0 &&
-                                activityData.eventParticipations.length === 0 && (
-                                  <p className="text-xs text-gray-400 text-center py-2">Keine Events vorhanden</p>
-                                )}
-                            </div>
-                          )}
-
-                          {/* REQUESTS SECTION */}
-                          {(activityFilter === "all" || activityFilter === "requests") && (
-                            <div className="space-y-2">
-                              <h3 className="text-sm font-semibold text-purple-700 flex items-center gap-2">
-                                <UserPlus className="w-4 h-4" />
-                                Anfragen
-                              </h3>
-
-                              {/* Friend Requests */}
-                              {activityData.friendRequests.length > 0 && (
-                                <div className="space-y-1">
-                                  <p className="text-xs text-gray-500 font-medium">Freundschaftsanfragen</p>
-                                  {activityData.friendRequests.map((request) => {
-                                    const isSender = request.from_user_id === user?.id
-                                    const otherUser = isSender ? request.to_user : request.from_user
-                                    return (
-                                      <div
-                                        key={request.id}
-                                        className="flex items-center justify-between p-2 bg-purple-50 rounded-lg border border-purple-100"
-                                      >
-                                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                                          <Avatar className="w-6 h-6">
-                                            <AvatarImage src={otherUser?.avatar || "/placeholder.svg"} />
-                                            <AvatarFallback className="text-[9px]">
-                                              {otherUser?.name?.charAt(0) || otherUser?.username?.charAt(0) || "?"}
-                                            </AvatarFallback>
-                                          </Avatar>
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-medium text-gray-900 truncate">
-                                              {otherUser?.name || otherUser?.username}
-                                            </p>
-                                            <p className="text-[10px] text-gray-500">
-                                              {isSender ? "Gesendet" : "Erhalten"} •{" "}
-                                              {new Date(request.created_at).toLocaleDateString("de-DE")}
-                                            </p>
-                                          </div>
-                                        </div>
-                                        {isSender ? (
-                                          <Badge className="text-[9px] h-4 bg-yellow-100 text-yellow-700">
-                                            Ausstehend
-                                          </Badge>
-                                        ) : (
-                                          <div className="flex gap-1">
-                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Annehmen">
-                                              <UserCheck className="w-3 h-3 text-green-600" />
-                                            </Button>
-                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Ablehnen">
-                                              <UserX className="w-3 h-3 text-red-600" />
-                                            </Button>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              )}
-
-                              {/* Event Join Requests */}
-                              {activityData.eventJoinRequests.length > 0 && (
-                                <div className="space-y-1">
-                                  <p className="text-xs text-gray-500 font-medium">Teilnahmeanfragen</p>
-                                  {activityData.eventJoinRequests.map((request) => {
-                                    const isMyEvent = request.event?.creator_id === user?.id
-                                    return (
-                                      <div
-                                        key={request.id}
-                                        className="flex items-center justify-between p-2 bg-purple-50/50 rounded-lg border border-purple-100/50"
-                                      >
-                                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                                          {isMyEvent && (
-                                            <Avatar className="w-6 h-6">
-                                              <AvatarImage src={request.user?.avatar || "/placeholder.svg"} />
-                                              <AvatarFallback className="text-[9px]">
-                                                {request.user?.name?.charAt(0) || "?"}
-                                              </AvatarFallback>
-                                            </Avatar>
-                                          )}
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-medium text-gray-900 truncate">
-                                              {isMyEvent
-                                                ? `${request.user?.name || request.user?.username} möchte teilnehmen`
-                                                : request.event?.title}
-                                            </p>
-                                            <p className="text-[10px] text-gray-500">
-                                              {isMyEvent ? request.event?.title : "Deine Anfrage"} •{" "}
-                                              {new Date(request.created_at).toLocaleDateString("de-DE")}
-                                            </p>
-                                          </div>
-                                        </div>
-                                        {isMyEvent ? (
-                                          <div className="flex gap-1">
-                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Annehmen">
-                                              <Check className="w-3 h-3 text-green-600" />
-                                            </Button>
-                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Ablehnen">
-                                              <X className="w-3 h-3 text-red-600" />
-                                            </Button>
-                                          </div>
-                                        ) : (
-                                          <Badge className="text-[9px] h-4 bg-yellow-100 text-yellow-700">
-                                            Ausstehend
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              )}
-
-                              {activityData.friendRequests.length === 0 &&
-                                activityData.eventJoinRequests.length === 0 && (
-                                  <p className="text-xs text-gray-400 text-center py-2">Keine Anfragen vorhanden</p>
-                                )}
-                            </div>
-                          )}
-
-                          {/* GROUPS SECTION */}
-                          {(activityFilter === "all" || activityFilter === "groups") && (
-                            <div className="space-y-2">
-                              <h3 className="text-sm font-semibold text-green-700 flex items-center gap-2">
-                                <Users className="w-4 h-4" />
-                                Spielgruppen
-                              </h3>
-
-                              {/* Created Communities */}
-                              {activityData.createdCommunities.length > 0 && (
-                                <div className="space-y-1">
-                                  <p className="text-xs text-gray-500 font-medium">Spielgruppen (Erstellt)</p>
-                                  {activityData.createdCommunities.map((community) => {
-                                    const memberCount = community.community_members?.length || 0
-                                    const createdDate = new Date(community.created_at).toLocaleDateString("de-DE", {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      year: "numeric",
-                                    })
-
-                                    return (
-                                      <div
-                                        key={community.id}
-                                        className="flex items-center justify-between p-2 bg-purple-50 rounded-lg border border-purple-100"
-                                      >
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-xs font-medium text-gray-900 truncate">{community.name}</p>
-                                          <p className="text-[10px] text-gray-500">
-                                            Erstellt am {createdDate} • {community.location || "Kein Ort"} •{" "}
-                                            {memberCount} Mitglieder
-                                          </p>
-                                        </div>
-                                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              router.push(`/spielgruppen/${community.id}/edit`)
-                                            }}
-                                            title="Bearbeiten"
-                                          >
-                                            <Pencil className="w-3 h-3 text-purple-600" />
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              router.push(`/spielgruppen/${community.id}/members`)
-                                            }}
-                                            title="Mitglieder"
-                                          >
-                                            <Users className="w-3 h-3 text-purple-600" />
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              router.push(`/spielgruppen/${community.id}/votings`)
-                                            }}
-                                            title="Abstimmungen"
-                                          >
-                                            <Vote className="w-3 h-3 text-purple-600" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              )}
-
-                              {/* Member Communities */}
-                              {activityData.memberCommunities.length > 0 && (
-                                <div className="space-y-1">
-                                  <p className="text-xs text-gray-500 font-medium">Spielgruppen (Mitglied)</p>
-                                  {activityData.memberCommunities.map((membership) => {
-                                    const community = membership.community
-                                    const memberCount = community?.community_members?.length || 0
-                                    const joinDate = new Date(membership.joined_at).toLocaleDateString("de-DE", {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      year: "numeric",
-                                    })
-
-                                    return (
-                                      <div
-                                        key={membership.id}
-                                        className="flex items-center justify-between p-2 bg-purple-50 rounded-lg border border-purple-100"
-                                      >
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-xs font-medium text-gray-900 truncate">
-                                            {community?.name}
-                                          </p>
-                                          <p className="text-[10px] text-gray-500">
-                                            Mitglied seit {joinDate} • {community?.location || "Kein Ort"} •{" "}
-                                            {memberCount} Mitglieder
-                                          </p>
-                                        </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-6 w-6 p-0 ml-2"
-                                          onClick={() => handleLeaveCommunity(membership.id)}
-                                          title="Austreten"
-                                        >
-                                          <LogOut className="w-3 h-3 text-purple-600" />
-                                        </Button>
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              )}
-
-                              {activityData.createdCommunities.length === 0 &&
-                                activityData.memberCommunities.length === 0 && (
-                                  <p className="text-xs text-gray-400 text-center py-2">Keine Spielgruppen vorhanden</p>
-                                )}
-                            </div>
-                          )}
-
-                          {/* MARKET SECTION */}
-                          {(activityFilter === "all" || activityFilter === "market") && (
-                            <div className="space-y-2">
-                              <h3 className="text-sm font-semibold text-orange-700 flex items-center gap-2">
-                                <Store className="w-4 h-4" />
-                                Spielehandel
-                              </h3>
-
-                              {/* Marketplace Offers */}
-                              {activityData.marketplaceOffers.length > 0 && (
-                                <div className="space-y-1">
-                                  <p className="text-xs text-gray-500 font-medium">Angebote</p>
-                                  {activityData.marketplaceOffers.map((offer) => {
-                                    const getOfferTypeLabel = (type: string) => {
-                                      switch (type) {
-                                        case "sell":
-                                          return "Verkaufsangebot"
-                                        case "rent":
-                                          return "Vermietungsangebot"
-                                        case "trade":
-                                          return "Tauschangebot"
-                                        case "lend":
-                                          return "Mietangebot"
-                                        default:
-                                          return "Mietangebot"
-                                      }
-                                    }
-                                    const getOfferPrefix = (type: string) => {
-                                      switch (type) {
-                                        case "sell":
-                                          return "Verkaufe "
-                                        case "rent":
-                                          return "Vermiete "
-                                        case "trade":
-                                          return "Tausche "
-                                        case "lend":
-                                          return "Biete "
-                                        default:
-                                          return ""
-                                      }
-                                    }
-
-                                    let tradeGameInfo = ""
-                                    if (offer.type === "trade" && offer.description) {
-                                      const match = offer.description.match(/gegen\s+(.+?)(?:\.|$|,)/i)
-                                      if (match) {
-                                        tradeGameInfo = ` gegen ${match[1].trim()}`
-                                      }
-                                    }
-
-                                    return (
-                                      <div
-                                        key={offer.id}
-                                        className="flex items-center justify-between p-2 bg-orange-50 rounded-lg border border-orange-100"
-                                      >
-                                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                                          {offer.image && (
-                                            <img
-                                              src={offer.image || "/placeholder.svg"}
-                                              alt=""
-                                              className="w-8 h-8 rounded object-cover"
-                                            />
-                                          )}
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-medium text-gray-900 truncate">
-                                              {getOfferPrefix(offer.type)}
-                                              {offer.title}
-                                              {tradeGameInfo}
-                                            </p>
-                                            <p className="text-[10px] text-gray-500">
-                                              {getOfferTypeLabel(offer.type)}
-                                              {offer.price && ` • ${offer.price}`}
-                                              {offer.active ? " • Aktiv" : " • Inaktiv"}
-                                            </p>
-                                          </div>
-                                        </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-6 w-6 p-0 ml-2"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            router.push(`/markt/${offer.id}/edit`)
-                                          }}
-                                          title="Bearbeiten"
-                                        >
-                                          <Pencil className="w-3 h-3 text-orange-600" />
-                                        </Button>
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              )}
-
-                              {/* Search Ads */}
-                              {activityData.searchAds.length > 0 && (
-                                <div className="space-y-1">
-                                  <p className="text-xs text-gray-500 font-medium">Meine Suchanzeigen</p>
-                                  {activityData.searchAds.map((ad) => {
-                                    const getSearchTypeLabel = (type: string) => {
-                                      switch (type) {
-                                        case "buy":
-                                          return "Kaufgesuch"
-                                        case "rent":
-                                          return "Mietgesuch"
-                                        case "trade":
-                                          return "Tauschgesuch"
-                                        default:
-                                          return "Gesuch"
-                                      }
-                                    }
-                                    const getSearchPrefix = (type: string) => {
-                                      switch (type) {
-                                        case "buy":
-                                          return "Suche (Kauf) "
-                                        case "rent":
-                                          return "Suche (Miete) "
-                                        case "trade":
-                                          return "Suche (Tausch) "
-                                        default:
-                                          return "Suche "
-                                      }
-                                    }
-                                    return (
-                                      <div
-                                        key={ad.id}
-                                        className="flex items-center justify-between p-2 bg-orange-50/50 rounded-lg border border-orange-100/50"
-                                      >
-                                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                                          <Search className="w-4 h-4 text-orange-400" />
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-medium text-gray-900 truncate">
-                                              {getSearchPrefix(ad.type)}
-                                              {ad.title}
-                                            </p>
-                                            <p className="text-[10px] text-gray-500">
-                                              {getSearchTypeLabel(ad.type)}
-                                              {ad.max_price && ` • bis ${ad.max_price}€`}
-                                              {ad.trade_game_title && ` • biete ${ad.trade_game_title}`}
-                                              {ad.rental_duration && ` • ${ad.rental_duration}`}
-                                            </p>
-                                          </div>
-                                        </div>
-                                        <div className="flex items-center gap-1 ml-2">
-                                          <Badge
-                                            className={`text-[9px] h-4 ${ad.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
-                                          >
-                                            {ad.active ? "Aktiv" : "Inaktiv"}
-                                          </Badge>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              router.push(`/marketplace/search/${ad.id}/edit`)
-                                            }}
-                                            title="Bearbeiten"
-                                          >
-                                            <Pencil className="w-3 h-3 text-orange-600" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              )}
-
-                              {activityData.marketplaceOffers.length === 0 && activityData.searchAds.length === 0 && (
-                                <p className="text-xs text-gray-400 text-center py-2">
-                                  Keine Angebote oder Suchanzeigen vorhanden
-                                </p>
-                              )}
-                            </div>
+                              )
+                            })
+                          ) : (
+                            <p className="text-xs text-gray-400 text-center py-4">Du nimmst an keinem Events teil</p>
                           )}
                         </div>
-                      </ScrollArea>
-                    </div>
-                  )}
+                      </TabsContent>
+
+                      {/* Meine Events Tab */}
+                      <TabsContent value="my-events" className="mt-0">
+                        <div className="space-y-2">
+                          {activityData.createdEvents.length > 0 ? (
+                            activityData.createdEvents.map((event) => {
+                              const instances = event?.ludo_event_instances || []
+
+                              const isInactive =
+                                instances.length > 0
+                                  ? instances.every((inst: any) => new Date(inst.instance_date) < new Date())
+                                  : event?.first_instance_date && new Date(event.first_instance_date) < new Date()
+
+                              const sortedInstances = [...instances].sort(
+                                (a: any, b: any) =>
+                                  new Date(a.instance_date).getTime() - new Date(b.instance_date).getTime(),
+                              )
+
+                              const games = event.selected_games || []
+                              let gameTitle = ""
+                              if (games.length > 0) {
+                                const firstGame = games[0]
+                                if (typeof firstGame === "string") {
+                                  try {
+                                    const parsed = JSON.parse(firstGame)
+                                    gameTitle = parsed.title || firstGame
+                                  } catch {
+                                    gameTitle = firstGame
+                                  }
+                                } else if (firstGame && typeof firstGame === "object" && "title" in firstGame) {
+                                  gameTitle = firstGame.title
+                                }
+                              }
+
+                              let datesDisplay = ""
+                              if (sortedInstances.length > 0) {
+                                const firstDates = sortedInstances.slice(0, 3).map((i: any) =>
+                                  new Date(i.instance_date).toLocaleDateString("de-DE", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  }),
+                                )
+                                datesDisplay = firstDates.join(", ")
+                                if (sortedInstances.length > 3) datesDisplay += " ..."
+                              } else if (event.first_instance_date) {
+                                datesDisplay = new Date(event.first_instance_date).toLocaleDateString("de-DE", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })
+                              }
+
+                              return (
+                                <div
+                                  key={event.id}
+                                  className={`flex items-center justify-between p-2 bg-blue-50 rounded-lg border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors ${
+                                    isInactive ? "opacity-60" : ""
+                                  }`}
+                                  onClick={() => router.push(`/ludo-events?view=${event.id}`)}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-gray-900 truncate">{event.title}</p>
+                                    <p className="text-[10px] text-gray-500">
+                                      {datesDisplay} • {event.location} • {gameTitle} •{" "}
+                                      {event.ludo_event_participants?.length || 0}/{event.max_participants} Teilnehmer
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 px-3 text-[10px]"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        router.push(`/ludo-events?view=${event.id}&manage=true`)
+                                      }}
+                                      title="Event verwalten"
+                                    >
+                                      <Settings className="w-3.5 h-3.5 text-blue-600 mr-1" />
+                                      Event verwalten
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteEvent(event.id)
+                                      }}
+                                      title="Löschen"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                                    </Button>
+                                  </div>
+                                  {isInactive && (
+                                    <Badge className="ml-1 h-4 px-1 text-[8px] bg-gray-100 text-gray-600">
+                                      Abgelaufen
+                                    </Badge>
+                                  )}
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <p className="text-xs text-gray-400 text-center py-4">Du hast noch keine Events erstellt</p>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      {/* Spielgruppe (Mitglied) Tab */}
+                      <TabsContent value="groups-member" className="mt-0">
+                        <div className="space-y-2">
+                          {activityData.communityMemberships.length > 0 ? (
+                            activityData.communityMemberships.map((membership) => {
+                              const community = membership.community
+                              if (!community) return null
+
+                              const isInactive = community.active === false
+
+                              const memberCount = community.community_members?.length || 0
+                              const joinedDate = new Date(membership.joined_at).toLocaleDateString("de-DE", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
+
+                              return (
+                                <div
+                                  key={membership.id}
+                                  className="flex items-center justify-between p-2 bg-teal-50 rounded-lg border border-teal-100 cursor-pointer hover:bg-teal-100 transition-colors"
+                                  onClick={() => router.push(`/ludo-gruppen?view=${community.id}`)}
+                                >
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    {community.image && (
+                                      <img
+                                        src={community.image || "/placeholder.svg"}
+                                        alt={community.name}
+                                        className="w-8 h-8 rounded object-cover"
+                                      />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-medium text-gray-900 truncate">{community.name}</p>
+                                      <p className="text-[10px] text-gray-500">
+                                        Mitglied seit {joinedDate} • {community.location} • {memberCount} Mitglieder
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        router.push(`/ludo-gruppen?view=${community.id}&polls=true`)
+                                      }}
+                                      title="Abstimmungen"
+                                    >
+                                      <BarChart3 className="w-3.5 h-3.5 text-teal-600" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleLeaveCommunity(membership.id)
+                                      }}
+                                      title="Austreten"
+                                    >
+                                      <LogOut className="w-3 h-3 text-red-600" />
+                                    </Button>
+                                  </div>
+                                  {isInactive && (
+                                    <Badge className="ml-1 h-4 px-1 text-[8px] bg-gray-100 text-gray-600">
+                                      Inaktiv
+                                    </Badge>
+                                  )}
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <p className="text-xs text-gray-400 text-center py-4">
+                              Du bist in keiner Spielgruppe Mitglied
+                            </p>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      {/* Meine Spielgruppen Tab */}
+                      <TabsContent value="my-groups" className="mt-0">
+                        <div className="space-y-2">
+                          {activityData.createdCommunities.length > 0 ? (
+                            activityData.createdCommunities.map((community) => {
+                              const isInactive = community.active === false
+
+                              const memberCount = community.community_members?.length || 0
+                              const createdDate = new Date(community.created_at).toLocaleDateString("de-DE", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
+
+                              return (
+                                <div
+                                  key={community.id}
+                                  className="flex items-center justify-between p-2 bg-teal-50 rounded-lg border border-teal-100 cursor-pointer hover:bg-teal-100 transition-colors"
+                                  onClick={() => router.push(`/ludo-gruppen?view=${community.id}`)}
+                                >
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    {community.image && (
+                                      <img
+                                        src={community.image || "/placeholder.svg"}
+                                        alt={community.name}
+                                        className="w-8 h-8 rounded object-cover"
+                                      />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-medium text-gray-900 truncate">{community.name}</p>
+                                      <p className="text-[10px] text-gray-500">
+                                        Erstellt am {createdDate} • {community.location} • {memberCount} Mitglieder
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 px-3 text-[10px]"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        router.push(`/ludo-gruppen?view=${community.id}&manage=true`)
+                                      }}
+                                      title="Gruppe verwalten"
+                                    >
+                                      <Settings className="w-3.5 h-3.5 text-teal-600 mr-1" />
+                                      Gruppe verwalten
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteCommunity(community.id)
+                                      }}
+                                      title="Löschen"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                                    </Button>
+                                  </div>
+                                  {isInactive && (
+                                    <Badge className="ml-1 h-4 px-1 text-[8px] bg-gray-100 text-gray-600">
+                                      Inaktiv
+                                    </Badge>
+                                  )}
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <p className="text-xs text-gray-400 text-center py-4">
+                              Du hast noch keine Spielgruppen erstellt
+                            </p>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      {/* Anfragen Tab */}
+                      <TabsContent value="requests" className="mt-0">
+                        <div className="space-y-3">
+                          {/* Friend Requests */}
+                          {activityData.friendRequests.length > 0 && (
+                            <div className="space-y-1">
+                              <p className="text-xs text-gray-500 font-medium">Freundschaftsanfragen</p>
+                              {activityData.friendRequests.map((request) => {
+                                const isReceived = request.to_user_id === user?.id
+                                const otherUser = isReceived ? request.from_user : request.to_user
+
+                                return (
+                                  <div
+                                    key={request.id}
+                                    className="flex items-center justify-between p-2 bg-purple-50 rounded-lg border border-purple-100"
+                                  >
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      <Avatar className="w-8 h-8 border-2 border-purple-200">
+                                        <AvatarImage src={otherUser?.avatar || "/placeholder-user.jpg"} />
+                                        <AvatarFallback>{otherUser?.name?.charAt(0) || "?"}</AvatarFallback>
+                                      </Avatar>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-medium text-gray-900 truncate">{otherUser?.name}</p>
+                                        <p className="text-[10px] text-gray-500">
+                                          {isReceived ? "Möchte dein Freund sein" : "Anfrage gesendet"}
+                                          <Badge
+                                            className={`ml-1 h-4 px-1 text-[8px] ${
+                                              request.status === "pending"
+                                                ? "bg-yellow-100 text-yellow-700"
+                                                : request.status === "accepted"
+                                                  ? "bg-green-100 text-green-700"
+                                                  : "bg-gray-100 text-gray-600"
+                                            }`}
+                                          >
+                                            {request.status === "pending"
+                                              ? "Ausstehend"
+                                              : request.status === "accepted"
+                                                ? "Angenommen"
+                                                : "Abgelehnt"}
+                                          </Badge>
+                                        </p>
+                                      </div>
+                                    </div>
+                                    {isReceived && request.status === "pending" && (
+                                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 px-2 text-[10px]"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleAcceptFriendRequest(request.id)
+                                          }}
+                                          title="Annehmen"
+                                        >
+                                          <Check className="w-3 h-3 text-green-600 mr-1" />
+                                          Annehmen
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 w-6 p-0"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleRejectFriendRequest(request.id)
+                                          }}
+                                          title="Ablehnen"
+                                        >
+                                          <X className="w-3 h-3 text-red-600" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+
+                          {/* Event Join Requests */}
+                          {activityData.eventJoinRequests.length > 0 && (
+                            <div className="space-y-1">
+                              <p className="text-xs text-gray-500 font-medium">Teilnahmeanfragen</p>
+                              {activityData.eventJoinRequests.map((request) => {
+                                const isMyEvent = request.event?.creator_id === user?.id
+                                return (
+                                  <div
+                                    key={request.id}
+                                    className="flex items-center justify-between p-2 bg-purple-50/50 rounded-lg border border-purple-100/50"
+                                  >
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      {isMyEvent && (
+                                        <Avatar className="w-6 h-6">
+                                          <AvatarImage src={request.user?.avatar || "/placeholder.svg"} />
+                                          <AvatarFallback className="text-[9px]">
+                                            {request.user?.name?.charAt(0) || "?"}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      )}
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-medium text-gray-900 truncate">
+                                          {isMyEvent
+                                            ? `${request.user?.name || request.user?.username} möchte teilnehmen`
+                                            : request.event?.title}
+                                        </p>
+                                        <p className="text-[10px] text-gray-500">
+                                          {isMyEvent ? request.event?.title : "Deine Anfrage"} •{" "}
+                                          {new Date(request.created_at).toLocaleDateString("de-DE")}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    {isMyEvent ? (
+                                      <div className="flex gap-1">
+                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Annehmen">
+                                          <Check className="w-3 h-3 text-green-600" />
+                                        </Button>
+                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Ablehnen">
+                                          <X className="w-3 h-3 text-red-600" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Badge className="text-[9px] h-4 bg-yellow-100 text-yellow-700">Ausstehend</Badge>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+
+                          {activityData.friendRequests.length === 0 && activityData.eventJoinRequests.length === 0 && (
+                            <p className="text-xs text-gray-400 text-center py-4">Keine Anfragen vorhanden</p>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      {/* Angebote Tab */}
+                      <TabsContent value="offers" className="mt-0">
+                        <div className="space-y-2">
+                          {activityData.marketplaceOffers.length > 0 ? (
+                            activityData.marketplaceOffers.map((offer) => {
+                              const typeMap: { [key: string]: string } = {
+                                sell: "Verkaufsangebot",
+                                trade: "Tauschangebot",
+                                lend: "Mietangebot",
+                              }
+
+                              const prefixMap: { [key: string]: string } = {
+                                sell: "Verkaufe:",
+                                trade: "Tausche:",
+                                lend: "Vermiete:",
+                              }
+
+                              // Extract trade game from description for trade offers
+                              // Updated trade offers to show "Offen für Vorschläge" or "gegen [game]"
+                              let tradeGameInfo = ""
+                              if (offer.type === "trade" && offer.description) {
+                                // Check if "offen für vorschläge" is in description
+                                if (
+                                  offer.description.toLowerCase().includes("offen für vorschläge") ||
+                                  offer.description.toLowerCase().includes("offen für alles") ||
+                                  offer.description.toLowerCase().includes("alle angebote willkommen")
+                                ) {
+                                  tradeGameInfo = " (Offen für Vorschläge)"
+                                } else {
+                                  // Try to extract specific game
+                                  const tradeMatch = offer.description.match(/gegen\s+(.+?)(?:[,.]|$)/i)
+                                  if (tradeMatch) {
+                                    tradeGameInfo = ` gegen ${tradeMatch[1].trim()}`
+                                  }
+                                }
+                              }
+
+                              return (
+                                <div
+                                  key={offer.id}
+                                  className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:bg-orange-100 transition-colors p-2 rounded-lg"
+                                  onClick={() => router.push(`/marketplace?view=${offer.id}`)}
+                                >
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    {offer.image && (
+                                      <img
+                                        src={offer.image || "/placeholder.svg"}
+                                        alt={offer.title}
+                                        className="w-8 h-8 rounded object-cover"
+                                      />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-medium text-gray-900 truncate">
+                                        {prefixMap[offer.type] || ""} {offer.title}
+                                        {tradeGameInfo}
+                                      </p>
+                                      <p className="text-[10px] text-gray-500">
+                                        {typeMap[offer.type] || offer.type}
+                                        {offer.price && ` • ${offer.price}`}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleToggleOfferStatus(offer.id, offer.active)
+                                      }}
+                                      title={offer.active ? "Pausieren" : "Aktivieren"}
+                                    >
+                                      {offer.active ? (
+                                        <Pause className="w-3 h-3 text-amber-600" />
+                                      ) : (
+                                        <Play className="w-3 h-3 text-green-600" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        router.push(`/edit/angebot/${offer.id}`)
+                                      }}
+                                      title="Bearbeiten"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5 text-orange-600" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteOffer(offer.id)
+                                      }}
+                                      title="Löschen"
+                                    >
+                                      <Trash2 className="w-3 h-3 text-red-600" />
+                                    </Button>
+                                  </div>
+                                  {offer.active ? (
+                                    <Badge className="ml-1 h-4 px-1 text-[8px] bg-green-100 text-green-700">
+                                      Aktiv
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="ml-1 h-4 px-1 text-[8px] bg-gray-100 text-gray-600">
+                                      Inaktiv
+                                    </Badge>
+                                  )}
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <p className="text-xs text-gray-400 text-center py-4">
+                              Du hast noch keine Angebote erstellt
+                            </p>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      {/* Suchanzeigen Tab */}
+                      <TabsContent value="search-ads" className="mt-0">
+                        <div className="space-y-2">
+                          {activityData.searchAds.length > 0 ? (
+                            activityData.searchAds.map((ad) => {
+                              const typeMap: { [key: string]: string } = {
+                                buy: "Kaufgesuch",
+                                trade: "Tauschgesuch",
+                                rent: "Mietgesuch",
+                              }
+
+                              let tradeInfo = ""
+                              if (ad.trade_game_title) {
+                                tradeInfo = ` • Biete: ${ad.trade_game_title}`
+                              }
+
+                              let durationInfo = ""
+                              if (ad.rental_duration) {
+                                durationInfo = ` • Dauer: ${ad.rental_duration}`
+                              }
+
+                              return (
+                                <div
+                                  key={ad.id}
+                                  className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:bg-purple-100 transition-colors p-2 rounded-lg"
+                                  onClick={() => router.push(`/marketplace?viewAd=${ad.id}`)}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-gray-900 truncate">{ad.title}</p>
+                                    <p className="text-[10px] text-gray-500">
+                                      {typeMap[ad.type] || ad.type}
+                                      {ad.max_price && ` • bis ${ad.max_price}`}
+                                      {tradeInfo}
+                                      {durationInfo}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleToggleAdStatus(ad.id, ad.active)
+                                      }}
+                                      title={ad.active ? "Pausieren" : "Aktivieren"}
+                                    >
+                                      {ad.active ? (
+                                        <Pause className="w-3 h-3 text-amber-600" />
+                                      ) : (
+                                        <Play className="w-3 h-3 text-green-600" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        router.push(`/edit/suchanzeige/${ad.id}`)
+                                      }}
+                                      title="Bearbeiten"
+                                    >
+                                      <Edit className="w-3 h-3 text-amber-600" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteAd(ad.id)
+                                      }}
+                                      title="Löschen"
+                                    >
+                                      <Trash2 className="w-3 h-3 text-red-600" />
+                                    </Button>
+                                  </div>
+                                  {ad.active ? (
+                                    <Badge className="ml-1 h-4 px-1 text-[8px] bg-green-100 text-green-700">
+                                      Aktiv
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="ml-1 h-4 px-1 text-[8px] bg-gray-100 text-gray-600">
+                                      Inaktiv
+                                    </Badge>
+                                  )}
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <p className="text-xs text-gray-400 text-center py-4">
+                              Du hast noch keine Suchanzeigen erstellt
+                            </p>
+                          )}
+                        </div>
+                      </TabsContent>
+                    </ScrollArea>
+                  </Tabs>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1831,39 +2399,303 @@ export default function ProfilePage() {
             <TabsContent value="notifications">
               <Card className="border-2 border-teal-200">
                 <CardHeader>
-                  <CardTitle className="font-handwritten text-teal-700 text-base">
-                    Benachrichtigungseinstellungen
-                  </CardTitle>
+                  <CardTitle className="font-handwritten text-teal-700 text-base">Benachrichtigungen</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-xs">E-Mail Benachrichtigungen</p>
-                      <p className="text-[10px] text-gray-500">Erhalte Updates per E-Mail</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-xs">Neue Nachrichten</p>
-                      <p className="text-[10px] text-gray-500">Benachrichtigung bei neuen Nachrichten</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-xs">Spielanfragen</p>
-                      <p className="text-[10px] text-gray-500">Benachrichtigung bei neuen Spielanfragen</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-xs">Marketing E-Mails</p>
-                      <p className="text-[10px] text-gray-500">News und Angebote erhalten</p>
-                    </div>
-                    <Switch />
-                  </div>
+                <CardContent>
+                  <Tabs value={notificationTab} onValueChange={setNotificationTab} className="space-y-4">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="inbox" className="flex items-center gap-2 text-xs">
+                        <Bell className="w-3 h-3" />
+                        Posteingang
+                        {notifications.filter((n) => !n.read).length > 0 && (
+                          <Badge variant="destructive" className="ml-1 text-[10px] px-1">
+                            {notifications.filter((n) => !n.read).length}
+                          </Badge>
+                        )}
+                      </TabsTrigger>
+                      <TabsTrigger value="settings" className="flex items-center gap-2 text-xs">
+                        <Settings className="w-3 h-3" />
+                        Einstellungen
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="inbox" className="space-y-3 mt-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-xs text-gray-600">
+                          {notifications.filter((n) => !n.read).length} ungelesene Benachrichtigungen
+                        </p>
+                        {notifications.length > 0 && (
+                          <Button
+                            onClick={handleMarkAllNotificationsRead}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs bg-transparent"
+                          >
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Alle als gelesen
+                          </Button>
+                        )}
+                      </div>
+
+                      {notifications.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                          <p className="text-sm text-gray-500 mb-1">Keine Benachrichtigungen</p>
+                          <p className="text-xs text-gray-400">Du bist auf dem neuesten Stand!</p>
+                        </div>
+                      ) : (
+                        <ScrollArea className="h-[400px]">
+                          <div className="space-y-2 pr-3">
+                            {notifications.map((notification) => (
+                              <div
+                                key={notification.id}
+                                className={`p-3 rounded-lg border text-xs transition-colors ${
+                                  !notification.read ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200"
+                                }`}
+                              >
+                                <div className="flex gap-3">
+                                  <div className="flex-shrink-0 mt-0.5">{getNotificationIcon(notification.type)}</div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div>
+                                        <h4 className="font-semibold text-xs mb-0.5">{notification.title}</h4>
+                                        <p className="text-xs text-gray-600 mb-1">{notification.message}</p>
+                                        <p className="text-[10px] text-gray-400">
+                                          {formatNotificationTime(notification.created_at)}
+                                        </p>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleDeleteNotification(notification.id)}
+                                        className="flex-shrink-0 h-6 w-6"
+                                      >
+                                        <Trash2 className="w-3 h-3 text-gray-400 hover:text-red-500" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="settings" className="space-y-4 mt-4">
+                      <div className="mb-3">
+                        <div className="flex items-center gap-4 text-[10px] text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <Bell className="w-3 h-3" />
+                            <span>In-App</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            <span>E-Mail</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <ScrollArea className="h-[400px]">
+                        <div className="space-y-4 pr-3">
+                          {/* Soziales */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <FaUserPlus className="w-4 h-4 text-green-500" />
+                              <h3 className="text-sm font-semibold">Soziales</h3>
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <NotificationPreferenceRow
+                                label="Freundschaftsanfrage erhalten"
+                                inAppKey="friend_request_in_app"
+                                emailKey="friend_request_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Freundschaftsanfrage akzeptiert"
+                                inAppKey="friend_accepted_in_app"
+                                emailKey="friend_accepted_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Freundschaftsanfrage abgelehnt"
+                                inAppKey="friend_declined_in_app"
+                                emailKey="friend_declined_email"
+                              />
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Spielgruppen */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Users className="w-4 h-4 text-purple-500" />
+                              <h3 className="text-sm font-semibold">Spielgruppen</h3>
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <NotificationPreferenceRow
+                                label="Einladung zu Spielgruppe"
+                                inAppKey="group_invitation_in_app"
+                                emailKey="group_invitation_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Beitrittsanfrage erhalten"
+                                inAppKey="group_join_request_in_app"
+                                emailKey="group_join_request_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Beitritt akzeptiert"
+                                inAppKey="group_join_accepted_in_app"
+                                emailKey="group_join_accepted_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Beitritt abgelehnt"
+                                inAppKey="group_join_rejected_in_app"
+                                emailKey="group_join_rejected_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Neues Mitglied beigetreten"
+                                inAppKey="group_member_joined_in_app"
+                                emailKey="group_member_joined_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Mitglied hat Gruppe verlassen"
+                                inAppKey="group_member_left_in_app"
+                                emailKey="group_member_left_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Neue Abstimmung in Spielgruppen"
+                                inAppKey="group_poll_created_in_app"
+                                emailKey="group_poll_created_email"
+                              />
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Events */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Calendar className="w-4 h-4 text-blue-500" />
+                              <h3 className="text-sm font-semibold">Events</h3>
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <NotificationPreferenceRow
+                                label="Einladung zu Event"
+                                inAppKey="event_invitation_in_app"
+                                emailKey="event_invitation_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Teilnahmeanfrage erhalten"
+                                inAppKey="event_join_request_in_app"
+                                emailKey="event_join_request_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Teilnahme akzeptiert"
+                                inAppKey="event_join_accepted_in_app"
+                                emailKey="event_join_accepted_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Teilnahme abgelehnt"
+                                inAppKey="event_join_rejected_in_app"
+                                emailKey="event_join_rejected_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Neuer Teilnehmer angemeldet"
+                                inAppKey="event_participant_joined_in_app"
+                                emailKey="event_participant_joined_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Teilnehmer abgemeldet"
+                                inAppKey="event_participant_left_in_app"
+                                emailKey="event_participant_left_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Event abgesagt"
+                                inAppKey="event_cancelled_in_app"
+                                emailKey="event_cancelled_email"
+                              />
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Forum & Kommentare */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <MessageSquare className="w-4 h-4 text-teal-500" />
+                              <h3 className="text-sm font-semibold">Forum & Kommentare</h3>
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <NotificationPreferenceRow
+                                label="Antwort auf eigenen Forumsbeitrag"
+                                inAppKey="forum_reply_in_app"
+                                emailKey="forum_reply_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Reaktion auf eigenen Beitrag"
+                                inAppKey="forum_reaction_in_app"
+                                emailKey="forum_reaction_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Antwort auf Kommentar"
+                                inAppKey="comment_reply_in_app"
+                                emailKey="comment_reply_email"
+                              />
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Spiel-Interaktionen */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Book className="w-4 h-4 text-orange-500" />
+                              <h3 className="text-sm font-semibold">Spiel-Interaktionen</h3>
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <NotificationPreferenceRow
+                                label="Spielesammlung-Anfrage"
+                                inAppKey="game_shelf_request_in_app"
+                                emailKey="game_shelf_request_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Spiel-Ausleihanfrage"
+                                inAppKey="game_interaction_request_in_app"
+                                emailKey="game_interaction_request_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Interesse an Angebot"
+                                inAppKey="marketplace_offer_request_in_app"
+                                emailKey="marketplace_offer_request_email"
+                              />
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* System */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Bell className="w-4 h-4 text-red-500" />
+                              <h3 className="text-sm font-semibold">Systembenachrichtigungen</h3>
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <NotificationPreferenceRow
+                                label="Wartungsarbeiten & Updates"
+                                inAppKey="system_maintenance_in_app"
+                                emailKey="system_maintenance_email"
+                              />
+                              <NotificationPreferenceRow
+                                label="Neue Funktionen"
+                                inAppKey="system_feature_in_app"
+                                emailKey="system_feature_email"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </ScrollArea>
+                    </TabsContent>
+                  </Tabs>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1873,27 +2705,58 @@ export default function ProfilePage() {
                 <CardHeader>
                   <CardTitle className="font-handwritten text-teal-700 text-base">Privatsphäre-Einstellungen</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
                     <div>
-                      <p className="font-medium text-xs">Profil öffentlich</p>
-                      <p className="text-[10px] text-gray-500">Andere können dein Profil sehen</p>
+                      <p className="font-medium text-xs">Profilsichtbarkeit</p>
+                      <p className="text-[10px] text-gray-500">Wer kann dein Profil sehen?</p>
                     </div>
-                    <Switch defaultChecked />
+                    <Select defaultValue="public">
+                      <SelectTrigger className="w-full h-9 text-xs">
+                        <SelectValue placeholder="Wähle eine Option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="public">Alle</SelectItem>
+                        <SelectItem value="friends">Nur Freunde</SelectItem>
+                        <SelectItem value="private">Niemand</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="flex items-center justify-between">
+
+                  <div className="space-y-2">
                     <div>
-                      <p className="font-medium text-xs">Spielesammlung zeigen</p>
-                      <p className="text-[10px] text-gray-500">Deine Spiele sind für andere sichtbar</p>
+                      <p className="font-medium text-xs">Spieleregal zeigen</p>
+                      <p className="text-[10px] text-gray-500">Wer kann deine Spielesammlung sehen?</p>
                     </div>
-                    <Switch defaultChecked />
+                    <Select defaultValue="public">
+                      <SelectTrigger className="w-full h-9 text-xs">
+                        <SelectValue placeholder="Wähle eine Option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="public">Alle</SelectItem>
+                        <SelectItem value="friends">Nur Freunde</SelectItem>
+                        <SelectItem value="private">Niemand</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="flex items-center justify-between">
+
+                  <div className="space-y-2">
                     <div>
-                      <p className="font-medium text-xs">Online-Status anzeigen</p>
-                      <p className="text-[10px] text-gray-500">Andere sehen, wann du online bist</p>
+                      <p className="font-medium text-xs">Direktnachrichten erlauben</p>
+                      <p className="text-[10px] text-gray-500">
+                        Wer kann dir Direktnachrichten (zu Events, Spielgruppen, Angebote und Suchanzeigen) senden?
+                      </p>
                     </div>
-                    <Switch />
+                    <Select defaultValue="all">
+                      <SelectTrigger className="w-full h-9 text-xs">
+                        <SelectValue placeholder="Wähle eine Option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Alle</SelectItem>
+                        <SelectItem value="friends">Nur Freunde</SelectItem>
+                        <SelectItem value="none">Niemand</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </CardContent>
               </Card>

@@ -650,7 +650,7 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="p-4 bg-white rounded-lg border-2 border-red-200">
-                  <h4 className="font-semibold mb-2 text-red-600">Event löschen</h4>
+                  <h4 className="font-semibold mb-2 text-red-600 text-sm">Event löschen</h4>
                   <p className="text-xs text-red-600 mb-4">
                     Das Event wird permanent gelöscht und alle Anmeldungen werden entfernt. Diese Aktion kann nicht
                     rückgängig gemacht werden.
