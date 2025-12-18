@@ -66,6 +66,7 @@
     "date-fns": "4.1.0",
     "drizzle-kit": "0.31.5",
     "drizzle-orm": "0.44.5",
+    "embla-carousel-react": "8.5.1",
     "expo-sqlite": "latest",
     "framer-motion": "12.23.24",
     "gel": "latest",
