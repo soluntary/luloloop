@@ -1042,7 +1042,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                     className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
                   >
                     <FiFilter className="w-3 h-3 mr-2" />
-                    Erweiterte Filter
+                    Mehr Filter
                     <FaChevronDown
                       className={`w-3 h-3 ml-2 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
                     />
@@ -1080,7 +1080,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 <div className="pt-4 border-t border-gray-100 space-y-3">
                   <h3 className="text-xs font-medium text-gray-500 flex items-center">
                     <FiFilter className="w-3 h-3 mr-2" />
-                    Erweiterte Filter
+                    Mehr Filter
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                     <div>

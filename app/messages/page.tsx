@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -46,6 +46,9 @@ export default function MessagesPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     async function loadMessages() {
       console.log("[v0] loadMessages called, user:", user?.id)
@@ -85,7 +88,7 @@ export default function MessagesPage() {
             if (!convMap.has(partnerId)) {
               convMap.set(partnerId, {
                 odtnerId: partnerId,
-                partnerName: partner?.name || partner?.username || "Unbekannt",
+                partnerName: partner?.username || "Unbekannt", // Changed to use username instead of name
                 partnerAvatar: partner?.avatar || "",
                 lastMessage: msg.message,
                 lastMessageTime: msg.created_at,
@@ -115,6 +118,20 @@ export default function MessagesPage() {
     }
   }, [user, authLoading])
 
+  useEffect(() => {
+    if (messagesContainerRef.current && selectedConversation) {
+      // Scroll instantly without animation
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+    }
+  }, [
+    selectedConversation,
+    messages.filter(
+      (msg) =>
+        (msg.from_user_id === selectedConversation && msg.to_user_id === user?.id) ||
+        (msg.to_user_id === selectedConversation && msg.from_user_id === user?.id),
+    ).length,
+  ])
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation || !user) return
     setSending(true)
@@ -138,6 +155,11 @@ export default function MessagesPage() {
       if (!error && data) {
         setMessages((prev) => [data, ...prev])
         setNewMessage("")
+        setTimeout(() => {
+          if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+          }
+        }, 0)
       }
     } catch (error) {
       console.error("Error sending message:", error)
@@ -289,6 +311,9 @@ export default function MessagesPage() {
                           "/placeholder.svg" ||
                           "/placeholder.svg" ||
                           "/placeholder.svg" ||
+                          "/placeholder.svg" ||
+                          "/placeholder.svg" ||
+                          "/placeholder.svg" ||
                           "/placeholder.svg"
                         }
                       />
@@ -305,7 +330,7 @@ export default function MessagesPage() {
                   </div>
 
                   {/* Messages with Scrollbar */}
-                  <div className="flex-1 overflow-y-auto p-4">
+                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4">
                     <div className="space-y-4">
                       {conversationMessages.length === 0 ? (
                         <div className="text-center text-gray-500 py-8">
@@ -357,6 +382,7 @@ export default function MessagesPage() {
                         })
                       )}
                     </div>
+                    <div ref={messagesEndRef} />
                   </div>
 
                   {/* Input */}

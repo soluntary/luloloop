@@ -72,7 +72,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Settings, Edit, UserPlus, Trash2, MessageCircle } from "lucide-react"
-// </CHANGE>
+import { createPollWithOptions } from "@/app/actions/create-poll"
 
 interface LudoGroup {
   id: string
@@ -205,6 +205,7 @@ export default function LudoGruppenPage() {
   // broadcastMessage is already defined
   const [pollQuestion, setPollQuestion] = useState("") // For poll dialog
   const [pollOptions, setPollOptions] = useState(["", ""]) // For poll dialog
+  const [allowMultiple, setAllowMultiple] = useState(false) // New state for allow_multiple_votes
   const [members, setMembers] = useState<any[]>([]) // For members dialog
   const [communityPolls, setCommunityPolls] = useState<any[]>([]) // For poll dialog
 
@@ -461,59 +462,79 @@ export default function LudoGruppenPage() {
     }
   }
 
-  const createPoll = async () => {
-    if (!user || !selectedGroupForPolls) return
+  // Replaced by createPollWithOptions action
+  // const createPoll = async () => {
+  //   if (!user || !selectedGroupForPolls) return
 
-    if (!newPoll.question.trim() || newPoll.options.filter((o) => o.trim()).length < 2) {
-      toast.error("Bitte fülle die Frage und mindestens 2 Optionen aus")
-      return
-    }
+  //   if (!newPoll.question.trim() || newPoll.options.filter((o) => o.trim()).length < 2) {
+  //     toast.error("Bitte fülle die Frage und mindestens 2 Optionen aus")
+  //     return
+  //   }
 
-    try {
-      // Create poll
-      const { data: pollData, error: pollError } = await supabase
-        .from("community_polls")
-        .insert({
-          community_id: selectedGroupForPolls.id,
-          creator_id: user.id,
-          question: newPoll.question,
-          description: newPoll.description,
-          allow_multiple_votes: newPoll.allow_multiple_votes,
-          expires_at: newPoll.expires_at || null,
-          is_active: true,
-        })
-        .select()
-        .single()
+  //   try {
+  //     console.log("[v0] Creating poll with data:", {
+  //       question: newPoll.question,
+  //       options: newPoll.options.filter((o) => o.trim()),
+  //       community_id: selectedGroupForPolls.id,
+  //     })
 
-      if (pollError) throw pollError
+  //     // Create poll
+  //     const { data: pollData, error: pollError } = await supabase
+  //       .from("community_polls")
+  //       .insert({
+  //         community_id: selectedGroupForPolls.id,
+  //         creator_id: user.id,
+  //         question: newPoll.question,
+  //         description: newPoll.description,
+  //         allow_multiple_votes: newPoll.allow_multiple_votes,
+  //         expires_at: newPoll.expires_at || null,
+  //         is_active: true,
+  //       })
+  //       .select()
+  //       .single()
 
-      // Create poll options
-      const options = newPoll.options
-        .filter((o) => o.trim())
-        .map((option) => ({
-          poll_id: pollData.id,
-          option_text: option,
-          votes_count: 0,
-        }))
+  //     if (pollError) throw pollError
 
-      const { error: optionsError } = await supabase.from("community_poll_options").insert(options)
+  //     console.log("[v0] Poll created:", pollData.id)
 
-      if (optionsError) throw optionsError
+  //     // Create poll options
+  //     const options = newPoll.options
+  //       .filter((o) => o.trim())
+  //       .map((option) => ({
+  //         poll_id: pollData.id,
+  //         option_text: option,
+  //         votes_count: 0,
+  //       }))
 
-      toast.success("Abstimmung erfolgreich erstellt!")
-      setIsCreatePollDialogOpen(false)
-      setNewPoll({
-        question: "",
-        description: "",
-        options: ["", ""],
-        allow_multiple_votes: false,
-        expires_at: "",
-      })
-    } catch (error) {
-      console.error("Error creating poll:", error)
-      toast.error("Fehler beim Erstellen der Abstimmung")
-    }
-  }
+  //     console.log("[v0] Inserting options:", options)
+
+  //     const { error: optionsError } = await supabase.from("community_poll_options").insert(options)
+
+  //     if (optionsError) {
+  //       console.error("[v0] Error inserting options:", optionsError)
+  //       throw optionsError
+  //     }
+
+  //     console.log("[v0] Options inserted successfully")
+
+  //     toast.success("Abstimmung erfolgreich erstellt!")
+  //     setIsCreatePollDialogOpen(false)
+  //     setNewPoll({
+  //       question: "",
+  //       description: "",
+  //       options: ["", ""],
+  //       allow_multiple_votes: false,
+  //       expires_at: "",
+  //     })
+
+  //     if (selectedGroupForPolls) {
+  //       loadCommunityPolls(selectedGroupForPolls.id)
+  //     }
+  //   } catch (error) {
+  //     console.error("[v0] Error creating poll:", error)
+  //     toast.error("Fehler beim Erstellen der Abstimmung")
+  //   }
+  // }
 
   const createLudoGroup = async () => {
     if (!user || !newGroup.name.trim()) {
@@ -1350,41 +1371,33 @@ export default function LudoGruppenPage() {
       return
     }
 
-    console.log("[v0] Creating poll for community:", selectedCommunity.id)
+    console.log("[v0] CLIENT: Calling server action to create poll")
+    console.log("[v0] CLIENT: Community ID:", selectedCommunity.id)
+    console.log("[v0] CLIENT: Question:", pollQuestion)
+    console.log("[v0] CLIENT: Options:", validOptions)
+    console.log("[v0] CLIENT: Allow multiple:", allowMultiple)
 
     try {
-      const { data: poll, error: pollError } = await supabase
-        .from("community_polls")
-        .insert({
-          community_id: selectedCommunity.id,
-          creator_id: user?.id,
-          question: pollQuestion,
-          is_active: true,
-        })
-        .select()
-        .single()
+      const result = await createPollWithOptions({
+        communityId: selectedCommunity.id,
+        question: pollQuestion,
+        allowMultipleChoices: allowMultiple,
+        options: validOptions,
+      })
 
-      if (pollError) {
-        console.error("[v0] Error creating poll:", pollError)
-        toast.error("Fehler beim Erstellen der Abstimmung")
-        return
-      }
-
-      for (const option of validOptions) {
-        await supabase.from("community_poll_options").insert({
-          poll_id: poll.id,
-          option_text: option,
-        })
-      }
+      console.log("[v0] CLIENT: Server action result:", result)
 
       toast.success("Abstimmung erstellt")
       setShowPollDialog(false)
       setPollQuestion("")
       setPollOptions(["", ""])
-      loadCommunityPolls(selectedCommunity.id)
+      setAllowMultiple(false)
+
+      // Reload polls
+      await loadCommunityPolls(selectedCommunity.id)
     } catch (error) {
-      console.error("[v0] Error creating poll:", error)
-      toast.error("Fehler beim Erstellen")
+      console.error("[v0] CLIENT: Error creating poll:", error)
+      toast.error(error instanceof Error ? error.message : "Fehler beim Erstellen der Abstimmung")
     }
   }
 
@@ -1408,6 +1421,16 @@ export default function LudoGruppenPage() {
     }
 
     console.log("[v0] Loaded polls:", data?.length || 0)
+    data?.forEach((poll, index) => {
+      console.log(`[v0] Poll ${index + 1}:`, {
+        id: poll.id,
+        question: poll.question,
+        hasOptions: !!poll.options,
+        optionsCount: poll.options?.length || 0,
+        optionsRaw: poll.options,
+      })
+    })
+
     setCommunityPolls(data || [])
 
     // Load user's votes
@@ -1526,7 +1549,7 @@ export default function LudoGruppenPage() {
       <div className="flex flex-col">
         <p className="text-sm font-medium mb-1">Bist du sicher?</p>
         <p className="text-xs text-gray-500 mb-3">
-          Das Löschen der Gruppe "{selectedGroup.name}" kann nicht rückgå³ngig gemacht werden.
+          Das Löschen der Gruppe "{selectedGroup.name}" kann nicht rückå³ngig gemacht werden.
         </p>
         <Button
           variant="destructive"
@@ -1965,11 +1988,9 @@ export default function LudoGruppenPage() {
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Label htmlFor="group-description" className="text-xs font-medium text-gray-700">
-                        Beschreibung
-                      </Label>
-                    </div>
+                    <Label htmlFor="group-description" className="text-xs font-medium text-gray-700 mb-2 block">
+                      Beschreibung
+                    </Label>
                     <RichTextEditor
                       value={newGroup.description}
                       onChange={(value) => setNewGroup({ ...newGroup, description: value })}
@@ -2088,7 +2109,7 @@ export default function LudoGruppenPage() {
                   <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center">
                     <FaUserCog className="h-4 w-4 text-teal-600" />
                   </div>
-                  <h3 className="text-sm font-semibold text-gray-900">Beitrittsmodus</h3>
+                  <h3 className="text-sm font-semibold text-gray-700">Beitrittsmodus</h3>
                 </div>
 
                 <div className="space-y-4">
@@ -2367,7 +2388,7 @@ export default function LudoGruppenPage() {
                   )}
                 </div>
 
-                <div className="sticky bottom-0 bg-white border-t pt-4 -mx-6 px-6 -mb-6 pb-6">
+                <div className="bg-white border-t pt-4 mt-6">
                   <div className="flex gap-3">
                     {(() => {
                       const buttonProps = getGroupJoinButtonProps(selectedGroup)
@@ -2384,12 +2405,12 @@ export default function LudoGruppenPage() {
                               handleJoinGroup(selectedGroup)
                             }
                           }}
-                          className="flex-1 px-4 h-11 bg-transparent font-handwritten text-base shadow-sm"
+                          className="flex-1 px-3 h-9 bg-transparent font-handwritten text-sm shadow-sm"
                         >
                           {IconComponent ? (
-                            <IconComponent className="h-5 w-5 mr-2" />
+                            <IconComponent className="h-4 w-4 mr-2" />
                           ) : (
-                            <FaUserPlus className="h-5 w-5 mr-2" />
+                            <FaUserPlus className="h-4 w-4 mr-2" />
                           )}
                           {buttonProps.text}
                         </Button>
@@ -2400,13 +2421,13 @@ export default function LudoGruppenPage() {
                       url={`${typeof window !== "undefined" ? window.location.origin : ""}/ludo-gruppen/${selectedGroup.id}`}
                       title={selectedGroup.name}
                       description={selectedGroup.description || "Schau dir diese Spielgruppe an!"}
-                      className="px-4 h-11 bg-transparent font-handwritten text-base"
+                      className="px-3 h-9 bg-transparent font-handwritten text-sm"
                     />
 
                     {(!user || (user && selectedGroup.creator_id !== user.id)) && (
                       <Button
                         variant="outline"
-                        className="px-4 h-11 bg-transparent font-handwritten text-base"
+                        className="px-3 h-9 bg-transparent font-handwritten text-sm"
                         onClick={() => {
                           if (!user) {
                             toast.info("Bitte melde dich an, um Nachrichten zu senden")
@@ -2419,7 +2440,7 @@ export default function LudoGruppenPage() {
                           }
                         }}
                       >
-                        <MessageCircle className="h-5 w-5 mr-2" />
+                        <MessageCircle className="h-4 w-4 mr-2" />
                         Nachricht
                       </Button>
                     )}
@@ -2584,7 +2605,7 @@ export default function LudoGruppenPage() {
             </DialogHeader>
             <div className="space-y-3">
               <div className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                <p className="text-xs text-blue-700">
+                <p className="text-xs font-semibold text-blue-700">
                   <span className="font-medium">Alle Mitglieder werden benachrichtigt</span>
                 </p>
               </div>
@@ -3022,19 +3043,17 @@ export default function LudoGruppenPage() {
                   <div className="flex items-center gap-1.5">
                     <Checkbox
                       id="allow-multiple-votes"
-                      checked={newPoll.allow_multiple_votes}
-                      onCheckedChange={(checked) =>
-                        setNewPoll({ ...newPoll, allow_multiple_votes: checked as boolean })
-                      }
+                      checked={allowMultiple} // Use the new state variable
+                      onCheckedChange={(checked) => setAllowMultiple(checked as boolean)} // Update the new state variable
                       className="h-4 w-4 text-teal-500 rounded border-gray-300 focus:ring-teal-500"
                     />
-                    <Label htmlFor="allow-multiple-votes" className="text-xs font-bold text-gray-700 cursor-pointer">
+                    <Label htmlFor="allow-multiple-votes" className="text-xs font-bold text-gray-900 cursor-pointer">
                       Mehrere Antworten erlauben
                     </Label>
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="poll-expires-at" className="text-xs font-bold text-gray-700">
+                    <Label htmlFor="poll-expires-at" className="text-xs font-bold text-gray-900">
                       Läuft ab am:
                     </Label>
                     <Input
@@ -3054,6 +3073,7 @@ export default function LudoGruppenPage() {
                       setActivePollTab("active")
                       setPollQuestion("")
                       setPollOptions(["", ""])
+                      setAllowMultiple(false) // Reset the new state variable
                       setNewPoll({ ...newPoll, allow_multiple_votes: false, expires_at: "" })
                       // Reset URL if createPoll parameter is present
                       if (selectedCommunity && searchParams.get("createPoll") === "true") {
@@ -3152,6 +3172,7 @@ export default function LudoGruppenPage() {
                           {member.user?.name?.[0] || member.user?.username?.[0]}
                         </AvatarFallback>
                       </Avatar>
+                      {/* Updated member display to show Admin for creator and joined date with bullet separator */}
                       <div className="flex flex-col">
                         <button
                           onClick={() => {
@@ -3162,26 +3183,31 @@ export default function LudoGruppenPage() {
                         >
                           {member.user?.username}
                         </button>
-                        {/* </CHANGE> */}
                         <span className="text-[10px] text-gray-500">
-                          {member.role === "creator"
-                            ? "Ersteller"
-                            : member.role === "admin"
-                              ? "Admin"
-                              : member.role === "moderator"
-                                ? "Moderator"
-                                : "Mitglied"}
+                          {member.user_id === selectedCommunity?.creator_id ? (
+                            "Admin"
+                          ) : (
+                            <>
+                              Mitglied • Beigetreten am{" "}
+                              {new Date(member.joined_at).toLocaleDateString("de-DE", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })}
+                            </>
+                          )}
                         </span>
                       </div>
+                      {/* </CHANGE> */}
                     </div>
                     {member.user_id !== user?.id && member.user_id !== selectedCommunity?.creator_id && (
                       <Button
                         size="sm"
                         variant="destructive"
                         onClick={() => handleRemoveMember(member.user_id)}
-                        className="h-7 px-2 group relative hover:bg-red-600 active:scale-95 transition-all duration-150"
+                        className="h-8 px-3 group relative hover:bg-red-600 active:scale-95 transition-all duration-150"
                       >
-                        <FaUserMinus className="h-3.5 w-3.5" />
+                        <FaUserMinus className="h-4 w-4 text-white" />
                       </Button>
                     )}
                   </div>

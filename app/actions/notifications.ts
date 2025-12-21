@@ -8,6 +8,7 @@ export type NotificationType =
   | "ai_recommendation"
   | "group_invitation"
   | "event_invitation"
+  | "message" // Added message type for direct messages
   | "new_message"
 
 interface CreateNotificationParams {
@@ -132,7 +133,11 @@ export async function markAllNotificationsAsRead(): Promise<{
       return { success: false, error: "Not authenticated" }
     }
 
-    const { error } = await supabase.from("notifications").update({ read: true }).eq("user_id", user.id).eq("read", false)
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("user_id", user.id)
+      .eq("read", false)
 
     if (error) {
       console.error("[v0] Error marking all notifications as read:", error)
@@ -173,7 +178,12 @@ export async function deleteNotification(notificationId: string): Promise<{
 /**
  * Send notification for new trade match
  */
-export async function notifyTradeMatch(userId: string, matchId: string, offerTitle: string, partnerName: string): Promise<{
+export async function notifyTradeMatch(
+  userId: string,
+  matchId: string,
+  offerTitle: string,
+  partnerName: string,
+): Promise<{
   success: boolean
   error?: string
 }> {
@@ -193,7 +203,7 @@ export async function notifyTradeMatchAccepted(
   userId: string,
   matchId: string,
   offerTitle: string,
-  partnerName: string
+  partnerName: string,
 ): Promise<{
   success: boolean
   error?: string
@@ -213,7 +223,7 @@ export async function notifyTradeMatchAccepted(
 export async function notifyNewRecommendations(
   userId: string,
   recommendationType: "game" | "group" | "event",
-  count: number
+  count: number,
 ): Promise<{
   success: boolean
   error?: string

@@ -3,15 +3,6 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
   FaBell,
   FaCheck,
@@ -23,21 +14,11 @@ import {
   FaComments,
   FaBook,
   FaChartBar,
-  FaCog,
 } from "react-icons/fa"
-import {
-  getUserNotifications,
-  markNotificationAsRead,
-  markAllNotificationsAsRead,
-  deleteNotification,
-} from "@/app/actions/notifications"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 
 export function NotificationBell() {
-  const router = useRouter()
   const [notifications, setNotifications] = useState<any[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -58,8 +39,9 @@ export function NotificationBell() {
           table: "notifications",
         },
         (payload) => {
-          console.log("[v0] New notification received:", payload)
-          loadNotifications()
+          loadNotifications().catch((err) => {
+            // Silently handle realtime subscription errors
+          })
 
           // Show toast for new notification
           if (payload.new) {
@@ -75,8 +57,9 @@ export function NotificationBell() {
           table: "notifications",
         },
         (payload) => {
-          console.log("[v0] Notification updated:", payload)
-          loadNotifications()
+          loadNotifications().catch((err) => {
+            // Silently handle realtime subscription errors
+          })
         },
       )
       .subscribe()
@@ -87,57 +70,83 @@ export function NotificationBell() {
   }, [])
 
   const loadNotifications = async () => {
-    const result = await getUserNotifications()
-    if (result.success) {
-      setNotifications(result.notifications)
-      setUnreadCount(result.unreadCount)
+    try {
+      const supabase = createClient()
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        return
+      }
+
+      const { data: notificationsData, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50)
+
+      if (error) {
+        console.error("NotificationBell: Error loading notifications:", error)
+        return
+      }
+
+      const unread = notificationsData?.filter((n) => !n.is_read).length || 0
+
+      setNotifications(notificationsData || [])
+      setUnreadCount(unread)
+    } catch (error) {
+      console.error("NotificationBell: Error loading notifications:", error)
     }
   }
 
   const handleNotificationClick = async (notification: any) => {
-    // Mark as read
-    if (!notification.read) {
-      await markNotificationAsRead([notification.id])
+    if (!notification.is_read) {
+      const supabase = createClient()
+      await supabase.from("notifications").update({ is_read: true }).eq("id", notification.id)
     }
 
     // Navigate based on type
     switch (notification.type) {
       case "trade_match":
       case "trade_match_accepted":
-        router.push("/marketplace")
+        window.location.href = "/marketplace"
         break
       case "ai_recommendation":
-        router.push("/")
+        window.location.href = "/"
         break
       case "group_invitation":
-        router.push("/ludo-gruppen")
+        window.location.href = "/ludo-gruppen"
         break
       case "event_invitation":
-        router.push("/ludo-events")
+        window.location.href = "/ludo-events"
         break
+      case "message":
       case "new_message":
-        router.push("/messages")
+        window.location.href = "/messages"
         break
       case "friend_request":
       case "friend_accepted":
-        router.push("/ludo-mitglieder")
+        window.location.href = "/ludo-mitglieder"
         break
       case "forum_reply":
       case "comment_reply":
         if (notification.data?.related_id) {
-          router.push(`/ludo-forum/${notification.data.related_id}`)
+          window.location.href = `/ludo-forum/${notification.data.related_id}`
         } else {
-          router.push("/ludo-forum")
+          window.location.href = "/ludo-forum"
         }
         break
       case "game_shelf_request":
-        router.push("/library")
+        window.location.href = "/library"
         break
       case "poll_created":
         if (notification.data?.community_id) {
-          router.push(`/ludo-gruppen?group=${notification.data.community_id}`)
+          window.location.href = `/ludo-gruppen?group=${notification.data.community_id}`
         } else {
-          router.push("/ludo-gruppen")
+          window.location.href = "/ludo-gruppen"
         }
         break
     }
@@ -148,24 +157,38 @@ export function NotificationBell() {
 
   const handleMarkAllRead = async () => {
     setLoading(true)
-    const result = await markAllNotificationsAsRead()
-    if (result.success) {
-      toast.success("Alle Benachrichtigungen als gelesen markiert")
-      loadNotifications()
-    } else {
-      toast.error("Fehler beim Markieren")
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (user) {
+      const { error } = await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("user_id", user.id)
+        .eq("is_read", false)
+
+      if (error) {
+        toast.error("Fehler beim Markieren")
+      } else {
+        toast.success("Alle Benachrichtigungen als gelesen markiert")
+        loadNotifications()
+      }
     }
     setLoading(false)
   }
 
   const handleDelete = async (e: React.MouseEvent, notificationId: string) => {
     e.stopPropagation()
-    const result = await deleteNotification(notificationId)
-    if (result.success) {
+    const supabase = createClient()
+    const { error } = await supabase.from("notifications").delete().eq("id", notificationId)
+
+    if (error) {
+      toast.error("Fehler beim Löschen")
+    } else {
       toast.success("Benachrichtigung gelöscht")
       loadNotifications()
-    } else {
-      toast.error("Fehler beim Löschen")
     }
   }
 
@@ -176,6 +199,7 @@ export function NotificationBell() {
         return <FaExchangeAlt className="text-blue-500" />
       case "ai_recommendation":
         return <FaStar className="text-yellow-500" />
+      case "message":
       case "new_message":
         return <FaEnvelope className="text-purple-500" />
       case "friend_request":
@@ -209,87 +233,62 @@ export function NotificationBell() {
   }
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <FaBell className="w-5 h-5" />
-          {unreadCount > 0 && (
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500 text-white text-xs">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-96 max-h-[500px] overflow-y-auto">
-        <div className="flex items-center justify-between p-3 border-b">
-          <h3 className="font-semibold">Benachrichtigungen</h3>
-          {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={handleMarkAllRead} disabled={loading}>
-              <FaCheck className="w-4 h-4 mr-1" />
-              Alle gelesen
-            </Button>
+    <div className="relative">
+      <button onClick={() => setOpen(!open)} className="relative p-2">
+        <FaBell className="w-5 h-5" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold z-10 h-4 w-4">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-96 max-h-[500px] overflow-y-auto bg-white border rounded shadow">
+          <div className="flex items-center justify-between p-3 border-b">
+            <h3 className="font-semibold">Benachrichtigungen</h3>
+            {unreadCount > 0 && (
+              <button
+                onClick={handleMarkAllRead}
+                disabled={loading}
+                className="flex items-center gap-1 text-gray-600 hover:text-gray-800 text-sm"
+              >
+                <FaCheck className="w-4 h-4" />
+                Alle gelesen
+              </button>
+            )}
+          </div>
+
+          {notifications.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <FaBell className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Du bist auf dem neuesten Stand</p>
+            </div>
+          ) : (
+            <>
+              {notifications.slice(0, 5).map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`p-4 cursor-pointer ${!notification.is_read ? "bg-blue-50" : ""}`}
+                  onClick={() => handleNotificationClick(notification)}
+                >
+                  <div className="flex gap-3 w-full">
+                    <div className="flex-shrink-0 mt-1">{getNotificationIcon(notification.type)}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold mb-1 text-xs">{notification.title}</p>
+                      <p className="text-xs text-gray-600 line-clamp-2">{notification.message}</p>
+                      <p className="text-xs text-gray-400 mt-1">{formatTime(notification.created_at)}</p>
+                    </div>
+                    <button onClick={(e) => handleDelete(e, notification.id)} className="flex-shrink-0 h-8 w-8">
+                      <FaTrash className="w-3 h-3 text-gray-400 hover:text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </>
           )}
         </div>
-
-        {notifications.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            <FaBell className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Du bist auf dem neuesten Stand</p>
-          </div>
-        ) : (
-          <>
-            {notifications.slice(0, 5).map((notification) => (
-              <DropdownMenuItem
-                key={notification.id}
-                className={`p-4 cursor-pointer ${!notification.read ? "bg-blue-50" : ""}`}
-                onClick={() => handleNotificationClick(notification)}
-              >
-                <div className="flex gap-3 w-full">
-                  <div className="flex-shrink-0 mt-1">{getNotificationIcon(notification.type)}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm mb-1">{notification.title}</p>
-                    <p className="text-xs text-gray-600 line-clamp-2">{notification.message}</p>
-                    <p className="text-xs text-gray-400 mt-1">{formatTime(notification.created_at)}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="flex-shrink-0 h-8 w-8"
-                    onClick={(e) => handleDelete(e, notification.id)}
-                  >
-                    <FaTrash className="w-3 h-3 text-gray-400 hover:text-red-500" />
-                  </Button>
-                </div>
-              </DropdownMenuItem>
-            ))}
-
-            {notifications.length > 0 && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/profile"
-                    className="w-full text-center text-sm text-teal-600 hover:text-teal-700 font-medium py-3 cursor-pointer flex items-center justify-center gap-2"
-                    onClick={() => {
-                      setOpen(false)
-                      // Trigger a small delay to ensure navigation happens first
-                      setTimeout(() => {
-                        // The profile page will default to the notifications tab when opened
-                        const url = new URL(window.location.href)
-                        url.searchParams.set("tab", "notifications")
-                        window.history.replaceState({}, "", url)
-                      }, 100)
-                    }}
-                  >
-                    <FaCog className="w-4 h-4" />
-                    Alle Benachrichtigungen & Einstellungen
-                  </Link>
-                </DropdownMenuItem>
-              </>
-            )}
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      )}
+    </div>
   )
 }

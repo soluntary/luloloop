@@ -28,6 +28,7 @@ export type NotificationType =
   | "forum_reaction" // Reaktionen / Likes auf eigenen Beitrag
   | "comment_reply" // Antwort auf Kommentar
   // Messages
+  | "message" // Neue direkte Nachricht
   | "message_group" // Nachricht bzgl. Spielgruppe
   | "message_event" // Nachricht bzgl. Event
   | "message_search_ad" // Nachricht bzgl. Suchanzeige
@@ -548,6 +549,17 @@ export async function notifySystemFeature(
     }),
   )
   return Promise.all(notifications)
+}
+
+export async function notifyNewMessage(userId: string, senderUsername: string, messagePreview: string) {
+  return createNotification({
+    userId,
+    type: "message" as NotificationType,
+    title: "Neue Nachricht",
+    message: `${senderUsername} hat dir eine Nachricht gesendet: ${messagePreview}`,
+    actionUrl: `/messages`,
+    data: { senderUsername, messagePreview },
+  })
 }
 
 export const notifyGroupJoinApproved = notifyGroupJoinAccepted

@@ -1910,7 +1910,7 @@ function LibraryContent() {
                   className="h-9 flex-1 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs whitespace-nowrap"
                 >
                   <FiFilter className="w-3 h-3 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Erweiterte Filter</span>
+                  <span className="hidden sm:inline">Mehr Filter</span>
                   <span className="sm:hidden">Filter</span>
                   <FaChevronDown
                     className={`w-3 h-3 ml-1 sm:ml-2 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
@@ -1931,7 +1931,7 @@ function LibraryContent() {
               <div className="pt-4 mt-4 border-t border-gray-100 space-y-3">
                 <h3 className="text-xs font-semibold text-gray-500 flex items-center">
                   <FiFilter className="w-3 h-3 mr-2" />
-                  Erweiterte Filter
+                  Mehr Filter
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {/* Spieldauer Filter */}

@@ -12,7 +12,6 @@ import {
   FaUserCheck,
   FaUserPlus,
   FaComment,
-  FaCog,
   FaUsers,
   FaUserCog,
   FaDice,
@@ -73,7 +72,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Edit, Trash2, Settings, CalendarDaysIcon, UserPlus, MessageCircle } from "lucide-react"
+import { Edit, Trash2, Settings, UserPlus, MessageCircle } from "lucide-react"
 
 interface LudoEvent {
   id: string
@@ -902,7 +901,6 @@ export default function LudoEventsPage() {
         text: "Dein Event",
         disabled: true,
         variant: "secondary" as const,
-        icon: FaUserCog,
         className: "border-2",
       }
     }
@@ -1457,7 +1455,7 @@ export default function LudoEventsPage() {
                     className="h-9 w-full border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 text-xs"
                   >
                     <FiFilter className="w-3 h-3 mr-1" />
-                    <span className="hidden sm:inline">Erweiterte Filter</span>
+                    <span className="hidden sm:inline">Mehr Filter</span>
                     <span className="sm:hidden">Filter</span>
                     <FaChevronDown
                       className={`w-3 h-3 ml-1 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
@@ -1492,7 +1490,7 @@ export default function LudoEventsPage() {
                 <div className="pt-4 border-t border-gray-100 space-y-3">
                   <h3 className="text-xs font-semibold text-gray-500 flex items-center">
                     <FiFilter className="w-3 h-3 mr-2" />
-                    Erweiterte Filter
+                    Mehr Filter
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
@@ -1827,7 +1825,7 @@ export default function LudoEventsPage() {
                           <Button
                             size="sm"
                             onClick={(e) => {
-                              e.stopPropagation() // Prevent card click
+                              e.stopPropagation()
                               if (!user) {
                                 toast.info("Bitte melde dich an, um an Events teilzunehmen")
                                 window.location.href = "/login"
@@ -1836,16 +1834,17 @@ export default function LudoEventsPage() {
                               if (buttonProps.action === "leave") {
                                 leaveEvent(event)
                               } else if (buttonProps.action === "manage") {
-                                // For recurring events with additional dates, open date selection
                                 setDateSelectionEvent(event)
                                 setIsDateSelectionOpen(true)
                               } else {
-                                handleJoinEvent(event) // Handles both single and recurring join logic
+                                handleJoinEvent(event)
                               }
                             }}
                             disabled={buttonProps.disabled}
                             variant={buttonProps.variant}
-                            className={`flex-1 font-handwritten ${
+                            className={`font-handwritten ${
+                              user && event.creator_id === user.id ? "flex-1" : "flex-1"
+                            } ${
                               buttonProps.action === "manage"
                                 ? "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-blue-500"
                                 : buttonProps.action === "leave"
@@ -1856,35 +1855,29 @@ export default function LudoEventsPage() {
                             {IconComponent ? (
                               <IconComponent className="h-4 w-4 mr-2" />
                             ) : (
-                              <FaUserPlus className="h-4 w-4 mr-2" /> // Default icon if none specified // Changed to FaUserPlus
+                              <FaUserPlus className="h-4 w-4 mr-2" />
                             )}
                             {buttonProps.text}
                           </Button>
 
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="px-3 bg-transparent font-handwritten"
-                            onClick={(e) => {
-                              e.stopPropagation() // Prevent card click
-                              if (!user) {
-                                toast.info("Bitte melde dich an, um Nachrichten zu senden")
-                                window.location.href = "/login"
-                                return
-                              }
-                              if (user && event.creator_id === user.id) {
-                                openMessageComposer(event) // Directly open message composer for yourself
-                              } else {
+                          {user && event.creator_id !== user.id && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="px-3 bg-transparent font-handwritten"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (!user) {
+                                  toast.info("Bitte melde dich an, um Nachrichten zu senden")
+                                  window.location.href = "/login"
+                                  return
+                                }
                                 openMessageComposer(event)
-                              }
-                            }}
-                          >
-                            {user && event.creator_id === user.id ? (
-                              <FaCog className="h-4 w-4" /> // Changed to FaCog
-                            ) : (
-                              <FaComment className="h-4 w-4 mr-2" /> // Changed to FaComment
-                            )}
-                          </Button>
+                              }}
+                            >
+                              <FaComment className="h-4 w-4 mr-2" />
+                            </Button>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -1920,8 +1913,8 @@ export default function LudoEventsPage() {
         >
           <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader className="px-4 pt-4 pb-3 border-b">
-              {user && selectedEvent && selectedEvent.creator_id === user.id && (
-                <div className="flex justify-end mb-3">
+              <div className="flex justify-end mb-3">
+                {user && selectedEvent && selectedEvent.creator_id === user.id && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button size="sm" variant="outline" className="h-9 px-3 bg-transparent">
@@ -1958,16 +1951,6 @@ export default function LudoEventsPage() {
                         <UserPlus className="h-4 w-4 mr-2" />
                         Freunde einladen
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setIsDetailsDialogOpen(false)
-                          setDateSelectionEvent(selectedEvent)
-                          setIsDateSelectionOpen(true)
-                        }}
-                      >
-                        <CalendarDaysIcon className="h-4 w-4 mr-2" />
-                        Termin auswählen
-                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => handleDeleteEvent(selectedEvent.id)}
@@ -1978,8 +1961,8 @@ export default function LudoEventsPage() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </div>
-              )}
+                )}
+              </div>
               <DialogTitle className="font-handwritten text-base text-gray-800">{selectedEvent?.title}</DialogTitle>
               <DialogDescription>Event Details und Informationen</DialogDescription>
             </DialogHeader>
@@ -2463,62 +2446,75 @@ export default function LudoEventsPage() {
                   </div>
                 )}
 
-                <div className="sticky bottom-0 bg-white border-t pt-4 -mx-6 px-6 -mb-6 pb-6">
+                <div className="bg-white border-t pt-4 mt-6">
                   <div className="flex gap-3">
                     {(() => {
                       const buttonConfig = getJoinButtonProps(selectedEvent)
                       const Icon = buttonConfig.icon
 
                       return (
-                        <Button
-                          variant={buttonConfig.variant}
-                          disabled={buttonConfig.disabled}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (buttonConfig.action === "leave") {
-                              leaveEvent(selectedEvent)
-                            } else if (buttonConfig.action === "manage") {
-                              setDateSelectionEvent(selectedEvent)
-                              setIsDateSelectionOpen(true)
-                            } else {
-                              handleJoinEvent(selectedEvent)
-                            }
-                          }}
-                          className="flex-1 px-4 h-11 font-handwritten text-base border-2 shadow-sm"
-                        >
-                          {Icon ? <Icon className="h-5 w-5 mr-2" /> : <FaUserPlus className="h-5 w-5 mr-2" />}
-                          {buttonConfig.text}
-                        </Button>
+                        <>
+                          <Button
+                            variant={buttonConfig.variant}
+                            disabled={buttonConfig.disabled}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (buttonConfig.action === "leave") {
+                                leaveEvent(selectedEvent)
+                              } else if (buttonConfig.action === "manage") {
+                                setDateSelectionEvent(selectedEvent)
+                                setIsDateSelectionOpen(true)
+                              } else {
+                                handleJoinEvent(selectedEvent)
+                              }
+                            }}
+                            className="flex-1 px-3 h-9 font-handwritten text-sm shadow-sm"
+                          >
+                            {Icon && <Icon className="h-4 w-4 mr-2" />}
+                            {buttonConfig.text}
+                          </Button>
+
+                          {selectedEvent.creator_id !== user?.id && (
+                            <>
+                              <ShareButton
+                                url={`${typeof window !== "undefined" ? window.location.origin : ""}/ludo-events/${selectedEvent.id}`}
+                                title={selectedEvent.title}
+                                description={selectedEvent.description || "Schau dir dieses Event an!"}
+                                className="px-3 h-9 font-handwritten text-sm"
+                              />
+
+                              <Button
+                                variant="outline"
+                                className="px-3 h-9 bg-transparent font-handwritten text-sm"
+                                onClick={() => {
+                                  if (!user) {
+                                    toast.info("Bitte melde dich an, um Nachrichten zu senden")
+                                    window.location.href = "/login"
+                                    return
+                                  }
+                                  if (selectedEvent) {
+                                    openMessageComposer(selectedEvent)
+                                    setIsDetailsDialogOpen(false)
+                                  }
+                                }}
+                              >
+                                <MessageCircle className="h-4 w-4 mr-2" />
+                                Nachricht
+                              </Button>
+                            </>
+                          )}
+
+                          {selectedEvent.creator_id === user?.id && (
+                            <ShareButton
+                              url={`${typeof window !== "undefined" ? window.location.origin : ""}/ludo-events/${selectedEvent.id}`}
+                              title={selectedEvent.title}
+                              description={selectedEvent.description || "Schau dir dieses Event an!"}
+                              className="px-3 h-9 font-handwritten text-sm"
+                            />
+                          )}
+                        </>
                       )
                     })()}
-
-                    <ShareButton
-                      url={`${typeof window !== "undefined" ? window.location.origin : ""}/ludo-events/${selectedEvent.id}`}
-                      title={selectedEvent.title}
-                      description={selectedEvent.description || "Schau dir dieses Event an!"}
-                      className="px-4 h-11 font-handwritten text-base border-2"
-                    />
-
-                    {(!user || (user && selectedEvent.creator_id !== user.id)) && (
-                      <Button
-                        variant="outline"
-                        className="px-4 h-11 bg-transparent font-handwritten text-base"
-                        onClick={() => {
-                          if (!user) {
-                            toast.info("Bitte melde dich an, um Nachrichten zu senden")
-                            window.location.href = "/login"
-                            return
-                          }
-                          if (selectedEvent) {
-                            openMessageComposer(selectedEvent)
-                            setIsDetailsDialogOpen(false)
-                          }
-                        }}
-                      >
-                        <MessageCircle className="h-5 w-5 mr-2" />
-                        Nachricht
-                      </Button>
-                    )}
                   </div>
                 </div>
                 {/* </CHANGE> */}
@@ -2689,10 +2685,21 @@ export default function LudoEventsPage() {
                         >
                           {participant.user.username}
                         </button>
-                        {/* </CHANGE> */}
                         <span className="text-xs text-gray-500">
-                          Beigetreten am {new Date(participant.joined_at).toLocaleDateString("de-DE")}
+                          {participant.user_id === managementEvent?.creator_id ? (
+                            "Admin"
+                          ) : (
+                            <>
+                              Mitglied • Beigetreten am{" "}
+                              {new Date(participant.joined_at).toLocaleDateString("de-DE", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })}
+                            </>
+                          )}
                         </span>
+                        {/* </CHANGE> */}
                       </div>
                     </div>
                     {participant.user_id !== user?.id && (
@@ -2700,9 +2707,9 @@ export default function LudoEventsPage() {
                         size="sm"
                         variant="destructive"
                         onClick={() => removeParticipant(participant.id, participant.user.username)}
-                        className="h-7 px-2 group relative hover:bg-red-600 active:scale-95 transition-all duration-150"
+                        className="h-8 px-3 group relative hover:bg-red-600 active:scale-95 transition-all duration-150"
                       >
-                        <FaUserMinus className="h-3.5 w-3.5" />
+                        <FaUserMinus className="h-4 w-4 text-white" />
                       </Button>
                     )}
                   </div>

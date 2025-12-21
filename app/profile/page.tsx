@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 import { useAvatar } from "@/contexts/avatar-context"
 import { Navigation } from "@/components/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -27,7 +27,6 @@ import {
 import {
   MapPin,
   Edit2,
-  Save,
   LogOut,
   Shield,
   Lock,
@@ -44,12 +43,20 @@ import {
   Play,
   Edit,
   BarChart3,
-  Pencil,
   Bell,
   Settings,
-  CheckCircle,
   Calendar,
+  MinusCircle as InfoCircle,
+  Trash,
+  CalendarDays,
+  CalendarDays as FaCalendarAlt,
+  LucideUsersRound as LiaUsersSolid,
+  CalendarHeart as FaMapMarkerAlt,
+  ChevronLeft as FaChevronLeft,
+  ChevronRight as FaChevronRight,
 } from "lucide-react"
+import { FaUserPlus as FaUserPlusIcon } from "react-icons/fa6" // Renamed FaUserPlus to FaUserPlusIcon
+import { FaInstagram, FaXTwitter } from "react-icons/fa6"
 import { IoSearchCircle } from "react-icons/io5"
 import { PiUserCirclePlus } from "react-icons/pi"
 import { PiUserCircleGear } from "react-icons/pi"
@@ -58,7 +65,6 @@ import { RxActivityLog } from "react-icons/rx"
 import { CgProfile } from "react-icons/cg"
 import { FaBell } from "react-icons/fa"
 import { IoColorPaletteOutline } from "react-icons/io5"
-import { FaXTwitter, FaInstagram } from "react-icons/fa6"
 import { getAddressSuggestions } from "@/lib/actions/geocoding"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -70,12 +76,21 @@ import { Book } from "lucide-react"
 import { FaExchangeAlt } from "react-icons/fa"
 import { FaStar } from "react-icons/fa"
 import { FaEnvelope } from "react-icons/fa"
-import { FaUserPlus } from "react-icons/fa"
 import { FaComments } from "react-icons/fa"
 import { FaBook } from "react-icons/fa"
 import { FaChartBar } from "react-icons/fa"
 import { getUserNotifications, markAllNotificationsAsRead, deleteNotification } from "@/app/actions/notifications"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { FaUsers } from "react-icons/fa" // Import FaUsers
+import { motion } from "framer-motion" // Import motion
+import { Checkbox } from "@/components/ui/checkbox"
+import { FaCheckCircle, FaClock, FaTimesCircle } from "react-icons/fa" // Added imports for new icons
+import Link from "next/link" // Import Link
+import { FaBullhorn, FaUserMinus } from "react-icons/fa6" // Imported new icons
+
+import { RichTextEditor } from "@/components/rich-text-editor"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
+import { FaPlus, FaTimes, FaImage, FaUserFriends, FaPoll } from "react-icons/fa"
 
 const AVATAR_STYLES = [
   {
@@ -157,7 +172,7 @@ const getNotificationIcon = (type: string) => {
       return <FaEnvelope className="text-purple-500" />
     case "friend_request":
     case "friend_accepted":
-      return <FaUserPlus className="text-green-500" />
+      return <FaUserPlusIcon className="text-green-500" /> // Used FaUserPlusIcon
     case "forum_reply":
     case "comment_reply":
       return <FaComments className="text-teal-500" />
@@ -204,11 +219,11 @@ export default function ProfilePage() {
   const [avatarSeed, setAvatarSeed] = useState("")
   const [avatarBgColor, setAvatarBgColor] = useState("#4ECDC4")
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null)
-  const [generatedAvatar, setGeneratedAvatar] = useState<string | null>(null) // New state for the generated avatar URL
+  const [generatedAvatar, setGeneratedAvatar] = useState<string | null>(null)
 
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([])
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
-  const [addressSearching, setAddressSearching] = useState(false) // Added state for address searching
+  const [addressSearching, setAddressSearching] = useState(false)
   const addressInputRef = useRef<HTMLInputElement>(null)
   const addressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -223,6 +238,49 @@ export default function ProfilePage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
 
+  const [isEventManagementOpen, setIsEventManagementOpen] = useState(false)
+  const [managementEvent, setManagementEvent] = useState<any>(null)
+  const [eventParticipants, setEventParticipants] = useState<any[]>([])
+  const [loadingEventParticipants, setLoadingEventParticipants] = useState(false)
+  const [eventManagementTab, setEventManagementTab] = useState<"edit" | "participants" | "invite" | "polls">("edit")
+
+  const [isGroupManagementOpen, setIsGroupManagementOpen] = useState(false)
+  const [managementGroup, setManagementGroup] = useState<any>(null)
+  const [groupMembers, setGroupMembers] = useState<any[]>([])
+  const [loadingGroupMembers, setLoadingGroupMembers] = useState(false)
+  const [groupManagementTab, setGroupManagementTab] = useState<"edit" | "members" | "invite" | "polls">("edit")
+
+  const [editingEvent, setEditingEvent] = useState<any>(null)
+  const [editingGroup, setEditingGroup] = useState<any>(null)
+  const [eventImageFiles, setEventImageFiles] = useState<File[]>([])
+  const [eventImagePreviews, setEventImagePreviews] = useState<string[]>([])
+  const [groupImageFiles, setGroupImageFiles] = useState<File[]>([])
+  const [groupImagePreviews, setGroupImagePreviews] = useState<string[]>([])
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  const [friends, setFriends] = useState<any[]>([])
+  const [selectedFriends, setSelectedFriends] = useState<string[]>([])
+  const [communityPolls, setCommunityPolls] = useState<any[]>([])
+  const [userVotes, setUserVotes] = useState<Record<string, string[]>>({})
+  const [activePollTab, setActivePollTab] = useState<"active" | "completed" | "create">("active")
+  const [newPoll, setNewPoll] = useState({
+    question: "",
+    description: "",
+    options: ["", ""],
+    allow_multiple_votes: false,
+    expires_at: "",
+  })
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+  const [profileModalUserId, setProfileModalUserId] = useState<string | null>(null)
+
+  const [myEvents, setMyEvents] = useState<any[]>([])
+  const [eventsAsMember, setEventsAsMember] = useState<any[]>([])
+  const [myGroups, setMyGroups] = useState<any[]>([])
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(true) // Added for dashboard loading state
+
+  const [currentMonthOffset, setCurrentMonthOffset] = useState(0)
+
   const [notificationPrefs, setNotificationPrefs] = useState({
     social: {
       friend_requests: 2,
@@ -235,12 +293,11 @@ export default function ProfilePage() {
     },
     events: {},
     marketplace: {
-      // Added for marketplace notifications
-      matching_offers: 2, // Default to 'Sofort'
+      matching_offers: 2,
       offer_responses: 2,
-      price_changes: 1, // Default to 'Einmal pro Woche'
+      price_changes: 1,
       expiring_offers: 2,
-      new_releases: 1, // Default to 'Einmal pro Woche'
+      new_releases: 1,
     },
     security: {
       login_attempts: 2,
@@ -250,7 +307,7 @@ export default function ProfilePage() {
   })
   const [loadingNotifPrefs, setLoadingNotifPrefs] = useState(false)
 
-  const [activeTab, setActiveTab] = useState("profile") // Added for nested tabs
+  const [activeTab, setActiveTab] = useState("profile")
 
   const [activityData, setActivityData] = useState<ActivityData>({
     createdEvents: [],
@@ -261,9 +318,9 @@ export default function ProfilePage() {
     createdCommunities: [],
     marketplaceOffers: [],
     searchAds: [],
-    communityMemberships: [], // Initialized for new structure
+    communityMemberships: [],
   })
-  const [loadingActivities, setLoadingActivities] = useState(true) // Changed to true to show spinner initially
+  const [loadingActivities, setLoadingActivities] = useState(true)
 
   const [notifications, setNotifications] = useState<any[]>([])
   const [notificationPreferences, setNotificationPreferences] = useState({
@@ -336,12 +393,17 @@ export default function ProfilePage() {
     system_feature_in_app: true,
     system_feature_email: false,
   })
-  const [notificationTab, setNotificationTab] = useState("inbox")
+  // NotificationPreferenceRow component moved inside ProfilePage to use its state and handlers directly.
 
-  const userId = user?.id // Get user ID for notification functions
+  const userId = user?.id
+
+  // useEffect removed
+  // </CHANGE>
+
+  // useEffect removed
+  // </CHANGE>
 
   const handleToggleOfferStatus = async (offerId: string, currentStatus: boolean) => {
-    console.log("DEBUG: Toggling offer status for offerId:", offerId, "currentStatus:", currentStatus)
     try {
       const { error } = await supabase.from("marketplace_offers").update({ active: !currentStatus }).eq("id", offerId)
       if (error) throw error
@@ -361,7 +423,6 @@ export default function ProfilePage() {
   }
 
   const handleDeleteOffer = async (offerId: string) => {
-    console.log("DEBUG: Deleting offer with offerId:", offerId)
     if (confirm("Sind Sie sicher, dass Sie dieses Angebot löschen möchten?")) {
       try {
         const { error } = await supabase.from("marketplace_offers").delete().eq("id", offerId)
@@ -383,7 +444,6 @@ export default function ProfilePage() {
   }
 
   const handleToggleAdStatus = async (adId: string, currentStatus: boolean) => {
-    console.log("DEBUG: Toggling ad status for adId:", adId, "currentStatus:", currentStatus)
     try {
       const { error } = await supabase.from("search_ads").update({ active: !currentStatus }).eq("id", adId)
       if (error) throw error
@@ -403,7 +463,6 @@ export default function ProfilePage() {
   }
 
   const handleDeleteAd = async (adId: string) => {
-    console.log("DEBUG: Deleting ad with adId:", adId)
     if (confirm("Sind Sie sicher, dass Sie diese Suchanzeige löschen möchten?")) {
       try {
         const { error } = await supabase.from("search_ads").delete().eq("id", adId)
@@ -425,7 +484,6 @@ export default function ProfilePage() {
   }
 
   const handleDeleteCommunity = async (communityId: string) => {
-    console.log("DEBUG: Deleting community with communityId:", communityId)
     if (confirm("Sind Sie sicher, dass Sie diese Spielgruppe löschen möchten?")) {
       try {
         const { error } = await supabase.from("communities").delete().eq("id", communityId)
@@ -447,7 +505,6 @@ export default function ProfilePage() {
   }
 
   const handleAcceptFriendRequest = async (requestId: string) => {
-    console.log("DEBUG: Accepting friend request with requestId:", requestId)
     try {
       const { error: updateError } = await supabase
         .from("friend_requests")
@@ -470,7 +527,6 @@ export default function ProfilePage() {
   }
 
   const handleRejectFriendRequest = async (requestId: string) => {
-    console.log("DEBUG: Rejecting friend request with requestId:", requestId)
     try {
       const { error } = await supabase.from("friend_requests").update({ status: "declined" }).eq("id", requestId)
       if (error) throw error
@@ -490,7 +546,6 @@ export default function ProfilePage() {
   }
 
   const handleDeleteEvent = async (eventId: string) => {
-    console.log("DEBUG: Deleting event with eventId:", eventId)
     if (confirm("Sind Sie sicher, dass Sie dieses Event löschen möchten?")) {
       try {
         const { error } = await supabase.from("ludo_events").delete().eq("id", eventId)
@@ -512,7 +567,6 @@ export default function ProfilePage() {
   }
 
   const handleLeaveCommunity = async (memberId: string) => {
-    console.log("DEBUG: Leaving community with memberId:", memberId)
     if (confirm("Sind Sie sicher, dass Sie diese Spielgruppe verlassen möchten?")) {
       try {
         const { error } = await supabase.from("community_members").delete().eq("id", memberId)
@@ -530,6 +584,370 @@ export default function ProfilePage() {
           variant: "destructive",
         })
       }
+    }
+  }
+
+  const handleRemoveParticipant = async (participantId: string, type: "event" | "group") => {
+    if (!user) return
+
+    try {
+      const tableName = type === "event" ? "ludo_event_participants" : "community_members"
+      const communityId = type === "event" ? managementEvent?.id : managementGroup?.id
+
+      if (!communityId) return
+
+      const { error } = await supabase
+        .from(tableName)
+        .delete()
+        .eq(type === "event" ? "user_id" : "user_id", participantId) // Corrected column name for groups
+        .eq(type === "event" ? "event_id" : "community_id", communityId)
+
+      if (error) throw error
+
+      toast({ description: `${type === "event" ? "Teilnehmer" : "Mitglied"} wurde entfernt` })
+
+      // Reload participants
+      if (type === "event" && managementEvent) {
+        loadEventParticipants(managementEvent.id)
+      } else if (type === "group" && managementGroup) {
+        loadGroupMembers(managementGroup.id)
+      }
+    } catch (error) {
+      console.error(`[v0] Error removing ${type} participant:`, error)
+      toast({
+        description: `Fehler beim Entfernen des ${type === "event" ? "Teilnehmers" : "Mitglieds"}`,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const loadEventParticipants = async (eventId: string) => {
+    setLoadingEventParticipants(true)
+    try {
+      const { data, error } = await supabase
+        .from("ludo_event_participants")
+        .select(`
+          *,
+          user:users!ludo_event_participants_user_id_fkey(id, username, avatar, name)
+        `)
+        .eq("event_id", eventId)
+
+      if (error) throw error
+      setEventParticipants(data || [])
+    } catch (error) {
+      console.error("[v0] Error loading participants:", error)
+      toast({ title: "Fehler", description: "Fehler beim Laden der Teilnehmer", variant: "destructive" }) // Using toast from useToast hook
+    } finally {
+      setLoadingEventParticipants(false)
+    }
+  }
+
+  const loadGroupMembers = async (groupId: string) => {
+    setLoadingGroupMembers(true)
+    try {
+      const { data, error } = await supabase
+        .from("community_members")
+        .select(
+          `
+          id,
+          user_id,
+          community_id,
+          role,
+          joined_at,
+          user:users!community_members_user_id_fkey (
+            id,
+            username,
+            avatar
+          )
+        `,
+        )
+        .eq("community_id", groupId)
+        .order("joined_at", { ascending: true })
+
+      if (error) throw error
+
+      const membersWithCreatorFlag = data.map((member: any) => {
+        const isCreator = member.user_id === managementGroup?.creator_id
+        return {
+          ...member,
+          isCreator,
+        }
+      })
+
+      setGroupMembers(membersWithCreatorFlag || [])
+    } catch (error) {
+      console.error("[v0] Error loading group members:", error)
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Laden der Mitglieder",
+        variant: "destructive",
+      }) // Using toast from useToast hook
+    } finally {
+      setLoadingGroupMembers(false)
+    }
+  }
+
+  const openEventManagement = async (event: any) => {
+    const eventWithCreatorId = {
+      ...event,
+      creator_id: event.creator_id || event.ludo_event?.creator_id,
+    }
+
+    setManagementEvent(eventWithCreatorId)
+    setIsEventManagementOpen(true)
+    setEventManagementTab("edit")
+
+    // Load event data for editing
+    setEditingEvent({
+      title: event.title,
+      description: event.description,
+      location: event.location || "",
+      max_participants: event.max_participants,
+      first_instance_date: event.first_instance_date,
+      start_time: event.start_time,
+      end_time: event.end_time || "",
+      frequency: event.frequency || "once",
+      visibility: event.visibility || "public",
+      selected_games: event.selected_games || [],
+    })
+
+    // Load existing images
+    if (event.images && event.images.length > 0) {
+      setEventImagePreviews(event.images)
+    } else if (event.image_url) {
+      setEventImagePreviews([event.image_url])
+    }
+
+    // Load participants
+    await loadEventParticipants(eventWithCreatorId.id)
+
+    await loadFriends()
+    await loadCommunityPolls(eventWithCreatorId.id)
+  }
+
+  const openGroupManagement = async (group: any) => {
+    const groupWithCreatorId = {
+      ...group,
+      creator_id: group.creator_id || group.community?.creator_id,
+    }
+
+    setManagementGroup(groupWithCreatorId)
+    setIsGroupManagementOpen(true)
+    setGroupManagementTab("edit")
+
+    // Load group data for editing
+    setEditingGroup({
+      name: group.name,
+      description: group.description,
+      location: group.location,
+      max_members: group.max_members,
+      approval_mode: group.approval_mode || "automatic",
+    })
+
+    // Load existing images
+    if (group.images && group.images.length > 0) {
+      setGroupImagePreviews(group.images)
+    } else if (group.image) {
+      setGroupImagePreviews([group.image])
+    }
+
+    // Load members
+    await loadGroupMembers(groupWithCreatorId.id)
+
+    await loadFriends()
+    await loadCommunityPolls(groupWithCreatorId.id)
+  }
+
+  const handleEventImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
+    if (!files || !user) return
+
+    const newFiles: File[] = []
+    const newPreviews: string[] = []
+
+    files.forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ description: `${file.name} ist zu groß. Maximale Größe: 5MB`, variant: "destructive" })
+        return
+      }
+
+      if (!file.type.startsWith("image/")) {
+        toast({ description: `${file.name} ist keine Bilddatei`, variant: "destructive" })
+        return
+      }
+
+      newFiles.push(file)
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          newPreviews.push(e.target.result as string)
+          if (newPreviews.length === newFiles.length) {
+            setEventImageFiles((prev) => [...prev, ...newFiles])
+            setEventImagePreviews((prev) => [...prev, ...newPreviews])
+          }
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const handleGroupImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
+    if (!files || !user) return
+
+    const newFiles: File[] = []
+    const newPreviews: string[] = []
+
+    files.forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ description: `${file.name} ist zu groß. Maximale Größe: 5MB`, variant: "destructive" })
+        return
+      }
+
+      if (!file.type.startsWith("image/")) {
+        toast({ description: `${file.name} ist keine Bilddatei`, variant: "destructive" })
+        return
+      }
+
+      newFiles.push(file)
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          newPreviews.push(e.target.result as string)
+          if (newPreviews.length === newFiles.length) {
+            setGroupImageFiles((prev) => [...prev, ...newFiles])
+            setGroupImagePreviews((prev) => [...prev, ...newPreviews])
+          }
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const updateEvent = async () => {
+    if (!managementEvent || !editingEvent) return
+
+    setIsUpdating(true)
+
+    try {
+      const imageUrls: string[] = []
+
+      // Upload new images
+      for (const file of eventImageFiles) {
+        const fileExt = file.name.split(".").pop()
+        const fileName = `${user.id}-${Date.now()}-${Math.random()}.${fileExt}`
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("event-images")
+          .upload(fileName, file)
+
+        if (uploadError) {
+          console.error("Image upload error:", uploadError)
+          toast({ description: `Fehler beim Hochladen von ${file.name}`, variant: "destructive" })
+          continue
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("event-images").getPublicUrl(fileName)
+
+        imageUrls.push(publicUrl)
+      }
+
+      // Combine new images with existing ones
+      const allImages = [...eventImagePreviews.filter((url) => url.startsWith("http")), ...imageUrls]
+      const mainImage = allImages[0] || ""
+
+      const { error } = await supabase
+        .from("ludo_events") // Assuming the table name is ludo_events
+        .update({
+          title: editingEvent.title,
+          description: editingEvent.description,
+          location: editingEvent.location,
+          first_instance_date: editingEvent.first_instance_date, // Changed from event_date
+          start_time: editingEvent.start_time, // Changed from event_time
+          end_time: editingEvent.end_time,
+          frequency: editingEvent.frequency,
+          max_participants: editingEvent.max_participants,
+          selected_games: editingEvent.selected_games, // Assuming this is the correct key for games
+          visibility: editingEvent.visibility, // Assuming this is the correct key for visibility
+          image_url: mainImage, // Changed from image
+          images: allImages,
+        })
+        .eq("id", managementEvent.id)
+
+      if (error) throw error
+
+      toast({ description: "Event erfolgreich aktualisiert!" })
+      setIsEventManagementOpen(false)
+      loadActivities() // Reload activities
+    } catch (error) {
+      console.error("Error updating event:", error)
+      toast({ description: "Fehler beim Aktualisieren des Events", variant: "destructive" })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const updateGroup = async () => {
+    if (!managementGroup || !editingGroup) return
+
+    setIsUpdating(true)
+
+    try {
+      const imageUrls: string[] = []
+
+      // Upload new images
+      for (const file of groupImageFiles) {
+        const fileExt = file.name.split(".").pop()
+        const fileName = `${user.id}-${Date.now()}-${Math.random()}.${fileExt}`
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("community-images")
+          .upload(fileName, file)
+
+        if (uploadError) {
+          console.error("Image upload error:", uploadError)
+          toast({ description: `Fehler beim Hochladen von ${file.name}`, variant: "destructive" })
+          continue
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("community-images").getPublicUrl(fileName)
+
+        imageUrls.push(publicUrl)
+      }
+
+      // Combine new images with existing ones
+      const allImages = [...groupImagePreviews.filter((url) => url.startsWith("http")), ...imageUrls]
+      const mainImage = allImages[0] || ""
+
+      const { error } = await supabase
+        .from("communities")
+        .update({
+          name: editingGroup.name,
+          description: editingGroup.description,
+          location: editingGroup.location,
+          max_members: editingGroup.max_members,
+          approval_mode: editingGroup.approval_mode,
+          image: mainImage, // Changed from group.image to mainImage
+          images: allImages,
+        })
+        .eq("id", managementGroup.id)
+
+      if (error) throw error
+
+      toast({ description: "Spielgruppe erfolgreich aktualisiert!" })
+      setIsGroupManagementOpen(false)
+      loadActivities() // Reload activities
+    } catch (error) {
+      console.error("Error updating group:", error)
+      toast({ description: "Fehler beim Aktualisieren der Spielgruppe", variant: "destructive" })
+    } finally {
+      setIsUpdating(false)
     }
   }
 
@@ -559,12 +977,58 @@ export default function ProfilePage() {
     }
   }, [user, authLoading, supabase])
 
-  // Load activities on component mount
+  // Load activities and dashboard data on component mount
   useEffect(() => {
     if (user) {
       loadActivities()
+      loadDashboardData() // Load data for the dashboard
     }
   }, [user])
+
+  const loadDashboardData = async () => {
+    if (!user) return
+    setIsLoadingDashboard(true)
+    try {
+      // Fetch My Events with creator_id
+      const { data: createdEvents } = await supabase
+        .from("ludo_events")
+        .select(
+          "id, title, first_instance_date, start_time, location, max_participants, frequency, image_url, images, creator_id, ludo_event_instances(id, instance_date)",
+        )
+        .eq("creator_id", user.id)
+        .order("first_instance_date", { ascending: true })
+
+      setMyEvents(createdEvents || [])
+
+      // Fetch Events I'm Participating In
+      const { data: participatingEvents } = await supabase
+        .from("ludo_event_participants")
+        .select(
+          `event:ludo_events(id, title, first_instance_date, start_time, location, max_participants, frequency, image_url, images, creator_id, ludo_event_instances(id, instance_date))`,
+        )
+        .eq("user_id", user.id)
+
+      setEventsAsMember(participatingEvents?.map((p) => p.event).filter(Boolean) || [])
+
+      // Fetch My Groups
+      const { data: communities } = await supabase
+        .from("community_members")
+        .select(
+          "community:communities(id, name, image, creator_id, type, location, active, max_members, approval_mode, created_at, images, community_members(id))",
+        )
+        .eq("user_id", user.id)
+
+      setMyGroups(communities?.map((c) => c.community).filter(Boolean) || [])
+
+      // Fetch Upcoming Events (for dashboard widget)
+      const { data: upcomingEventsData } = await supabase.rpc("get_upcoming_events_for_user", { user_id: user.id })
+      setUpcomingEvents(upcomingEventsData || [])
+    } catch (error) {
+      console.error("Error loading dashboard data:", error)
+    } finally {
+      setIsLoadingDashboard(false)
+    }
+  }
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -633,6 +1097,7 @@ export default function ProfilePage() {
     setAvatarSeed(randomSeed)
   }
 
+  // Removed debug logging related to avatar generation
   useEffect(() => {
     if (showAvatarCreator) {
       const seed = avatarSeed || `${Date.now()}`
@@ -643,7 +1108,6 @@ export default function ProfilePage() {
   }, [avatarStyle, avatarBgColor, showAvatarCreator, avatarSeed])
 
   const handleAvatarSave = async () => {
-    console.log("DEBUG: Saving generated avatar:", generatedAvatar)
     if (!user || !profile || !generatedAvatar) return // Ensure generatedAvatar is available
 
     try {
@@ -673,9 +1137,6 @@ export default function ProfilePage() {
         description: "Avatar konnte nicht gespeichert werden",
         variant: "destructive",
       })
-    } finally {
-      // In this specific function, there's no explicit uploading state,
-      // but if there were, it would be reset here.
     }
   }
 
@@ -711,7 +1172,6 @@ export default function ProfilePage() {
   }
 
   const handleSelectAddress = (address: string) => {
-    console.log("DEBUG: Selected address:", address)
     setEditedProfile({ ...editedProfile, address })
     setShowAddressSuggestions(false)
     setAddressSuggestions([])
@@ -722,6 +1182,7 @@ export default function ProfilePage() {
     setSaving(true)
     try {
       const { error } = await supabase
+        .from("users")
         .update({
           name: editedProfile.name,
           username: editedProfile.username,
@@ -735,7 +1196,6 @@ export default function ProfilePage() {
           favorite_games: editedProfile.favorite_games,
         })
         .eq("id", user.id)
-        .from("users")
 
       if (error) throw error
 
@@ -758,9 +1218,262 @@ export default function ProfilePage() {
   }
 
   const handleLogout = async () => {
-    console.log("DEBUG: Logging out user.")
     await signOut()
     router.push("/")
+  }
+
+  const loadFriends = async () => {
+    if (!user) return
+
+    try {
+      const { data: friendships1, error: error1 } = await supabase
+        .from("friends")
+        .select(`
+          friend_id,
+          users:users!friends_friend_id_fkey (
+            id,
+            username,
+            name,
+            avatar
+          )
+        `)
+        .eq("user_id", user.id)
+        .eq("status", "active")
+
+      const { data: friendships2, error: error2 } = await supabase
+        .from("friends")
+        .select(`
+          user_id,
+          users:users!friends_user_id_fkey (
+            id,
+            username,
+            name,
+            avatar
+          )
+        `)
+        .eq("friend_id", user.id)
+        .eq("status", "active")
+
+      if (error1 || error2) {
+        console.error("Error loading friends:", error1 || error2)
+        return
+      }
+
+      const friends1 = friendships1?.map((f) => f.users).filter(Boolean) || []
+      const friends2 = friendships2?.map((f) => f.users).filter(Boolean) || []
+
+      const allFriendsMap = new Map()
+      friends1.forEach((friend) => {
+        if (friend.id) allFriendsMap.set(friend.id, friend)
+      })
+      friends2.forEach((friend) => {
+        if (friend.id) allFriendsMap.set(friend.id, friend)
+      })
+      const allFriends = Array.from(allFriendsMap.values())
+
+      setFriends(allFriends)
+    } catch (err) {
+      console.error("Error loading friends:", err)
+    }
+  }
+
+  const handleInviteFriends = async (communityId: string | undefined, communityType: "event" | "group") => {
+    if (!communityId) {
+      toast({ description: "Fehler: Community ID fehlt", variant: "destructive" })
+      return
+    }
+    if (selectedFriends.length === 0) {
+      toast({
+        description: "Bitte wähle mindestens einen Freund aus",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      for (const friendId of selectedFriends) {
+        // Determine the correct table and relevant fields based on communityType
+        const insertData = {
+          invitee_id: friendId,
+          inviter_id: user?.id,
+        }
+
+        if (communityType === "event") {
+          await supabase.from("event_invitations").insert({ ...insertData, event_id: communityId })
+        } else if (communityType === "group") {
+          await supabase.from("community_invitations").insert({ ...insertData, community_id: communityId })
+        }
+      }
+
+      toast({
+        description: `${selectedFriends.length} Freunde eingeladen`,
+      })
+      setSelectedFriends([])
+    } catch (error) {
+      console.error("[v0] Error inviting friends:", error)
+      toast({
+        description: "Fehler beim Einladen",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const loadCommunityPolls = async (communityId: string) => {
+    if (!user) return
+
+    try {
+      const { data: polls, error: pollsError } = await supabase
+        .from("community_polls")
+        .select(`
+          *,
+          options:community_poll_options(*),
+          votes:community_poll_votes(*)
+        `)
+        .eq("community_id", communityId)
+        .order("created_at", { ascending: false })
+
+      if (pollsError) throw pollsError
+
+      setCommunityPolls(polls || [])
+
+      // Load user votes
+      const { data: votes, error: votesError } = await supabase
+        .from("community_poll_votes")
+        .select("poll_id, option_id")
+        .eq("user_id", user.id)
+
+      if (votesError) throw votesError
+
+      const votesMap: Record<string, string[]> = {}
+      votes?.forEach((vote) => {
+        if (!votesMap[vote.poll_id]) {
+          votesMap[vote.poll_id] = []
+        }
+        votesMap[vote.poll_id].push(vote.option_id)
+      })
+
+      setUserVotes(votesMap)
+    } catch (error) {
+      console.error("Error loading polls:", error)
+    }
+  }
+
+  const handleVote = async (pollId: string, optionId: string) => {
+    if (!user) {
+      toast({ description: "Bitte melde dich an um abzustimmen", variant: "destructive" })
+      return
+    }
+
+    try {
+      const poll = communityPolls.find((p) => p.id === pollId)
+
+      const userHasVoted = userVotes[pollId] && userVotes[pollId].length > 0
+      const userVotedForThisOption = userVotes[pollId]?.includes(optionId)
+
+      if (userVotedForThisOption) {
+        // Remove vote if already voted for this option
+        const { error } = await supabase
+          .from("community_poll_votes")
+          .delete()
+          .eq("poll_id", pollId)
+          .eq("option_id", optionId)
+          .eq("user_id", user.id)
+
+        if (error) throw error
+
+        toast({ description: "Stimme entfernt" })
+      } else {
+        // If not allowing multiple votes and user has already voted, remove previous vote
+        if (!poll?.allow_multiple_votes && userHasVoted) {
+          const { error: deleteError } = await supabase
+            .from("community_poll_votes")
+            .delete()
+            .eq("poll_id", pollId)
+            .eq("user_id", user.id)
+
+          if (deleteError) throw deleteError
+        }
+
+        // Add new vote
+        const { error: insertError } = await supabase.from("community_poll_votes").insert({
+          poll_id: pollId,
+          option_id: optionId,
+          user_id: user.id,
+        })
+
+        if (insertError) throw insertError
+
+        toast({ description: "Stimme abgegeben" })
+      }
+
+      // Reload polls to reflect changes
+      if (managementEvent) {
+        loadCommunityPolls(managementEvent.id)
+      } else if (managementGroup) {
+        loadCommunityPolls(managementGroup.id)
+      }
+    } catch (error: any) {
+      console.error("[v0] Error voting:", error)
+      toast({
+        description: error.message || "Fehler beim Abstimmen",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const createPoll = async (communityId: string | undefined) => {
+    if (!communityId) {
+      toast({ description: "Fehler: Community ID fehlt", variant: "destructive" })
+      return
+    }
+    if (!user) return
+
+    if (!newPoll.question.trim() || newPoll.options.filter((o) => o.trim()).length < 2) {
+      toast({ description: "Bitte fülle die Frage und mindestens 2 Optionen aus", variant: "destructive" })
+      return
+    }
+
+    try {
+      const { data: pollData, error: pollError } = await supabase
+        .from("community_polls")
+        .insert({
+          community_id: communityId,
+          creator_id: user.id,
+          question: newPoll.question,
+          description: newPoll.description,
+          allow_multiple_votes: newPoll.allow_multiple_votes,
+          expires_at: newPoll.expires_at || null,
+          is_active: true,
+        })
+        .select()
+        .single()
+
+      if (pollError) throw pollError
+
+      const options = newPoll.options
+        .filter((o) => o.trim())
+        .map((option) => ({
+          poll_id: pollData.id,
+          option_text: option,
+          votes_count: 0,
+        }))
+
+      await supabase.from("community_poll_options").insert(options)
+
+      toast({ description: "Abstimmung erfolgreich erstellt!" })
+      setNewPoll({
+        question: "",
+        description: "",
+        options: ["", ""],
+        allow_multiple_votes: false,
+        expires_at: "",
+      })
+      setActivePollTab("active")
+      loadCommunityPolls(communityId)
+    } catch (error) {
+      console.error("Error creating poll:", error)
+      toast({ description: "Fehler beim Erstellen der Abstimmung", variant: "destructive" })
+    }
   }
 
   const loadActivities = async () => {
@@ -783,6 +1496,9 @@ export default function ProfilePage() {
           created_at,
           frequency,
           selected_games,
+          image_url,
+          images,
+          creator_id,
           ludo_event_instances(id, instance_date, start_time),
           ludo_event_participants(id)
         `)
@@ -795,8 +1511,9 @@ export default function ProfilePage() {
           id,
           status,
           joined_at,
+          user_id,
           event_id,
-          event:ludo_events(id, title, first_instance_date, start_time, location, creator_id, selected_games, frequency, ludo_event_instances(id, instance_date))
+          event:ludo_events(id, title, first_instance_date, start_time, location, creator_id, selected_games, frequency, image_url, images, ludo_event_instances(id, instance_date))
         `)
         .eq("user_id", user.id)
         .order("joined_at", { ascending: false })
@@ -837,9 +1554,10 @@ export default function ProfilePage() {
         .from("community_members")
         .select(`
           id,
+          user_id,
           role,
           joined_at,
-          community:communities(id, name, image, creator_id, type, location, community_members(id), active)
+          community:communities(id, name, image, creator_id, type, location, active, max_members, approval_mode, created_at, images, community_members(id))
         `)
         .eq("user_id", user.id)
         .order("joined_at", { ascending: false })
@@ -853,8 +1571,11 @@ export default function ProfilePage() {
           type,
           active,
           created_at,
+          creator_id,
           max_members,
           location,
+          approval_mode,
+          images,
           community_members(id)
         `)
         .eq("creator_id", user.id)
@@ -982,8 +1703,6 @@ export default function ProfilePage() {
   const saveNotificationPref = async (category: string, key: string, value: number) => {
     if (!user) return
     try {
-      console.log("[v0] Saving notification pref:", { category, key, value })
-
       let table = ""
       let dbKey = key
 
@@ -1108,7 +1827,6 @@ export default function ProfilePage() {
   }
 
   const handleDeleteAccount = async () => {
-    console.log("DEBUG: Deleting account.")
     if (deleteConfirmText !== "LÖSCHEN") {
       return
     }
@@ -1142,6 +1860,11 @@ export default function ProfilePage() {
     } finally {
       setIsDeleting(false)
     }
+  }
+
+  const handleUsernameClick = (userId: string) => {
+    setProfileModalUserId(userId)
+    setIsProfileModalOpen(true)
   }
 
   if (authLoading || profileLoading) {
@@ -1340,18 +2063,18 @@ export default function ProfilePage() {
                 <CgProfile className="w-3 h-3 mr-1" />
                 Profil
               </TabsTrigger>
-              <TabsTrigger
-                value="activities"
-                className="data-[state=active]:bg-teal-100 text-xs"
-                // Removed onClick={loadActivities} as it's now loaded on mount
-              >
+              <TabsTrigger value="activities" className="data-[state=active]:bg-teal-100 text-xs">
                 <RxActivityLog className="w-3 h-3 mr-1" />
                 Meine Aktivitäten
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="data-[state=active]:bg-teal-100 text-xs">
+                <CalendarDays className="w-3 h-3 mr-1" />
+                Kalender
               </TabsTrigger>
               <TabsTrigger
                 value="notifications"
                 className="data-[state=active]:bg-teal-100 text-xs"
-                onClick={loadNotificationPrefs} // Corrected from loadNotificationPreferences
+                onClick={loadNotificationPrefs}
               >
                 <FaBell className="w-3 h-3 mr-1" />
                 Benachrichtigungen
@@ -1365,6 +2088,365 @@ export default function ProfilePage() {
                 Sicherheit
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="dashboard" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl font-handwritten text-teal-700">Schnellzugriff-Dashboard</CardTitle>
+                  <CardDescription>Deine wichtigsten Aktivitäten auf einen Blick</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Quick Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card className="border-teal-200 bg-teal-50">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-gray-600">Meine Events</p>
+                            <p className="text-2xl font-bold text-teal-600">{myEvents.length}</p>
+                          </div>
+                          <FaCalendarAlt className="w-8 h-8 text-teal-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-pink-200 bg-pink-50">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-gray-600">Meine Gruppen</p>
+                            <p className="text-2xl font-bold text-pink-600">{myGroups.length}</p>
+                          </div>
+                          <LiaUsersSolid className="w-8 h-8 text-pink-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-orange-200 bg-orange-50">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-gray-600">Ungelesene Benachrichtigungen</p>
+                            <p className="text-2xl font-bold text-orange-600">
+                              {notifications.filter((n) => !n.is_read).length}
+                            </p>
+                          </div>
+                          <FaBell className="w-8 h-8 text-orange-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-purple-200 bg-purple-50">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-gray-600">Anfragen</p>
+                            <p className="text-2xl font-bold text-purple-600">
+                              {activityData.friendRequests.length + activityData.eventJoinRequests.length}
+                            </p>
+                          </div>
+                          <IoSearchCircle className="w-8 h-8 text-purple-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Upcoming Events */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 font-handwritten">
+                      <FaCalendarAlt className="text-teal-500" />
+                      Anstehende Events (nächste 7 Tage)
+                    </h3>
+                    <div className="space-y-2">
+                      {[...myEvents, ...eventsAsMember]
+                        .filter((event) => {
+                          const eventDate = new Date(event.first_instance_date) // Changed from event_date
+                          const today = new Date()
+                          const nextWeek = new Date()
+                          nextWeek.setDate(nextWeek.getDate() + 7)
+                          return eventDate >= today && eventDate <= nextWeek
+                        })
+                        .sort(
+                          (a, b) =>
+                            new Date(a.first_instance_date).getTime() - new Date(b.first_instance_date).getTime(),
+                        ) // Changed from event_date
+                        .slice(0, 5)
+                        .map((event) => (
+                          <Card key={event.id} className="border-l-4 border-l-teal-400">
+                            <CardContent className="p-3 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-lg bg-teal-100 flex items-center justify-center">
+                                  <FaCalendarAlt className="text-teal-600" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-sm">{event.title}</p>
+                                  <p className="text-xs text-gray-600">
+                                    {new Date(event.first_instance_date).toLocaleDateString("de-DE", {
+                                      // Changed from event_date
+                                      weekday: "short",
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    })}
+                                    {event.start_time && ` • ${event.start_time}`}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button size="sm" variant="outline" asChild>
+                                <Link href={`/ludo-events?view=${event.id}`}>Details</Link>
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      {[...myEvents, ...eventsAsMember].filter((event) => {
+                        const eventDate = new Date(event.first_instance_date) // Changed from event_date
+                        const today = new Date()
+                        const nextWeek = new Date()
+                        nextWeek.setDate(nextWeek.getDate() + 7)
+                        return eventDate >= today && eventDate <= nextWeek
+                      }).length === 0 && (
+                        <Card>
+                          <CardContent className="p-6 text-center text-gray-500">
+                            <FaCalendarAlt className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                            <p className="text-sm">Keine anstehenden Events in den nächsten 7 Tagen</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Recent Activity */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 font-handwritten">
+                      <RxActivityLog className="text-pink-500" />
+                      Neueste Aktivitäten
+                    </h3>
+                    <div className="space-y-2">
+                      {notifications.slice(0, 5).map((notification) => (
+                        <Card key={notification.id} className={!notification.is_read ? "bg-orange-50" : ""}>
+                          <CardContent className="p-3 flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-sm">{notification.message}</p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(notification.created_at).toLocaleDateString("de-DE", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      {notifications.length === 0 && (
+                        <Card>
+                          <CardContent className="p-6 text-center text-gray-500">
+                            <RxActivityLog className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                            <p className="text-sm">Keine neuen Aktivitäten</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="calendar">
+              <Card className="border-2 border-teal-200">
+                <CardHeader>
+                  <CardTitle className="font-handwritten text-teal-700 text-base">Event-Kalender</CardTitle>
+                  <p className="text-xs text-gray-500">Übersicht aller Events und Spielabende im Kalenderformat</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {(() => {
+                      const today = new Date()
+                      const viewDate = new Date(today.getFullYear(), today.getMonth() + currentMonthOffset, 1)
+                      const currentMonth = viewDate.getMonth()
+                      const currentYear = viewDate.getFullYear()
+                      const firstDay = new Date(currentYear, currentMonth, 1)
+                      const lastDay = new Date(currentYear, currentMonth + 1, 0)
+                      const daysInMonth = lastDay.getDate()
+                      const startingDayOfWeek = firstDay.getDay()
+
+                      const allEvents = [...myEvents, ...eventsAsMember]
+                      const eventsByDate: { [key: string]: typeof allEvents } = {}
+
+                      allEvents.forEach((event) => {
+                        const dateKey = new Date(event.first_instance_date).toISOString().split("T")[0] // Changed from event_date
+                        if (!eventsByDate[dateKey]) {
+                          eventsByDate[dateKey] = []
+                        }
+                        eventsByDate[dateKey].push(event)
+                      })
+
+                      return (
+                        <>
+                          {/* Month Navigation */}
+                          <div className="flex items-center justify-between mb-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentMonthOffset(currentMonthOffset - 1)}
+                            >
+                              <FaChevronLeft className="w-4 h-4" />
+                            </Button>
+
+                            <h3 className="font-bold font-handwritten text-sm">
+                              {viewDate.toLocaleDateString("de-DE", {
+                                month: "long",
+                                year: "numeric",
+                              })}
+                            </h3>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentMonthOffset(currentMonthOffset + 1)}
+                            >
+                              <FaChevronRight className="w-4 h-4" />
+                            </Button>
+                          </div>
+
+                          {/* Calendar Grid */}
+                          <div className="grid grid-cols-7 gap-1">
+                            {/* Day Headers */}
+                            {["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"].map((day) => (
+                              <div key={day} className="text-center font-semibold text-xs text-gray-600 py-1">
+                                {day}
+                              </div>
+                            ))}
+
+                            {/* Empty cells for days before month starts */}
+                            {Array.from({ length: startingDayOfWeek }).map((_, i) => (
+                              <div key={`empty-${i}`} className="aspect-square" />
+                            ))}
+
+                            {/* Calendar days */}
+                            {Array.from({ length: daysInMonth }).map((_, i) => {
+                              const day = i + 1
+                              const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+                              const dayEvents = eventsByDate[dateKey] || []
+                              const isToday =
+                                day === today.getDate() &&
+                                currentMonth === today.getMonth() &&
+                                currentYear === today.getFullYear()
+
+                              return (
+                                <div
+                                  key={day}
+                                  className={`aspect-square border rounded-md p-0.5 ${
+                                    isToday ? "border-teal-500 bg-teal-50" : "border-gray-200"
+                                  } ${dayEvents.length > 0 ? "bg-orange-50" : ""}`}
+                                >
+                                  <div className="text-[10px] font-semibold text-center mb-0.5">{day}</div>
+                                  {dayEvents.length > 0 && (
+                                    <div className="space-y-0.5">
+                                      {dayEvents.slice(0, 1).map((event) => (
+                                        <div
+                                          key={event.id}
+                                          className="text-[7px] bg-teal-500 text-white rounded px-0.5 py-0.5 truncate cursor-pointer hover:bg-teal-600"
+                                          onClick={() => {
+                                            window.location.href = `/ludo-events?view=${event.id}`
+                                          }}
+                                          title={event.title}
+                                        >
+                                          {event.title}
+                                        </div>
+                                      ))}
+                                      {dayEvents.length > 1 && (
+                                        <div className="text-[7px] text-gray-600 text-center">
+                                          +{dayEvents.length - 1}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          {/* Event List below calendar */}
+                          <div className="mt-6">
+                            <h3 className="font-semibold mb-3 font-handwritten text-base">
+                              Alle Events in diesem Monat
+                            </h3>
+                            <div className="space-y-2 max-h-96 overflow-y-auto">
+                              {allEvents
+                                .filter((event) => {
+                                  const eventDate = new Date(event.first_instance_date) // Changed from event_date
+                                  return (
+                                    eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
+                                  )
+                                })
+                                .sort(
+                                  (a, b) =>
+                                    new Date(a.first_instance_date).getTime() -
+                                    new Date(b.first_instance_date).getTime(),
+                                ) // Changed from event_date
+                                .map((event) => (
+                                  <Card key={event.id} className="border-l-4 border-l-teal-400">
+                                    <CardContent className="p-3 flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-lg bg-teal-100 flex flex-col items-center justify-center">
+                                          <p className="text-xs font-bold text-teal-600">
+                                            {new Date(event.first_instance_date).getDate()}{" "}
+                                            {/* Changed from event_date */}
+                                          </p>
+                                          <p className="text-[8px] text-teal-500">
+                                            {new Date(event.first_instance_date) // Changed from event_date
+                                              .toLocaleDateString("de-DE", { month: "short" })
+                                              .toUpperCase()}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p className="font-semibold text-sm">{event.title}</p>
+                                          <p className="text-xs text-gray-600">
+                                            {new Date(event.first_instance_date).toLocaleDateString("de-DE", {
+                                              // Changed from event_date
+                                              weekday: "long",
+                                              day: "2-digit",
+                                              month: "long",
+                                            })}
+                                            {event.start_time && ` • ${event.start_time}`}
+                                          </p>
+                                          {event.location && (
+                                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                                              <FaMapMarkerAlt className="w-3 h-3" />
+                                              {event.location}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <Button size="sm" variant="outline" asChild>
+                                        <Link href={`/ludo-events?view=${event.id}`}>Details</Link>
+                                      </Button>
+                                    </CardContent>
+                                  </Card>
+                                ))}
+                              {allEvents.filter((event) => {
+                                const eventDate = new Date(event.first_instance_date) // Changed from event_date
+                                return eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
+                              }).length === 0 && (
+                                <Card>
+                                  <CardContent className="p-6 text-center text-gray-500">
+                                    <FaCalendarAlt className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                                    <p className="text-sm">Keine Events in diesem Monat</p>
+                                  </CardContent>
+                                </Card>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )
+                    })()}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="profile">
               <Card className="border-2 border-teal-200">
@@ -1397,7 +2479,6 @@ export default function ProfilePage() {
                         disabled={saving}
                         className="bg-teal-500 hover:bg-teal-600 h-7 text-xs px-2"
                       >
-                        <Save className="w-3 h-3 mr-1" />
                         {saving ? "..." : "Speichern"}
                       </Button>
                     </div>
@@ -1500,7 +2581,7 @@ export default function ProfilePage() {
                               setShowAddressSuggestions(true)
                             }
                             onBlur={() => setTimeout(() => setShowAddressSuggestions(false), 200)}
-                            placeholder="Straße, Hausnummer, PLZ, Ort"
+                            placeholder="Straße, Hausnummer, PLZ, Ort eingeben"
                             className="border-teal-200 focus:border-teal-400 h-8 text-xs"
                           />
                           {addressSearching && ( // Check for addressSearching state
@@ -1683,7 +2764,7 @@ export default function ProfilePage() {
                               const isInactive =
                                 instances.length > 0
                                   ? instances.every((inst: any) => new Date(inst.instance_date) < new Date())
-                                  : event?.first_instance_date && new Date(event.first_instance_date) < new Date()
+                                  : event?.first_instance_date && new Date(event.first_instance_date) < new Date() // Changed from event_date
 
                               const sortedInstances = [...instances].sort(
                                 (a: any, b: any) =>
@@ -1718,7 +2799,9 @@ export default function ProfilePage() {
                                 datesDisplay = firstDates.join(", ")
                                 if (sortedInstances.length > 3) datesDisplay += " ..."
                               } else if (event?.first_instance_date) {
+                                // Changed from event.event_date
                                 datesDisplay = new Date(event.first_instance_date).toLocaleDateString("de-DE", {
+                                  // Changed from event.event_date
                                   day: "2-digit",
                                   month: "2-digit",
                                   year: "numeric",
@@ -1779,7 +2862,7 @@ export default function ProfilePage() {
                               const isInactive =
                                 instances.length > 0
                                   ? instances.every((inst: any) => new Date(inst.instance_date) < new Date())
-                                  : event?.first_instance_date && new Date(event.first_instance_date) < new Date()
+                                  : event?.first_instance_date && new Date(event.first_instance_date) < new Date() // Changed from event_date
 
                               const sortedInstances = [...instances].sort(
                                 (a: any, b: any) =>
@@ -1814,7 +2897,9 @@ export default function ProfilePage() {
                                 datesDisplay = firstDates.join(", ")
                                 if (sortedInstances.length > 3) datesDisplay += " ..."
                               } else if (event.first_instance_date) {
+                                // Changed from event.event_date
                                 datesDisplay = new Date(event.first_instance_date).toLocaleDateString("de-DE", {
+                                  // Changed from event.event_date
                                   day: "2-digit",
                                   month: "2-digit",
                                   year: "numeric",
@@ -1824,10 +2909,14 @@ export default function ProfilePage() {
                               return (
                                 <div
                                   key={event.id}
-                                  className={`flex items-center justify-between p-2 bg-blue-50 rounded-lg border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors ${
-                                    isInactive ? "opacity-60" : ""
+                                  className={`flex items-center justify-between p-2 bg-blue-50 rounded-lg border border-blue-100 transition-colors ${
+                                    isInactive ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:bg-blue-100"
                                   }`}
-                                  onClick={() => router.push(`/ludo-events?view=${event.id}`)}
+                                  onClick={(e) => {
+                                    if (!isInactive) {
+                                      router.push(`/ludo-events?view=${event.id}`)
+                                    }
+                                  }}
                                 >
                                   <div className="flex-1 min-w-0">
                                     <p className="text-xs font-medium text-gray-900 truncate">{event.title}</p>
@@ -1838,16 +2927,12 @@ export default function ProfilePage() {
                                   </div>
                                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                     <Button
-                                      variant="ghost"
+                                      variant="outline"
                                       size="sm"
-                                      className="h-7 px-3 text-[10px]"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        router.push(`/ludo-events?view=${event.id}&manage=true`)
-                                      }}
-                                      title="Event verwalten"
+                                      onClick={() => openEventManagement(event)}
+                                      className="h-7 text-xs px-2"
                                     >
-                                      <Settings className="w-3.5 h-3.5 text-blue-600 mr-1" />
+                                      <Settings className="w-3 h-3 mr-1" />
                                       Event verwalten
                                     </Button>
                                     <Button
@@ -1994,16 +3079,12 @@ export default function ProfilePage() {
                                   </div>
                                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                     <Button
-                                      variant="ghost"
+                                      variant="outline"
                                       size="sm"
-                                      className="h-7 px-3 text-[10px]"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        router.push(`/ludo-gruppen?view=${community.id}&manage=true`)
-                                      }}
-                                      title="Gruppe verwalten"
+                                      onClick={() => openGroupManagement(community)}
+                                      className="h-7 text-xs px-2"
                                     >
-                                      <Settings className="w-3.5 h-3.5 text-teal-600 mr-1" />
+                                      <Settings className="w-3 h-3 mr-1" />
                                       Gruppe verwalten
                                     </Button>
                                     <Button
@@ -2052,7 +3133,7 @@ export default function ProfilePage() {
                                     className="flex items-center justify-between p-2 bg-purple-50 rounded-lg border border-purple-100"
                                   >
                                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                                      <Avatar className="w-8 h-8 border-2 border-purple-200">
+                                      <Avatar className="w-8 h-8">
                                         <AvatarImage src={otherUser?.avatar || "/placeholder-user.jpg"} />
                                         <AvatarFallback>{otherUser?.name?.charAt(0) || "?"}</AvatarFallback>
                                       </Avatar>
@@ -2137,7 +3218,7 @@ export default function ProfilePage() {
                                         <p className="text-xs font-medium text-gray-900 truncate">
                                           {isMyEvent
                                             ? `${request.user?.name || request.user?.username} möchte teilnehmen`
-                                            : request.event?.title}
+                                            : "Deine Anfrage"}
                                         </p>
                                         <p className="text-[10px] text-gray-500">
                                           {isMyEvent ? request.event?.title : "Deine Anfrage"} •{" "}
@@ -2249,16 +3330,15 @@ export default function ProfilePage() {
                                       )}
                                     </Button>
                                     <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        router.push(`/edit/angebot/${offer.id}`)
+                                      onClick={() => {
+                                        router.push(`/marketplace?edit=${offer.id}&step=2`)
                                       }}
-                                      title="Bearbeiten"
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex items-center gap-1.5 text-xs bg-transparent"
                                     >
-                                      <Pencil className="w-3.5 h-3.5 text-orange-600" />
+                                      <Edit2 className="w-3 h-3" />
+                                      Bearbeiten
                                     </Button>
                                     <Button
                                       variant="ghost"
@@ -2402,87 +3482,9 @@ export default function ProfilePage() {
                   <CardTitle className="font-handwritten text-teal-700 text-base">Benachrichtigungen</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Tabs value={notificationTab} onValueChange={setNotificationTab} className="space-y-4">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="inbox" className="flex items-center gap-2 text-xs">
-                        <Bell className="w-3 h-3" />
-                        Posteingang
-                        {notifications.filter((n) => !n.read).length > 0 && (
-                          <Badge variant="destructive" className="ml-1 text-[10px] px-1">
-                            {notifications.filter((n) => !n.read).length}
-                          </Badge>
-                        )}
-                      </TabsTrigger>
-                      <TabsTrigger value="settings" className="flex items-center gap-2 text-xs">
-                        <Settings className="w-3 h-3" />
-                        Einstellungen
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="inbox" className="space-y-3 mt-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <p className="text-xs text-gray-600">
-                          {notifications.filter((n) => !n.read).length} ungelesene Benachrichtigungen
-                        </p>
-                        {notifications.length > 0 && (
-                          <Button
-                            onClick={handleMarkAllNotificationsRead}
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs bg-transparent"
-                          >
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Alle als gelesen
-                          </Button>
-                        )}
-                      </div>
-
-                      {notifications.length === 0 ? (
-                        <div className="text-center py-8">
-                          <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                          <p className="text-sm text-gray-500 mb-1">Keine Benachrichtigungen</p>
-                          <p className="text-xs text-gray-400">Du bist auf dem neuesten Stand!</p>
-                        </div>
-                      ) : (
-                        <ScrollArea className="h-[400px]">
-                          <div className="space-y-2 pr-3">
-                            {notifications.map((notification) => (
-                              <div
-                                key={notification.id}
-                                className={`p-3 rounded-lg border text-xs transition-colors ${
-                                  !notification.read ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200"
-                                }`}
-                              >
-                                <div className="flex gap-3">
-                                  <div className="flex-shrink-0 mt-0.5">{getNotificationIcon(notification.type)}</div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between gap-2">
-                                      <div>
-                                        <h4 className="font-semibold text-xs mb-0.5">{notification.title}</h4>
-                                        <p className="text-xs text-gray-600 mb-1">{notification.message}</p>
-                                        <p className="text-[10px] text-gray-400">
-                                          {formatNotificationTime(notification.created_at)}
-                                        </p>
-                                      </div>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleDeleteNotification(notification.id)}
-                                        className="flex-shrink-0 h-6 w-6"
-                                      >
-                                        <Trash2 className="w-3 h-3 text-gray-400 hover:text-red-500" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="settings" className="space-y-4 mt-4">
+                  <div className="space-y-4">
+                    {/* Notification Settings */}
+                    <div>
                       <div className="mb-3">
                         <div className="flex items-center gap-4 text-[10px] text-gray-500">
                           <div className="flex items-center gap-1">
@@ -2501,7 +3503,7 @@ export default function ProfilePage() {
                           {/* Soziales */}
                           <div>
                             <div className="flex items-center gap-2 mb-2">
-                              <FaUserPlus className="w-4 h-4 text-green-500" />
+                              <FaUserPlusIcon className="w-4 h-4 text-green-500" /> {/* Use FaUserPlusIcon */}
                               <h3 className="text-sm font-semibold">Soziales</h3>
                             </div>
                             <div className="space-y-1 text-xs">
@@ -2694,8 +3696,8 @@ export default function ProfilePage() {
                           </div>
                         </div>
                       </ScrollArea>
-                    </TabsContent>
-                  </Tabs>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -2801,7 +3803,7 @@ export default function ProfilePage() {
                     <Button
                       variant="destructive"
                       size="sm"
-                      className="h-8 text-xs px-3 bg-red-600 hover:bg-red-700 text-white font-medium"
+                      className="h-8 text-xs px-3 bg-red-600 hover:bg-red-700 text-white font-semibold"
                       onClick={() => setShowDeleteDialog(true)}
                     >
                       Konto endgültig löschen
@@ -2814,128 +3816,1553 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-handwritten text-teal-700">Passwort ändern</DialogTitle>
-            <DialogDescription className="text-xs">
-              Gib dein neues Passwort ein. Es muss mindestens 6 Zeichen lang sein.
-            </DialogDescription>
+      {/* Event Management Dialog */}
+      <Dialog open={isEventManagementOpen} onOpenChange={setIsEventManagementOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="px-4 pt-4 pb-3 border-b">
+            <div className="flex items-center gap-3">
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg"
+              >
+                <Settings className="h-7 w-7 text-white" />
+              </motion.div>
+              <div>
+                <DialogTitle className="text-xl font-bold text-gray-900">Event verwalten</DialogTitle>
+                <DialogDescription className="text-sm text-gray-500">{managementEvent?.title}</DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="newPassword" className="text-xs">
-                Neues Passwort
-              </Label>
-              <Input
-                id="newPassword"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Mindestens 6 Zeichen"
-                className="h-8 text-xs"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-xs">
-                Passwort bestätigen
-              </Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Passwort wiederholen"
-                className="h-8 text-xs"
-              />
-            </div>
-            {passwordError && <p className="text-red-500 text-xs">{passwordError}</p>}
-            {passwordSuccess && <p className="text-green-500 text-xs">{passwordSuccess}</p>}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setShowPasswordDialog(false)
-                setPasswordError("")
-                setNewPassword("")
-                setConfirmPassword("")
-              }}
-              className="h-7 text-xs"
-            >
-              Abbrechen
-            </Button>
-            <Button
-              size="sm"
-              onClick={handlePasswordChange}
-              disabled={isChangingPassword || !newPassword || !confirmPassword}
-              className="h-7 text-xs bg-teal-500 hover:bg-teal-600"
-            >
-              {isChangingPassword ? "Wird geändert..." : "Passwort ändern"}
-            </Button>
-          </DialogFooter>
+
+          <Tabs value={eventManagementTab} onValueChange={(v) => setEventManagementTab(v as any)} className="w-full">
+            <TabsList className="grid grid-cols-4 w-full">
+              <TabsTrigger value="edit" className="flex items-center gap-2">
+                <Edit className="h-4 w-4" />
+                Bearbeiten
+              </TabsTrigger>
+              <TabsTrigger value="participants" className="flex items-center gap-2">
+                <FaUsers className="h-4 w-4" />
+                Teilnehmer
+              </TabsTrigger>
+              <TabsTrigger value="invite" className="flex items-center gap-2">
+                <FaUserPlusIcon className="h-4 w-4" /> {/* Use FaUserPlusIcon */}
+                Freunde einladen
+              </TabsTrigger>
+              <TabsTrigger value="polls" className="flex items-center gap-2">
+                <FaPoll className="h-4 w-4" />
+                Abstimmungen
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="edit" className="space-y-4 mt-4">
+              {editingEvent && (
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <Label htmlFor="event-title" className="text-xs font-medium">
+                      Event-Titel
+                    </Label>
+                    <Input
+                      id="event-title"
+                      value={editingEvent.title}
+                      onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
+                      placeholder="z.B. CATAN Spielabend"
+                      className="h-11 text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="event-description" className="text-xs font-medium">
+                      Beschreibung
+                    </Label>
+                    <RichTextEditor
+                      value={editingEvent.description}
+                      onChange={(value) => setEditingEvent({ ...editingEvent, description: value })}
+                      placeholder="Beschreibe dein Event..."
+                      maxLength={5000}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <Label htmlFor="event-date" className="text-xs font-medium">
+                        Datum
+                      </Label>
+                      <Input
+                        id="event-date"
+                        type="date"
+                        value={editingEvent.first_instance_date} // Changed from event_date
+                        onChange={(e) => setEditingEvent({ ...editingEvent, first_instance_date: e.target.value })} // Changed from event_date
+                        className="h-11 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="event-time" className="text-xs font-medium">
+                        Uhrzeit
+                      </Label>
+                      <Input
+                        id="event-time"
+                        type="time"
+                        value={editingEvent.start_time} // Changed from event_time
+                        onChange={(e) => setEditingEvent({ ...editingEvent, start_time: e.target.value })} // Changed from event_time
+                        className="h-11 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="event-location" className="text-xs font-medium">
+                      Standort
+                    </Label>
+                    <AddressAutocomplete
+                      label=""
+                      placeholder="Location, Adresse, PLZ oder Ort eingeben..."
+                      value={editingEvent.location}
+                      onChange={(value) => setEditingEvent({ ...editingEvent, location: value })}
+                      className="h-11 text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="max-participants" className="text-xs font-medium">
+                      Max. Teilnehmer
+                    </Label>
+                    <Input
+                      id="max-participants"
+                      type="number"
+                      value={editingEvent.max_participants || ""}
+                      onChange={(e) =>
+                        setEditingEvent({
+                          ...editingEvent,
+                          max_participants: e.target.value ? Number.parseInt(e.target.value) : null,
+                        })
+                      }
+                      placeholder="Leer lassen für unbegrenzt"
+                      className="h-11 text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-xs font-medium">Event-Bilder</Label>
+                    {eventImagePreviews.length === 0 ? (
+                      <div
+                        onClick={() => document.getElementById("event-image-edit")?.click()}
+                        className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition-all"
+                      >
+                        <FaImage className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-xs font-medium text-gray-700 mb-1">Klicken zum Hochladen</p>
+                        <p className="text-xs text-gray-500">JPG, PNG oder WebP (max. 5MB pro Bild)</p>
+                        <Input
+                          id="event-image-edit"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleEventImageUpload}
+                          className="hidden"
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {eventImagePreviews.map((preview, index) => (
+                            <div key={index} className="relative rounded-xl overflow-hidden border-2 border-gray-300">
+                              <img
+                                src={preview || "/placeholder.svg"}
+                                alt={`Preview ${index + 1}`}
+                                className="w-full h-32 object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEventImagePreviews((prev) => prev.filter((_, i) => i !== index))
+                                  setEventImageFiles((prev) => prev.filter((_, i) => i !== index))
+                                }}
+                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg"
+                              >
+                                <FaTimes className="h-3 w-3" />
+                              </button>
+                              {index === 0 && (
+                                <div className="absolute bottom-2 left-2 bg-teal-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg">
+                                  Hauptbild
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {eventImagePreviews.length < 5 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => document.getElementById("event-image-edit")?.click()}
+                            className="w-full text-xs"
+                          >
+                            <FaPlus className="h-3 w-3 mr-2" />
+                            Weitere Bilder hinzufügen ({eventImagePreviews.length}/5)
+                          </Button>
+                        )}
+                        <Input
+                          id="event-image-edit"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleEventImageUpload}
+                          className="hidden"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-4 pt-4 border-t">
+                    <Button variant="outline" onClick={() => setIsEventManagementOpen(false)} className="flex-1">
+                      Abbrechen
+                    </Button>
+                    <Button
+                      onClick={updateEvent}
+                      disabled={isUpdating}
+                      className="flex-1 bg-teal-500 hover:bg-teal-600"
+                    >
+                      {isUpdating ? "Wird gespeichert..." : "Änderungen speichern"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="participants" className="space-y-4">
+              <div className="px-4 py-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    toast({
+                      description: "Nachrichtenfunktion wird bald verfügbar sein",
+                    })
+                  }
+                  className="w-full h-9 text-xs border-2 border-cyan-500 text-cyan-700 hover:bg-cyan-50 font-medium"
+                >
+                  <FaBullhorn className="h-3.5 w-3.5 mr-1.5" />
+                  Nachricht an alle Teilnehmer senden
+                </Button>
+              </div>
+
+              <div className="space-y-2 px-4 pb-4 max-h-[55vh] overflow-y-auto">
+                {loadingEventParticipants ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500 mb-3"></div>
+                    <p className="text-sm text-gray-600 font-medium">Lade Teilnehmer...</p>
+                  </div>
+                ) : eventParticipants.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                      <FaUsers className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <p className="text-sm text-gray-600 font-medium">Keine Teilnehmer in diesem Event</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Warte auf neue Anmeldungen</p>
+                  </div>
+                ) : (
+                  eventParticipants.map((participant) => (
+                    <div
+                      key={participant.id}
+                      className="flex items-center justify-between p-2 border border-gray-200 rounded-lg shadow-sm bg-white hover:border-teal-200 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={participant.user.avatar || "/placeholder.svg"} />
+                          <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-500 text-white text-xs">
+                            {participant.user.username?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <button
+                            onClick={() => {
+                              setProfileModalUserId(participant.user_id)
+                              setIsProfileModalOpen(true)
+                            }}
+                            className="text-xs font-medium text-gray-800 hover:text-teal-600 hover:underline transition-colors text-left"
+                          >
+                            {participant.user.username}
+                          </button>
+                          <span className="text-xs text-gray-500">
+                            {participant.user_id === managementEvent?.creator_id ? (
+                              "Admin"
+                            ) : (
+                              <>
+                                Mitglied • Beigetreten am{" "}
+                                {new Date(participant.joined_at).toLocaleDateString("de-DE", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })}
+                              </>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      {participant.user_id !== user?.id && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleRemoveParticipant(participant.user_id, "event")}
+                          className="h-8 px-3 group relative hover:bg-red-600 active:scale-95 transition-all duration-150"
+                        >
+                          <FaUserMinus className="h-4 w-4 text-white" />
+                        </Button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="invite" className="space-y-4 mt-4">
+              <div className="space-y-3">
+                <div className="px-3 py-1.5 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-200">
+                  <p className="text-xs font-semibold text-teal-700">
+                    {friends.length} {friends.length === 1 ? "Freund" : "Freunde"} verfügbar
+                  </p>
+                </div>
+
+                <div className="max-h-[400px] overflow-y-auto space-y-1.5 pr-1">
+                  {friends.length === 0 ? (
+                    <div className="text-center py-10 px-4">
+                      <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                        <FaUserFriends className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <p className="text-xs font-medium text-gray-700 mb-1">Keine Freunde zum Einladen</p>
+                      <p className="text-xs text-gray-500">Füge Freunde hinzu</p>
+                    </div>
+                  ) : (
+                    friends.map((friend) => (
+                      <div
+                        key={friend.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg border-2 transition-all cursor-pointer hover:shadow-sm ${
+                          selectedFriends.includes(friend.id)
+                            ? "border-teal-500 bg-gradient-to-r from-teal-50 to-cyan-50"
+                            : "border-gray-200 bg-white hover:border-gray-300"
+                        }`}
+                        onClick={() => {
+                          if (selectedFriends.includes(friend.id)) {
+                            setSelectedFriends(selectedFriends.filter((id) => id !== friend.id))
+                          } else {
+                            setSelectedFriends([...selectedFriends, friend.id])
+                          }
+                        }}
+                      >
+                        <Checkbox
+                          checked={selectedFriends.includes(friend.id)}
+                          id={`friend-${friend.id}`}
+                          className="h-4 w-4 text-teal-500 rounded border-gray-300 focus:ring-teal-500"
+                        />
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={friend.avatar || "/placeholder.svg"} />
+                          <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-500 text-white text-xs">
+                            {friend.username?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-gray-900">{friend.username}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedFriends([])}
+                  className="flex-1 h-8 text-xs"
+                >
+                  Auswahl löschen
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    handleInviteFriends(managementEvent?.id || managementGroup?.id, managementEvent ? "event" : "group")
+                  }
+                  disabled={selectedFriends.length === 0}
+                  className="flex-1 h-8 text-xs bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white shadow-lg"
+                >
+                  <FaUserPlusIcon className="mr-1.5 h-3 w-3" /> {/* Use FaUserPlusIcon */}
+                  {selectedFriends.length > 0 ? `${selectedFriends.length} einladen` : "Einladen"}
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="polls" className="space-y-4 mt-4">
+              <Tabs value={activePollTab} onValueChange={(v) => setActivePollTab(v as any)} className="w-full">
+                <TabsList className="grid w-auto grid-cols-3 bg-gray-100/80 p-0.5 rounded-lg">
+                  <TabsTrigger
+                    value="active"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs font-medium py-1.5"
+                  >
+                    Laufend
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="completed"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs font-medium py-1.5"
+                  >
+                    Abgeschlossen
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="create"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs font-medium py-1.5"
+                  >
+                    Neue Abstimmung
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="active" className="space-y-3 mt-3">
+                  {communityPolls.filter(
+                    (poll) => poll.is_active && (!poll.expires_at || new Date(poll.expires_at) > new Date()),
+                  ).length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                        <FaPoll className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">Keine laufenden Abstimmungen</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Erstelle die erste Abstimmung</p>
+                    </div>
+                  ) : (
+                    communityPolls
+                      .filter((poll) => poll.is_active && (!poll.expires_at || new Date(poll.expires_at) > new Date()))
+                      .map((poll) => {
+                        const totalVotes = poll.votes?.length || 0
+                        const userHasVoted = userVotes[poll.id]?.length > 0
+                        const isCreator = poll.creator_id === user?.id
+
+                        return (
+                          <Card key={poll.id} className="border-2 hover:border-teal-200 transition-colors">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-sm text-gray-900 leading-tight">{poll.question}</h4>
+                                  <div className="flex flex-col gap-1 mt-1.5">
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                      <span>
+                                        {totalVotes} {totalVotes === 1 ? "Stimme" : "Stimmen"}
+                                      </span>
+                                    </div>
+                                    {poll.expires_at && (
+                                      <div className="text-xs text-orange-600 font-medium">
+                                        Läuft ab am:{" "}
+                                        {new Date(poll.expires_at).toLocaleDateString("de-DE", {
+                                          day: "2-digit",
+                                          month: "short",
+                                          year: "numeric",
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  {userHasVoted && (
+                                    <Badge variant="default" className="bg-teal-500 text-white text-xs px-1.5 h-5">
+                                      <FaCheckCircle className="h-3 w-3 mr-1" />
+                                      Abgestimmt
+                                    </Badge>
+                                  )}
+                                  {isCreator && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={async () => {
+                                        try {
+                                          const { error } = await supabase
+                                            .from("community_polls")
+                                            .update({ is_active: false })
+                                            .eq("id", poll.id)
+
+                                          if (error) throw error
+
+                                          toast({ description: "Abstimmung wurde abgeschlossen" })
+                                          if (managementGroup) loadCommunityPolls(managementGroup.id)
+                                          if (managementEvent) loadCommunityPolls(managementEvent.id)
+                                        } catch (error) {
+                                          console.error("[v0] Error closing poll:", error)
+                                          toast({
+                                            description: "Fehler beim Abschließen der Abstimmung",
+                                            variant: "destructive",
+                                          })
+                                        }
+                                      }}
+                                      className="text-red-600 hover:bg-red-50 border-red-300 px-2 h-7 text-xs"
+                                    >
+                                      <FaTimesCircle className="h-3 w-3 mr-1" />
+                                      Schließen
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-1.5 pt-0">
+                              {poll.options?.map((option: any) => {
+                                const optionVotes =
+                                  poll.votes?.filter((v: any) => v.option_id === option.id).length || 0
+                                const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0
+                                const userVoted = userVotes[poll.id]?.includes(option.id)
+
+                                return (
+                                  <button
+                                    key={option.id}
+                                    onClick={() => handleVote(poll.id, option.id)}
+                                    className={`w-full group relative rounded-lg border-2 transition-all duration-150 overflow-hidden ${
+                                      userVoted
+                                        ? "border-teal-500 bg-teal-50"
+                                        : "border-gray-200 bg-white hover:border-teal-300"
+                                    }`}
+                                  >
+                                    <div
+                                      className={`absolute inset-0 transition-all duration-300 ${
+                                        userVoted ? "bg-teal-100" : "bg-gray-50"
+                                      }`}
+                                      style={{ width: `${percentage}%` }}
+                                    />
+
+                                    <div className="relative flex items-center justify-between px-3 py-2">
+                                      <div className="flex items-center gap-2">
+                                        {userVoted && (
+                                          <FaCheckCircle className="h-3.5 w-3.5 text-teal-600 flex-shrink-0" />
+                                        )}
+                                        <span
+                                          className={`text-xs font-medium text-left ${
+                                            userVoted ? "text-teal-900" : "text-gray-700"
+                                          }`}
+                                        >
+                                          {option.option_text}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span
+                                          className={`text-xs font-semibold ${
+                                            userVoted ? "text-teal-700" : "text-gray-600"
+                                          }`}
+                                        >
+                                          {percentage.toFixed(0)}%
+                                        </span>
+                                        <span className="text-xs text-gray-500 min-w-[3rem] text-right">
+                                          {optionVotes} {optionVotes === 1 ? "Stimme" : "Stimmen"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </button>
+                                )
+                              })}
+                              {poll.allow_multiple_votes && (
+                                <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
+                                  <InfoCircle className="h-3 w-3" />
+                                  Mehrfachauswahl möglich
+                                </p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        )
+                      })
+                  )}
+                </TabsContent>
+
+                <TabsContent value="completed" className="space-y-3 mt-3">
+                  {communityPolls.filter(
+                    (poll) => !poll.is_active || (poll.expires_at && new Date(poll.expires_at) <= new Date()),
+                  ).length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                        <FaPoll className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">Keine abgeschlossenen Abstimmungen</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Abgeschlossene Abstimmungen erscheinen hier</p>
+                    </div>
+                  ) : (
+                    communityPolls
+                      .filter((poll) => !poll.is_active || (poll.expires_at && new Date(poll.expires_at) <= new Date()))
+                      .map((poll) => {
+                        const totalVotes = poll.votes?.length || 0
+                        const isCreator = poll.creator_id === user?.id
+
+                        return (
+                          <Card key={poll.id} className="border-2 border-gray-200">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-sm text-gray-900 leading-tight">{poll.question}</h4>
+                                  <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1.5">
+                                    <span>
+                                      {totalVotes} {totalVotes === 1 ? "Stimme" : "Stimmen"}
+                                    </span>
+                                    <Badge variant="secondary" className="bg-gray-200 text-gray-700 text-xs px-1.5 h-5">
+                                      Abgeschlossen
+                                    </Badge>
+                                  </div>
+                                </div>
+                                {isCreator && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={async () => {
+                                      try {
+                                        const { error } = await supabase
+                                          .from("community_polls")
+                                          .delete()
+                                          .eq("id", poll.id)
+
+                                        if (error) throw error
+
+                                        toast({ description: "Abstimmung wurde gelöscht" })
+                                        if (managementGroup) loadCommunityPolls(managementGroup.id)
+                                        if (managementEvent) loadCommunityPolls(managementEvent.id)
+                                      } catch (error) {
+                                        console.error("[v0] Error deleting poll:", error)
+                                        toast({
+                                          description: "Fehler beim Löschen der Abstimmung",
+                                          variant: "destructive",
+                                        })
+                                      }
+                                    }}
+                                    className="text-red-600 hover:bg-red-50 border-red-300 px-2 h-7 text-xs"
+                                  >
+                                    <Trash className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-1.5 pt-0">
+                              {poll.options?.map((option: any) => {
+                                const optionVotes =
+                                  poll.votes?.filter((v: any) => v.option_id === option.id).length || 0
+                                const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0
+                                const maxVotes = Math.max(
+                                  ...poll.options.map(
+                                    (o: any) => poll.votes?.filter((v: any) => v.option_id === o.id).length || 0,
+                                  ),
+                                )
+                                const isWinner = optionVotes === maxVotes && optionVotes > 0
+
+                                return (
+                                  <div
+                                    key={option.id}
+                                    className={`relative rounded-lg border-2 overflow-hidden ${
+                                      isWinner ? "border-yellow-500" : "border-gray-200"
+                                    }`}
+                                  >
+                                    <div
+                                      className={`absolute inset-0 transition-all duration-300 ${
+                                        isWinner ? "bg-gradient-to-r from-yellow-100 to-yellow-200" : "bg-gray-100"
+                                      }`}
+                                      style={{ width: `${percentage}%` }}
+                                    />
+
+                                    <div className="relative flex items-center justify-between px-3 py-2">
+                                      <div className="flex items-center gap-2">
+                                        {isWinner && <FaStar className="h-3.5 w-3.5 text-yellow-600 flex-shrink-0" />}
+                                        <span
+                                          className={`text-xs font-medium ${isWinner ? "text-yellow-900" : "text-gray-700"}`}
+                                        >
+                                          {option.option_text}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span
+                                          className={`text-xs font-semibold ${isWinner ? "text-yellow-800" : "text-gray-600"}`}
+                                        >
+                                          {percentage.toFixed(0)}%
+                                        </span>
+                                        <span
+                                          className={`text-xs min-w-[3rem] text-right ${isWinner ? "text-yellow-700" : "text-gray-500"}`}
+                                        >
+                                          {optionVotes} {optionVotes === 1 ? "Stimme" : "Stimmen"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </CardContent>
+                          </Card>
+                        )
+                      })
+                  )}
+                </TabsContent>
+
+                <TabsContent value="create" className="space-y-4 mt-3">
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs font-bold">Frage *</Label>
+                      <Input
+                        value={newPoll.question}
+                        onChange={(e) => setNewPoll({ ...newPoll, question: e.target.value })}
+                        placeholder="z.B. Welches Spiel sollen wir spielen?"
+                        className="h-11 text-xs mt-2"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-bold">Optionen *</Label>
+                      {newPoll.options.map((option, index) => (
+                        <div key={index} className="flex gap-2 mt-2">
+                          <Input
+                            value={option}
+                            onChange={(e) => {
+                              const newOptions = [...newPoll.options]
+                              newOptions[index] = e.target.value
+                              setNewPoll({ ...newPoll, options: newOptions })
+                            }}
+                            placeholder={`Option ${index + 1}`}
+                            className="h-11 text-xs"
+                          />
+                          {newPoll.options.length > 2 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newOptions = newPoll.options.filter((_, i) => i !== index)
+                                setNewPoll({ ...newPoll, options: newOptions })
+                              }}
+                              className="h-11"
+                            >
+                              <FaTimes className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      {newPoll.options.length < 10 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setNewPoll({ ...newPoll, options: [...newPoll.options, ""] })}
+                          className="w-full mt-2 text-xs"
+                        >
+                          <FaPlus className="h-3 w-3 mr-2" />
+                          Option hinzufügen
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="allow-multiple"
+                        checked={newPoll.allow_multiple_votes}
+                        onCheckedChange={(checked) =>
+                          setNewPoll({ ...newPoll, allow_multiple_votes: checked as boolean })
+                        }
+                      />
+                      <Label htmlFor="allow-multiple" className="text-xs font-bold">
+                        Mehrfachauswahl erlauben
+                      </Label>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-bold">Läuft ab am (optional)</Label>
+                      <Input
+                        type="datetime-local"
+                        value={newPoll.expires_at}
+                        onChange={(e) => setNewPoll({ ...newPoll, expires_at: e.target.value })}
+                        className="h-11 text-xs mt-2"
+                      />
+                    </div>
+
+                    <Button
+                      onClick={() => createPoll(managementEvent?.id || managementGroup?.id)}
+                      className="w-full bg-teal-500 hover:bg-teal-600"
+                    >
+                      Abstimmung erstellen
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-handwritten text-red-600 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
-              Konto löschen
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Diese Aktion ist unwiderruflich. Alle deine Daten, Nachrichten, Freundschaften und Spielebibliothek werden
-              gelöscht.
-            </DialogDescription>
+      <Dialog open={isGroupManagementOpen} onOpenChange={setIsGroupManagementOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="px-4 pt-4 pb-3 border-b">
+            <div className="flex items-center gap-3">
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg"
+              >
+                <Settings className="h-7 w-7 text-white" />
+              </motion.div>
+              <div>
+                <DialogTitle className="text-xl font-bold text-gray-900">Spielgruppe verwalten</DialogTitle>
+                <DialogDescription className="text-sm text-gray-500">{managementGroup?.name}</DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-xs text-red-700 font-medium mb-2">Folgendes wird gelöscht:</p>
-              <ul className="text-[10px] text-red-600 space-y-1 list-disc list-inside">
-                <li>Dein Benutzerprofil</li>
-                <li>Alle Nachrichten</li>
-                <li>Alle Freundschaften</li>
-                <li>Deine Spielebibliothek</li>
-                <li>Alle anderen Kontodaten</li>
-              </ul>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="deleteConfirm" className="text-xs">
-                Gib <span className="font-bold text-red-600">LÖSCHEN</span> ein, um zu bestätigen
-              </Label>
-              <Input
-                id="deleteConfirm"
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="LÖSCHEN"
-                className="h-8 text-xs border-red-200 focus:border-red-400"
-              />
-            </div>
-          </div>
-          <DialogFooter className="flex gap-2 sm:gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setShowDeleteDialog(false)
-                setDeleteConfirmText("")
-              }}
-              className="h-8 text-xs"
-            >
-              Abbrechen
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDeleteAccount}
-              disabled={isDeleting || deleteConfirmText !== "LÖSCHEN"}
-              className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white font-medium"
-            >
-              {isDeleting ? "Wird gelöscht..." : "Konto endgültig löschen"}
-            </Button>
-          </DialogFooter>
+
+          <Tabs value={groupManagementTab} onValueChange={(v) => setGroupManagementTab(v as any)} className="w-full">
+            <TabsList className="grid grid-cols-4 w-full">
+              <TabsTrigger value="edit" className="flex items-center gap-2">
+                <Edit className="h-4 w-4" />
+                Bearbeiten
+              </TabsTrigger>
+              <TabsTrigger value="members" className="flex items-center gap-2">
+                <FaUsers className="h-4 w-4" />
+                Mitglieder
+              </TabsTrigger>
+              <TabsTrigger value="invite" className="flex items-center gap-2">
+                <FaUserFriends className="h-4 w-4" />
+                Freunde einladen
+              </TabsTrigger>
+              <TabsTrigger value="polls" className="flex items-center gap-2">
+                <FaPoll className="h-4 w-4" />
+                Abstimmungen
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="edit" className="space-y-4 mt-4">
+              {editingGroup && (
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <Label htmlFor="group-name" className="text-xs font-bold">
+                      Name der Spielgruppe
+                    </Label>
+                    <Input
+                      id="group-name"
+                      value={editingGroup.name}
+                      onChange={(e) => setEditingGroup({ ...editingGroup, name: e.target.value })}
+                      placeholder="z.B. CATAN-Freunde Zürich"
+                      className="h-11 text-xs"
+                      maxLength={60}
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="group-description" className="text-xs font-bold">
+                      Beschreibung
+                    </Label>
+                    <RichTextEditor
+                      value={editingGroup.description}
+                      onChange={(value) => setEditingGroup({ ...editingGroup, description: value })}
+                      placeholder="Beschreibe deine Spielgruppe..."
+                      maxLength={5000}
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="group-location" className="text-xs font-bold">
+                      Standort
+                    </Label>
+                    <AddressAutocomplete
+                      label=""
+                      placeholder="Location, Adresse, PLZ oder Ort eingeben..."
+                      value={editingGroup.location}
+                      onChange={(value) => setEditingGroup({ ...editingGroup, location: value })}
+                      className="h-11 text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="max-members-edit" className="text-xs font-bold">
+                      Max. Mitglieder
+                    </Label>
+                    <Input
+                      id="max-members-edit"
+                      type="number"
+                      value={editingGroup.max_members || ""}
+                      onChange={(e) =>
+                        setEditingGroup({
+                          ...editingGroup,
+                          max_members: e.target.value ? Number.parseInt(e.target.value) : null,
+                        })
+                      }
+                      placeholder="Leer lassen für unbegrenzt"
+                      className="h-11 text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-xs font-bold">Spielgruppenbilder</Label>
+                    {groupImagePreviews.length === 0 ? (
+                      <div
+                        onClick={() => document.getElementById("group-image-edit")?.click()}
+                        className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition-all"
+                      >
+                        <FaImage className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-xs font-medium text-gray-700 mb-1">Klicken zum Hochladen</p>
+                        <p className="text-xs text-gray-500">JPG, PNG oder WebP (max. 5MB pro Bild)</p>
+                        <Input
+                          id="group-image-edit"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleGroupImageUpload}
+                          className="hidden"
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {groupImagePreviews.map((preview, index) => (
+                            <div key={index} className="relative rounded-xl overflow-hidden border-2 border-gray-300">
+                              <img
+                                src={preview || "/placeholder.svg"}
+                                alt={`Preview ${index + 1}`}
+                                className="w-full h-32 object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setGroupImagePreviews((prev) => prev.filter((_, i) => i !== index))
+                                  setGroupImageFiles((prev) => prev.filter((_, i) => i !== index))
+                                }}
+                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg"
+                              >
+                                <FaTimes className="h-3 w-3" />
+                              </button>
+                              {index === 0 && (
+                                <div className="absolute bottom-2 left-2 bg-teal-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg">
+                                  Hauptbild
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {groupImagePreviews.length < 5 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => document.getElementById("group-image-edit")?.click()}
+                            className="w-full text-xs"
+                          >
+                            <FaPlus className="h-3 w-3 mr-2" />
+                            Weitere Bilder hinzufügen ({groupImagePreviews.length}/5)
+                          </Button>
+                        )}
+                        <Input
+                          id="group-image-edit"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleGroupImageUpload}
+                          className="hidden"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="approval-mode-edit" className="text-xs font-bold mb-2 block">
+                      Wie sollen neue Mitglieder beitreten können?
+                    </Label>
+                    <Select
+                      value={editingGroup.approval_mode}
+                      onValueChange={(value: "automatic" | "manual") =>
+                        setEditingGroup({ ...editingGroup, approval_mode: value })
+                      }
+                    >
+                      <SelectTrigger className="h-11 text-xs border-gray-300 focus:border-teal-500 focus:ring-teal-500">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="automatic">Sofortiger Beitritt</SelectItem>
+                        <SelectItem value="manual">Beitritt erst nach Genehmigung</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
+                    {editingGroup.approval_mode === "automatic" ? (
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <FaCheckCircle className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs font-semibold text-gray-900 mb-1">Sofortiger Beitritt</p>
+                            <p className="text-xs text-gray-600">
+                              Interessenten können der Spielgruppe sofort beitreten, ohne auf eine Genehmigung warten zu
+                              müssen.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <FaClock className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs font-semibold text-gray-900 mb-1">Beitritt erst nach Genehmigung</p>
+                            <p className="text-xs text-gray-600">
+                              Du erhältst eine Benachrichtigung für jede Beitrittsanfrage und kannst entscheiden, wer
+                              Mitglied wird.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-4 pt-4 border-t">
+                    <Button variant="outline" onClick={() => setIsGroupManagementOpen(false)} className="flex-1">
+                      Abbrechen
+                    </Button>
+                    <Button
+                      onClick={updateGroup}
+                      disabled={isUpdating}
+                      className="flex-1 bg-teal-500 hover:bg-teal-600"
+                    >
+                      {isUpdating ? "Wird gespeichert..." : "Änderungen speichern"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="members" className="space-y-4">
+              <div className="px-4 py-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    toast({
+                      description: "Nachrichtenfunktion wird bald verfügbar sein",
+                    })
+                  }
+                  className="w-full h-9 text-xs border-2 border-cyan-500 text-cyan-700 hover:bg-cyan-50 font-medium"
+                >
+                  <FaBullhorn className="h-3.5 w-3.5 mr-1.5" />
+                  Nachricht an alle Mitglieder senden
+                </Button>
+              </div>
+
+              <div className="space-y-2 px-4 pb-4 max-h-[55vh] overflow-y-auto">
+                {loadingGroupMembers ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500 mb-3"></div>
+                    <p className="text-sm text-gray-600 font-medium">Lade Mitglieder...</p>
+                  </div>
+                ) : groupMembers.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                      <FaUsers className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-600">Keine Mitglieder in dieser Gruppe</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Warte auf neue Beitrittsanfragen</p>
+                  </div>
+                ) : (
+                  groupMembers.map((member) => (
+                    <div
+                      key={member.user_id}
+                      className="flex items-center justify-between p-2 border border-gray-200 rounded-lg shadow-sm bg-white hover:border-teal-200 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={member.user?.avatar || "/placeholder.svg"} />
+                          <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-500 text-white text-xs">
+                            {member.user?.name?.[0] || member.user?.username?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <button
+                            onClick={() => {
+                              setProfileModalUserId(member.user_id)
+                              setIsProfileModalOpen(true)
+                            }}
+                            className="font-medium text-gray-800 text-xs hover:text-teal-600 hover:underline transition-colors text-left"
+                          >
+                            {member.user?.username}
+                          </button>
+                          <span className="text-gray-500 text-xs">
+                            {member.user_id === managementGroup?.creator_id ? (
+                              "Admin"
+                            ) : (
+                              <>
+                                Mitglied • Beigetreten am{" "}
+                                {new Date(member.joined_at).toLocaleDateString("de-DE", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })}
+                              </>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      {member.user_id !== user?.id && member.user_id !== managementGroup?.creator_id && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleRemoveParticipant(member.user_id, "group")}
+                          className="h-8 px-3 group relative hover:bg-red-600 active:scale-95 transition-all duration-150"
+                        >
+                          <FaUserMinus className="h-4 w-4 text-white" />
+                        </Button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="invite" className="space-y-4 mt-4">
+              <div className="space-y-3">
+                <div className="px-3 py-1.5 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-200">
+                  <p className="text-xs font-semibold text-teal-700">
+                    {friends.length} {friends.length === 1 ? "Freund" : "Freunde"} verfügbar
+                  </p>
+                </div>
+
+                <div className="max-h-[400px] overflow-y-auto space-y-1.5 pr-1">
+                  {friends.length === 0 ? (
+                    <div className="text-center py-10 px-4">
+                      <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                        <FaUserFriends className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <p className="text-xs font-medium text-gray-700 mb-1">Keine Freunde zum Einladen</p>
+                      <p className="text-xs text-gray-500">Füge Freunde hinzu</p>
+                    </div>
+                  ) : (
+                    friends.map((friend) => (
+                      <div
+                        key={friend.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg border-2 transition-all cursor-pointer hover:shadow-sm ${
+                          selectedFriends.includes(friend.id)
+                            ? "border-teal-500 bg-gradient-to-r from-teal-50 to-cyan-50"
+                            : "border-gray-200 bg-white hover:border-gray-300"
+                        }`}
+                        onClick={() => {
+                          if (selectedFriends.includes(friend.id)) {
+                            setSelectedFriends(selectedFriends.filter((id) => id !== friend.id))
+                          } else {
+                            setSelectedFriends([...selectedFriends, friend.id])
+                          }
+                        }}
+                      >
+                        <Checkbox
+                          checked={selectedFriends.includes(friend.id)}
+                          id={`friend-${friend.id}`}
+                          className="h-4 w-4 text-teal-500 rounded border-gray-300 focus:ring-teal-500"
+                        />
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={friend.avatar || "/placeholder.svg"} />
+                          <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-500 text-white text-xs">
+                            {friend.username?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-gray-900">{friend.username}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedFriends([])}
+                  className="flex-1 h-8 text-xs"
+                >
+                  Auswahl löschen
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    handleInviteFriends(managementEvent?.id || managementGroup?.id, managementEvent ? "event" : "group")
+                  }
+                  disabled={selectedFriends.length === 0}
+                  className="flex-1 h-8 text-xs bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white shadow-lg"
+                >
+                  <FaUserPlusIcon className="mr-1.5 h-3 w-3" /> {/* Use FaUserPlusIcon */}
+                  {selectedFriends.length > 0 ? `${selectedFriends.length} einladen` : "Einladen"}
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="polls" className="space-y-4 mt-4">
+              <Tabs value={activePollTab} onValueChange={(v) => setActivePollTab(v as any)} className="w-full">
+                <TabsList className="grid w-auto grid-cols-3 bg-gray-100/80 p-0.5 rounded-lg">
+                  <TabsTrigger
+                    value="active"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs font-medium py-1.5"
+                  >
+                    Laufend
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="completed"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs font-medium py-1.5"
+                  >
+                    Abgeschlossen
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="create"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs font-medium py-1.5"
+                  >
+                    Neue Abstimmung
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="active" className="space-y-3 mt-3">
+                  {communityPolls.filter(
+                    (poll) => poll.is_active && (!poll.expires_at || new Date(poll.expires_at) > new Date()),
+                  ).length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                        <FaPoll className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">Keine laufenden Abstimmungen</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Erstelle die erste Abstimmung</p>
+                    </div>
+                  ) : (
+                    communityPolls
+                      .filter((poll) => poll.is_active && (!poll.expires_at || new Date(poll.expires_at) > new Date()))
+                      .map((poll) => {
+                        const totalVotes = poll.votes?.length || 0
+                        const userHasVoted = userVotes[poll.id]?.length > 0
+                        const isCreator = poll.creator_id === user?.id
+
+                        return (
+                          <Card key={poll.id} className="border-2 hover:border-teal-200 transition-colors">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-sm text-gray-900 leading-tight">{poll.question}</h4>
+                                  <div className="flex flex-col gap-1 mt-1.5">
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                      <span>
+                                        {totalVotes} {totalVotes === 1 ? "Stimme" : "Stimmen"}
+                                      </span>
+                                    </div>
+                                    {poll.expires_at && (
+                                      <div className="text-xs text-orange-600 font-medium">
+                                        Läuft ab am:{" "}
+                                        {new Date(poll.expires_at).toLocaleDateString("de-DE", {
+                                          day: "2-digit",
+                                          month: "short",
+                                          year: "numeric",
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  {userHasVoted && (
+                                    <Badge variant="default" className="bg-teal-500 text-white text-xs px-1.5 h-5">
+                                      <FaCheckCircle className="h-3 w-3 mr-1" />
+                                      Abgestimmt
+                                    </Badge>
+                                  )}
+                                  {isCreator && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={async () => {
+                                        try {
+                                          const { error } = await supabase
+                                            .from("community_polls")
+                                            .update({ is_active: false })
+                                            .eq("id", poll.id)
+
+                                          if (error) throw error
+
+                                          toast({ description: "Abstimmung wurde abgeschlossen" })
+                                          if (managementGroup) loadCommunityPolls(managementGroup.id)
+                                          if (managementEvent) loadCommunityPolls(managementEvent.id)
+                                        } catch (error) {
+                                          console.error("[v0] Error closing poll:", error)
+                                          toast({
+                                            description: "Fehler beim Abschließen der Abstimmung",
+                                            variant: "destructive",
+                                          })
+                                        }
+                                      }}
+                                      className="text-red-600 hover:bg-red-50 border-red-300 px-2 h-7 text-xs"
+                                    >
+                                      <FaTimesCircle className="h-3 w-3 mr-1" />
+                                      Schließen
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-1.5 pt-0">
+                              {poll.options?.map((option: any) => {
+                                const optionVotes =
+                                  poll.votes?.filter((v: any) => v.option_id === option.id).length || 0
+                                const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0
+                                const userVoted = userVotes[poll.id]?.includes(option.id)
+
+                                return (
+                                  <button
+                                    key={option.id}
+                                    onClick={() => handleVote(poll.id, option.id)}
+                                    className={`w-full group relative rounded-lg border-2 transition-all duration-150 overflow-hidden ${
+                                      userVoted
+                                        ? "border-teal-500 bg-teal-50"
+                                        : "border-gray-200 bg-white hover:border-teal-300"
+                                    }`}
+                                  >
+                                    <div
+                                      className={`absolute inset-0 transition-all duration-300 ${
+                                        userVoted ? "bg-teal-100" : "bg-gray-50"
+                                      }`}
+                                      style={{ width: `${percentage}%` }}
+                                    />
+
+                                    <div className="relative flex items-center justify-between px-3 py-2">
+                                      <div className="flex items-center gap-2">
+                                        {userVoted && (
+                                          <FaCheckCircle className="h-3.5 w-3.5 text-teal-600 flex-shrink-0" />
+                                        )}
+                                        <span
+                                          className={`text-xs font-medium text-left ${
+                                            userVoted ? "text-teal-900" : "text-gray-700"
+                                          }`}
+                                        >
+                                          {option.option_text}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span
+                                          className={`text-xs font-semibold ${
+                                            userVoted ? "text-teal-700" : "text-gray-600"
+                                          }`}
+                                        >
+                                          {percentage.toFixed(0)}%
+                                        </span>
+                                        <span className="text-xs text-gray-500 min-w-[3rem] text-right">
+                                          {optionVotes} {optionVotes === 1 ? "Stimme" : "Stimmen"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </button>
+                                )
+                              })}
+                              {poll.allow_multiple_votes && (
+                                <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
+                                  <InfoCircle className="h-3 w-3" />
+                                  Mehrfachauswahl möglich
+                                </p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        )
+                      })
+                  )}
+                </TabsContent>
+
+                <TabsContent value="completed" className="space-y-3 mt-3">
+                  {communityPolls.filter(
+                    (poll) => !poll.is_active || (poll.expires_at && new Date(poll.expires_at) <= new Date()),
+                  ).length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                        <FaPoll className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">Keine abgeschlossenen Abstimmungen</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Abgeschlossene Abstimmungen erscheinen hier</p>
+                    </div>
+                  ) : (
+                    communityPolls
+                      .filter((poll) => !poll.is_active || (poll.expires_at && new Date(poll.expires_at) <= new Date()))
+                      .map((poll) => {
+                        const totalVotes = poll.votes?.length || 0
+                        const isCreator = poll.creator_id === user?.id
+
+                        return (
+                          <Card key={poll.id} className="border-2 border-gray-200">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-sm text-gray-900 leading-tight">{poll.question}</h4>
+                                  <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1.5">
+                                    <span>
+                                      {totalVotes} {totalVotes === 1 ? "Stimme" : "Stimmen"}
+                                    </span>
+                                    <Badge variant="secondary" className="bg-gray-200 text-gray-700 text-xs px-1.5 h-5">
+                                      Abgeschlossen
+                                    </Badge>
+                                  </div>
+                                </div>
+                                {isCreator && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={async () => {
+                                      try {
+                                        const { error } = await supabase
+                                          .from("community_polls")
+                                          .delete()
+                                          .eq("id", poll.id)
+
+                                        if (error) throw error
+
+                                        toast({ description: "Abstimmung wurde gelöscht" })
+                                        if (managementGroup) loadCommunityPolls(managementGroup.id)
+                                        if (managementEvent) loadCommunityPolls(managementEvent.id)
+                                      } catch (error) {
+                                        console.error("[v0] Error deleting poll:", error)
+                                        toast({
+                                          description: "Fehler beim Löschen der Abstimmung",
+                                          variant: "destructive",
+                                        })
+                                      }
+                                    }}
+                                    className="text-red-600 hover:bg-red-50 border-red-300 px-2 h-7 text-xs"
+                                  >
+                                    <Trash className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-1.5 pt-0">
+                              {poll.options?.map((option: any) => {
+                                const optionVotes =
+                                  poll.votes?.filter((v: any) => v.option_id === option.id).length || 0
+                                const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0
+                                const maxVotes = Math.max(
+                                  ...poll.options.map(
+                                    (o: any) => poll.votes?.filter((v: any) => v.option_id === o.id).length || 0,
+                                  ),
+                                )
+                                const isWinner = optionVotes === maxVotes && optionVotes > 0
+
+                                return (
+                                  <div
+                                    key={option.id}
+                                    className={`relative rounded-lg border-2 overflow-hidden ${
+                                      isWinner ? "border-yellow-500" : "border-gray-200"
+                                    }`}
+                                  >
+                                    <div
+                                      className={`absolute inset-0 transition-all duration-300 ${
+                                        isWinner ? "bg-gradient-to-r from-yellow-100 to-yellow-200" : "bg-gray-100"
+                                      }`}
+                                      style={{ width: `${percentage}%` }}
+                                    />
+
+                                    <div className="relative flex items-center justify-between px-3 py-2">
+                                      <div className="flex items-center gap-2">
+                                        {isWinner && <FaStar className="h-3.5 w-3.5 text-yellow-600 flex-shrink-0" />}
+                                        <span
+                                          className={`text-xs font-medium ${isWinner ? "text-yellow-900" : "text-gray-700"}`}
+                                        >
+                                          {option.option_text}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span
+                                          className={`text-xs font-semibold ${isWinner ? "text-yellow-800" : "text-gray-600"}`}
+                                        >
+                                          {percentage.toFixed(0)}%
+                                        </span>
+                                        <span
+                                          className={`text-xs min-w-[3rem] text-right ${isWinner ? "text-yellow-700" : "text-gray-500"}`}
+                                        >
+                                          {optionVotes} {optionVotes === 1 ? "Stimme" : "Stimmen"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </CardContent>
+                          </Card>
+                        )
+                      })
+                  )}
+                </TabsContent>
+
+                <TabsContent value="create" className="space-y-4 mt-3">
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs font-bold">Frage *</Label>
+                      <Input
+                        value={newPoll.question}
+                        onChange={(e) => setNewPoll({ ...newPoll, question: e.target.value })}
+                        placeholder="z.B. Welches Spiel sollen wir spielen?"
+                        className="h-11 text-xs mt-2"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-bold">Optionen *</Label>
+                      {newPoll.options.map((option, index) => (
+                        <div key={index} className="flex gap-2 mt-2">
+                          <Input
+                            value={option}
+                            onChange={(e) => {
+                              const newOptions = [...newPoll.options]
+                              newOptions[index] = e.target.value
+                              setNewPoll({ ...newPoll, options: newOptions })
+                            }}
+                            placeholder={`Option ${index + 1}`}
+                            className="h-11 text-xs"
+                          />
+                          {newPoll.options.length > 2 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newOptions = newPoll.options.filter((_, i) => i !== index)
+                                setNewPoll({ ...newPoll, options: newOptions })
+                              }}
+                              className="h-11"
+                            >
+                              <FaTimes className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      {newPoll.options.length < 10 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setNewPoll({ ...newPoll, options: [...newPoll.options, ""] })}
+                          className="w-full mt-2 text-xs"
+                        >
+                          <FaPlus className="h-3 w-3 mr-2" />
+                          Option hinzufügen
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="allow-multiple"
+                        checked={newPoll.allow_multiple_votes}
+                        onCheckedChange={(checked) =>
+                          setNewPoll({ ...newPoll, allow_multiple_votes: checked as boolean })
+                        }
+                      />
+                      <Label htmlFor="allow-multiple" className="text-xs font-bold">
+                        Mehrfachauswahl erlauben
+                      </Label>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-bold">Läuft ab am (optional)</Label>
+                      <Input
+                        type="datetime-local"
+                        value={newPoll.expires_at}
+                        onChange={(e) => setNewPoll({ ...newPoll, expires_at: e.target.value })}
+                        className="h-11 text-xs mt-2"
+                      />
+                    </div>
+
+                    <Button
+                      onClick={() => createPoll(managementEvent?.id || managementGroup?.id)}
+                      className="w-full bg-teal-500 hover:bg-teal-600"
+                    >
+                      Abstimmung erstellen
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>

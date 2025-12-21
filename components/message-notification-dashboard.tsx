@@ -176,7 +176,7 @@ export function MessageNotificationDashboard() {
 
                   <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                     <User className="h-3 w-3" />
-                    <span>von {notification.message.from_user.name}</span>
+                    <span>von {notification.message.from_user.username}</span>
                     <Clock className="h-3 w-3 ml-2" />
                     <span>{formatTime(notification.sent_at)}</span>
                   </div>

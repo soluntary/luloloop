@@ -4,8 +4,8 @@ import { createContext, useContext, useState, type ReactNode, useEffect, useCall
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import { withRateLimit, checkGlobalRateLimit } from "@/lib/supabase/rate-limit"
-import { createNotificationIfEnabled } from "@/app/actions/notification-helpers"
 import { canSendMessage } from "@/app/actions/privacy-helpers"
+import { notifyNewMessage } from "@/app/actions/notification-system"
 
 interface Message {
   id: string
@@ -169,23 +169,14 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
               throw error
             }
 
-            const { data: userData } = await supabase.from("users").select("username, name").eq("id", user.id).single()
+            const { data: userData } = await supabase.from("users").select("username").eq("id", user.id).single()
 
-            const senderName = userData?.username || userData?.name || "Ein Nutzer"
+            const senderName = userData?.username || "Ein Nutzer"
 
-            await createNotificationIfEnabled(
-              messageData.to_user_id,
-              "message",
-              "Neue Nachricht",
-              `${senderName} hat dir eine Nachricht gesendet`,
-              {
-                from_user_id: user.id,
-                from_user_name: senderName,
-                message_id: data.id,
-                game_title: messageData.game_title,
-                offer_type: messageData.offer_type,
-              },
-            )
+            const messagePreview =
+              messageData.message.length > 50 ? messageData.message.substring(0, 50) + "..." : messageData.message
+
+            await notifyNewMessage(messageData.to_user_id, senderName, messagePreview)
 
             return data
           } catch (innerError) {

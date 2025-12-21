@@ -16,14 +16,16 @@ interface RichTextEditorProps {
 export function RichTextEditor({ value, onChange, placeholder, maxLength, className }: RichTextEditorProps) {
   const [isFocused, setIsFocused] = useState(false)
 
+  const safeValue = value || ""
+
   const insertMarkdown = (before: string, after = "") => {
     const textarea = document.getElementById("rich-text-area") as HTMLTextAreaElement
     if (!textarea) return
 
     const start = textarea.selectionStart
     const end = textarea.selectionEnd
-    const selectedText = value.substring(start, end)
-    const newText = value.substring(0, start) + before + selectedText + after + value.substring(end)
+    const selectedText = safeValue.substring(start, end)
+    const newText = safeValue.substring(0, start) + before + selectedText + after + safeValue.substring(end)
 
     onChange(newText)
 
@@ -82,7 +84,7 @@ export function RichTextEditor({ value, onChange, placeholder, maxLength, classN
       </div>
       <Textarea
         id="rich-text-area"
-        value={value}
+        value={safeValue}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
@@ -92,7 +94,7 @@ export function RichTextEditor({ value, onChange, placeholder, maxLength, classN
       />
       {maxLength && (
         <div className="bg-gray-50 border-t border-gray-200 px-3 py-1 text-xs text-gray-500 text-right">
-          {value.length} / {maxLength}
+          {safeValue.length} / {maxLength}
         </div>
       )}
     </div>

@@ -25,6 +25,7 @@ import { LiaUsersSolid } from "react-icons/lia"
 import { IoLibrary } from "react-icons/io5"
 import { MdForum } from "react-icons/md"
 import { RiUserCommunityFill } from "react-icons/ri"
+import { GiGamepad } from "react-icons/gi"
 import { useAuth } from "@/contexts/auth-context"
 import { useAvatar } from "@/contexts/avatar-context"
 import { NotificationBell } from "@/components/notification-bell"
@@ -82,7 +83,17 @@ function Navigation({ currentPage }: NavigationProps) {
       },
     },
     { href: "/marketplace", label: "Spielehandel", icon: FaStore, key: "spielemarkt" },
-    { href: "/spielhilfen", label: "Spielhilfen", icon: FaDice, key: "spielhilfen" },
+    {
+      label: "Spielplatz",
+      icon: FaDice,
+      key: "spielplatz",
+      dropdown: {
+        items: [
+          { href: "/spielhilfen", label: "Spielhilfen", icon: FaDice, key: "spielhilfen" },
+          { href: "/spielarena", label: "Spielarena", icon: GiGamepad, key: "spielarena" },
+        ],
+      },
+    },
     { href: "/messages", label: "Nachrichten", icon: FaComments, key: "messages" },
     { href: "/about", label: "Über uns", icon: FaInfoCircle, key: "about" },
   ]
@@ -103,7 +114,17 @@ function Navigation({ currentPage }: NavigationProps) {
       },
     },
     { href: "/marketplace", label: "Spielemarkt", icon: FaStore, key: "spielemarkt" },
-    { href: "/spielhilfen", label: "Spielhilfen", icon: FaDice, key: "spielhilfen" },
+    {
+      label: "Spielplatz",
+      icon: FaDice,
+      key: "spielplatz",
+      dropdown: {
+        items: [
+          { href: "/spielhilfen", label: "Spielhilfen", icon: FaDice, key: "spielhilfen" },
+          { href: "/spielarena", label: "Spielarena", icon: GiGamepad, key: "spielarena" },
+        ],
+      },
+    },
     { href: "/about", label: "Über uns", icon: FaInfoCircle, key: "about" },
   ]
 
@@ -125,7 +146,8 @@ function Navigation({ currentPage }: NavigationProps) {
           (pathname.startsWith("/ludo-gruppen") ||
             pathname.startsWith("/ludo-mitglieder") ||
             pathname.startsWith("/ludo-events") ||
-            pathname.startsWith("/ludo-forum"))),
+            pathname.startsWith("/ludo-forum"))) ||
+        (item.key === "spielplatz" && (pathname.startsWith("/spielhilfen") || pathname.startsWith("/spielarena"))),
     )
   }
 

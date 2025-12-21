@@ -84,7 +84,7 @@ export function useUserDisplayName(userId: string | null) {
     return "Unbekannter Nutzer"
   }
 
-  const displayName = user.username || user.name || "Unbekannter Nutzer"
+  const displayName = user.name || user.username || "Unbekannter Nutzer"
   console.log("[v0] useUserDisplayName - returning displayName:", displayName)
   return displayName
 }

@@ -10,7 +10,20 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Plus, Trash2, Vote, Eye, EyeOff, RotateCcw, ChevronRight, Check, Users } from "lucide-react"
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Vote,
+  Eye,
+  EyeOff,
+  RotateCcw,
+  ChevronRight,
+  Check,
+  Users,
+  CheckSquare,
+} from "lucide-react"
+import { SiAwssecretsmanager } from "react-icons/si"
 import { MdHowToVote } from "react-icons/md"
 import { TemplateManager } from "@/components/spielhilfen/template-manager"
 
@@ -25,6 +38,7 @@ interface Voter {
   name: string
   hasVoted: boolean
   votedFor?: string
+  votedForMultiple?: string[]
 }
 
 type Phase = "setup" | "voting" | "results"
@@ -42,8 +56,10 @@ export default function AbstimmungenPage() {
   ])
   const [currentVoterIndex, setCurrentVoterIndex] = useState(0)
   const [isSecretVote, setIsSecretVote] = useState(true)
+  const [allowMultipleChoice, setAllowMultipleChoice] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([])
   const [isRevealing, setIsRevealing] = useState(false)
 
   const addOption = () => {
@@ -86,21 +102,49 @@ export default function AbstimmungenPage() {
   }
 
   const submitVote = () => {
-    if (selectedOption) {
-      setOptions(options.map((o) => (o.id === selectedOption ? { ...o, votes: o.votes + 1 } : o)))
-      const updatedVoters = [...voters]
-      updatedVoters[currentVoterIndex] = {
-        ...updatedVoters[currentVoterIndex],
-        hasVoted: true,
-        votedFor: selectedOption,
+    if (allowMultipleChoice) {
+      if (selectedOptions.length > 0) {
+        const updatedOptions = options.map((o) => {
+          if (selectedOptions.includes(o.id)) {
+            return { ...o, votes: o.votes + 1 }
+          }
+          return o
+        })
+        setOptions(updatedOptions)
+
+        const updatedVoters = [...voters]
+        updatedVoters[currentVoterIndex] = {
+          ...updatedVoters[currentVoterIndex],
+          hasVoted: true,
+          votedForMultiple: selectedOptions,
+        }
+        setVoters(updatedVoters)
+
+        if (currentVoterIndex < voters.length - 1) {
+          setCurrentVoterIndex(currentVoterIndex + 1)
+          setSelectedOptions([])
+          setIsRevealing(false)
+        } else {
+          setPhase("results")
+        }
       }
-      setVoters(updatedVoters)
-      if (currentVoterIndex < voters.length - 1) {
-        setCurrentVoterIndex(currentVoterIndex + 1)
-        setSelectedOption(null)
-        setIsRevealing(false)
-      } else {
-        setPhase("results")
+    } else {
+      if (selectedOption) {
+        setOptions(options.map((o) => (o.id === selectedOption ? { ...o, votes: o.votes + 1 } : o)))
+        const updatedVoters = [...voters]
+        updatedVoters[currentVoterIndex] = {
+          ...updatedVoters[currentVoterIndex],
+          hasVoted: true,
+          votedFor: selectedOption,
+        }
+        setVoters(updatedVoters)
+        if (currentVoterIndex < voters.length - 1) {
+          setCurrentVoterIndex(currentVoterIndex + 1)
+          setSelectedOption(null)
+          setIsRevealing(false)
+        } else {
+          setPhase("results")
+        }
       }
     }
   }
@@ -116,9 +160,10 @@ export default function AbstimmungenPage() {
       { id: "1", name: "Option 1", votes: 0 },
       { id: "2", name: "Option 2", votes: 0 },
     ])
-    setVoters(voters.map((v) => ({ ...v, hasVoted: false, votedFor: undefined })))
+    setVoters(voters.map((v) => ({ ...v, hasVoted: false, votedFor: undefined, votedForMultiple: undefined })))
     setCurrentVoterIndex(0)
     setSelectedOption(null)
+    setSelectedOptions([])
     setShowResults(false)
     setIsRevealing(false)
   }
@@ -130,11 +175,20 @@ export default function AbstimmungenPage() {
       { id: "1", name: "Option 1", votes: 0 },
       { id: "2", name: "Option 2", votes: 0 },
     ])
-    setVoters(voters.map((v) => ({ ...v, hasVoted: false, votedFor: undefined })))
+    setVoters(voters.map((v) => ({ ...v, hasVoted: false, votedFor: undefined, votedForMultiple: undefined })))
     setCurrentVoterIndex(0)
     setSelectedOption(null)
+    setSelectedOptions([])
     setShowResults(false)
     setIsRevealing(false)
+  }
+
+  const toggleMultipleSelection = (optionId: string) => {
+    if (selectedOptions.includes(optionId)) {
+      setSelectedOptions(selectedOptions.filter((id) => id !== optionId))
+    } else {
+      setSelectedOptions([...selectedOptions, optionId])
+    }
   }
 
   const getCurrentData = () => ({
@@ -142,6 +196,7 @@ export default function AbstimmungenPage() {
     options: options.map((o) => ({ id: o.id, name: o.name, votes: 0 })),
     voters: voters.map((v) => ({ id: v.id, name: v.name, hasVoted: false })),
     isSecretVote,
+    allowMultipleChoice,
   })
 
   const handleLoadTemplate = (data: {
@@ -149,11 +204,13 @@ export default function AbstimmungenPage() {
     options?: VoteOption[]
     voters?: Voter[]
     isSecretVote?: boolean
+    allowMultipleChoice?: boolean
   }) => {
     if (data.question) setQuestion(data.question)
     if (data.options) setOptions(data.options)
     if (data.voters) setVoters(data.voters)
     if (data.isSecretVote !== undefined) setIsSecretVote(data.isSecretVote)
+    if (data.allowMultipleChoice !== undefined) setAllowMultipleChoice(data.allowMultipleChoice)
   }
 
   const totalVotes = options.reduce((sum, o) => sum + o.votes, 0)
@@ -217,13 +274,23 @@ export default function AbstimmungenPage() {
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-2">
                         {isSecretVote ? (
-                          <ArrowLeft className="w-4 h-4 text-emerald-600" />
+                          <SiAwssecretsmanager className="w-4 h-4 text-emerald-600" />
                         ) : (
-                          <ArrowLeft className="w-4 h-4 text-gray-400" />
+                          <SiAwssecretsmanager className="w-4 h-4 text-gray-400" />
                         )}
                         <span className="text-xs font-bold">Geheime Abstimmung</span>
                       </div>
                       <Switch checked={isSecretVote} onCheckedChange={setIsSecretVote} />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <CheckSquare
+                          className={`w-4 h-4 ${allowMultipleChoice ? "text-emerald-600" : "text-gray-400"}`}
+                        />
+                        <span className="text-xs font-bold">Mehrere Antworten erlauben</span>
+                      </div>
+                      <Switch checked={allowMultipleChoice} onCheckedChange={setAllowMultipleChoice} />
                     </div>
 
                     <div className="space-y-2">
@@ -355,30 +422,52 @@ export default function AbstimmungenPage() {
                           <h3 className="text-lg font-bold text-gray-800">{question}</h3>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {options.map((option) => (
                             <motion.button
                               key={option.id}
                               whileHover={{ scale: 1.02 }}
                               whileTap={{ scale: 0.98 }}
-                              onClick={() => setSelectedOption(option.id)}
+                              onClick={() => {
+                                if (allowMultipleChoice) {
+                                  toggleMultipleSelection(option.id)
+                                } else {
+                                  setSelectedOption(option.id)
+                                }
+                              }}
                               className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
-                                selectedOption === option.id
-                                  ? "border-emerald-500 bg-emerald-50"
-                                  : "border-gray-200 hover:border-emerald-300"
+                                allowMultipleChoice
+                                  ? selectedOptions.includes(option.id)
+                                    ? "border-emerald-500 bg-emerald-50"
+                                    : "border-gray-200 hover:border-emerald-300"
+                                  : selectedOption === option.id
+                                    ? "border-emerald-500 bg-emerald-50"
+                                    : "border-gray-200 hover:border-emerald-300"
                               }`}
                             >
                               <div className="flex items-center gap-3">
-                                <div
-                                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                    selectedOption === option.id
-                                      ? "border-emerald-500 bg-emerald-500"
-                                      : "border-gray-300"
-                                  }`}
-                                >
-                                  {selectedOption === option.id && <Check className="w-3 h-3 text-white" />}
-                                </div>
-                                <span className="font-medium">{option.name}</span>
+                                {allowMultipleChoice ? (
+                                  <div
+                                    className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                      selectedOptions.includes(option.id)
+                                        ? "border-emerald-500 bg-emerald-500"
+                                        : "border-gray-300"
+                                    }`}
+                                  >
+                                    {selectedOptions.includes(option.id) && <Check className="w-3 h-3 text-white" />}
+                                  </div>
+                                ) : (
+                                  <div
+                                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                      selectedOption === option.id
+                                        ? "border-emerald-500 bg-emerald-500"
+                                        : "border-gray-300"
+                                    }`}
+                                  >
+                                    {selectedOption === option.id && <Check className="w-3 h-3 text-white" />}
+                                  </div>
+                                )}
+                                <span className="font-medium text-xs">{option.name}</span>
                               </div>
                             </motion.button>
                           ))}
@@ -386,7 +475,7 @@ export default function AbstimmungenPage() {
 
                         <Button
                           onClick={submitVote}
-                          disabled={!selectedOption}
+                          disabled={allowMultipleChoice ? selectedOptions.length === 0 : !selectedOption}
                           size="sm"
                           className="w-full h-8 text-xs bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
                         >
@@ -474,10 +563,15 @@ export default function AbstimmungenPage() {
                         <div className="grid grid-cols-2 gap-2">
                           {voters.map((voter) => {
                             const votedOption = options.find((o) => o.id === voter.votedFor)
+                            const votedOptionsMultiple = voter.votedForMultiple
+                              ? voter.votedForMultiple.map((id) => options.find((o) => o.id === id)?.name).join(", ")
+                              : "-"
                             return (
                               <div key={voter.id} className="text-xs bg-gray-50 p-2 rounded">
                                 <span className="font-medium">{voter.name}:</span>{" "}
-                                <span className="text-gray-600">{votedOption?.name || "-"}</span>
+                                <span className="text-gray-600">
+                                  {voter.votedForMultiple ? votedOptionsMultiple : votedOption?.name || "-"}
+                                </span>
                               </div>
                             )
                           })}
