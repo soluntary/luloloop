@@ -149,18 +149,18 @@ export default function MastermindPage() {
                 <CardContent className="p-8">
                   <div className="space-y-6">
                     <div>
-                      <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielregeln</h2>
+                      <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielprinzip</h2>
                       <p className="text-gray-600 leading-relaxed text-xs">
-                        Mastermind ist ein klassisches Logikspiel. Das Ziel ist es, einen geheimen 4-stelligen Farbcode
-                        zu knacken.
+                        Mastermind ist ein klassisches Logikspiel, bei dem einen geheimen 4-stelligen geordneten Farbcode durch sukzessive Vermutungen ermittelt werden soll.
+                        Ziel des Spieles ist es, den Farbcode in möglichst wenigen Rateversuchen zu knacken.
                       </p>
                     </div>
 
                     <div>
                       <h3 className="font-handwritten text-gray-800 mb-2 text-base">So funktioniert's:</h3>
                       <ul className="space-y-2 text-gray-600 text-xs">
-                        <li>• Wähle 4 Farben aus und teste deine Kombination</li>
-                        <li>• Du hast maximal 10 Versuche</li>
+                        <li>• Wähle 4 Farben aus und prüfe deine Kombination</li>
+                        <li>• Du hast maximal 10 Rateversuche</li>
                         <li>• Nach jedem Versuch erhältst du Hinweise:</li>
                       </ul>
                       <div className="mt-4 space-y-2 bg-gray-50 p-4 rounded-lg text-xs">
@@ -226,13 +226,13 @@ export default function MastermindPage() {
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-6">
                   <p className="text-gray-600 font-body">
-                    Versuche: {guesses.length}/{MAX_ATTEMPTS}
+                    Rateversuche: {guesses.length}/{MAX_ATTEMPTS}
                   </p>
                   <Button
                     onClick={initGame}
                     variant="outline"
                     size="sm"
-                    className="gap-2 font-handwritten bg-transparent"
+                    className="gap-2 bg-transparent"
                   >
                     <FaRedo /> Zurücksetzen
                   </Button>
@@ -302,7 +302,7 @@ export default function MastermindPage() {
                 {gameWon && (
                   <div className="text-center p-6 bg-green-100 rounded-lg">
                     <h2 className="text-2xl font-handwritten text-green-600 mb-2">Gratuliere! 🎉</h2>
-                    <p className="mb-4">Du hast den Code in {guesses.length} Versuchen geknackt!</p>
+                    <p className="mb-4">Du hast den Code in {guesses.length} Rateversuchen geknackt!</p>
                     <Button onClick={initGame}>Nochmals spielen</Button>
                   </div>
                 )}
@@ -310,7 +310,7 @@ export default function MastermindPage() {
                 {gameLost && (
                   <div className="text-center p-6 bg-red-100 rounded-lg">
                     <h2 className="text-2xl font-handwritten text-red-600 mb-2">Game Over!</h2>
-                    <p className="mb-2">Der geheime Code war:</p>
+                    <p className="mb-2">Gesucht war der Farbcode:</p>
                     <div className="flex justify-center gap-2 mb-4">
                       {secretCode.map((color, i) => (
                         <div

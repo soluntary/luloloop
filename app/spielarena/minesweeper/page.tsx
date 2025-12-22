@@ -311,7 +311,7 @@ export default function MinesweeperPage() {
                 </div>
 
                 <div className="mt-4 text-xs text-gray-500 text-center">
-                  Linksklick: Feld aufdecken | Rechtsklick: Flagge setzen
+                  <strong>Linksklick:</strong> Feld aufdecken | <strong>Rechtsklick:</strong> Flagge setzen
                 </div>
               </CardContent>
             </Card>

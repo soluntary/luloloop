@@ -5,12 +5,12 @@ import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FaArrowLeft, FaRedo, FaBoxOpen, FaArrowUp, FaArrowDown } from "react-icons/fa"
+import { FaArrowLeft, FaRedo, FaArrowUp, FaArrowDown } from "react-icons/fa"
 import { FaArrowLeft as FaArrowLeftIcon, FaArrowRight } from "react-icons/fa"
-import { FaUser } from "react-icons/fa"
-import { GiCardboardBox } from "react-icons/gi"
 import { BsCheckSquare } from "react-icons/bs"
 import { BiTargetLock } from "react-icons/bi"
+import { FaBox } from "react-icons/fa"
+import { BsPersonStanding } from "react-icons/bs"
 import Link from "next/link"
 
 const LEVELS = [
@@ -35,6 +35,107 @@ const LEVELS = [
       ["#", " ", " ", "P", " ", " ", " ", "#"],
       ["#", " ", " ", " ", " ", " ", " ", "#"],
       ["#", "#", "#", "#", "#", "#", "#", "#"],
+    ],
+  },
+  {
+    name: "Level 3",
+    grid: [
+      ["#", "#", "#", "#", "#", "#", "#"],
+      ["#", "T", " ", " ", " ", "T", "#"],
+      ["#", " ", "#", "B", "#", " ", "#"],
+      ["#", " ", "B", "P", "B", " ", "#"],
+      ["#", " ", "#", "B", "#", " ", "#"],
+      ["#", "T", " ", " ", " ", "T", "#"],
+      ["#", "#", "#", "#", "#", "#", "#"],
+    ],
+  },
+  {
+    name: "Level 4",
+    grid: [
+      ["#", "#", "#", "#", "#", "#", "#", "#"],
+      ["#", " ", " ", " ", " ", " ", " ", "#"],
+      ["#", " ", "B", " ", "B", " ", " ", "#"],
+      ["#", " ", " ", "T", "T", " ", " ", "#"],
+      ["#", " ", " ", "P", " ", " ", " ", "#"],
+      ["#", " ", " ", "T", " ", "B", " ", "#"],
+      ["#", " ", " ", " ", " ", " ", " ", "#"],
+      ["#", "#", "#", "#", "#", "#", "#", "#"],
+    ],
+  },
+  {
+    name: "Level 5",
+    grid: [
+      ["#", "#", "#", "#", "#", "#", "#", "#", "#"],
+      ["#", " ", " ", " ", " ", " ", " ", " ", "#"],
+      ["#", " ", "B", "B", "B", "B", " ", " ", "#"],
+      ["#", " ", " ", "P", " ", " ", " ", " ", "#"],
+      ["#", " ", "T", "T", "T", "T", " ", " ", "#"],
+      ["#", " ", " ", " ", " ", " ", " ", " ", "#"],
+      ["#", "#", "#", "#", "#", "#", "#", "#", "#"],
+    ],
+  },
+  {
+    name: "Level 6",
+    grid: [
+      ["#", "#", "#", "#", "#", "#", "#"],
+      ["#", " ", " ", "#", "T", "T", "#"],
+      ["#", " ", "B", " ", "B", "T", "#"],
+      ["#", " ", "B", "P", "B", "T", "#"],
+      ["#", " ", " ", "#", "#", "#", "#"],
+      ["#", " ", " ", " ", " ", " ", "#"],
+      ["#", "#", "#", "#", "#", "#", "#"],
+    ],
+  },
+  {
+    name: "Level 7",
+    grid: [
+      ["#", "#", "#", "#", "#", "#", "#", "#"],
+      ["#", " ", " ", " ", "#", "T", "T", "#"],
+      ["#", " ", "B", "B", "#", "T", "T", "#"],
+      ["#", " ", "B", "P", " ", " ", " ", "#"],
+      ["#", " ", "B", " ", " ", " ", " ", "#"],
+      ["#", " ", " ", " ", " ", " ", " ", "#"],
+      ["#", "#", "#", "#", "#", "#", "#", "#"],
+    ],
+  },
+  {
+    name: "Level 8",
+    grid: [
+      ["#", "#", "#", "#", "#", "#", "#", "#", "#"],
+      ["#", " ", " ", " ", " ", " ", " ", " ", "#"],
+      ["#", " ", "#", "#", "#", "#", "#", " ", "#"],
+      ["#", " ", "#", "T", "T", "T", "#", " ", "#"],
+      ["#", " ", "#", "B", "P", "B", "#", " ", "#"],
+      ["#", " ", "#", " ", "B", " ", "#", " ", "#"],
+      ["#", " ", " ", " ", " ", " ", " ", " ", "#"],
+      ["#", "#", "#", "#", "#", "#", "#", "#", "#"],
+    ],
+  },
+  {
+    name: "Level 9",
+    grid: [
+      ["#", "#", "#", "#", "#", "#", "#", "#", "#"],
+      ["#", " ", " ", " ", " ", " ", " ", " ", "#"],
+      ["#", " ", "B", " ", "B", " ", "B", " ", "#"],
+      ["#", " ", " ", "#", "#", "#", " ", " ", "#"],
+      ["#", " ", " ", "#", "P", "#", " ", " ", "#"],
+      ["#", " ", " ", "#", "#", "#", " ", " ", "#"],
+      ["#", " ", "T", " ", "T", " ", "T", " ", "#"],
+      ["#", " ", " ", " ", " ", " ", " ", " ", "#"],
+      ["#", "#", "#", "#", "#", "#", "#", "#", "#"],
+    ],
+  },
+  {
+    name: "Level 10",
+    grid: [
+      ["#", "#", "#", "#", "#", "#", "#", "#", "#", "#"],
+      ["#", " ", " ", " ", "#", "#", " ", " ", " ", "#"],
+      ["#", " ", "B", " ", " ", " ", " ", "B", " ", "#"],
+      ["#", " ", " ", "#", "B", "B", "#", " ", " ", "#"],
+      ["#", " ", "T", " ", "P", " ", " ", "T", " ", "#"],
+      ["#", " ", "T", " ", "T", " ", " ", "T", " ", "#"],
+      ["#", " ", " ", " ", " ", " ", " ", " ", " ", "#"],
+      ["#", "#", "#", "#", "#", "#", "#", "#", "#", "#"],
     ],
   },
 ]
@@ -127,10 +228,10 @@ export default function SokobanPage() {
 
   const getCellContent = (cell: string, isPlayerPos: boolean) => {
     if (isPlayerPos) {
-      return <FaUser className="text-blue-600" />
+      return <BsPersonStanding className="text-blue-600" />
     }
     if (cell === "B") {
-      return <GiCardboardBox className="text-amber-700" />
+      return <FaBox className="text-amber-700" />
     }
     if (cell === "X") {
       return <BsCheckSquare className="text-green-700" />
@@ -162,7 +263,7 @@ export default function SokobanPage() {
                   transition={{ duration: 0.6 }}
                   className="w-16 h-16 bg-amber-700 rounded-full flex items-center justify-center transform -rotate-12"
                 >
-                  <FaBoxOpen className="w-8 h-8 text-white" />
+                  <FaBox className="w-8 h-8 text-white" />
                 </motion.div>
                 <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Sokoban</h1>
               </div>
@@ -176,7 +277,7 @@ export default function SokobanPage() {
                     <div>
                       <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielregeln</h2>
                       <p className="text-gray-600 leading-relaxed text-xs">
-                        Sokoban ist ein klassisches japanisches Logikspiel. Deine Aufgabe ist es, alle Kisten auf die
+                        Sokoban ist ein klassisches japanisches Logikspiel. Das Ziel des Spiels ist, alle Kisten auf die
                         Zielpositionen zu schieben.
                       </p>
                     </div>
@@ -184,7 +285,7 @@ export default function SokobanPage() {
                     <div>
                       <h3 className="font-handwritten text-gray-800 mb-2 text-base">So funktioniert's:</h3>
                       <ul className="space-y-2 text-gray-600 text-xs">
-                        <li>• Bewege den Spieler mit den Pfeiltasten oder Buttons</li>
+                        <li>• Bewege den Schieber mit den Pfeil-Buttons (↑ ↓ ← →)</li>
                         <li>• Schiebe alle Kisten auf die grünen Zielpositionen</li>
                         <li>• Du kannst Kisten nur schieben, nicht ziehen</li>
                         <li>• Du kannst nur eine Kiste auf einmal schieben</li>
@@ -196,11 +297,11 @@ export default function SokobanPage() {
                       <h4 className="font-handwritten text-gray-800 mb-2 text-base">Symbole:</h4>
                       <div className="grid grid-cols-2 gap-2 text-gray-600 text-xs">
                         <div className="flex items-center gap-2">
-                          <FaUser className="text-blue-600" />
-                          <span>Spieler</span>
+                          <BsPersonStanding className="text-blue-600" />
+                          <span>Schieber</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <GiCardboardBox className="text-amber-700" />
+                          <FaBox className="text-amber-700" />
                           <span>Kiste</span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -249,7 +350,7 @@ export default function SokobanPage() {
                 transition={{ duration: 0.6 }}
                 className="w-16 h-16 bg-amber-700 rounded-full flex items-center justify-center transform -rotate-12"
               >
-                <FaBoxOpen className="w-8 h-8 text-white" />
+                <FaBox className="w-8 h-8 text-white" />
               </motion.div>
               <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Sokoban</h1>
             </div>
@@ -265,12 +366,7 @@ export default function SokobanPage() {
                       {LEVELS[currentLevel].name} - Züge: {moves}
                     </p>
                   </div>
-                  <Button
-                    onClick={initLevel}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 font-handwritten bg-transparent"
-                  >
+                  <Button onClick={initLevel} variant="outline" size="sm" className="gap-2 bg-transparent">
                     <FaRedo /> Zurücksetzen
                   </Button>
                 </div>
@@ -331,10 +427,10 @@ export default function SokobanPage() {
 
                 <div className="mt-6 text-sm text-gray-600 text-center space-y-1 flex items-center justify-center gap-4">
                   <span className="flex items-center gap-1">
-                    <FaUser className="text-blue-600" /> Spieler
+                    <BsPersonStanding className="text-blue-600" /> Schieber
                   </span>
                   <span className="flex items-center gap-1">
-                    <GiCardboardBox className="text-amber-700" /> Kiste
+                    <FaBox className="text-amber-700" /> Kiste
                   </span>
                   <span className="flex items-center gap-1">
                     <BsCheckSquare className="text-green-700" /> Auf Ziel

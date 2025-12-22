@@ -92,8 +92,7 @@ export default function LightsOutPage() {
                     <div>
                       <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielregeln</h2>
                       <p className="text-gray-600 leading-relaxed text-xs">
-                        Lights Out ist ein faszinierendes Logikpuzzle. Das Ziel ist es, alle Lichter auf dem 5x5 Gitter
-                        auszuschalten.
+                        Lights Out ist ein faszinierendes Logikpuzzle. Das Ziel ist es, alle Lichter auf dem 5x5 Gitter mit so wenigen Klicks wie möglich auszuschalten.
                       </p>
                     </div>
 
@@ -101,15 +100,15 @@ export default function LightsOutPage() {
                       <h3 className="font-handwritten text-gray-800 mb-2 text-base">So funktioniert's:</h3>
                       <ul className="space-y-2 text-gray-600 text-xs">
                         <li>• Klicke auf ein Licht, um es umzuschalten</li>
-                        <li>• Jeder Klick schaltet auch die 4 benachbarten Lichter um (oben, unten, links, rechts)</li>
+                        <li>• Jeder Klick schaltet das ausgewählte Licht sowie horizontal und vertikal direkt angrenzende Lichter um.</li>
                         <li>• Schalte alle Lichter aus, um das Puzzle zu lösen</li>
                         <li>• Versuche es in möglichst wenigen Zügen zu schaffen</li>
                       </ul>
                     </div>
 
                     <div className="bg-amber-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600 italic">
-                        Tipp: Manchmal musst du ein Licht mehrmals anklicken, um die gewünschte Kombination zu
+                      <p className="text-xs text-gray-600 italic">
+                        <strong>Tipp:</strong> Manchmal musst du ein Licht mehrmals anklicken, um die gewünschte Kombination zu
                         erreichen!
                       </p>
                     </div>
@@ -165,7 +164,7 @@ export default function LightsOutPage() {
                     onClick={initGame}
                     variant="outline"
                     size="sm"
-                    className="gap-2 font-handwritten bg-transparent"
+                    className="gap-2 bg-transparent"
                   >
                     <FaRedo /> Zurücksetzen
                   </Button>
@@ -200,8 +199,8 @@ export default function LightsOutPage() {
                 )}
 
                 <div className="mt-6 text-sm text-gray-600 text-center">
-                  <p>Klicke auf ein Licht, um es und seine Nachbarn umzuschalten.</p>
-                  <p>Ziel: Alle Lichter ausschalten!</p>
+                  <p>Jeder Klick schaltet das ausgewählte Licht sowie horizontal und vertikal direkt angrenzende Lichter um.</p>
+                  <p><strong>Ziel:</strong> Alle Lichter ausschalten!</p>
                 </div>
               </CardContent>
             </Card>

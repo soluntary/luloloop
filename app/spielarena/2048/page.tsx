@@ -195,21 +195,20 @@ export default function Game2048Page() {
                 <CardContent className="p-8">
                   <div className="space-y-6">
                     <div>
-                      <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielregeln</h2>
+                      <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielprinzip</h2>
                       <p className="text-gray-600 leading-relaxed text-xs">
-                        2048 ist ein faszinierendes Puzzle-Spiel. Das Ziel ist es, durch geschicktes Verschieben der
-                        Kacheln die Zahl 2048 zu erreichen.
+                        2048 ist ein faszinierendes Puzzle-Spiel. Ziel des Spiels ist das Bilden einer Kachel mit der Zahl 2048 durch das geschickte Verschieben und Kombinieren anderer Kacheln.
                       </p>
                     </div>
 
                     <div>
                       <h3 className="font-handwritten text-gray-800 mb-2 text-base">So funktioniert's:</h3>
                       <ul className="space-y-2 text-gray-600 text-xs">
-                        <li>• Nutze die Pfeiltasten (↑ ↓ ← →) oder die Pfeil-Buttons zum Spielen</li>
-                        <li>• Bei jeder Bewegung verschieben sich alle Kacheln in diese Richtung</li>
-                        <li>• Wenn zwei Kacheln mit der gleichen Zahl zusammenstoßen, verschmelzen sie</li>
-                        <li>• Nach jedem Zug erscheint eine neue Kachel (2 oder 4)</li>
-                        <li>• Das Spiel endet, wenn keine Züge mehr möglich sind</li>
+                        <li>• Am Anfang befinden sich auf dem Spielfeld zwei zufällige Kacheln, die jeweils eine 2 oder eine 4 tragen.</li>
+                        <li>• Mit den Pfeiltasten auf deiner Tastatur oder den Pfeil-Buttons (↑ ↓ ← →) werden die Kacheln auf dem Spielfeld bewegt, wobei sich bei jedem Zug alle Kacheln so weit wie möglich bewegen, als ob sie auf dem in die jeweilige Richtung gekippten Spielfeld rutschen würden.</li>
+                        <li>• Stoßen dabei zwei Kacheln mit der gleichen Zahl aneinander, verschmelzen sie zu einer Kachel mit der Summe der beiden Kacheln.</li>
+                        <li>• Zusätzlich entsteht mit jedem Zug in einem leeren Feld eine zufällige Kachel mit einer 2 oder 4.</li>
+                        <li>• Das Spiel endet, wenn alle Felder mit Kacheln belegt sind und keine Züge mehr möglich sind.</li>
                       </ul>
                     </div>
 
@@ -326,7 +325,7 @@ export default function Game2048Page() {
           </div>
 
           <p className="text-center text-sm text-gray-600 mt-4">
-            Nutze die Pfeiltasten oder Pfeil-Buttons (↑ ↓ ← →) zum Spielen!
+            Nutze die Pfeiltasten auf deiner Tastatur oder die Pfeil-Buttons (↑ ↓ ← →) zum Spielen!
           </p>
         </div>
       </main>

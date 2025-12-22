@@ -12,6 +12,7 @@ import { FaBomb, FaLightbulb, FaPuzzlePiece, FaBoxOpen } from "react-icons/fa"
 import { MdOutlineGames } from "react-icons/md"
 import { GiSoundOn } from "react-icons/gi"
 import { GiBrain } from "react-icons/gi"
+import { FaBox } from "react-icons/fa"
 
 const games = [
   {
@@ -129,7 +130,7 @@ const games = [
     id: "sokoban",
     title: "Sokoban",
     description: "Schiebe alle Kisten auf die Zielpositionen! Klassisches japanisches Puzzle mit vielen Leveln.",
-    icon: FaBoxOpen,
+    icon: FaBox,
     color: "brown",
     rotation: "-rotate-1",
     linkText: "Spielen",
