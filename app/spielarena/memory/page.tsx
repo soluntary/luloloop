@@ -91,7 +91,7 @@ export default function MemoryPage() {
 
   useEffect(() => {
     initializeGame()
-  }, [difficulty])
+  }, [difficulty]) // This already resets the game when difficulty changes
 
   useEffect(() => {
     if (flippedCards.length === 2) {
@@ -152,7 +152,6 @@ export default function MemoryPage() {
               </motion.div>
               <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Memory</h1>
             </div>
-            <p className="text-gray-600 font-body transform -rotate-1">Züge: {moves}</p>
           </div>
 
           <div className="mb-6">
@@ -162,6 +161,7 @@ export default function MemoryPage() {
                 onClick={() => setDifficulty("easy")}
                 variant={difficulty === "easy" ? "default" : "outline"}
                 size="sm"
+                className={difficulty === "easy" ? "bg-blue-500 hover:bg-blue-600" : ""}
               >
                 Einfach (16)
               </Button>
@@ -169,6 +169,7 @@ export default function MemoryPage() {
                 onClick={() => setDifficulty("medium")}
                 variant={difficulty === "medium" ? "default" : "outline"}
                 size="sm"
+                className={difficulty === "medium" ? "bg-blue-500 hover:bg-blue-600" : ""}
               >
                 Mittel (24)
               </Button>
@@ -176,10 +177,12 @@ export default function MemoryPage() {
                 onClick={() => setDifficulty("hard")}
                 variant={difficulty === "hard" ? "default" : "outline"}
                 size="sm"
+                className={difficulty === "hard" ? "bg-blue-500 hover:bg-blue-600" : ""}
               >
                 Schwer (36)
               </Button>
             </div>
+            <p className="text-center text-gray-600 font-body mt-4">Züge: {moves}</p>
           </div>
 
           <div className="relative">
@@ -256,9 +259,9 @@ export default function MemoryPage() {
                 className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
               >
                 <Card className="p-8 text-center">
-                  <h2 className="text-3xl font-handwritten mb-4 text-green-600">Gewonnen! 🎉</h2>
+                  <h2 className="text-3xl font-handwritten mb-4 text-green-600">Gratuliere! 🎉</h2>
                   <p className="mb-4">Du hast das Spiel in {moves} Zügen geschafft!</p>
-                  <Button onClick={initializeGame}>Nochmal spielen</Button>
+                  <Button onClick={initializeGame}>Nochmals spielen</Button>
                 </Card>
               </motion.div>
             )}

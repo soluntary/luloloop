@@ -338,14 +338,14 @@ export default function ConnectFourPage() {
                       <div className="flex gap-4 justify-center">
                         <Button
                           onClick={() => handleCoinChoice("red")}
-                          className="flex-1 bg-red-500 hover:bg-red-600"
+                          className="flex-1 bg-red-500 hover:bg-red-700"
                           size="lg"
                         >
                           Rot
                         </Button>
                         <Button
                           onClick={() => handleCoinChoice("yellow")}
-                          className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-gray-900"
+                          className="flex-1 bg-yellow-300 hover:bg-yellow-500 text-gray-900"
                           size="lg"
                         >
                           Gelb
@@ -369,14 +369,14 @@ export default function ConnectFourPage() {
                         <div>
                           <div
                             className={`w-32 h-32 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                              coinResult === "red" ? "bg-red-500" : "bg-yellow-400"
+                              coinResult === "red" ? "bg-red-500" : "bg-yellow-300"
                             }`}
                           >
                             <div className="text-white text-2xl font-bold">{coinResult === "red" ? "ROT" : "GELB"}</div>
                           </div>
                           <p className="text-lg mb-2">
                             Ergebnis:{" "}
-                            <strong className={coinResult === "red" ? "text-red-600" : "text-yellow-600"}>
+                            <strong className={coinResult === "red" ? "text-red-600" : "text-yellow-300"}>
                               {coinResult === "red" ? "Rot" : "Gelb"}
                             </strong>
                           </p>
@@ -414,7 +414,7 @@ export default function ConnectFourPage() {
                   ) : (
                     <div className="text-xl font-bold">
                       Spieler am Zug:{" "}
-                      <span className={currentPlayer === "red" ? "text-red-600" : "text-yellow-600"}>
+                      <span className={currentPlayer === "red" ? "text-red-600" : "text-yellow-300"}>
                         {currentPlayer === "red" ? "Rot" : "Gelb"}
                       </span>
                     </div>
@@ -436,7 +436,7 @@ export default function ConnectFourPage() {
                               cell === "red"
                                 ? "bg-red-500"
                                 : cell === "yellow"
-                                  ? "bg-yellow-400"
+                                  ? "bg-yellow-300"
                                   : "bg-white hover:bg-gray-200"
                             } ${winner ? "cursor-not-allowed" : "cursor-pointer"}`}
                           />

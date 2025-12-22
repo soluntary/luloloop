@@ -20,6 +20,8 @@ export default function SudokuPage() {
   const [isRunning, setIsRunning] = useState(false)
   const [won, setWon] = useState(false)
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy")
+  const [solution, setSolution] = useState<number[][]>([])
+  const [showingSolution, setShowingSolution] = useState(false)
 
   useEffect(() => {
     initGame(difficulty)
@@ -36,14 +38,16 @@ export default function SudokuPage() {
   }, [isRunning, won])
 
   const initGame = (level: "easy" | "medium" | "hard" = difficulty) => {
-    const solution = generateSudoku()
+    const generatedSolution = generateSudoku()
+    setSolution(generatedSolution)
     const cellsToRemove = level === "easy" ? 35 : level === "medium" ? 45 : 55
-    const puzzle = createPuzzle(solution, cellsToRemove)
+    const puzzle = createPuzzle(generatedSolution, cellsToRemove)
     setGrid(puzzle)
     setTimer(0)
     setIsRunning(false)
     setWon(false)
     setDifficulty(level)
+    setShowingSolution(false)
   }
 
   const generateSudoku = (): number[][] => {
@@ -180,10 +184,6 @@ export default function SudokuPage() {
               </motion.div>
               <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Sudoku</h1>
             </div>
-            <p className="text-gray-600 font-body mb-2">
-              <span className="font-handwritten">Schwierigkeitsgrad:</span>{" "}
-              {difficulty === "easy" ? "Einfach" : difficulty === "medium" ? "Mittel" : "Schwer"}
-            </p>
           </div>
 
           <div className="mb-6">
@@ -193,7 +193,7 @@ export default function SudokuPage() {
                 onClick={() => initGame("easy")}
                 variant={difficulty === "easy" ? "default" : "outline"}
                 size="sm"
-                className="font-handwritten"
+                className={difficulty === "easy" ? "bg-indigo-500 hover:bg-indigo-600" : ""}
               >
                 Einfach
               </Button>
@@ -201,7 +201,7 @@ export default function SudokuPage() {
                 onClick={() => initGame("medium")}
                 variant={difficulty === "medium" ? "default" : "outline"}
                 size="sm"
-                className="font-handwritten"
+                className={difficulty === "medium" ? "bg-indigo-500 hover:bg-indigo-600" : ""}
               >
                 Mittel
               </Button>
@@ -209,7 +209,7 @@ export default function SudokuPage() {
                 onClick={() => initGame("hard")}
                 variant={difficulty === "hard" ? "default" : "outline"}
                 size="sm"
-                className="font-handwritten"
+                className={difficulty === "hard" ? "bg-indigo-500 hover:bg-indigo-600" : ""}
               >
                 Schwer
               </Button>
@@ -222,17 +222,40 @@ export default function SudokuPage() {
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{timer}s</div>
+                    <div className="font-bold text-blue-600 text-sm">{timer}s</div>
                     <div className="text-sm text-gray-600">Zeit</div>
                   </div>
-                  <Button
-                    onClick={() => initGame(difficulty)}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 bg-transparent"
-                  >
-                    <FaRedo /> Zurücksetzen
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        setShowingSolution(!showingSolution)
+                        if (!showingSolution) {
+                          const newGrid = grid.map((row, r) =>
+                            row.map((cell, c) => ({
+                              ...cell,
+                              value: solution[r][c],
+                            })),
+                          )
+                          setGrid(newGrid)
+                        } else {
+                          initGame(difficulty)
+                        }
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 bg-transparent"
+                    >
+                      {showingSolution ? "Verstecken" : "Lösung anzeigen"}
+                    </Button>
+                    <Button
+                      onClick={() => initGame(difficulty)}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 bg-transparent"
+                    >
+                      <FaRedo /> Zurücksetzen
+                    </Button>
+                  </div>
                 </div>
 
                 {won && (

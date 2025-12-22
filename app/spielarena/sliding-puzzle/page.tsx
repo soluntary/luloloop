@@ -96,11 +96,6 @@ export default function SlidingPuzzlePage() {
               </motion.div>
               <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Schiebepuzzle</h1>
             </div>
-            <p className="text-gray-600 font-body mb-2">
-              <span className="font-handwritten">Schwierigkeitsgrad:</span>{" "}
-              {difficulty === "easy" ? "Einfach (3x3)" : difficulty === "medium" ? "Mittel (4x4)" : "Schwer (5x5)"}
-            </p>
-            <p className="text-gray-600 font-body transform -rotate-1">Züge: {moves}</p>
           </div>
 
           <div className="mb-6">
@@ -110,7 +105,7 @@ export default function SlidingPuzzlePage() {
                 onClick={() => initializeBoard("easy")}
                 variant={difficulty === "easy" ? "default" : "outline"}
                 size="sm"
-                className="font-handwritten"
+                className={difficulty === "easy" ? "bg-teal-500 hover:bg-teal-600" : ""}
               >
                 Einfach (3x3)
               </Button>
@@ -118,7 +113,7 @@ export default function SlidingPuzzlePage() {
                 onClick={() => initializeBoard("medium")}
                 variant={difficulty === "medium" ? "default" : "outline"}
                 size="sm"
-                className="font-handwritten"
+                className={difficulty === "medium" ? "bg-teal-500 hover:bg-teal-600" : ""}
               >
                 Mittel (4x4)
               </Button>
@@ -126,11 +121,12 @@ export default function SlidingPuzzlePage() {
                 onClick={() => initializeBoard("hard")}
                 variant={difficulty === "hard" ? "default" : "outline"}
                 size="sm"
-                className="font-handwritten"
+                className={difficulty === "hard" ? "bg-teal-500 hover:bg-teal-600" : ""}
               >
                 Schwer (5x5)
               </Button>
             </div>
+            <p className="text-center text-gray-600 font-body mt-4">Züge: {moves}</p>
           </div>
 
           <div className="relative">
@@ -179,7 +175,7 @@ export default function SlidingPuzzlePage() {
               <Card className="p-6 text-center bg-green-50">
                 <h2 className="text-2xl font-handwritten mb-4 text-green-600">Geschafft! 🎉</h2>
                 <p className="mb-4">Du hast das Puzzle in {moves} Zügen gelöst!</p>
-                <Button onClick={() => initializeBoard()}>Nochmal spielen</Button>
+                <Button onClick={() => initializeBoard()}>Nochmals spielen</Button>
               </Card>
             </motion.div>
           )}

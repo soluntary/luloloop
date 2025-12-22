@@ -16,7 +16,7 @@ import {
 } from "react-icons/fa"
 import { LiaUsersSolid } from "react-icons/lia"
 import { IoLibrary } from "react-icons/io5"
-import { GiReceiveMoney, GiBackForth, GiDiceTarget, GiRollingDices } from "react-icons/gi"
+import { GiReceiveMoney, GiBackForth, GiDiceTarget, GiRollingDices, GiGamepad } from "react-icons/gi"
 import { TbExchange } from "react-icons/tb"
 import { MdForum } from "react-icons/md"
 import Link from "next/link"
@@ -529,6 +529,16 @@ export default function HomePage() {
               linkText: "Zu den Spielhilfen",
               color: "teal",
               rotation: "-rotate-1",
+            },
+            {
+              icon: GiGamepad,
+              title: "Spielarena",
+              description:
+                "Spiele klassische Mini-Games direkt im Browser: Memory, Tic-Tac-Toe, Snake, 2048 und viele mehr zum Zeitvertreib!",
+              link: "/spielarena",
+              linkText: "Zur Spielarena",
+              color: "purple",
+              rotation: "rotate-1",
             },
           ].map((feature, index) => {
             const colors = getColorClasses(feature.color)

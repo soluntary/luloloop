@@ -47,6 +47,7 @@ export default function SimonSaysPage() {
   const [difficulty, setDifficulty] = useState<Difficulty>("easy")
   const colors = colorPools[difficulty]
   const audioContextRef = useRef<AudioContext>()
+  const shouldInterruptRef = useRef(false)
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -84,14 +85,25 @@ export default function SimonSaysPage() {
 
   const showSequence = async (seq: number[], colorArray: typeof colors) => {
     setGameState("showing")
+    shouldInterruptRef.current = false
+
     for (const colorId of seq) {
+      if (shouldInterruptRef.current) return // Stop if interrupted
+
       await new Promise((resolve) => setTimeout(resolve, 500))
+      if (shouldInterruptRef.current) return // Check again after delay
+
       setActiveButton(colorId)
       playSound(colorArray[colorId].sound)
       await new Promise((resolve) => setTimeout(resolve, 500))
+      if (shouldInterruptRef.current) return // Check again after delay
+
       setActiveButton(null)
     }
-    setGameState("playing")
+
+    if (!shouldInterruptRef.current) {
+      setGameState("playing")
+    }
   }
 
   const handleButtonClick = (colorId: number) => {
@@ -116,6 +128,8 @@ export default function SimonSaysPage() {
   }
 
   const startGameWithDifficulty = (diff: Difficulty) => {
+    shouldInterruptRef.current = true // Interrupt any ongoing sequence
+    setActiveButton(null) // Clear any active button
     setDifficulty(diff)
     setSequence([])
     setPlayerSequence([])
@@ -154,15 +168,6 @@ export default function SimonSaysPage() {
               </motion.div>
               <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Sound Memory</h1>
             </div>
-            <p className="text-gray-600 font-body mb-2">
-              <span className="font-handwritten">Schwierigkeitsgrad:</span>{" "}
-              {difficulty === "easy"
-                ? "Einfach (4 Farben)"
-                : difficulty === "medium"
-                  ? "Mittel (6 Farben)"
-                  : "Schwer (8 Farben)"}
-            </p>
-            <p className="text-gray-600 font-body transform -rotate-1">Level: {level}</p>
           </div>
 
           <div className="mb-6">
@@ -172,7 +177,7 @@ export default function SimonSaysPage() {
                 onClick={() => startGameWithDifficulty("easy")}
                 variant={difficulty === "easy" ? "default" : "outline"}
                 size="sm"
-                className="font-handwritten"
+                className={difficulty === "easy" ? "bg-red-500 hover:bg-red-600" : ""}
               >
                 Einfach (4 Farben)
               </Button>
@@ -180,7 +185,7 @@ export default function SimonSaysPage() {
                 onClick={() => startGameWithDifficulty("medium")}
                 variant={difficulty === "medium" ? "default" : "outline"}
                 size="sm"
-                className="font-handwritten"
+                className={difficulty === "medium" ? "bg-red-500 hover:bg-red-600" : ""}
               >
                 Mittel (6 Farben)
               </Button>
@@ -188,11 +193,12 @@ export default function SimonSaysPage() {
                 onClick={() => startGameWithDifficulty("hard")}
                 variant={difficulty === "hard" ? "default" : "outline"}
                 size="sm"
-                className="font-handwritten"
+                className={difficulty === "hard" ? "bg-red-500 hover:bg-red-600" : ""}
               >
                 Schwer (8 Farben)
               </Button>
             </div>
+            <p className="text-center text-gray-600 font-body mt-4">Level: {level}</p>
           </div>
 
           {gameState === "idle" && (
@@ -200,7 +206,10 @@ export default function SimonSaysPage() {
               <div className="absolute inset-0 bg-gradient-to-br from-red-100 to-orange-100 rounded-3xl transform rotate-1 -z-10"></div>
               <Card className="border-4 border-red-300 shadow-2xl transform -rotate-1">
                 <CardContent className="p-8 text-center">
-                  <p className="text-gray-600">Merke dir die Reihenfolge der aufleuchtenden Farben!</p>
+                  <p className="text-gray-600 mb-6">Merke dir die Reihenfolge der aufleuchtenden Farben!</p>
+                  <Button onClick={startGame} size="lg" className="bg-red-500 hover:bg-red-600">
+                    Spiel starten
+                  </Button>
                 </CardContent>
               </Card>
             </div>
@@ -231,7 +240,7 @@ export default function SimonSaysPage() {
                       onClick={() => setGameState("idle")}
                       variant="outline"
                       size="sm"
-                      className="gap-2 font-handwritten bg-transparent"
+                      className="gap-2 bg-transparent"
                     >
                       <FaRedo /> Zurücksetzen
                     </Button>
@@ -261,11 +270,6 @@ export default function SimonSaysPage() {
               </Card>
             </div>
           )}
-
-          <p className="text-center text-sm text-gray-600 mt-4">
-            {gameState === "showing" && "Beobachte die Sequenz..."}
-            {gameState === "playing" && "Jetzt du! Klicke die Reihenfolge nach!"}
-          </p>
         </div>
       </main>
     </div>

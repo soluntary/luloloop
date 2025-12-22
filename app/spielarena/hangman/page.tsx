@@ -161,7 +161,7 @@ export default function HangmanPage() {
                     onClick={startNewGame}
                     variant="outline"
                     size="sm"
-                    className="gap-2 bg-transparent font-handwritten"
+                    className="gap-2 bg-transparent"
                   >
                     <FaRedo /> Zurücksetzen
                   </Button>
@@ -195,10 +195,10 @@ export default function HangmanPage() {
                       className="mb-4 text-center font-bold text-lg"
                     />
                     <div className="flex gap-2 justify-center">
-                      <Button onClick={startWithCustomWord} disabled={!customWord.trim()} className="font-handwritten">
+                      <Button onClick={startWithCustomWord} disabled={!customWord.trim()}>
                         Spiel starten
                       </Button>
-                      <Button onClick={() => setCustomMode(false)} variant="outline" className="font-handwritten">
+                      <Button onClick={() => setCustomMode(false)} variant="outline">
                         Abbrechen
                       </Button>
                     </div>
@@ -237,7 +237,7 @@ export default function HangmanPage() {
                     </p>
                     <p className="font-body text-gray-700 mb-4">Das Wort war: {word}</p>
                     <Button onClick={startNewGame} className="font-handwritten">
-                      Nochmal spielen
+                      Nochmals spielen
                     </Button>
                   </div>
                 )}

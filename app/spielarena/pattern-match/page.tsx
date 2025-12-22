@@ -133,7 +133,7 @@ export default function PatternMatchPage() {
                     onClick={resetGame}
                     variant="outline"
                     size="sm"
-                    className="gap-2 font-handwritten bg-transparent"
+                    className="gap-2 bg-transparent"
                   >
                     <FaRedo /> Zurücksetzen
                   </Button>
@@ -214,7 +214,7 @@ export default function PatternMatchPage() {
                     <p className="font-body text-gray-700 mb-2">Endpunktzahl: {score}</p>
                     <p className="font-body text-gray-700 mb-4">Du hast Runde {round} erreicht!</p>
                     <Button onClick={resetGame} className="font-handwritten">
-                      Nochmal spielen
+                      Nochmals spielen
                     </Button>
                   </div>
                 )}

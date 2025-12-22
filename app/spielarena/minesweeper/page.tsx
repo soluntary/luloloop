@@ -217,10 +217,6 @@ export default function MinesweeperPage() {
               </motion.div>
               <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Minesweeper</h1>
             </div>
-            <p className="text-gray-600 font-body mb-2">
-              <span className="font-handwritten">Schwierigkeitsgrad:</span>{" "}
-              {difficulty === "easy" ? "Einfach" : difficulty === "medium" ? "Mittel" : "Schwer"}
-            </p>
           </div>
 
           <div className="mb-6">
@@ -233,7 +229,7 @@ export default function MinesweeperPage() {
                 }}
                 variant={difficulty === "easy" ? "default" : "outline"}
                 size="sm"
-                className="font-handwritten"
+                className={difficulty === "easy" ? "bg-gray-600 hover:bg-gray-700" : ""}
               >
                 Einfach
               </Button>
@@ -244,7 +240,7 @@ export default function MinesweeperPage() {
                 }}
                 variant={difficulty === "medium" ? "default" : "outline"}
                 size="sm"
-                className="font-handwritten"
+                className={difficulty === "medium" ? "bg-gray-600 hover:bg-gray-700" : ""}
               >
                 Mittel
               </Button>
@@ -255,7 +251,7 @@ export default function MinesweeperPage() {
                 }}
                 variant={difficulty === "hard" ? "default" : "outline"}
                 size="sm"
-                className="font-handwritten"
+                className={difficulty === "hard" ? "bg-gray-600 hover:bg-gray-700" : ""}
               >
                 Schwer
               </Button>
@@ -275,7 +271,10 @@ export default function MinesweeperPage() {
                 {gameOver && (
                   <div className="text-center mb-4 p-4 bg-red-100 rounded-lg">
                     <div className="text-xl font-bold text-red-600">💥 Game Over!</div>
-                    <div className="text-sm text-gray-600">Du hast eine Mine getroffen!</div>
+                    <div className="text-sm text-gray-600 mb-3">Du hast eine Mine getroffen!</div>
+                    <Button onClick={initGame} size="sm">
+                      Nochmals spielen
+                    </Button>
                   </div>
                 )}
 

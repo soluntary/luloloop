@@ -203,7 +203,6 @@ export default function TicTacToePage() {
               </motion.div>
               <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Tic-Tac-Toe</h1>
             </div>
-            <p className="text-gray-600 font-body transform -rotate-1">Spieler: {currentPlayer}</p>
           </div>
 
           <div className="flex justify-center gap-2 mb-6">
@@ -214,6 +213,7 @@ export default function TicTacToePage() {
               }}
               variant={!vsAI ? "default" : "outline"}
               size="sm"
+              className={!vsAI ? "bg-green-500 hover:bg-green-600" : ""}
             >
               2 Spieler
             </Button>
@@ -224,6 +224,7 @@ export default function TicTacToePage() {
               }}
               variant={vsAI ? "default" : "outline"}
               size="sm"
+              className={vsAI ? "bg-green-500 hover:bg-green-600" : ""}
             >
               Gegen KI
             </Button>
@@ -238,6 +239,16 @@ export default function TicTacToePage() {
                     <FaRedo /> Zurücksetzen
                   </Button>
                 </div>
+
+                {!winner && (
+                  <div className="text-center mb-4">
+                    <p className="text-lg font-bold">
+                      Spieler am Zug:{" "}
+                      <span className={currentPlayer === "X" ? "text-blue-600" : "text-red-600"}>{currentPlayer}</span>
+                    </p>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-3 gap-6">
                   {board.map((cell, index) => (
                     <motion.div
@@ -278,7 +289,7 @@ export default function TicTacToePage() {
                   <h2 className="text-2xl font-handwritten mb-4">
                     {winner === "draw" ? "Unentschieden! 🤝" : `${winner} gewinnt! 🎉`}
                   </h2>
-                  <Button onClick={resetGame}>Nochmal spielen</Button>
+                  <Button onClick={resetGame}>Nochmals spielen</Button>
                 </Card>
               </motion.div>
             )}
@@ -339,7 +350,7 @@ export default function TicTacToePage() {
                           </motion.div>
                         )}
 
-                        <p className="text-lg font-handwritten">
+                        <p className="text-lg font-bold">
                           {isDrawing
                             ? "Ziehe Symbol..."
                             : drawnSymbol === selectedSymbol

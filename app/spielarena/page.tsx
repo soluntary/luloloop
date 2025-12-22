@@ -5,13 +5,12 @@ import { Navigation } from "@/components/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FaArrowRight } from "react-icons/fa"
-import { GiTicTacToe, GiSnake, GiBrickWall, GiTowerBridge, GiHangingSign } from "react-icons/gi"
+import { GiTicTacToe, GiHangingSign } from "react-icons/gi"
 import { BsGrid3X3Gap, BsGrid3X3 } from "react-icons/bs"
 import { IoExtensionPuzzle } from "react-icons/io5"
-import { FaBomb } from "react-icons/fa"
+import { FaBomb, FaLightbulb, FaPuzzlePiece, FaBoxOpen } from "react-icons/fa"
 import { MdOutlineGames } from "react-icons/md"
 import { GiSoundOn } from "react-icons/gi"
-import { GiCardPick } from "react-icons/gi"
 import { GiBrain } from "react-icons/gi"
 
 const games = [
@@ -19,7 +18,7 @@ const games = [
     id: "memory",
     title: "Memory",
     description:
-      "Spielklassiker für das Kurzzeitgedächtnis. Finde möglichst schnell alle Motivpärchen und trainiere dein Gehirn.",
+      "Spielklassiker für das Kurzzeitgedächtnis. Finde möglichst schnell alle Motivpärchen und trainiere dein Gehirn. Verschiedene Schwierigkeitsgrade verfügbar.",
     icon: GiBrain,
     color: "blue",
     rotation: "rotate-1",
@@ -39,7 +38,7 @@ const games = [
     id: "2048",
     title: "2048",
     description: "Kombiniere Zahlen bis 2048! Ein süchtig machendes Puzzle-Spiel.",
-    icon: null, // Will render "2048" as text
+    icon: null,
     color: "purple",
     rotation: "rotate-1",
     linkText: "Spielen",
@@ -63,24 +62,6 @@ const games = [
     linkText: "Spielen",
   },
   {
-    id: "snake",
-    title: "Snake",
-    description: "Das klassische Nokia-Spiel! Friss Äpfel und werde länger, aber stoße nicht gegen Wände.",
-    icon: GiSnake,
-    color: "green",
-    rotation: "-rotate-1",
-    linkText: "Spielen",
-  },
-  {
-    id: "breakout",
-    title: "Breakout",
-    description: "Zerstöre alle Blöcke mit dem Ball! Ein klassischer Arcade-Hit.",
-    icon: GiBrickWall,
-    color: "orange",
-    rotation: "rotate-1",
-    linkText: "Spielen",
-  },
-  {
     id: "minesweeper",
     title: "Minesweeper",
     description: "Das klassische Logikspiel! Finde alle Minen ohne eine zu treffen.",
@@ -92,7 +73,8 @@ const games = [
   {
     id: "sudoku",
     title: "Sudoku",
-    description: "Das beliebte Logikrätsel! Fülle das 9x9 Gitter mit den richtigen Zahlen.",
+    description:
+      "Das beliebte Logikrätsel! Fülle das 9x9 Gitter mit den richtigen Zahlen. Verschiedene Schwierigkeitsgrade verfügbar.",
     icon: BsGrid3X3Gap,
     color: "blue",
     rotation: "rotate-1",
@@ -117,15 +99,6 @@ const games = [
     linkText: "Spielen",
   },
   {
-    id: "tower-stack",
-    title: "Tower Stack",
-    description: "Staple den Turm so hoch wie möglich! Präzision ist der Schlüssel zum Erfolg.",
-    icon: GiTowerBridge,
-    color: "lime",
-    rotation: "-rotate-1",
-    linkText: "Stapeln",
-  },
-  {
     id: "hangman",
     title: "Hangman",
     description: "Rate das Wort, bevor der Mann hängt! Klassisches Wortspiel.",
@@ -133,6 +106,33 @@ const games = [
     color: "sky",
     rotation: "rotate-1",
     linkText: "Raten",
+  },
+  {
+    id: "mastermind",
+    title: "Mastermind",
+    description: "Knacke den geheimen Farbcode! Nutze die Hinweise, um die richtige Kombination zu finden.",
+    icon: FaPuzzlePiece,
+    color: "violet",
+    rotation: "-rotate-1",
+    linkText: "Knobeln",
+  },
+  {
+    id: "lights-out",
+    title: "Lights Out",
+    description: "Schalte alle Lichter aus! Jeder Klick beeinflusst benachbarte Lichter. Strategisches Denken gefragt!",
+    icon: FaLightbulb,
+    color: "amber",
+    rotation: "rotate-1",
+    linkText: "Spielen",
+  },
+  {
+    id: "sokoban",
+    title: "Sokoban",
+    description: "Schiebe alle Kisten auf die Zielpositionen! Klassisches japanisches Puzzle mit vielen Leveln.",
+    icon: FaBoxOpen,
+    color: "brown",
+    rotation: "-rotate-1",
+    linkText: "Spielen",
   },
 ]
 

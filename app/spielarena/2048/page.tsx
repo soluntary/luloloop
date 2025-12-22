@@ -28,6 +28,7 @@ const getTileColor = (value: number) => {
 }
 
 export default function Game2048Page() {
+  const [showIntro, setShowIntro] = useState(true)
   const [board, setBoard] = useState<Board>([])
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
@@ -132,8 +133,10 @@ export default function Game2048Page() {
   }
 
   useEffect(() => {
-    setBoard(initializeBoard())
-  }, [])
+    if (!showIntro) {
+      setBoard(initializeBoard())
+    }
+  }, [showIntro])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -157,6 +160,83 @@ export default function Game2048Page() {
     setScore(0)
     setGameOver(false)
     setNoMovesAvailable(false)
+  }
+
+  if (showIntro) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 to-white">
+        <Navigation />
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <Link
+              href="/spielarena"
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+            >
+              <FaArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Zurück zur Spielarena</span>
+            </Link>
+
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <motion.div
+                  whileHover={{ rotate: 360, scale: 1.1 }}
+                  transition={{ duration: 0.6 }}
+                  className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center transform -rotate-12"
+                >
+                  <span className="text-3xl text-white font-bold">2048</span>
+                </motion.div>
+                <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">2048</h1>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl transform rotate-1 -z-10"></div>
+              <Card className="border-4 border-purple-300 shadow-2xl transform -rotate-1">
+                <CardContent className="p-8">
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielregeln</h2>
+                      <p className="text-gray-600 leading-relaxed text-xs">
+                        2048 ist ein faszinierendes Puzzle-Spiel. Das Ziel ist es, durch geschicktes Verschieben der
+                        Kacheln die Zahl 2048 zu erreichen.
+                      </p>
+                    </div>
+
+                    <div>
+                      <h3 className="font-handwritten text-gray-800 mb-2 text-base">So funktioniert's:</h3>
+                      <ul className="space-y-2 text-gray-600 text-xs">
+                        <li>• Nutze die Pfeiltasten (↑ ↓ ← →) oder die Pfeil-Buttons zum Spielen</li>
+                        <li>• Bei jeder Bewegung verschieben sich alle Kacheln in diese Richtung</li>
+                        <li>• Wenn zwei Kacheln mit der gleichen Zahl zusammenstoßen, verschmelzen sie</li>
+                        <li>• Nach jedem Zug erscheint eine neue Kachel (2 oder 4)</li>
+                        <li>• Das Spiel endet, wenn keine Züge mehr möglich sind</li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <h3 className="font-handwritten text-gray-800 mb-2 text-base">Tipp:</h3>
+                      <p className="text-gray-600 text-xs">
+                        Versuche, die größten Zahlen in einer Ecke zu sammeln und baue systematisch von dort aus auf!
+                      </p>
+                    </div>
+
+                    <div className="flex justify-center pt-4">
+                      <Button
+                        onClick={() => setShowIntro(false)}
+                        size="lg"
+                        className="bg-purple-500 hover:bg-purple-600"
+                      >
+                        Spiel starten
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   return (
@@ -199,12 +279,7 @@ export default function Game2048Page() {
             <Card className="border-4 border-purple-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8">
                 <div className="flex justify-end mb-4">
-                  <Button
-                    onClick={resetGame}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 bg-transparent"
-                  >
+                  <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
                     <FaRedo /> Zurücksetzen
                   </Button>
                 </div>
@@ -250,7 +325,9 @@ export default function Game2048Page() {
             <div />
           </div>
 
-          <p className="text-center text-sm text-gray-600 mt-4">Nutze die Pfeiltasten oder Buttons zum Spielen</p>
+          <p className="text-center text-sm text-gray-600 mt-4">
+            Nutze die Pfeiltasten oder Pfeil-Buttons (↑ ↓ ← →) zum Spielen!
+          </p>
         </div>
       </main>
     </div>
