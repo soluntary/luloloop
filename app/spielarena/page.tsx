@@ -5,14 +5,11 @@ import { Navigation } from "@/components/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FaArrowRight } from "react-icons/fa"
-import { GiTicTacToe, GiHangingSign } from "react-icons/gi"
+import { GiTicTacToe, GiHangingSign, GiSoundOn } from "react-icons/gi"
 import { BsGrid3X3Gap, BsGrid3X3 } from "react-icons/bs"
 import { IoExtensionPuzzle } from "react-icons/io5"
-import { FaBomb, FaLightbulb, FaPuzzlePiece, FaBoxOpen } from "react-icons/fa"
+import { FaBomb, FaLightbulb, FaPuzzlePiece } from "react-icons/fa"
 import { MdOutlineGames } from "react-icons/md"
-import { GiSoundOn } from "react-icons/gi"
-import { GiBrain } from "react-icons/gi"
-import { FaBox } from "react-icons/fa"
 
 const games = [
   {
@@ -20,7 +17,7 @@ const games = [
     title: "Memory",
     description:
       "Spielklassiker für das Kurzzeitgedächtnis. Finde möglichst schnell alle Motivpärchen und trainiere dein Gehirn. Verschiedene Schwierigkeitsgrade verfügbar.",
-    icon: GiBrain,
+    icon: null,
     color: "blue",
     rotation: "rotate-1",
     linkText: "Spielen",
@@ -83,7 +80,7 @@ const games = [
   },
   {
     id: "connect-four",
-    title: "Vier Gewinnt",
+    title: "Vier gewinnt",
     description: "Bringe als Erster vier der eigenen Spielsteine in eine Linie! Auch gegen die KI spielbar.",
     icon: MdOutlineGames,
     color: "red",
@@ -124,15 +121,6 @@ const games = [
     icon: FaLightbulb,
     color: "amber",
     rotation: "rotate-1",
-    linkText: "Spielen",
-  },
-  {
-    id: "sokoban",
-    title: "Sokoban",
-    description: "Schiebe alle Kisten auf die Zielpositionen! Klassisches japanisches Puzzle mit vielen Leveln.",
-    icon: FaBox,
-    color: "brown",
-    rotation: "-rotate-1",
     linkText: "Spielen",
   },
 ]

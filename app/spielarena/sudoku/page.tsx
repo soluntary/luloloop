@@ -5,13 +5,14 @@ import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { FaArrowLeft, FaRedo } from "react-icons/fa"
+import { FaArrowLeft, FaRedo, FaLightbulb } from "react-icons/fa"
 import { BsGrid3X3Gap } from "react-icons/bs"
 
 type Cell = {
   value: number
   isFixed: boolean
   isInvalid: boolean
+  isCorrect?: boolean // Added for marking correct answers
 }
 
 export default function SudokuPage() {
@@ -22,6 +23,10 @@ export default function SudokuPage() {
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy")
   const [solution, setSolution] = useState<number[][]>([])
   const [showingSolution, setShowingSolution] = useState(false)
+  const [userInputBeforeSolution, setUserInputBeforeSolution] = useState<Cell[][]>([])
+  const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null)
+  const [showingResults, setShowingResults] = useState(false) // For finish/check button
+  const [hintsUsed, setHintsUsed] = useState(0) // Added hintsUsed counter
 
   useEffect(() => {
     initGame(difficulty)
@@ -48,6 +53,9 @@ export default function SudokuPage() {
     setWon(false)
     setDifficulty(level)
     setShowingSolution(false)
+    setShowingResults(false) // Reset results display
+    setSelectedCell(null) // Reset selected cell
+    setHintsUsed(0) // Reset hints counter
   }
 
   const generateSudoku = (): number[][] => {
@@ -116,7 +124,7 @@ export default function SudokuPage() {
     const newGrid = grid.map((r, i) =>
       r.map((cell, j) => {
         if (i === row && j === col) {
-          return { ...cell, value: num, isInvalid: false }
+          return { ...cell, value: num, isInvalid: false, isCorrect: undefined }
         }
         return cell
       }),
@@ -124,6 +132,52 @@ export default function SudokuPage() {
 
     setGrid(newGrid)
     checkCompletion(newGrid)
+  }
+
+  const showHintForCell = () => {
+    if (!selectedCell) return
+
+    const { row, col } = selectedCell
+    const correctValue = solution[row][col]
+
+    const newGrid = grid.map((r, i) =>
+      r.map((cell, j) => {
+        if (i === row && j === col && !cell.isFixed) {
+          return { ...cell, value: correctValue, isInvalid: false }
+        }
+        return cell
+      }),
+    )
+
+    setGrid(newGrid)
+    setSelectedCell(null)
+    setHintsUsed((prev) => prev + 1) // Increment hints counter
+    checkCompletion(newGrid)
+  }
+
+  const checkResults = () => {
+    const newGrid = grid.map((row, r) =>
+      row.map((cell, c) => {
+        if (cell.isFixed) {
+          return cell
+        }
+        const isCorrect = cell.value === solution[r][c]
+        return {
+          ...cell,
+          isCorrect,
+          isInvalid: !isCorrect && cell.value !== 0,
+        }
+      }),
+    )
+
+    setGrid(newGrid)
+    setShowingResults(true)
+    setIsRunning(false)
+
+    const allCorrect = newGrid.every((row) => row.every((cell) => cell.isFixed || cell.isCorrect))
+    if (allCorrect) {
+      setWon(true)
+    }
   }
 
   const checkCompletion = (currentGrid: Cell[][]) => {
@@ -222,33 +276,29 @@ export default function SudokuPage() {
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-4">
                   <div className="text-center">
-                    <div className="font-bold text-blue-600 text-sm">{timer}s</div>
-                    <div className="text-sm text-gray-600">Zeit</div>
+                    <div className="font-bold text-blue-600 text-sm">Zeit: {timer}s</div>
                   </div>
                   <div className="flex gap-2">
+                    {selectedCell && (
+                      <Button
+                        onClick={showHintForCell}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 bg-amber-50 border-amber-300"
+                      >
+                        <FaLightbulb className="text-amber-500" /> Tipp
+                      </Button>
+                    )}
+                    {!showingResults && !won && (
+                      <Button onClick={checkResults} variant="outline" size="sm" className="gap-2 bg-transparent">
+                        Abschließen
+                      </Button>
+                    )}
                     <Button
                       onClick={() => {
-                        setShowingSolution(!showingSolution)
-                        if (!showingSolution) {
-                          const newGrid = grid.map((row, r) =>
-                            row.map((cell, c) => ({
-                              ...cell,
-                              value: solution[r][c],
-                            })),
-                          )
-                          setGrid(newGrid)
-                        } else {
-                          initGame(difficulty)
-                        }
+                        initGame(difficulty)
+                        setShowingResults(false)
                       }}
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 bg-transparent"
-                    >
-                      {showingSolution ? "Verstecken" : "Lösung anzeigen"}
-                    </Button>
-                    <Button
-                      onClick={() => initGame(difficulty)}
                       variant="outline"
                       size="sm"
                       className="gap-2 bg-transparent"
@@ -260,8 +310,20 @@ export default function SudokuPage() {
 
                 {won && (
                   <div className="text-center mb-4 p-4 bg-green-100 rounded-lg">
-                    <div className="text-xl font-bold text-green-600">🎉 Gewonnen!</div>
-                    <div className="text-sm text-gray-600">Zeit: {timer} Sekunden</div>
+                    <div className="text-xl font-bold text-green-600 mb-2">Gratulation! 🎉</div>
+                    <div className="text-sm text-gray-600">
+                      Du hast das Sudoku in <strong>{timer} Sekunden</strong> und mit <strong>{hintsUsed} Tipps</strong>{" "}
+                      gelöst!
+                    </div>
+                  </div>
+                )}
+
+                {showingResults && !won && (
+                  <div className="text-center mb-4 p-4 bg-blue-50 rounded-lg">
+                    <div className="text-sm text-gray-700">
+                      <span className="text-green-600 font-bold">Grün</span> = Richtig,{" "}
+                      <span className="text-red-600 font-bold">Rot</span> = Falsch
+                    </div>
                   </div>
                 )}
 
@@ -276,21 +338,37 @@ export default function SudokuPage() {
                             maxLength={1}
                             value={cell.value || ""}
                             onChange={(e) => handleCellChange(r, c, e.target.value)}
+                            onClick={() => {
+                              if (!cell.isFixed && !showingResults) {
+                                setSelectedCell({ row: r, col: c })
+                              }
+                            }}
                             className={`w-10 h-10 text-center text-lg font-bold border ${
                               cell.isFixed
                                 ? "bg-gray-200 text-gray-800"
-                                : cell.isInvalid
-                                  ? "bg-red-100 text-red-600"
-                                  : "bg-white text-blue-600"
+                                : showingResults
+                                  ? cell.isCorrect
+                                    ? "bg-green-100 text-green-700"
+                                    : cell.isInvalid
+                                      ? "bg-red-100 text-red-600"
+                                      : "bg-white text-blue-600"
+                                  : selectedCell?.row === r && selectedCell?.col === c
+                                    ? "bg-amber-100 text-blue-600 ring-2 ring-amber-400"
+                                    : "bg-white text-blue-600"
                             } ${c % 3 === 2 && c !== 8 ? "border-r-2 border-r-gray-800" : "border-r"} ${
                               r % 3 === 2 && r !== 8 ? "border-b-2 border-b-gray-800" : "border-b"
-                            } ${cell.isFixed ? "cursor-not-allowed" : "cursor-text"}`}
-                            disabled={cell.isFixed}
+                            } ${cell.isFixed || showingResults ? "cursor-not-allowed" : "cursor-pointer"}`}
+                            disabled={cell.isFixed || showingResults}
                           />
                         ))}
                       </div>
                     ))}
                   </div>
+                </div>
+
+                <div className="mt-4 text-center text-xs text-gray-600">
+                  <p>Klicke auf ein leeres Feld und dann auf "Tipp", um die richtige Zahl zu erhalten.</p>
+                  <p>Klicke auf "Abschließen", um deine Lösung zu überprüfen.</p>
                 </div>
               </CardContent>
             </Card>

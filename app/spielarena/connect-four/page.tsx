@@ -5,10 +5,11 @@ import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { FaArrowLeft, FaRedo } from "react-icons/fa"
+import { FaArrowLeft } from "react-icons/fa"
 import { MdOutlineGames } from "react-icons/md"
 
 type Cell = "red" | "yellow" | null
+type WinningCell = { row: number; col: number }
 
 export default function ConnectFourPage() {
   const ROWS = 6
@@ -19,13 +20,21 @@ export default function ConnectFourPage() {
       .map(() => Array(COLS).fill(null)),
   )
   const [currentPlayer, setCurrentPlayer] = useState<"red" | "yellow">("red")
-  const [winner, setWinner] = useState<"red" | "yellow" | "draw" | null>(null)
+  const [winner, setWinner] = useState<string | null>(null)
   const [vsAI, setVsAI] = useState(false)
   const [isAIThinking, setIsAIThinking] = useState(false)
   const [showCoinFlip, setShowCoinFlip] = useState(false)
   const [playerChoice, setPlayerChoice] = useState<"red" | "yellow" | null>(null)
   const [coinResult, setCoinResult] = useState<"red" | "yellow" | null>(null)
   const [isFlipping, setIsFlipping] = useState(false)
+  const [playerColor, setPlayerColor] = useState<"red" | "yellow">("red")
+  const [aiColor, setAiColor] = useState<"red" | "yellow">("yellow")
+  const [winningCells, setWinningCells] = useState<{ row: number; col: number }[]>([])
+  const [fallingPiece, setFallingPiece] = useState<{
+    col: number
+    targetRow: number
+    color: "red" | "yellow"
+  } | null>(null)
 
   const initGame = () => {
     setBoard(
@@ -40,6 +49,10 @@ export default function ConnectFourPage() {
     setPlayerChoice(null)
     setCoinResult(null)
     setIsFlipping(false)
+    setPlayerColor("red")
+    setAiColor("yellow")
+    setWinningCells([])
+    setFallingPiece(null) // Reset falling piece state
   }
 
   const handleCoinChoice = (choice: "red" | "yellow") => {
@@ -51,13 +64,16 @@ export default function ConnectFourPage() {
       setCoinResult(result)
       setIsFlipping(false)
 
-      // Winner of coin flip starts with their chosen color
       if (result === choice) {
-        // Player wins, starts with their chosen color
+        console.log("[v0] Player won flip, gets color:", choice)
+        setPlayerColor(choice)
+        setAiColor(choice === "red" ? "yellow" : "red")
         setCurrentPlayer(choice)
       } else {
-        // AI wins, starts with the other color
-        setCurrentPlayer(choice === "red" ? "yellow" : "red")
+        console.log("[v0] AI won flip, gets color:", result)
+        setPlayerColor(result === "red" ? "yellow" : "red")
+        setAiColor(result)
+        setCurrentPlayer(result)
       }
 
       setTimeout(() => {
@@ -85,12 +101,10 @@ export default function ConnectFourPage() {
   const evaluateBoard = (board: Cell[][], player: Cell): number => {
     let score = 0
 
-    // Center column preference
     const centerCol = board.map((row) => row[3])
     const centerCount = centerCol.filter((c) => c === player).length
     score += centerCount * 3
 
-    // Horizontal
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLS - 3; col++) {
         const window = [board[row][col], board[row][col + 1], board[row][col + 2], board[row][col + 3]]
@@ -98,7 +112,6 @@ export default function ConnectFourPage() {
       }
     }
 
-    // Vertical
     for (let col = 0; col < COLS; col++) {
       for (let row = 0; row < ROWS - 3; row++) {
         const window = [board[row][col], board[row + 1][col], board[row + 2][col], board[row + 3][col]]
@@ -106,7 +119,6 @@ export default function ConnectFourPage() {
       }
     }
 
-    // Diagonal /
     for (let row = 3; row < ROWS; row++) {
       for (let col = 0; col < COLS - 3; col++) {
         const window = [board[row][col], board[row - 1][col + 1], board[row - 2][col + 2], board[row - 3][col + 3]]
@@ -114,7 +126,6 @@ export default function ConnectFourPage() {
       }
     }
 
-    // Diagonal \
     for (let row = 0; row < ROWS - 3; row++) {
       for (let col = 0; col < COLS - 3; col++) {
         const window = [board[row][col], board[row + 1][col + 1], board[row + 2][col + 2], board[row + 3][col + 3]]
@@ -126,7 +137,6 @@ export default function ConnectFourPage() {
   }
 
   const getAIMove = (currentBoard: Cell[][]): number => {
-    // 1. Check if AI can win
     for (let col = 0; col < COLS; col++) {
       const row = getLowestRow(currentBoard, col)
       if (row !== -1) {
@@ -138,7 +148,6 @@ export default function ConnectFourPage() {
       }
     }
 
-    // 2. Block player from winning
     for (let col = 0; col < COLS; col++) {
       const row = getLowestRow(currentBoard, col)
       if (row !== -1) {
@@ -150,7 +159,6 @@ export default function ConnectFourPage() {
       }
     }
 
-    // 3. Evaluate all possible moves
     const columnScores: { col: number; score: number }[] = []
     for (let col = 0; col < COLS; col++) {
       const row = getLowestRow(currentBoard, col)
@@ -164,10 +172,8 @@ export default function ConnectFourPage() {
 
     if (columnScores.length === 0) return 3
 
-    // Sort by score and pick from top choices with some randomness
     columnScores.sort((a, b) => b.score - a.score)
 
-    // 70% chance to pick best move, 30% chance to pick from top 3
     const random = Math.random()
     if (random < 0.7 || columnScores.length === 1) {
       return columnScores[0].col
@@ -187,93 +193,155 @@ export default function ConnectFourPage() {
   }
 
   useEffect(() => {
-    if (vsAI && currentPlayer === "yellow" && !winner && !isAIThinking) {
-      setIsAIThinking(true)
-      setTimeout(() => {
-        const aiCol = getAIMove(board)
-        if (aiCol !== undefined) {
-          dropPieceInColumn(aiCol)
-        }
-        setIsAIThinking(false)
-      }, 500)
+    if (vsAI && !winner && !isAIThinking && !showCoinFlip && !fallingPiece) {
+      const isAITurn = currentPlayer === aiColor
+
+      console.log("[v0] Turn check:", {
+        currentPlayer,
+        playerColor,
+        aiColor,
+        isAITurn,
+      })
+
+      if (isAITurn) {
+        setIsAIThinking(true)
+        setTimeout(() => {
+          const aiCol = getAIMove(board)
+          if (aiCol !== undefined) {
+            dropPieceInColumn(aiCol)
+          }
+          setIsAIThinking(false)
+        }, 500)
+      }
     }
-  }, [currentPlayer, vsAI, winner, isAIThinking])
+  }, [currentPlayer, vsAI, winner, isAIThinking, showCoinFlip, board, playerColor, aiColor, fallingPiece])
 
   const dropPieceInColumn = (col: number) => {
     for (let row = ROWS - 1; row >= 0; row--) {
       if (!board[row][col]) {
-        const newBoard = board.map((r) => [...r])
-        newBoard[row][col] = currentPlayer
-        setBoard(newBoard)
+        setFallingPiece({
+          col,
+          targetRow: row,
+          color: currentPlayer,
+        })
 
-        if (checkWin(newBoard, row, col)) {
-          setWinner(currentPlayer)
-        } else if (isBoardFull(newBoard)) {
-          setWinner("draw")
-        } else {
-          setCurrentPlayer(currentPlayer === "red" ? "yellow" : "red")
-        }
+        const animationDuration = 300 + row * 50
+        setTimeout(() => {
+          const newBoard = board.map((r) => [...r])
+          newBoard[row][col] = currentPlayer
+          setBoard(newBoard)
+          setFallingPiece(null)
+
+          const winResult = checkWinWithCells(newBoard, row, col)
+          if (winResult) {
+            setWinner(currentPlayer)
+            setWinningCells(winResult)
+          } else if (isBoardFull(newBoard)) {
+            setWinner("draw")
+          } else {
+            setCurrentPlayer(currentPlayer === "red" ? "yellow" : "red")
+          }
+        }, animationDuration) // Animation duration: faster for higher rows
+
         break
       }
     }
   }
 
   const dropPiece = (col: number) => {
-    if (winner || isAIThinking) return
+    if (winner || isAIThinking || fallingPiece) return
     dropPieceInColumn(col)
   }
 
-  const checkWin = (board: Cell[][], row: number, col: number): boolean => {
+  const checkWinWithCells = (board: Cell[][], row: number, col: number): { row: number; col: number }[] | null => {
     const player = board[row][col]
     const directions = [
       [
         [0, 1],
         [0, -1],
-      ], // horizontal
+      ],
       [
         [1, 0],
         [-1, 0],
-      ], // vertical
+      ],
       [
         [1, 1],
         [-1, -1],
-      ], // diagonal \
+      ],
       [
         [1, -1],
         [-1, 1],
-      ], // diagonal /
+      ],
     ]
 
     for (const [dir1, dir2] of directions) {
-      let count = 1
-      count += countDirection(board, row, col, dir1[0], dir1[1], player)
-      count += countDirection(board, row, col, dir2[0], dir2[1], player)
-      if (count >= 4) return true
+      const cells: { row: number; col: number }[] = [{ row, col }]
+      cells.push(...getDirectionCells(board, row, col, dir1[0], dir1[1], player))
+      cells.push(...getDirectionCells(board, row, col, dir2[0], dir2[1], player))
+      if (cells.length >= 4) {
+        return cells.slice(0, 4)
+      }
     }
-    return false
+    return null
   }
 
-  const countDirection = (
+  const getDirectionCells = (
     board: Cell[][],
     row: number,
     col: number,
     dRow: number,
     dCol: number,
     player: Cell,
-  ): number => {
-    let count = 0
+  ): { row: number; col: number }[] => {
+    const cells: { row: number; col: number }[] = []
     let r = row + dRow
     let c = col + dCol
     while (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) {
-      count++
+      cells.push({ row: r, col: c })
       r += dRow
       c += dCol
     }
-    return count
+    return cells
+  }
+
+  const checkWin = (board: Cell[][], row: number, col: number): boolean => {
+    return checkWinWithCells(board, row, col) !== null
   }
 
   const isBoardFull = (board: Cell[][]): boolean => {
     return board[0].every((cell) => cell !== null)
+  }
+
+  const isWinningCell = (row: number, col: number): boolean => {
+    return winningCells.some((cell) => cell.row === row && cell.col === col)
+  }
+
+  const getWinningLineBounds = () => {
+    if (winningCells.length !== 4) return null
+
+    const rows = winningCells.map((c) => c.row)
+    const cols = winningCells.map((c) => c.col)
+
+    const minRow = Math.min(...rows)
+    const maxRow = Math.max(...rows)
+    const minCol = Math.min(...cols)
+    const maxCol = Math.max(...cols)
+
+    // Calculate if the line is horizontal, vertical, or diagonal
+    const isHorizontal = minRow === maxRow
+    const isVertical = minCol === maxCol
+    const isDiagonal = !isHorizontal && !isVertical
+
+    return {
+      minRow,
+      maxRow,
+      minCol,
+      maxCol,
+      isHorizontal,
+      isVertical,
+      isDiagonal,
+      cells: winningCells,
+    }
   }
 
   return (
@@ -298,7 +366,7 @@ export default function ConnectFourPage() {
               >
                 <MdOutlineGames className="w-8 h-8 text-white" />
               </motion.div>
-              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Vier Gewinnt</h1>
+              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">gewinnt</h1>
             </div>
           </div>
 
@@ -363,7 +431,7 @@ export default function ConnectFourPage() {
                           >
                             <div className="w-24 h-24 bg-white rounded-full"></div>
                           </motion.div>
-                          <p className="text-lg">Die Farbe wird gezogen...</p>
+                          <p className="text-lg">Start-Farbe wird bestimmt...</p>
                         </div>
                       ) : (
                         <div>
@@ -375,10 +443,10 @@ export default function ConnectFourPage() {
                             <div className="text-white text-2xl font-bold">{coinResult === "red" ? "ROT" : "GELB"}</div>
                           </div>
                           <p className="text-lg mb-2">
-                            Ergebnis:{" "}
                             <strong className={coinResult === "red" ? "text-red-600" : "text-yellow-300"}>
                               {coinResult === "red" ? "Rot" : "Gelb"}
-                            </strong>
+                            </strong>{" "}
+                            gezogen
                           </p>
                           {coinResult === playerChoice ? (
                             <p className="text-xl font-bold text-green-600">Du fängst an!</p>
@@ -394,55 +462,127 @@ export default function ConnectFourPage() {
             </div>
           )}
 
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-yellow-100 to-amber-100 rounded-3xl transform rotate-1 -z-10"></div>
-            <Card className="border-4 border-yellow-300 shadow-2xl transform -rotate-1">
-              <CardContent className="p-8">
-                <div className="flex justify-end mb-4">
-                  <Button onClick={initGame} variant="outline" size="sm" className="gap-2 bg-transparent">
-                    <FaRedo /> Zurücksetzen
-                  </Button>
-                </div>
+          <div className="flex justify-center mb-6">
+            <Card className="w-fit border-4 border-yellow-300 shadow-xl">
+              <CardContent className="p-6">
+                {!showCoinFlip && !winner && (
+                  <div className="text-center mb-4 text-lg font-semibold">
+                    {vsAI ? (
+                      currentPlayer === playerColor ? (
+                        <span>Du ({playerColor === "red" ? "Rot" : "Gelb"}) bist am Zug</span>
+                      ) : (
+                        <span>KI ({aiColor === "red" ? "Rot" : "Gelb"}) ist am Zug</span>
+                      )
+                    ) : (
+                      <span>{currentPlayer === "red" ? "Rot" : "Gelb"} ist am Zug</span>
+                    )}
+                  </div>
+                )}
 
-                <div className="text-center mb-6">
-                  {winner ? (
-                    <div className="p-4 bg-green-100 rounded-lg">
-                      <div className="text-xl font-bold text-green-600">
-                        {winner === "draw" ? "Unentschieden!" : `${winner === "red" ? "Rot" : "Gelb"} gewinnt!`}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-xl font-bold">
-                      Spieler am Zug:{" "}
-                      <span className={currentPlayer === "red" ? "text-red-600" : "text-yellow-300"}>
-                        {currentPlayer === "red" ? "Rot" : "Gelb"}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-center">
-                  <div className="inline-block bg-blue-600 p-4 rounded-lg">
-                    <div className="grid grid-cols-7 gap-2">
-                      {board.map((row, r) =>
-                        row.map((cell, c) => (
-                          <motion.button
-                            key={`${r}-${c}`}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => dropPiece(c)}
-                            disabled={!!winner}
-                            className={`w-12 h-12 rounded-full border-2 border-blue-800 ${
-                              cell === "red"
-                                ? "bg-red-500"
-                                : cell === "yellow"
-                                  ? "bg-yellow-300"
-                                  : "bg-white hover:bg-gray-200"
-                            } ${winner ? "cursor-not-allowed" : "cursor-pointer"}`}
-                          />
-                        )),
+                {winner && (
+                  <div className="text-center mb-4">
+                    <div className="text-2xl font-bold mb-2">
+                      {winner === "draw" ? (
+                        "Unentschieden!"
+                      ) : vsAI ? (
+                        winner === playerColor ? (
+                          <span className="text-green-600">🎉 Gratulation! Du hast gewonnen!</span>
+                        ) : (
+                          <span className="text-orange-600">Schade! KI hat gewonnen</span>
+                        )
+                      ) : (
+                        <span className="text-teal-600">{winner === "red" ? "Rot" : "Gelb"} gewinnt!</span>
                       )}
                     </div>
+                    <Button onClick={initGame} className="mt-2">
+                      Nochmals spielen
+                    </Button>
+                  </div>
+                )}
+
+                <div className="relative overflow-hidden" style={{ width: "fit-content" }}>
+                  {/* Falling piece layer - behind the mask */}
+                  {fallingPiece && (
+                    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
+                      <div
+                        className={`absolute w-12 h-12 rounded-full ${
+                          fallingPiece.color === "red" ? "bg-red-500" : "bg-yellow-300"
+                        }`}
+                        style={{
+                          left: `${16 + fallingPiece.col * 56}px`,
+                          top: "-56px",
+                          animation: `fall-to-${fallingPiece.targetRow} ${300 + fallingPiece.targetRow * 50}ms cubic-bezier(0.4, 0, 0.6, 1) forwards`,
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Blue board with mask (transparent circular holes) */}
+                  <div
+                    className="absolute inset-0 bg-blue-600 pointer-events-none"
+                    style={{
+                      zIndex: 1,
+                      WebkitMaskImage: `
+                        ${Array(ROWS)
+                          .fill(null)
+                          .flatMap((_, rowIdx) =>
+                            Array(COLS)
+                              .fill(null)
+                              .map(
+                                (_, colIdx) =>
+                                  `radial-gradient(circle at ${16 + colIdx * 56 + 24}px ${16 + rowIdx * 56 + 24}px, transparent 22px, black 24px)`,
+                              )
+                              .join(", "),
+                          )
+                          .join(", ")}
+                      `,
+                      WebkitMaskComposite: "source-in",
+                      maskImage: `
+                        ${Array(ROWS)
+                          .fill(null)
+                          .flatMap((_, rowIdx) =>
+                            Array(COLS)
+                              .fill(null)
+                              .map(
+                                (_, colIdx) =>
+                                  `radial-gradient(circle at ${16 + colIdx * 56 + 24}px ${16 + rowIdx * 56 + 24}px, transparent 22px, black 24px)`,
+                              )
+                              .join(", "),
+                          )
+                          .join(", ")}
+                      `,
+                      maskComposite: "intersect",
+                    }}
+                  />
+
+                  {/* Game pieces layer - above mask */}
+                  <div className="grid grid-cols-7 gap-2 relative p-4 rounded-lg" style={{ zIndex: 2 }}>
+                    {board.map((row, rowIdx) =>
+                      row.map((cell, colIdx) => {
+                        const isWinning = isWinningCell(rowIdx, colIdx)
+                        return (
+                          <button
+                            key={`${rowIdx}-${colIdx}`}
+                            onClick={() => dropPiece(colIdx)}
+                            disabled={winner !== null || isAIThinking || fallingPiece !== null}
+                            className="w-12 h-12 rounded-full flex items-center justify-center relative hover:opacity-80 transition-opacity disabled:cursor-not-allowed"
+                          >
+                            {cell && (
+                              <div
+                                className={`w-full h-full rounded-full ${
+                                  cell === "red" ? "bg-red-500" : "bg-yellow-300"
+                                } ${isWinning ? "animate-pulse" : ""}`}
+                                style={{
+                                  boxShadow: isWinning
+                                    ? "0 0 20px 5px rgba(255, 215, 0, 0.8), 0 0 40px 10px rgba(255, 215, 0, 0.4)"
+                                    : undefined,
+                                }}
+                              />
+                            )}
+                          </button>
+                        )
+                      }),
+                    )}
                   </div>
                 </div>
 
@@ -454,6 +594,21 @@ export default function ConnectFourPage() {
           </div>
         </div>
       </main>
+      <style jsx>{`
+        ${Array.from(
+          { length: ROWS },
+          (_, row) => `
+          @keyframes fall-to-${row} {
+            from {
+              transform: translateY(0);
+            }
+            to {
+              transform: translateY(${(row + 1) * 56 + 16}px);
+            }
+          }
+        `,
+        ).join("\n")}
+      `}</style>
     </div>
   )
 }

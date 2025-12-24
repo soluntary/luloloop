@@ -19,11 +19,11 @@ export default function TicTacToePage() {
   const [vsAI, setVsAI] = useState(false)
   const [isAIThinking, setIsAIThinking] = useState(false)
   const [showSymbolDraw, setShowSymbolDraw] = useState(false)
-  const [playerSymbol, setPlayerSymbol] = useState<"X" | "O" | null>(null)
+  const [playerSymbol, setPlayerSymbol] = useState<"X" | "O">("X")
+  const [aiSymbol, setAiSymbol] = useState<"X" | "O">("O")
   const [selectedSymbol, setSelectedSymbol] = useState<"X" | "O" | null>(null)
   const [drawnSymbol, setDrawnSymbol] = useState<"X" | "O" | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
-  const [playerStarts, setPlayerStarts] = useState(true)
 
   const winningCombinations = [
     [0, 1, 2],
@@ -53,45 +53,43 @@ export default function TicTacToePage() {
   }
 
   const getAIMove = (currentBoard: Player[]): number => {
-    // 1. Check if AI can win
+    const aiSym = aiSymbol
+    const playerSym = playerSymbol
+
     for (let i = 0; i < 9; i++) {
       if (currentBoard[i] === null) {
         const testBoard = [...currentBoard]
-        testBoard[i] = "O"
+        testBoard[i] = aiSym
         for (const combo of winningCombinations) {
           const [a, b, c] = combo
-          if (testBoard[a] === "O" && testBoard[b] === "O" && testBoard[c] === "O") {
+          if (testBoard[a] === aiSym && testBoard[b] === aiSym && testBoard[c] === aiSym) {
             return i
           }
         }
       }
     }
 
-    // 2. Block player from winning
     for (let i = 0; i < 9; i++) {
       if (currentBoard[i] === null) {
         const testBoard = [...currentBoard]
-        testBoard[i] = "X"
+        testBoard[i] = playerSym
         for (const combo of winningCombinations) {
           const [a, b, c] = combo
-          if (testBoard[a] === "X" && testBoard[b] === "X" && testBoard[c] === "X") {
+          if (testBoard[a] === playerSym && testBoard[b] === playerSym && testBoard[c] === playerSym) {
             return i
           }
         }
       }
     }
 
-    // 3. Take center if available
     if (currentBoard[4] === null) return 4
 
-    // 4. Take a corner
     const corners = [0, 2, 6, 8]
     const availableCorners = corners.filter((i) => currentBoard[i] === null)
     if (availableCorners.length > 0) {
       return availableCorners[Math.floor(Math.random() * availableCorners.length)]
     }
 
-    // 5. Take any available space
     const emptyIndices = currentBoard
       .map((cell, idx) => (cell === null ? idx : null))
       .filter((idx) => idx !== null) as number[]
@@ -108,34 +106,34 @@ export default function TicTacToePage() {
     const hasWinner = checkWinner(newBoard)
 
     if (!hasWinner) {
-      const nextPlayer = currentPlayer === "X" ? "O" : "X"
+      const nextPlayer = currentPlayer === playerSymbol ? aiSymbol : playerSymbol
       setCurrentPlayer(nextPlayer)
     }
   }
 
   useEffect(() => {
-    if (vsAI && currentPlayer === "O" && !winner && !isAIThinking) {
+    if (vsAI && currentPlayer === aiSymbol && !winner && !isAIThinking) {
       setIsAIThinking(true)
       setTimeout(() => {
         const aiMove = getAIMove(board)
         if (aiMove !== undefined) {
           const newBoard = [...board]
-          newBoard[aiMove] = "O"
+          newBoard[aiMove] = aiSymbol
           setBoard(newBoard)
 
           const hasWinner = checkWinner(newBoard)
           if (!hasWinner) {
-            setCurrentPlayer("X")
+            setCurrentPlayer(playerSymbol)
           }
         }
         setIsAIThinking(false)
       }, 500)
     }
-  }, [currentPlayer, vsAI, winner, isAIThinking])
+  }, [currentPlayer, vsAI, winner, isAIThinking, aiSymbol, playerSymbol])
 
   const resetGame = () => {
     setBoard(Array(9).fill(null))
-    setCurrentPlayer("X")
+    setCurrentPlayer(playerSymbol)
     setWinner(null)
     setWinningLine([])
     setIsAIThinking(false)
@@ -143,7 +141,6 @@ export default function TicTacToePage() {
 
   const startSymbolDraw = () => {
     setShowSymbolDraw(true)
-    setPlayerSymbol(null)
     setSelectedSymbol(null)
     setDrawnSymbol(null)
     setIsDrawing(false)
@@ -153,25 +150,29 @@ export default function TicTacToePage() {
     setSelectedSymbol(symbol)
     setIsDrawing(true)
 
-    // Simulate drawing animation
+    console.log("[v0] Player chose symbol:", symbol)
+
     setTimeout(() => {
       const drawn = Math.random() < 0.5 ? "X" : "O"
       setDrawnSymbol(drawn)
       setIsDrawing(false)
 
+      console.log("[v0] Drawn symbol:", drawn)
+
       if (drawn === symbol) {
-        // Player won the draw, player starts
+        console.log("[v0] Player won the draw! Player gets:", symbol, "and starts")
         setPlayerSymbol(symbol)
+        setAiSymbol(symbol === "X" ? "O" : "X")
         setCurrentPlayer(symbol)
-        setPlayerStarts(true)
       } else {
-        // AI won the draw, AI starts
-        setPlayerSymbol(symbol === "X" ? "O" : "X")
-        setCurrentPlayer(drawn)
-        setPlayerStarts(false)
+        const playerGets = symbol
+        const aiGets = drawn
+        console.log("[v0] AI won the draw! AI gets:", aiGets, "and starts. Player gets:", playerGets)
+        setPlayerSymbol(playerGets)
+        setAiSymbol(aiGets)
+        setCurrentPlayer(aiGets)
       }
 
-      // Close modal after showing result
       setTimeout(() => {
         setShowSymbolDraw(false)
         resetGame()
@@ -183,7 +184,7 @@ export default function TicTacToePage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-green-50 to-white">
       <Navigation />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto">
+        <div className="max-w-2xl mx-auto">
           <Link
             href="/spielarena"
             className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
@@ -209,6 +210,8 @@ export default function TicTacToePage() {
             <Button
               onClick={() => {
                 setVsAI(false)
+                setPlayerSymbol("X")
+                setAiSymbol("O")
                 resetGame()
               }}
               variant={!vsAI ? "default" : "outline"}
@@ -240,16 +243,52 @@ export default function TicTacToePage() {
                   </Button>
                 </div>
 
-                {!winner && (
+                {!winner && !showSymbolDraw && (
                   <div className="text-center mb-4">
-                    <p className="text-lg font-bold">
-                      Spieler am Zug:{" "}
-                      <span className={currentPlayer === "X" ? "text-blue-600" : "text-red-600"}>{currentPlayer}</span>
+                    <p className="text-sm font-bold">
+                      {vsAI ? (
+                        currentPlayer === playerSymbol ? (
+                          <span className={currentPlayer === "X" ? "text-blue-600" : "text-red-600"}>
+                            Du ({playerSymbol}) bist am Zug
+                          </span>
+                        ) : (
+                          <span className={currentPlayer === "X" ? "text-blue-600" : "text-red-600"}>
+                            KI ({aiSymbol}) ist am Zug
+                          </span>
+                        )
+                      ) : (
+                        <span className={currentPlayer === "X" ? "text-blue-600" : "text-red-600"}>
+                          {currentPlayer} ist am Zug
+                        </span>
+                      )}
                     </p>
                   </div>
                 )}
 
-                <div className="grid grid-cols-3 gap-6">
+                {winner && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-300"
+                  >
+                    <h2 className="text-xl font-handwritten text-center mb-3">
+                      {winner === "draw"
+                        ? "Unentschieden!"
+                        : vsAI
+                          ? winner === playerSymbol
+                            ? "🎉 Du hast gewonnen!"
+                            : "KI hat gewonnen!"
+                          : `${winner} gewinnt!`}
+                    </h2>
+                    <div className="flex justify-center">
+                      <Button onClick={resetGame} size="sm" className="bg-green-500 hover:bg-green-600">
+                        Nochmals spielen
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+
+                <div className="grid grid-cols-3 gap-6 justify-items-center mx-auto my-3.5 mt-0 mb-8" style={{ width: "fit-content" }}>
                   {board.map((cell, index) => (
                     <motion.div
                       key={index}
@@ -258,7 +297,7 @@ export default function TicTacToePage() {
                     >
                       <Card
                         onClick={() => handleClick(index)}
-                        className={`w-28 h-28 flex items-center justify-center text-6xl font-bold cursor-pointer transition-all border-2 ${
+                        className={`w-32 h-32 flex items-center justify-center text-6xl font-bold cursor-pointer transition-all border-2 ${
                           winningLine.includes(index)
                             ? "bg-green-100 border-green-400 border-4"
                             : "bg-white hover:shadow-lg hover:border-green-400"
@@ -281,19 +320,6 @@ export default function TicTacToePage() {
               </CardContent>
             </Card>
           </div>
-
-          <AnimatePresence>
-            {winner && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
-                <Card className="p-6 text-center bg-gradient-to-r from-green-50 to-blue-50">
-                  <h2 className="text-2xl font-handwritten mb-4">
-                    {winner === "draw" ? "Unentschieden! 🤝" : `${winner} gewinnt! 🎉`}
-                  </h2>
-                  <Button onClick={resetGame}>Nochmals spielen</Button>
-                </Card>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           <AnimatePresence>
             {showSymbolDraw && (
@@ -352,10 +378,10 @@ export default function TicTacToePage() {
 
                         <p className="text-lg font-bold">
                           {isDrawing
-                            ? "Ziehe Symbol..."
+                            ? "Start-Symbol wird bestimmt..."
                             : drawnSymbol === selectedSymbol
-                              ? "Du hast gewonnen! Du fängst an!"
-                              : "Die KI hat gewonnen! Die KI fängt an!"}
+                              ? `${drawnSymbol} gezogen! Du fängst an!`
+                              : `${drawnSymbol} gezogen! KI fängt an!`}
                         </p>
                       </div>
                     )}
