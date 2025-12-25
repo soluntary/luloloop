@@ -175,7 +175,12 @@ export default function SlidingPuzzlePage() {
               <Card className="p-6 text-center bg-green-50">
                 <h2 className="text-2xl font-handwritten mb-4 text-green-600">Geschafft! 🎉</h2>
                 <p className="mb-4">Du hast das Puzzle in {moves} Zügen gelöst!</p>
-                <Button onClick={() => initializeBoard()}>Nochmals spielen</Button>
+                <div className="flex gap-2 justify-center">
+                  <Button onClick={() => initializeBoard()} size="sm">Nochmals spielen</Button>
+                  <Link href="/spielarena">
+                    <Button variant="outline" size="sm">Beenden</Button>
+                  </Link>
+                </div>
               </Card>
             </motion.div>
           )}

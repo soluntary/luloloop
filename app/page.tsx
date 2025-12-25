@@ -524,7 +524,7 @@ export default function HomePage() {
               icon: GiRollingDices,
               title: "Spielhilfen",
               description:
-                "Nützliche Tools für deine Spielrunden: Würfel, Timer, Punktezähler, Glücksrad und vieles mehr - alles in einer App!",
+                "Nützliche Tools für deine Spielrunden: Würfel, Timer, Punktezähler, Glücksrad und vieles mehr - alles an einer Ort!",
               link: "/spielhilfen",
               linkText: "Zu den Spielhilfen",
               color: "teal",
@@ -534,7 +534,7 @@ export default function HomePage() {
               icon: GiGamepad,
               title: "Spielarena",
               description:
-                "Spiele klassische Mini-Games direkt im Browser: Memory, Tic-Tac-Toe, Snake, 2048 und viele mehr zum Zeitvertreib!",
+                "Entdecke klassische Mini-Games direkt im Browser: Memory, Vier gewinnt, Sudoku, Minesweeper und viele mehr. Perfekt für eine kurze Spielpause mit Spaß und Herausforderung!",
               link: "/spielarena",
               linkText: "Zur Spielarena",
               color: "purple",

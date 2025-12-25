@@ -157,12 +157,7 @@ export default function HangmanPage() {
             <Card className="border-4 border-amber-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8 text-center">
                 <div className="flex justify-end mb-4">
-                  <Button
-                    onClick={startNewGame}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 bg-transparent"
-                  >
+                  <Button onClick={startNewGame} variant="outline" size="sm" className="gap-2 bg-transparent">
                     <FaRedo /> Zurücksetzen
                   </Button>
                 </div>
@@ -236,9 +231,16 @@ export default function HangmanPage() {
                       {won ? "Gewonnen!" : "Verloren!"}
                     </p>
                     <p className="font-body text-gray-700 mb-4">Das Wort war: {word}</p>
-                    <Button onClick={startNewGame} className="font-handwritten">
-                      Nochmals spielen
-                    </Button>
+                    <div className="flex gap-2 justify-center">
+                      <Button onClick={startNewGame} size="sm">
+                        Nochmals spielen
+                      </Button>
+                      <Link href="/spielarena">
+                        <Button variant="outline" size="sm" className="bg-transparent">
+                          Beenden
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 )}
               </CardContent>

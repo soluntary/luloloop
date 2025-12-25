@@ -324,13 +324,20 @@ export default function LightsOutPage() {
                 </div>
 
                 {gameWon && (
-                  <div className="text-center p-6 bg-green-100 rounded-lg">
-                    <h2 className="text-2xl font-handwritten text-green-600 mb-2">Gratulation! 🎉</h2>
-                    <p className="mb-4">
-                      Du hast alle Lichter in <strong>{moves} Zügen</strong> ausgeschaltet und{" "}
-                      <strong>{hintsUsed} Tipps</strong> gebraucht!
-                    </p>
-                    <Button onClick={initGame}>Nochmals spielen</Button>
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <Card className="p-8 text-center mx-4">
+                      <h2 className="text-2xl font-handwritten text-green-600 mb-4">Gratulation! 🎉</h2>
+                      <p className="mb-4">
+                        Du hast alle Lichter in <strong>{moves} Zügen</strong> ausgeschaltet und{" "}
+                        <strong>{hintsUsed} Tipps</strong> gebraucht!
+                      </p>
+                      <div className="flex gap-2 justify-center">
+                        <Button onClick={initGame} size="sm">Nochmals spielen</Button>
+                        <Link href="/spielarena">
+                          <Button variant="outline" size="sm">Beenden</Button>
+                        </Link>
+                      </div>
+                    </Card>
                   </div>
                 )}
 

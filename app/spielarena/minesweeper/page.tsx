@@ -269,20 +269,51 @@ export default function MinesweeperPage() {
                 </div>
 
                 {gameOver && (
-                  <div className="text-center mb-4 p-4 bg-red-100 rounded-lg">
-                    <div className="text-xl font-bold text-red-600">💥 Game Over!</div>
-                    <div className="text-sm text-gray-600 mb-3">Du hast eine Mine getroffen!</div>
-                    <Button onClick={initGame} size="sm">
-                      Nochmals spielen
-                    </Button>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                  >
+                    <Card className="p-8 text-center max-w-md">
+                      <div className="text-4xl mb-4">💥</div>
+                      <h2 className="text-xl font-bold text-red-600 mb-2">Game Over!</h2>
+                      <p className="text-sm text-gray-600 mb-4">Du hast eine Mine getroffen!</p>
+                      <div className="flex gap-2 justify-center">
+                        <Button onClick={initGame} size="sm">
+                          Nochmals spielen
+                        </Button>
+                        <Link href="/spielarena">
+                          <Button variant="outline" size="sm">
+                            Beenden
+                          </Button>
+                        </Link>
+                      </div>
+                    </Card>
+                  </motion.div>
                 )}
 
                 {won && (
-                  <div className="text-center mb-4 p-4 bg-green-100 rounded-lg">
-                    <div className="text-xl font-bold text-green-600">🎉 Gewonnen!</div>
-                    <div className="text-sm text-gray-600">Zeit: {timer} Sekunden</div>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                  >
+                    <Card className="p-8 text-center max-w-md">
+                      <div className="text-4xl mb-4">🎉</div>
+                      <h2 className="text-xl font-bold text-green-600 mb-2">Gewonnen!</h2>
+                      <p className="text-sm text-gray-600 mb-4">Zeit: {timer} Sekunden</p>
+                      <div className="flex gap-2 justify-center">
+                        <Button onClick={initGame} size="sm">
+                          Nochmals spielen
+                        </Button>
+                        <Link href="/spielarena">
+                          <Button variant="outline" size="sm">
+                            Beenden
+                          </Button>
+                        </Link>
+                      </div>
+                    </Card>
+                  </motion.div>
                 )}
 
                 <div className="flex justify-center">

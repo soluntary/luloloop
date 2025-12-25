@@ -261,7 +261,12 @@ export default function MemoryPage() {
                 <Card className="p-8 text-center">
                   <h2 className="text-3xl font-handwritten mb-4 text-green-600">Gratuliere! 🎉</h2>
                   <p className="mb-4">Du hast das Spiel in {moves} Zügen geschafft!</p>
-                  <Button onClick={initializeGame}>Nochmals spielen</Button>
+                  <div className="flex gap-2 justify-center">
+                    <Button onClick={initializeGame} size="sm">Nochmals spielen</Button>
+                    <Link href="/spielarena">
+                      <Button variant="outline" size="sm">Beenden</Button>
+                    </Link>
+                  </div>
                 </Card>
               </motion.div>
             )}

@@ -129,12 +129,7 @@ export default function PatternMatchPage() {
             <Card className="border-4 border-pink-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8 text-center">
                 <div className="flex justify-end mb-4">
-                  <Button
-                    onClick={resetGame}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 bg-transparent"
-                  >
+                  <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
                     <FaRedo /> Zurücksetzen
                   </Button>
                 </div>
@@ -151,14 +146,14 @@ export default function PatternMatchPage() {
                 {showPattern && gameStarted && (
                   <div className="mb-6">
                     <p className="font-body text-gray-600 mb-4">Merke dir das Muster!</p>
-                    <div className="flex gap-3 justify-center flex-wrap">
+                    <div className="flex gap-3 justify-center overflow-x-auto pb-2">
                       {pattern.map((color, index) => (
                         <motion.div
                           key={index}
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ delay: index * 0.2 }}
-                          className={`w-16 h-16 rounded-lg ${getColorClass(color)}`}
+                          className={`w-16 h-16 rounded-lg flex-shrink-0 ${getColorClass(color)}`}
                         />
                       ))}
                     </div>
@@ -168,14 +163,14 @@ export default function PatternMatchPage() {
                 {!showPattern && !gameOver && gameStarted && (
                   <div className="mb-6">
                     <p className="font-body text-gray-600 mb-4">Klicke das Muster nach!</p>
-                    <div className="flex gap-3 justify-center mb-6 flex-wrap">
+                    <div className="flex gap-3 justify-center mb-6 overflow-x-auto pb-2">
                       {userPattern.map((color, index) => (
-                        <div key={index} className={`w-16 h-16 rounded-lg ${getColorClass(color)}`} />
+                        <div key={index} className={`w-16 h-16 rounded-lg flex-shrink-0 ${getColorClass(color)}`} />
                       ))}
                       {Array.from({ length: pattern.length - userPattern.length }).map((_, index) => (
                         <div
                           key={`empty-${index}`}
-                          className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300"
+                          className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex-shrink-0"
                         />
                       ))}
                     </div>
@@ -198,15 +193,15 @@ export default function PatternMatchPage() {
                     {showCorrectPattern && (
                       <div className="mb-4">
                         <p className="font-body text-gray-600 mb-2">Dein Muster war:</p>
-                        <div className="flex gap-3 justify-center flex-wrap mb-4">
+                        <div className="flex gap-3 justify-center overflow-x-auto pb-2 mb-4">
                           {wrongPattern.map((color, index) => (
-                            <div key={index} className={`w-16 h-16 rounded-lg ${getColorClass(color)}`} />
+                            <div key={index} className={`w-16 h-16 rounded-lg flex-shrink-0 ${getColorClass(color)}`} />
                           ))}
                         </div>
                         <p className="font-body text-gray-600 mb-2">Das richtige Muster war:</p>
-                        <div className="flex gap-3 justify-center flex-wrap">
+                        <div className="flex gap-3 justify-center overflow-x-auto pb-2">
                           {pattern.map((color, index) => (
-                            <div key={index} className={`w-16 h-16 rounded-lg ${getColorClass(color)}`} />
+                            <div key={index} className={`w-16 h-16 rounded-lg flex-shrink-0 ${getColorClass(color)}`} />
                           ))}
                         </div>
                       </div>

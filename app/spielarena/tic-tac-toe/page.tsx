@@ -266,29 +266,33 @@ export default function TicTacToePage() {
                 )}
 
                 {winner && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-300"
-                  >
-                    <h2 className="text-xl font-handwritten text-center mb-3">
-                      {winner === "draw"
-                        ? "Unentschieden!"
-                        : vsAI
-                          ? winner === playerSymbol
-                            ? "🎉 Du hast gewonnen!"
-                            : "KI hat gewonnen!"
-                          : `${winner} gewinnt!`}
-                    </h2>
-                    <div className="flex justify-center">
-                      <Button onClick={resetGame} size="sm" className="bg-green-500 hover:bg-green-600">
-                        Nochmals spielen
-                      </Button>
-                    </div>
-                  </motion.div>
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
+                      <Card className="p-8 text-center mx-4">
+                        <h2 className="text-2xl font-handwritten mb-4">
+                          {winner === "draw"
+                            ? "Unentschieden!"
+                            : vsAI
+                              ? winner === playerSymbol
+                                ? "🎉 Du hast gewonnen!"
+                                : "KI hat gewonnen!"
+                              : `${winner} gewinnt!`}
+                        </h2>
+                        <div className="flex gap-2 justify-center">
+                          <Button onClick={resetGame} size="sm">Nochmals spielen</Button>
+                          <Link href="/spielarena">
+                            <Button variant="outline" size="sm">Beenden</Button>
+                          </Link>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  </div>
                 )}
 
-                <div className="grid grid-cols-3 gap-6 justify-items-center mx-auto my-3.5 mt-0 mb-8" style={{ width: "fit-content" }}>
+                <div
+                  className="grid grid-cols-3 gap-6 justify-items-center mx-auto my-3.5 mt-0 mb-8"
+                  style={{ width: "fit-content" }}
+                >
                   {board.map((cell, index) => (
                     <motion.div
                       key={index}

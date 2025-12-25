@@ -366,7 +366,7 @@ export default function ConnectFourPage() {
               >
                 <MdOutlineGames className="w-8 h-8 text-white" />
               </motion.div>
-              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">gewinnt</h1>
+              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Vier gewinnt</h1>
             </div>
           </div>
 
@@ -480,23 +480,28 @@ export default function ConnectFourPage() {
                 )}
 
                 {winner && (
-                  <div className="text-center mb-4">
-                    <div className="text-2xl font-bold mb-2">
-                      {winner === "draw" ? (
-                        "Unentschieden!"
-                      ) : vsAI ? (
-                        winner === playerColor ? (
-                          <span className="text-green-600">🎉 Gratulation! Du hast gewonnen!</span>
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <Card className="p-8 text-center mx-4">
+                      <h2 className="text-2xl font-handwritten mb-4">
+                        {winner === "draw" ? (
+                          "Unentschieden!"
+                        ) : vsAI ? (
+                          winner === playerColor ? (
+                            <span className="text-green-600">🎉 Gratulation! Du hast gewonnen!</span>
+                          ) : (
+                            <span className="text-red-600">Schade! KI hat gewonnen</span>
+                          )
                         ) : (
-                          <span className="text-orange-600">Schade! KI hat gewonnen</span>
-                        )
-                      ) : (
-                        <span className="text-teal-600">{winner === "red" ? "Rot" : "Gelb"} gewinnt!</span>
-                      )}
-                    </div>
-                    <Button onClick={initGame} className="mt-2">
-                      Nochmals spielen
-                    </Button>
+                          <span className="text-green-600">{winner === "red" ? "Rot" : "Gelb"} gewinnt!</span>
+                        )}
+                      </h2>
+                      <div className="flex gap-2 justify-center">
+                        <Button onClick={initGame} size="sm">Nochmals spielen</Button>
+                        <Link href="/spielarena">
+                          <Button variant="outline" size="sm">Beenden</Button>
+                        </Link>
+                      </div>
+                    </Card>
                   </div>
                 )}
 

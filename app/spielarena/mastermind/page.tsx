@@ -151,8 +151,9 @@ export default function MastermindPage() {
                     <div>
                       <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielprinzip</h2>
                       <p className="text-gray-600 leading-relaxed text-xs">
-                        Mastermind ist ein klassisches Logikspiel, bei dem einen geheimen 4-stelligen geordneten Farbcode durch sukzessive Vermutungen ermittelt werden soll.
-                        Ziel des Spieles ist es, den Farbcode in möglichst wenigen Rateversuchen zu knacken.
+                        Mastermind ist ein klassisches Logikspiel, bei dem einen geheimen 4-stelligen geordneten
+                        Farbcode durch sukzessive Vermutungen ermittelt werden soll. Ziel des Spieles ist es, den
+                        Farbcode in möglichst wenigen Rateversuchen zu knacken.
                       </p>
                     </div>
 
@@ -228,12 +229,7 @@ export default function MastermindPage() {
                   <p className="text-gray-600 font-body">
                     Rateversuche: {guesses.length}/{MAX_ATTEMPTS}
                   </p>
-                  <Button
-                    onClick={initGame}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 bg-transparent"
-                  >
+                  <Button onClick={initGame} variant="outline" size="sm" className="gap-2 bg-transparent">
                     <FaRedo /> Zurücksetzen
                   </Button>
                 </div>
@@ -300,26 +296,40 @@ export default function MastermindPage() {
                 )}
 
                 {gameWon && (
-                  <div className="text-center p-6 bg-green-100 rounded-lg">
-                    <h2 className="text-2xl font-handwritten text-green-600 mb-2">Gratuliere! 🎉</h2>
-                    <p className="mb-4">Du hast den Code in {guesses.length} Rateversuchen geknackt!</p>
-                    <Button onClick={initGame}>Nochmals spielen</Button>
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <Card className="p-8 text-center mx-4">
+                      <h2 className="text-2xl font-handwritten text-green-600 mb-4">Gratuliere! 🎉</h2>
+                      <p className="mb-4">Du hast den Code in {guesses.length} Rateversuchen geknackt!</p>
+                      <div className="flex gap-2 justify-center">
+                        <Button onClick={initGame} size="sm">Nochmals spielen</Button>
+                        <Link href="/spielarena">
+                          <Button variant="outline" size="sm">Beenden</Button>
+                        </Link>
+                      </div>
+                    </Card>
                   </div>
                 )}
 
                 {gameLost && (
-                  <div className="text-center p-6 bg-red-100 rounded-lg">
-                    <h2 className="text-2xl font-handwritten text-red-600 mb-2">Game Over!</h2>
-                    <p className="mb-2">Gesucht war der Farbcode:</p>
-                    <div className="flex justify-center gap-2 mb-4">
-                      {secretCode.map((color, i) => (
-                        <div
-                          key={i}
-                          className={`w-10 h-10 rounded-full ${getColorClass(color)} border-2 border-gray-300`}
-                        ></div>
-                      ))}
-                    </div>
-                    <Button onClick={initGame}>Nochmals spielen</Button>
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <Card className="p-8 text-center mx-4">
+                      <h2 className="text-2xl font-handwritten text-red-600 mb-4">Game Over!</h2>
+                      <p className="mb-2">Gesucht war der Farbcode:</p>
+                      <div className="flex justify-center gap-2 mb-4">
+                        {secretCode.map((color, i) => (
+                          <div
+                            key={i}
+                            className={`w-10 h-10 rounded-full ${getColorClass(color)} border-2 border-gray-300`}
+                          ></div>
+                        ))}
+                      </div>
+                      <div className="flex gap-2 justify-center">
+                        <Button onClick={initGame} size="sm">Nochmals spielen</Button>
+                        <Link href="/spielarena">
+                          <Button variant="outline" size="sm">Beenden</Button>
+                        </Link>
+                      </div>
+                    </Card>
                   </div>
                 )}
 
