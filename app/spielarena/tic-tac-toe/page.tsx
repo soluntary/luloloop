@@ -239,19 +239,19 @@ export default function TicTacToePage() {
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-4">
                   {!winner && !showSymbolDraw && (
-                    <p className="text-sm font-bold">
+                    <p className="text-base font-body">
                       {vsAI ? (
                         currentPlayer === playerSymbol ? (
-                          <span className={currentPlayer === "X" ? "text-green-500" : "text-green-500"}>
+                          <span className={currentPlayer === "X" ? "text-gray-600" : "gray-600"}>
                             Du ({playerSymbol}) bist am Zug
                           </span>
                         ) : (
-                          <span className={currentPlayer === "X" ? "text-green-500" : "text-green-500"}>
+                          <span className={currentPlayer === "X" ? "text-gray-600" : "gray-600"}>
                             KI ({aiSymbol}) ist am Zug
                           </span>
                         )
                       ) : (
-                        <span className={currentPlayer === "X" ? "text-green-500" : "text-green-500"}>
+                        <span className={currentPlayer === "X" ? "text-gray-600" : "gray-600"}>
                           {currentPlayer} ist am Zug
                         </span>
                       )}

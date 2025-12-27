@@ -204,7 +204,7 @@ export default function MemoryPage() {
             <Card className="border-4 border-blue-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-4">
-                  <p className="text-blue-500 font-body">Züge: {moves}</p>
+                  <p className="text-gray-600 font-body">Züge: {moves}</p>
                   <Button onClick={initializeGame} variant="outline" size="sm" className="gap-2 bg-transparent">
                     <FaRedo /> Zurücksetzen
                   </Button>

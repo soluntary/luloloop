@@ -186,7 +186,7 @@ export default function HangmanPage() {
                     <div className="max-w-md mx-auto bg-amber-50 p-6 rounded-lg border-2 border-amber-200 pt-8 my-3.5">
                       <Label className="font-handwritten text-base mb-4 block">Wähle eine Kategorie</Label>
                       <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                        <SelectTrigger className="w-full mb-4 text-lg">
+                        <SelectTrigger className="w-full mb-4 text-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -198,10 +198,10 @@ export default function HangmanPage() {
                         </SelectContent>
                       </Select>
                       <div className="flex gap-2 justify-center">
-                        <Button onClick={startNewGame} size="lg">
+                        <Button onClick={startNewGame} size="sm">
                           Spiel starten
                         </Button>
-                        <Button onClick={() => setCustomMode(true)} variant="outline" size="lg">
+                        <Button onClick={() => setCustomMode(true)} variant="outline" size="sm">
                           Eigenes Wort
                         </Button>
                       </div>

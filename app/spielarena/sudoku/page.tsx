@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { FaArrowLeft, FaFlag, FaRedo, FaLightbulb } from "react-icons/fa"
+import { FaArrowLeft, FaClock, FaRedo, FaLightbulb } from "react-icons/fa"
 import { BsGrid3X3Gap } from "react-icons/bs"
 
 type Cell = {
@@ -281,9 +281,9 @@ export default function SudokuPage() {
             <Card className="border-4 border-indigo-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-4">
-                  <div className="text-center">
-                    <FaFlag className="text-red-500" />
-                    <div className="font-bold text-blue-600 text-sm">{formatTime(timer)}</div>
+                  <div className="flex items-center gap-2">
+                    <FaClock className="text-blue-500" />
+                    <span className="font-bold text-gray-600 text-sm">{formatTime(timer)}</span>
                   </div>
                   <div className="flex gap-2">
                     {selectedCell && (

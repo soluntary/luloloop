@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { FaArrowLeft } from "react-icons/fa"
+import { FaArrowLeft, FaRedo } from "react-icons/fa"
 import { MdOutlineGames } from "react-icons/md"
 
 type Cell = "red" | "yellow" | null
@@ -465,19 +465,25 @@ export default function ConnectFourPage() {
           <div className="flex justify-center mb-6">
             <Card className="w-fit border-4 border-yellow-300 shadow-xl">
               <CardContent className="p-6">
-                {!showCoinFlip && !winner && (
-                  <div className="text-center mb-4 text-lg font-semibold">
-                    {vsAI ? (
-                      currentPlayer === playerColor ? (
-                        <span>Du ({playerColor === "red" ? "Rot" : "Gelb"}) bist am Zug</span>
+                <div className="flex justify-between items-center mb-4">
+                  {!showCoinFlip && !winner && (
+                    <p className="text-base font-body">
+                      {vsAI ? (
+                        currentPlayer === playerColor ? (
+                          <span>Du ({playerColor === "red" ? "Rot" : "Gelb"}) bist am Zug</span>
+                        ) : (
+                          <span>KI ({aiColor === "red" ? "Rot" : "Gelb"}) ist am Zug</span>
+                        )
                       ) : (
-                        <span>KI ({aiColor === "red" ? "Rot" : "Gelb"}) ist am Zug</span>
-                      )
-                    ) : (
-                      <span>{currentPlayer === "red" ? "Rot" : "Gelb"} ist am Zug</span>
-                    )}
-                  </div>
-                )}
+                        <span className="text-base text-gray-600">{currentPlayer === "red" ? "Rot" : "Gelb"} ist am Zug</span>
+                      )}
+                    </p>
+                  )}
+                  {(winner || showCoinFlip) && <div />}
+                  <Button onClick={initGame} variant="outline" size="sm" className="gap-2 bg-transparent">
+                    <FaRedo /> Zurücksetzen
+                  </Button>
+                </div>
 
                 {winner && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -496,9 +502,13 @@ export default function ConnectFourPage() {
                         )}
                       </h2>
                       <div className="flex gap-2 justify-center">
-                        <Button onClick={initGame} size="sm">Nochmals spielen</Button>
+                        <Button onClick={initGame} size="sm">
+                          Nochmals spielen
+                        </Button>
                         <Link href="/spielarena">
-                          <Button variant="outline" size="sm">Beenden</Button>
+                          <Button variant="outline" size="sm">
+                            Beenden
+                          </Button>
                         </Link>
                       </div>
                     </Card>

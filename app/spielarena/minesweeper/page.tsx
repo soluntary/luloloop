@@ -32,6 +32,7 @@ export default function MinesweeperPage() {
   const [customCols, setCustomCols] = useState(10)
   const [customMines, setCustomMines] = useState(10)
   const [showCustomSettings, setShowCustomSettings] = useState(false)
+  const [gameStarted, setGameStarted] = useState(false)
 
   const difficultySettings = {
     easy: { rows: 9, cols: 9, mines: 10 }, // 15.6% density
@@ -43,10 +44,13 @@ export default function MinesweeperPage() {
   const { rows: ROWS, cols: COLS, mines: MINES } = difficultySettings[difficulty]
 
   useEffect(() => {
-    if (difficulty !== "custom" || !showCustomSettings) {
+    if (difficulty !== "custom") {
+      setGameStarted(true)
+      initGame()
+    } else if (difficulty === "custom" && gameStarted) {
       initGame()
     }
-  }, [difficulty, customRows, customCols, customMines])
+  }, [difficulty, gameStarted])
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -211,7 +215,6 @@ export default function MinesweeperPage() {
   }
 
   const applyCustomSettings = () => {
-    // Validate custom settings
     const maxFields = 30 * 24 // 720 fields
     const totalFields = customRows * customCols
     const maxMines = totalFields - 1 // Leave at least one safe field
@@ -231,9 +234,9 @@ export default function MinesweeperPage() {
       return
     }
 
-    setDifficulty("custom")
     setShowCustomSettings(false)
-    setTimeout(() => initGame(), 10)
+    setDifficulty("custom")
+    setGameStarted(true)
   }
 
   const getCellSize = () => {
@@ -275,6 +278,7 @@ export default function MinesweeperPage() {
                 onClick={() => {
                   setDifficulty("easy")
                   setShowCustomSettings(false)
+                  setGameStarted(true)
                 }}
                 variant={difficulty === "easy" ? "default" : "outline"}
                 size="sm"
@@ -286,6 +290,7 @@ export default function MinesweeperPage() {
                 onClick={() => {
                   setDifficulty("medium")
                   setShowCustomSettings(false)
+                  setGameStarted(true)
                 }}
                 variant={difficulty === "medium" ? "default" : "outline"}
                 size="sm"
@@ -297,6 +302,7 @@ export default function MinesweeperPage() {
                 onClick={() => {
                   setDifficulty("hard")
                   setShowCustomSettings(false)
+                  setGameStarted(true)
                 }}
                 variant={difficulty === "hard" ? "default" : "outline"}
                 size="sm"
@@ -305,10 +311,13 @@ export default function MinesweeperPage() {
                 Schwer (30x16, 99 Minen)
               </Button>
               <Button
-                onClick={() => setShowCustomSettings(!showCustomSettings)}
-                variant={difficulty === "custom" ? "default" : "outline"}
+                onClick={() => {
+                  setShowCustomSettings(!showCustomSettings)
+                  setGameStarted(false)
+                }}
+                variant={difficulty === "custom" && !showCustomSettings ? "default" : "outline"}
                 size="sm"
-                className={difficulty === "custom" ? "bg-gray-600 hover:bg-gray-700" : ""}
+                className={difficulty === "custom" && !showCustomSettings ? "bg-gray-600 hover:bg-gray-700" : ""}
               >
                 Benutzerdefiniert
               </Button>
@@ -366,7 +375,7 @@ export default function MinesweeperPage() {
             </Card>
           )}
 
-          {!showCustomSettings && (
+          {!showCustomSettings && gameStarted && (
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-slate-100 rounded-3xl transform rotate-1 -z-10"></div>
               <Card className="border-4 border-gray-300 shadow-2xl transform -rotate-1">
