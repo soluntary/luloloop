@@ -10,14 +10,15 @@ import { BsGrid3X3Gap, BsGrid3X3 } from "react-icons/bs"
 import { IoExtensionPuzzle } from "react-icons/io5"
 import { FaBomb, FaLightbulb, FaPuzzlePiece } from "react-icons/fa"
 import { MdOutlineGames } from "react-icons/md"
+import { GiBrain } from "react-icons/gi"
 
 const games = [
   {
     id: "memory",
     title: "Memory",
     description:
-      "Spielklassiker für das Kurzzeitgedächtnis. Finde möglichst schnell alle Motivpärchen und trainiere dein Gehirn. Verschiedene Schwierigkeitsgrade verfügbar.",
-    icon: null,
+      "Spielklassiker für das Kurzzeitgedächtnis. Finde möglichst schnell alle Bildpaare und trainiere dein Gehirn. Verschiedene Schwierigkeitsgrade verfügbar.",
+    icon: GiBrain,
     color: "blue",
     rotation: "rotate-1",
     linkText: "Spielen",

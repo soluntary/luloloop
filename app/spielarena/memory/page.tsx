@@ -54,6 +54,21 @@ const allImages = [
   { id: "giraffe", url: "/tall-giraffe.jpg" },
   { id: "zebra", url: "/striped-zebra.jpg" },
   { id: "panda", url: "/cute-panda.jpg" },
+  { id: "owl", url: "/wise-owl.jpg" },
+  { id: "fox", url: "/red-fox.jpg" },
+  { id: "tiger", url: "/bengal-tiger.jpg" },
+  { id: "bear", url: "/brown-bear.jpg" },
+  { id: "rabbit", url: "/white-rabbit.png" },
+  { id: "turtle", url: "/green-turtle.jpg" },
+  { id: "parrot", url: "/colorful-parrot.png" },
+  { id: "frog", url: "/green-frog.jpg" },
+  { id: "ladybug", url: "/red-ladybug.jpg" },
+  { id: "snail", url: "/garden-snail.jpg" },
+  { id: "watermelon", url: "/fresh-watermelon.jpg" },
+  { id: "strawberry", url: "/red-strawberry.png" },
+  { id: "grapes", url: "/purple-grapes.jpg" },
+  { id: "orange", url: "/fresh-orange.jpg" },
+  { id: "pineapple", url: "/tropical-pineapple.jpg" },
 ]
 
 interface CardType {
@@ -219,7 +234,7 @@ export default function MemoryPage() {
                               initial={{ rotateY: 90 }}
                               animate={{ rotateY: 0 }}
                               exit={{ rotateY: 90 }}
-                              transition={{ duration: 0.3 }}
+                              transition={{ duration: 0.15 }}
                               className="w-full h-full relative"
                             >
                               <Image
@@ -235,7 +250,7 @@ export default function MemoryPage() {
                               initial={{ rotateY: 90 }}
                               animate={{ rotateY: 0 }}
                               exit={{ rotateY: 90 }}
-                              transition={{ duration: 0.3 }}
+                              transition={{ duration: 0.15 }}
                               className="text-blue-500 text-5xl font-bold"
                             >
                               ?
@@ -262,9 +277,13 @@ export default function MemoryPage() {
                   <h2 className="text-3xl font-handwritten mb-4 text-green-600">Gratuliere! 🎉</h2>
                   <p className="mb-4">Du hast das Spiel in {moves} Zügen geschafft!</p>
                   <div className="flex gap-2 justify-center">
-                    <Button onClick={initializeGame} size="sm">Nochmals spielen</Button>
+                    <Button onClick={initializeGame} size="sm">
+                      Nochmals spielen
+                    </Button>
                     <Link href="/spielarena">
-                      <Button variant="outline" size="sm">Beenden</Button>
+                      <Button variant="outline" size="sm">
+                        Beenden
+                      </Button>
                     </Link>
                   </div>
                 </Card>

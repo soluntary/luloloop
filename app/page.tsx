@@ -562,7 +562,7 @@ export default function HomePage() {
                       >
                         <feature.icon className="w-8 h-8 text-white" />
                       </motion.div>
-                      <h3 className="font-bold text-gray-800 mb-2 font-handwritten text-xs">{feature.title}</h3>
+                      <h3 className="font-bold text-gray-800 mb-2 font-handwritten text-sm">{feature.title}</h3>
                       <p className="text-gray-600 font-body mb-4 text-xs leading-relaxed">{feature.description}</p>
                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                         <Button

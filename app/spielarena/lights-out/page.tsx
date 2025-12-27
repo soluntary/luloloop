@@ -206,7 +206,7 @@ export default function LightsOutPage() {
                 <CardContent className="p-8">
                   <div className="space-y-6">
                     <div>
-                      <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielregeln</h2>
+                      <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielprinzip</h2>
                       <p className="text-gray-600 leading-relaxed text-xs">
                         Lights Out ist ein faszinierendes Logikpuzzle. Das Ziel ist es, alle Lichter auf dem 5x5 Gitter
                         mit so wenigen Klicks wie möglich auszuschalten.
@@ -326,7 +326,7 @@ export default function LightsOutPage() {
                 {gameWon && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <Card className="p-8 text-center mx-4">
-                      <h2 className="text-2xl font-handwritten text-green-600 mb-4">Gratulation! 🎉</h2>
+                      <h2 className="text-2xl font-handwritten text-green-600 mb-4">Gratuliere! 🎉</h2>
                       <p className="mb-4">
                         Du hast alle Lichter in <strong>{moves} Zügen</strong> ausgeschaltet und{" "}
                         <strong>{hintsUsed} Tipps</strong> gebraucht!

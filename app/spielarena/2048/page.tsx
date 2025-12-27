@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FaArrowLeft, FaRedo } from "react-icons/fa"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 type Board = number[][]
 
@@ -33,6 +34,7 @@ export default function Game2048Page() {
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   const [noMovesAvailable, setNoMovesAvailable] = useState(false)
+  const router = useRouter()
 
   const initializeBoard = (): Board => {
     const newBoard: Board = Array(4)
@@ -197,18 +199,34 @@ export default function Game2048Page() {
                     <div>
                       <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielprinzip</h2>
                       <p className="text-gray-600 leading-relaxed text-xs">
-                        2048 ist ein faszinierendes Puzzle-Spiel. Ziel des Spiels ist das Bilden einer Kachel mit der Zahl 2048 durch das geschickte Verschieben und Kombinieren anderer Kacheln.
+                        2048 ist ein faszinierendes Puzzle-Spiel. Ziel des Spiels ist das Bilden einer Kachel mit der
+                        Zahl 2048 durch das geschickte Verschieben und Kombinieren anderer Kacheln.
                       </p>
                     </div>
 
                     <div>
                       <h3 className="font-handwritten text-gray-800 mb-2 text-base">So funktioniert's:</h3>
                       <ul className="space-y-2 text-gray-600 text-xs">
-                        <li>• Am Anfang befinden sich auf dem Spielfeld zwei zufällige Kacheln, die jeweils eine 2 oder eine 4 tragen.</li>
-                        <li>• Mit den Pfeiltasten auf deiner Tastatur oder den Pfeil-Buttons (↑ ↓ ← →) werden die Kacheln auf dem Spielfeld bewegt, wobei sich bei jedem Zug alle Kacheln so weit wie möglich bewegen, als ob sie auf dem in die jeweilige Richtung gekippten Spielfeld rutschen würden.</li>
-                        <li>• Stoßen dabei zwei Kacheln mit der gleichen Zahl aneinander, verschmelzen sie zu einer Kachel mit der Summe der beiden Kacheln.</li>
-                        <li>• Zusätzlich entsteht mit jedem Zug in einem leeren Feld eine zufällige Kachel mit einer 2 oder 4.</li>
-                        <li>• Das Spiel endet, wenn alle Felder mit Kacheln belegt sind und keine Züge mehr möglich sind.</li>
+                        <li>
+                          • Am Anfang befinden sich auf dem Spielfeld zwei zufällige Kacheln, die jeweils eine 2 oder
+                          eine 4 tragen.
+                        </li>
+                        <li>
+                          • Mit den Pfeiltasten auf deiner Tastatur oder den Pfeil-Buttons (↑ ↓ ← →) werden die Kacheln
+                          auf dem Spielfeld bewegt, wobei sich bei jedem Zug alle Kacheln so weit wie möglich bewegen,
+                          als ob sie auf dem in die jeweilige Richtung gekippten Spielfeld rutschen würden.
+                        </li>
+                        <li>
+                          • Stoßen dabei zwei Kacheln mit der gleichen Zahl aneinander, verschmelzen sie zu einer Kachel
+                          mit der Summe der beiden Kacheln.
+                        </li>
+                        <li>
+                          • Zusätzlich entsteht mit jedem Zug in einem leeren Feld eine zufällige Kachel mit einer 2
+                          oder 4.
+                        </li>
+                        <li>
+                          • Das Spiel endet, wenn alle Felder mit Kacheln belegt sind und keine Züge mehr möglich sind.
+                        </li>
                       </ul>
                     </div>
 
@@ -266,11 +284,22 @@ export default function Game2048Page() {
           </div>
 
           {noMovesAvailable && (
-            <Card className="p-4 bg-red-50 mb-4 text-center">
-              <p className="text-lg font-bold text-red-600 mb-2">Keine Züge mehr möglich!</p>
-              <p className="text-sm text-gray-600 mb-4">Endpunktzahl: {score}</p>
-              <Button onClick={resetGame}>Nochmal spielen</Button>
-            </Card>
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <Card className="p-6 bg-white max-w-sm mx-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-red-600 mb-2">Keine Züge mehr möglich!</p>
+                  <p className="text-sm text-gray-600 mb-6">Endpunktzahl: {score}</p>
+                  <div className="flex gap-2 justify-center">
+                    <Button onClick={resetGame} className="bg-purple-500 hover:bg-purple-600">
+                      Nochmals spielen
+                    </Button>
+                    <Button onClick={() => router.push("/spielarena")} variant="outline" className="bg-transparent">
+                      Beenden
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </div>
           )}
 
           <div className="relative">

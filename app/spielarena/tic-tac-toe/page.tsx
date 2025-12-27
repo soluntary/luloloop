@@ -248,16 +248,16 @@ export default function TicTacToePage() {
                     <p className="text-sm font-bold">
                       {vsAI ? (
                         currentPlayer === playerSymbol ? (
-                          <span className={currentPlayer === "X" ? "text-blue-600" : "text-red-600"}>
+                          <span className={currentPlayer === "X" ? "text-green-500" : "text-green-500"}>
                             Du ({playerSymbol}) bist am Zug
                           </span>
                         ) : (
-                          <span className={currentPlayer === "X" ? "text-blue-600" : "text-red-600"}>
+                          <span className={currentPlayer === "X" ? "text-green-500" : "text-green-500"}>
                             KI ({aiSymbol}) ist am Zug
                           </span>
                         )
                       ) : (
-                        <span className={currentPlayer === "X" ? "text-blue-600" : "text-red-600"}>
+                        <span className={currentPlayer === "X" ? "text-green-500" : "text-green-500"}>
                           {currentPlayer} ist am Zug
                         </span>
                       )}
@@ -269,7 +269,7 @@ export default function TicTacToePage() {
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
                       <Card className="p-8 text-center mx-4">
-                        <h2 className="text-2xl font-handwritten mb-4">
+                        <h2 className="text-2xl text-green-600 font-handwritten mb-4">
                           {winner === "draw"
                             ? "Unentschieden!"
                             : vsAI

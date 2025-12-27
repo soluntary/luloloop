@@ -12,6 +12,8 @@ import { GiTargetPrize } from "react-icons/gi"
 import { GiPodium } from "react-icons/gi"
 import { motion } from "framer-motion"
 import { TemplateManager } from "@/components/spielhilfen/template-manager"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 type Player = { id: number; name: string; score: number; inputValue: string; originalIndex: number }
 type HistoryEntry = { playerId: number; playerName: string; change: number; newScore: number; timestamp: Date }
@@ -49,10 +51,12 @@ export default function PunktePage() {
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [newPlayerName, setNewPlayerName] = useState("")
+  const [winCondition, setWinCondition] = useState<"highest" | "lowest">("highest")
 
   const getCurrentData = () => ({
     players: players.map((p) => ({ name: p.name })),
     targetScore,
+    winCondition,
   })
 
   const handleLoadTemplate = (data: any) => {
@@ -69,6 +73,9 @@ export default function PunktePage() {
     }
     if (data.targetScore) {
       setTargetScore(data.targetScore)
+    }
+    if (data.winCondition) {
+      setWinCondition(data.winCondition)
     }
     setWinner(null)
     setHistory([])
@@ -116,7 +123,11 @@ export default function PunktePage() {
         if (p.id === id) {
           const newScore = Math.max(0, p.score + change)
           setHistory((h) => [...h, { playerId: id, playerName: p.name, change, newScore, timestamp: new Date() }])
-          if (targetScore && newScore >= targetScore) {
+          if (
+            targetScore &&
+            ((winCondition === "highest" && newScore >= targetScore) ||
+              (winCondition === "lowest" && newScore <= targetScore))
+          ) {
             setWinner({ ...p, score: newScore })
           }
           return { ...p, score: newScore }
@@ -140,7 +151,11 @@ export default function PunktePage() {
 
           setHistory((h) => [...h, { playerId: id, playerName: p.name, change, newScore, timestamp: new Date() }])
 
-          if (targetScore && newScore >= targetScore) {
+          if (
+            targetScore &&
+            ((winCondition === "highest" && newScore >= targetScore) ||
+              (winCondition === "lowest" && newScore <= targetScore))
+          ) {
             setWinner({ ...p, score: newScore })
           }
 
@@ -188,6 +203,7 @@ export default function PunktePage() {
     setHistory([])
     setShowHistory(false)
     setNewPlayerName("")
+    setWinCondition("highest")
   }
 
   const getRankingStyle = (rank: number, hasPoints: boolean) => {
@@ -207,8 +223,14 @@ export default function PunktePage() {
   }
 
   const sortedPlayers = [...players].sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score
-    return a.originalIndex - b.originalIndex
+    if (winCondition === "highest") {
+      if (b.score !== a.score) return b.score - a.score
+      return a.originalIndex - b.originalIndex
+    } else {
+      // lowest wins
+      if (a.score !== b.score) return a.score - b.score
+      return a.originalIndex - b.originalIndex
+    }
   })
 
   return (
@@ -242,7 +264,7 @@ export default function PunktePage() {
                 <Trophy className="w-8 h-8 text-white" />
               </motion.div>
               <CardTitle className="text-2xl">Punkte-Tracker</CardTitle>
-              <p className="text-gray-500 text-sm">Spielstände verfolgen und auswerten</p>
+              <p className="text-gray-500 text-sm">Spielstände auswerten und verfolgen</p>
             </CardHeader>
             <CardContent className="p-4 space-y-4">
               {winner && (
@@ -252,6 +274,27 @@ export default function PunktePage() {
                   <p className="text-yellow-600">mit {winner.score} Punkten</p>
                 </div>
               )}
+
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Siegvariante</h3>
+                <RadioGroup
+                  value={winCondition}
+                  onValueChange={(value) => setWinCondition(value as "highest" | "lowest")}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="highest" id="highest" />
+                    <Label htmlFor="highest" className="text-sm cursor-pointer">
+                      Höhere Punktzahl gewinnt
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="lowest" id="lowest" />
+                    <Label htmlFor="lowest" className="text-sm cursor-pointer">
+                      Niedrige Punktzahl gewinnt
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
 
               <div className="space-y-2">
                 <h3 className="font-semibold flex items-center gap-2 text-sm">
@@ -443,6 +486,9 @@ export default function PunktePage() {
                 <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm">
                   <GiPodium className="w-4 h-4 text-yellow-500" />
                   Rangliste
+                  <span className="text-xs text-gray-500 font-normal">
+                    ({winCondition === "highest" ? "Höchste zuerst" : "Niedrigste zuerst"})
+                  </span>
                 </h4>
                 <div className="space-y-1">
                   {sortedPlayers.map((player, rank) => {
