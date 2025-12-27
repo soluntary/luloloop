@@ -197,18 +197,19 @@ export default function MemoryPage() {
                 Schwer (36)
               </Button>
             </div>
-            <p className="text-center text-gray-600 font-body mt-4">Züge: {moves}</p>
           </div>
 
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl transform rotate-1 -z-10"></div>
             <Card className="border-4 border-blue-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8">
-                <div className="flex justify-end mb-4">
+                <div className="flex justify-between items-center mb-4">
+                  <p className="text-blue-500 font-body">Züge: {moves}</p>
                   <Button onClick={initializeGame} variant="outline" size="sm" className="gap-2 bg-transparent">
                     <FaRedo /> Zurücksetzen
                   </Button>
                 </div>
+
                 <div
                   className={`grid gap-4`}
                   style={{ gridTemplateColumns: `repeat(${DIFFICULTY_CONFIG[difficulty].gridCols}, minmax(0, 1fr))` }}

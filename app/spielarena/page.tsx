@@ -63,7 +63,7 @@ const games = [
   {
     id: "minesweeper",
     title: "Minesweeper",
-    description: "Das klassische Logikspiel! Finde alle Minen ohne eine zu treffen.",
+    description: "Das klassische Logikspiel! Decke alle Felder auf, hinter welchen keine Minen verborgen sind.",
     icon: FaBomb,
     color: "gray",
     rotation: "-rotate-1",

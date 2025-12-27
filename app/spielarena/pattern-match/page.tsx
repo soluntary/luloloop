@@ -119,16 +119,16 @@ export default function PatternMatchPage() {
               </motion.div>
               <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Pattern Match</h1>
             </div>
-            <div className="flex justify-center gap-8">
-              <p className="text-gray-600 font-body transform -rotate-1">Runde: {round}</p>
-              <p className="text-gray-600 font-body transform rotate-1">Punkte: {score}</p>
-            </div>
           </div>
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-br from-pink-100 to-rose-100 rounded-3xl transform rotate-1 -z-10"></div>
             <Card className="border-4 border-pink-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8 text-center">
-                <div className="flex justify-end mb-4">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="text-left">
+                    <p className="text-sm text-gray-600 font-body">Runde: {round}</p>
+                    <p className="text-sm text-gray-600 font-body">Punkte: {score}</p>
+                  </div>
                   <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
                     <FaRedo /> Zurücksetzen
                   </Button>

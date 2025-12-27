@@ -171,7 +171,10 @@ export default function HangmanPage() {
             <Card className="border-4 border-amber-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8 text-center">
                 {!showCategorySelection && (
-                  <div className="flex justify-end mb-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-gray-600 font-body">
+                      Fehlversuche: {wrongGuesses} / {maxWrongGuesses}
+                    </p>
                     <Button onClick={resetToCategory} variant="outline" size="sm" className="gap-2 bg-transparent">
                       <FaRedo /> Zurücksetzen
                     </Button>

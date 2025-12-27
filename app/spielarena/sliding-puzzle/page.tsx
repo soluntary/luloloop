@@ -126,14 +126,14 @@ export default function SlidingPuzzlePage() {
                 Schwer (5x5)
               </Button>
             </div>
-            <p className="text-center text-gray-600 font-body mt-4">Züge: {moves}</p>
           </div>
 
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-br from-teal-100 to-cyan-100 rounded-3xl transform rotate-1 -z-10"></div>
             <Card className="border-4 border-teal-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8">
-                <div className="flex justify-end mb-4">
+                <div className="flex justify-between items-center mb-4">
+                  <p className="text-gray-600 font-body">Züge: {moves}</p>
                   <Button
                     onClick={() => initializeBoard()}
                     variant="outline"
@@ -176,9 +176,13 @@ export default function SlidingPuzzlePage() {
                 <h2 className="text-2xl font-handwritten mb-4 text-green-600">Geschafft! 🎉</h2>
                 <p className="mb-4">Du hast das Puzzle in {moves} Zügen gelöst!</p>
                 <div className="flex gap-2 justify-center">
-                  <Button onClick={() => initializeBoard()} size="sm">Nochmals spielen</Button>
+                  <Button onClick={() => initializeBoard()} size="sm">
+                    Nochmals spielen
+                  </Button>
                   <Link href="/spielarena">
-                    <Button variant="outline" size="sm">Beenden</Button>
+                    <Button variant="outline" size="sm">
+                      Beenden
+                    </Button>
                   </Link>
                 </div>
               </Card>

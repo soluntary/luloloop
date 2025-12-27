@@ -280,7 +280,6 @@ export default function Game2048Page() {
               </motion.div>
               <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">2048</h1>
             </div>
-            <p className="text-gray-600 font-body transform -rotate-1">Punkte: {score}</p>
           </div>
 
           {noMovesAvailable && (
@@ -306,11 +305,13 @@ export default function Game2048Page() {
             <div className="absolute inset-0 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl transform rotate-1 -z-10"></div>
             <Card className="border-4 border-purple-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8">
-                <div className="flex justify-end mb-4">
+                <div className="flex justify-between items-center mb-4">
+                  <p className="text-gray-600 font-body">Punkte: {score}</p>
                   <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
                     <FaRedo /> Zurücksetzen
                   </Button>
                 </div>
+
                 <div className="grid grid-cols-4 gap-3">
                   {board.map((row, i) =>
                     row.map((cell, j) => (

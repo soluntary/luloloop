@@ -237,14 +237,8 @@ export default function TicTacToePage() {
             <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-teal-100 rounded-3xl transform rotate-1 -z-10"></div>
             <Card className="border-4 border-green-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8">
-                <div className="flex justify-end mb-4">
-                  <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
-                    <FaRedo /> Zurücksetzen
-                  </Button>
-                </div>
-
-                {!winner && !showSymbolDraw && (
-                  <div className="text-center mb-4">
+                <div className="flex justify-between items-center mb-4">
+                  {!winner && !showSymbolDraw && (
                     <p className="text-sm font-bold">
                       {vsAI ? (
                         currentPlayer === playerSymbol ? (
@@ -262,8 +256,12 @@ export default function TicTacToePage() {
                         </span>
                       )}
                     </p>
-                  </div>
-                )}
+                  )}
+                  {(winner || showSymbolDraw) && <div />}
+                  <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
+                    <FaRedo /> Zurücksetzen
+                  </Button>
+                </div>
 
                 {winner && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -279,9 +277,13 @@ export default function TicTacToePage() {
                               : `${winner} gewinnt!`}
                         </h2>
                         <div className="flex gap-2 justify-center">
-                          <Button onClick={resetGame} size="sm">Nochmals spielen</Button>
+                          <Button onClick={resetGame} size="sm">
+                            Nochmals spielen
+                          </Button>
                           <Link href="/spielarena">
-                            <Button variant="outline" size="sm">Beenden</Button>
+                            <Button variant="outline" size="sm">
+                              Beenden
+                            </Button>
                           </Link>
                         </div>
                       </Card>

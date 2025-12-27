@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { FaArrowLeft, FaRedo, FaLightbulb } from "react-icons/fa"
+import { FaArrowLeft, FaFlag, FaRedo, FaLightbulb } from "react-icons/fa"
 import { BsGrid3X3Gap } from "react-icons/bs"
 
 type Cell = {
@@ -214,6 +214,12 @@ export default function SudokuPage() {
     return true
   }
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-indigo-50 to-white">
       <Navigation />
@@ -276,7 +282,8 @@ export default function SudokuPage() {
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-4">
                   <div className="text-center">
-                    <div className="font-bold text-blue-600 text-sm">Zeit: {timer}s</div>
+                    <FaFlag className="text-red-500" />
+                    <div className="font-bold text-blue-600 text-sm">{formatTime(timer)}</div>
                   </div>
                   <div className="flex gap-2">
                     {selectedCell && (
@@ -312,8 +319,8 @@ export default function SudokuPage() {
                   <div className="text-center mb-4 p-4 bg-green-100 rounded-lg">
                     <div className="text-xl font-bold text-green-600 mb-2">Gratulation! 🎉</div>
                     <div className="text-sm text-gray-600">
-                      Du hast das Sudoku in <strong>{timer} Sekunden</strong> und mit <strong>{hintsUsed} Tipps</strong>{" "}
-                      gelöst!
+                      Du hast das Sudoku in <strong>{formatTime(timer)}</strong> und mit{" "}
+                      <strong>{hintsUsed} Tipps</strong> gelöst!
                     </div>
                   </div>
                 )}

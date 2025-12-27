@@ -48,6 +48,7 @@ export default function SimonSaysPage() {
   const colors = colorPools[difficulty]
   const audioContextRef = useRef<AudioContext>()
   const shouldInterruptRef = useRef(false)
+  const [audioUnlocked, setAudioUnlocked] = useState(false)
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -55,8 +56,31 @@ export default function SimonSaysPage() {
     }
   }, [])
 
+  const unlockAudio = () => {
+    if (!audioContextRef.current) return
+
+    // Resume AudioContext and play a silent sound to unlock
+    if (audioContextRef.current.state === "suspended") {
+      audioContextRef.current.resume()
+    }
+
+    // Play a very short silent sound to unlock audio on iOS
+    const oscillator = audioContextRef.current.createOscillator()
+    const gainNode = audioContextRef.current.createGain()
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContextRef.current.destination)
+    gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime)
+    oscillator.start()
+    oscillator.stop(audioContextRef.current.currentTime + 0.01)
+
+    setAudioUnlocked(true)
+  }
+
   const playSound = (frequency: number) => {
     if (!audioContextRef.current) return
+    if (audioContextRef.current.state === "suspended") {
+      audioContextRef.current.resume()
+    }
     const oscillator = audioContextRef.current.createOscillator()
     const gainNode = audioContextRef.current.createGain()
     oscillator.connect(gainNode)
@@ -69,11 +93,16 @@ export default function SimonSaysPage() {
   }
 
   const startGame = () => {
+    if (!audioUnlocked) {
+      unlockAudio()
+    }
     setSequence([])
     setPlayerSequence([])
-    setLevel(0)
+    setLevel(1)
     setGameState("idle")
-    setTimeout(() => addToSequence(), 100)
+    const firstSequence = [Math.floor(Math.random() * colors.length)]
+    setSequence(firstSequence)
+    setTimeout(() => showSequence(firstSequence, colors), 100)
   }
 
   const addToSequence = () => {
@@ -128,6 +157,9 @@ export default function SimonSaysPage() {
   }
 
   const startGameWithDifficulty = (diff: Difficulty) => {
+    if (!audioUnlocked) {
+      unlockAudio()
+    }
     shouldInterruptRef.current = true // Interrupt any ongoing sequence
     setActiveButton(null) // Clear any active button
     setDifficulty(diff)
@@ -170,6 +202,12 @@ export default function SimonSaysPage() {
             </div>
           </div>
 
+          {!audioUnlocked && (
+            <div className="mb-4 p-3 bg-yellow-50 border-2 border-yellow-300 rounded-lg text-sm text-center">
+              <p className="text-yellow-800">Tipp: Klicke auf einen Schwierigkeitsgrad, um den Ton zu aktivieren!</p>
+            </div>
+          )}
+
           <div className="mb-6">
             <p className="text-center text-sm font-handwritten text-gray-600 mb-3">Wähle Schwierigkeitsgrad:</p>
             <div className="flex justify-center gap-2">
@@ -198,7 +236,6 @@ export default function SimonSaysPage() {
                 Schwer (8 Farben)
               </Button>
             </div>
-            <p className="text-center text-gray-600 font-body mt-4">Level: {level}</p>
           </div>
 
           {gameState === "idle" && (
@@ -216,15 +253,21 @@ export default function SimonSaysPage() {
           )}
 
           {gameState === "gameover" && (
-            <div className="relative mb-8">
-              <div className="absolute inset-0 bg-gradient-to-br from-red-100 to-orange-100 rounded-3xl transform rotate-1 -z-10"></div>
-              <Card className="border-4 border-red-300 shadow-2xl transform -rotate-1">
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <Card className="border-4 border-red-300 shadow-2xl max-w-md">
                 <CardContent className="p-8 text-center">
                   <h2 className="text-2xl font-handwritten mb-4 text-red-600">Game Over!</h2>
                   <p className="mb-6">Du hast Level {level} erreicht!</p>
-                  <Button onClick={() => setGameState("idle")} size="lg">
-                    Nochmal spielen
-                  </Button>
+                  <div className="flex gap-2 justify-center">
+                    <Button onClick={startGame} size="lg">
+                      Nochmals spielen
+                    </Button>
+                    <Link href="/spielarena">
+                      <Button variant="outline" size="lg">
+                        Beenden
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -235,7 +278,8 @@ export default function SimonSaysPage() {
               <div className="absolute inset-0 bg-gradient-to-br from-red-100 to-orange-100 rounded-3xl transform rotate-1 -z-10"></div>
               <Card className="border-4 border-red-300 shadow-2xl transform -rotate-1">
                 <CardContent className="p-8">
-                  <div className="flex justify-end mb-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-gray-600 font-body">Level: {level}</p>
                     <Button
                       onClick={() => setGameState("idle")}
                       variant="outline"
