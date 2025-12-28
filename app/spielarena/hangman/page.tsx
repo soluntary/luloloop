@@ -242,7 +242,7 @@ export default function HangmanPage() {
 
                 {customMode && (
                   <div className="mb-6 max-w-md mx-auto bg-amber-50 p-6 rounded-lg border-2 border-amber-200">
-                    <Label htmlFor="customWord" className="font-handwritten text-lg mb-2 block">
+                    <Label htmlFor="customWord" className="font-handwritten text-base mb-2 block">
                       Gib ein Wort ein (für andere Spieler)
                     </Label>
                     <Input
@@ -254,7 +254,7 @@ export default function HangmanPage() {
                       className="mb-4 text-center font-bold text-lg"
                     />
                     <div className="flex gap-2 justify-center">
-                      <Button onClick={startWithCustomWord} disabled={!customWord.trim()}>
+                      <Button onClick={startWithCustomWord} disabled={!customWord.trim()} size="sm">
                         Spiel starten
                       </Button>
                       <Button
@@ -263,6 +263,7 @@ export default function HangmanPage() {
                           setShowCategorySelection(true)
                         }}
                         variant="outline"
+                        size="sm"
                       >
                         Abbrechen
                       </Button>

@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -345,39 +345,49 @@ export default function ConnectFourPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-yellow-50 to-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
       <Navigation />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <Link
             href="/spielarena"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+            className="inline-flex items-center gap-2 text-gray-700 hover:text-teal-600 mb-6 transition-colors"
           >
             <FaArrowLeft className="w-4 h-4" />
             <span className="text-sm">Zurück zur Spielarena</span>
           </Link>
 
-          <div className="text-center mb-8">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
             <div className="flex items-center justify-center gap-4 mb-4">
               <motion.div
-                whileHover={{ rotate: 360, scale: 1.1 }}
+                whileHover={{ rotate: 360, scale: 1.2 }}
                 transition={{ duration: 0.6 }}
-                className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center transform -rotate-12"
+                className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-2xl"
               >
                 <MdOutlineGames className="w-8 h-8 text-white" />
               </motion.div>
-              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Vier gewinnt</h1>
+              <h1 className="font-handwritten text-4xl md:text-5xl text-gray-900 drop-shadow-lg">Vier gewinnt</h1>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="flex justify-center gap-2 mb-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="flex justify-center gap-3 mb-8"
+          >
             <Button
               onClick={() => {
                 setVsAI(false)
                 initGame()
               }}
               variant={!vsAI ? "default" : "outline"}
-              size="sm"
+              className={`transition-all duration-300 ${
+                !vsAI
+                  ? "bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 shadow-lg scale-105"
+                  : "border-gray-300 text-gray-700 hover:border-teal-500"
+              }`}
+              size="lg"
             >
               2 Spieler
             </Button>
@@ -388,155 +398,261 @@ export default function ConnectFourPage() {
                 setShowCoinFlip(true)
               }}
               variant={vsAI ? "default" : "outline"}
-              size="sm"
+              className={`transition-all duration-300 ${
+                vsAI
+                  ? "bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 shadow-lg scale-105"
+                  : "border-gray-300 text-gray-700 hover:border-purple-500"
+              }`}
+              size="lg"
             >
               Gegen KI
             </Button>
-          </div>
+          </motion.div>
 
-          {showCoinFlip && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <Card className="w-96 border-4 border-yellow-300 shadow-2xl">
-                <CardContent className="p-8">
-                  <h2 className="text-2xl font-handwritten text-center mb-6">Farbwurf!</h2>
+          <AnimatePresence>
+            {showCoinFlip && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+              >
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  transition={{ type: "spring", duration: 0.5 }}
+                >
+                  <Card className="w-96 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                    <CardContent className="p-8">
+                      <h2 className="text-3xl font-handwritten text-center mb-6 text-gray-900 drop-shadow-lg">
+                        Farbwurf!
+                      </h2>
 
-                  {!playerChoice ? (
-                    <div>
-                      <p className="text-center mb-6">Wähle deine Farbe:</p>
-                      <div className="flex gap-4 justify-center">
-                        <Button
-                          onClick={() => handleCoinChoice("red")}
-                          className="flex-1 bg-red-500 hover:bg-red-700"
-                          size="lg"
-                        >
-                          Rot
-                        </Button>
-                        <Button
-                          onClick={() => handleCoinChoice("yellow")}
-                          className="flex-1 bg-yellow-300 hover:bg-yellow-500 text-gray-900"
-                          size="lg"
-                        >
-                          Gelb
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      {isFlipping ? (
-                        <div>
-                          <motion.div
-                            animate={{ rotateY: [0, 360, 720, 1080] }}
-                            transition={{ duration: 1.5 }}
-                            className="w-32 h-32 mx-auto mb-4 bg-gradient-to-r from-red-500 to-yellow-400 rounded-full flex items-center justify-center"
-                          >
-                            <div className="w-24 h-24 bg-white rounded-full"></div>
-                          </motion.div>
-                          <p className="text-lg">Start-Farbe wird bestimmt...</p>
-                        </div>
-                      ) : (
-                        <div>
-                          <div
-                            className={`w-32 h-32 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                              coinResult === "red" ? "bg-red-500" : "bg-yellow-300"
-                            }`}
-                          >
-                            <div className="text-white text-2xl font-bold">{coinResult === "red" ? "ROT" : "GELB"}</div>
+                      {!playerChoice ? (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                          <p className="text-center mb-6 text-gray-700 text-lg">Wähle deine Farbe:</p>
+                          <div className="flex gap-4 justify-center">
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                              <Button
+                                onClick={() => handleCoinChoice("red")}
+                                className="flex-1 bg-gradient-to-br from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 shadow-lg"
+                                size="lg"
+                              >
+                                Rot
+                              </Button>
+                            </motion.div>
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                              <Button
+                                onClick={() => handleCoinChoice("yellow")}
+                                className="flex-1 bg-gradient-to-br from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-gray-900 shadow-lg"
+                                size="lg"
+                              >
+                                Gelb
+                              </Button>
+                            </motion.div>
                           </div>
-                          <p className="text-lg mb-2">
-                            <strong className={coinResult === "red" ? "text-red-600" : "text-yellow-300"}>
-                              {coinResult === "red" ? "Rot" : "Gelb"}
-                            </strong>{" "}
-                            gezogen
-                          </p>
-                          {coinResult === playerChoice ? (
-                            <p className="text-xl font-bold text-green-600">Du fängst an!</p>
+                        </motion.div>
+                      ) : (
+                        <div className="text-center">
+                          {isFlipping ? (
+                            <div>
+                              <motion.div
+                                animate={{
+                                  rotateY: [0, 360, 720, 1080],
+                                  scale: [1, 1.2, 1, 1.2, 1],
+                                }}
+                                transition={{ duration: 1.5 }}
+                                className="w-32 h-32 mx-auto mb-4 bg-gradient-to-r from-red-500 via-yellow-400 to-red-500 rounded-full flex items-center justify-center shadow-2xl"
+                              >
+                                <div className="w-24 h-24 bg-slate-800 rounded-full"></div>
+                              </motion.div>
+                              <p className="text-lg text-gray-300">Start-Farbe wird bestimmt...</p>
+                            </div>
                           ) : (
-                            <p className="text-xl font-bold text-orange-600">KI fängt an!</p>
+                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
+                              <motion.div
+                                animate={{ rotate: [0, 10, -10, 0] }}
+                                transition={{ duration: 0.5 }}
+                                className={`w-32 h-32 mx-auto mb-4 rounded-full flex items-center justify-center shadow-2xl ${
+                                  coinResult === "red"
+                                    ? "bg-gradient-to-br from-red-500 to-red-700"
+                                    : "bg-gradient-to-br from-yellow-400 to-yellow-600"
+                                }`}
+                              >
+                                <div className="text-white text-2xl font-bold drop-shadow-lg">
+                                  {coinResult === "red" ? "ROT" : "GELB"}
+                                </div>
+                              </motion.div>
+                              <p className="text-lg mb-2 text-gray-300">
+                                <strong className={coinResult === "red" ? "text-red-400" : "text-yellow-400"}>
+                                  {coinResult === "red" ? "Rot" : "Gelb"}
+                                </strong>{" "}
+                                gezogen
+                              </p>
+                              {coinResult === playerChoice ? (
+                                <p className="text-xl font-bold text-green-400">Du fängst an!</p>
+                              ) : (
+                                <p className="text-xl font-bold text-orange-400">KI fängst an!</p>
+                              )}
+                            </motion.div>
                           )}
                         </div>
                       )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <div className="flex justify-center mb-6">
-            <Card className="w-fit border-4 border-yellow-300 shadow-xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex justify-center"
+          >
+            <Card className="w-fit border-4 border-blue-600/50 shadow-2xl bg-white backdrop-blur">
               <CardContent className="p-6">
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center mb-4 gap-4">
                   {!showCoinFlip && !winner && (
-                    <p className="text-base font-body">
-                      {vsAI ? (
-                        currentPlayer === playerColor ? (
-                          <span>Du ({playerColor === "red" ? "Rot" : "Gelb"}) bist am Zug</span>
-                        ) : (
-                          <span>KI ({aiColor === "red" ? "Rot" : "Gelb"}) ist am Zug</span>
-                        )
-                      ) : (
-                        <span className="text-base text-gray-600">{currentPlayer === "red" ? "Rot" : "Gelb"} ist am Zug</span>
-                      )}
-                    </p>
-                  )}
-                  {(winner || showCoinFlip) && <div />}
-                  <Button onClick={initGame} variant="outline" size="sm" className="gap-2 bg-transparent">
-                    <FaRedo /> Zurücksetzen
-                  </Button>
-                </div>
-
-                {winner && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <Card className="p-8 text-center mx-4">
-                      <h2 className="text-2xl font-handwritten mb-4">
-                        {winner === "draw" ? (
-                          "Unentschieden!"
-                        ) : vsAI ? (
-                          winner === playerColor ? (
-                            <span className="text-green-600">🎉 Gratulation! Du hast gewonnen!</span>
+                    <motion.div
+                      key={currentPlayer}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex items-center gap-2"
+                    >
+                      <div
+                        className={`w-4 h-4 rounded-full ${
+                          currentPlayer === "red"
+                            ? "bg-gradient-to-br from-red-500 to-red-700 shadow-lg shadow-red-500/50"
+                            : "bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-lg shadow-yellow-400/50"
+                        } animate-pulse`}
+                      />
+                      <p className="text-base font-body text-gray-800">
+                        {vsAI ? (
+                          currentPlayer === playerColor ? (
+                            <span>Du ({playerColor === "red" ? "Rot" : "Gelb"}) bist am Zug</span>
                           ) : (
-                            <span className="text-red-600">Schade! KI hat gewonnen</span>
+                            <span>KI ({aiColor === "red" ? "Rot" : "Gelb"}) ist am Zug</span>
                           )
                         ) : (
-                          <span className="text-green-600">{winner === "red" ? "Rot" : "Gelb"} gewinnt!</span>
+                          <span>{currentPlayer === "red" ? "Rot" : "Gelb"} ist am Zug</span>
                         )}
-                      </h2>
-                      <div className="flex gap-2 justify-center">
-                        <Button onClick={initGame} size="sm">
-                          Nochmals spielen
-                        </Button>
-                        <Link href="/spielarena">
-                          <Button variant="outline" size="sm">
-                            Beenden
-                          </Button>
-                        </Link>
-                      </div>
-                    </Card>
-                  </div>
-                )}
+                      </p>
+                    </motion.div>
+                  )}
+                  {(winner || showCoinFlip) && <div />}
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      onClick={initGame}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 hover:bg-gray-100 transition-all bg-transparent"
+                    >
+                      <FaRedo /> Zurücksetzen
+                    </Button>
+                  </motion.div>
+                </div>
 
-                <div className="relative overflow-hidden" style={{ width: "fit-content" }}>
-                  {/* Falling piece layer - behind the mask */}
+                <AnimatePresence>
+                  {winner && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                    >
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0, rotate: 180 }}
+                        transition={{ type: "spring", duration: 0.7 }}
+                      >
+                        <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                          <motion.h2
+                            animate={{ scale: [1, 1.1, 1] }}
+                            transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
+                            className="text-3xl font-handwritten mb-6 text-gray-900 drop-shadow-lg"
+                          >
+                            {winner === "draw" ? (
+                              "Unentschieden!"
+                            ) : vsAI ? (
+                              winner === playerColor ? (
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
+                                  🎉 Gratulation! Du hast gewonnen!
+                                </span>
+                              ) : (
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-600">
+                                  Schade! KI hat gewonnen
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">
+                                {winner === "red" ? "Rot" : "Gelb"} gewinnt!
+                              </span>
+                            )}
+                          </motion.h2>
+                          <div className="flex gap-3 justify-center">
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                              <Button
+                                onClick={initGame}
+                                size="lg"
+                                className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700"
+                              >
+                                Nochmals spielen
+                              </Button>
+                            </motion.div>
+                            <Link href="/spielarena">
+                              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                <Button
+                                  variant="outline"
+                                  size="lg"
+                                  className="border-slate-600 hover:border-teal-500 text-slate-200 bg-transparent"
+                                >
+                                  Beenden
+                                </Button>
+                              </motion.div>
+                            </Link>
+                          </div>
+                        </Card>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="relative overflow-hidden rounded-xl" style={{ width: "fit-content" }}>
+                  {/* Falling piece with improved animation */}
                   {fallingPiece && (
                     <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
-                      <div
-                        className={`absolute w-12 h-12 rounded-full ${
-                          fallingPiece.color === "red" ? "bg-red-500" : "bg-yellow-300"
+                      <motion.div
+                        className={`absolute w-12 h-12 rounded-full shadow-2xl ${
+                          fallingPiece.color === "red"
+                            ? "bg-gradient-to-br from-red-400 via-red-500 to-red-700"
+                            : "bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600"
                         }`}
                         style={{
                           left: `${16 + fallingPiece.col * 56}px`,
                           top: "-56px",
-                          animation: `fall-to-${fallingPiece.targetRow} ${300 + fallingPiece.targetRow * 50}ms cubic-bezier(0.4, 0, 0.6, 1) forwards`,
+                          boxShadow: `0 4px 20px ${fallingPiece.color === "red" ? "rgba(239, 68, 68, 0.6)" : "rgba(250, 204, 21, 0.6)"}`,
+                        }}
+                        animate={{
+                          y: `${(fallingPiece.targetRow + 1) * 56 + 16}px`,
+                        }}
+                        transition={{
+                          duration: (300 + fallingPiece.targetRow * 50) / 1000,
+                          ease: [0.4, 0, 0.6, 1],
                         }}
                       />
                     </div>
                   )}
 
-                  {/* Blue board with mask (transparent circular holes) */}
+                  {/* Blue board with improved styling */}
                   <div
-                    className="absolute inset-0 bg-blue-600 pointer-events-none"
+                    className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 pointer-events-none rounded-xl shadow-inner"
                     style={{
                       zIndex: 1,
+                      boxShadow: "inset 0 4px 20px rgba(0, 0, 0, 0.4)",
                       WebkitMaskImage: `
                         ${Array(ROWS)
                           .fill(null)
@@ -552,77 +668,59 @@ export default function ConnectFourPage() {
                           .join(", ")}
                       `,
                       WebkitMaskComposite: "source-in",
-                      maskImage: `
-                        ${Array(ROWS)
-                          .fill(null)
-                          .flatMap((_, rowIdx) =>
-                            Array(COLS)
-                              .fill(null)
-                              .map(
-                                (_, colIdx) =>
-                                  `radial-gradient(circle at ${16 + colIdx * 56 + 24}px ${16 + rowIdx * 56 + 24}px, transparent 22px, black 24px)`,
-                              )
-                              .join(", "),
-                          )
-                          .join(", ")}
-                      `,
                       maskComposite: "intersect",
                     }}
                   />
 
-                  {/* Game pieces layer - above mask */}
-                  <div className="grid grid-cols-7 gap-2 relative p-4 rounded-lg" style={{ zIndex: 2 }}>
+                  {/* Grid with enhanced 3D pieces */}
+                  <div className="relative grid grid-cols-7 gap-2 p-4 rounded-xl" style={{ zIndex: 2 }}>
                     {board.map((row, rowIdx) =>
-                      row.map((cell, colIdx) => {
-                        const isWinning = isWinningCell(rowIdx, colIdx)
-                        return (
-                          <button
-                            key={`${rowIdx}-${colIdx}`}
-                            onClick={() => dropPiece(colIdx)}
-                            disabled={winner !== null || isAIThinking || fallingPiece !== null}
-                            className="w-12 h-12 rounded-full flex items-center justify-center relative hover:opacity-80 transition-opacity disabled:cursor-not-allowed"
-                          >
-                            {cell && (
-                              <div
-                                className={`w-full h-full rounded-full ${
-                                  cell === "red" ? "bg-red-500" : "bg-yellow-300"
-                                } ${isWinning ? "animate-pulse" : ""}`}
-                                style={{
-                                  boxShadow: isWinning
-                                    ? "0 0 20px 5px rgba(255, 215, 0, 0.8), 0 0 40px 10px rgba(255, 215, 0, 0.4)"
-                                    : undefined,
-                                }}
-                              />
-                            )}
-                          </button>
-                        )
-                      }),
+                      row.map((cell, colIdx) => (
+                        <motion.button
+                          key={`${rowIdx}-${colIdx}`}
+                          onClick={() => dropPiece(colIdx)}
+                          disabled={!!winner || isAIThinking || !!fallingPiece}
+                          whileHover={{ scale: cell ? 1 : 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className={`w-12 h-12 rounded-full border-2 transition-all duration-200 ${
+                            cell
+                              ? ""
+                              : "border-transparent hover:border-teal-400/30 hover:bg-slate-700/20 cursor-pointer"
+                          } ${!cell && !winner && !isAIThinking && !fallingPiece ? "hover:shadow-lg" : ""}`}
+                          style={{
+                            background: cell
+                              ? cell === "red"
+                                ? "linear-gradient(135deg, #f87171 0%, #dc2626 50%, #991b1b 100%)"
+                                : "linear-gradient(135deg, #fef08a 0%, #facc15 50%, #eab308 100%)"
+                              : "transparent",
+                            boxShadow: cell
+                              ? `inset 0 2px 4px rgba(255, 255, 255, 0.3), inset 0 -2px 4px rgba(0, 0, 0, 0.3), 0 4px 12px ${cell === "red" ? "rgba(239, 68, 68, 0.4)" : "rgba(250, 204, 21, 0.4)"}`
+                              : isWinningCell(rowIdx, colIdx)
+                                ? "0 0 20px 5px rgba(251, 191, 36, 0.8)"
+                                : "none",
+                            animation: isWinningCell(rowIdx, colIdx) ? "pulse 1.5s ease-in-out infinite" : "none",
+                          }}
+                        />
+                      )),
                     )}
                   </div>
                 </div>
-
-                <div className="mt-4 text-center text-sm text-gray-500">
-                  Klicke auf eine Spalte, um deinen Stein einzuwerfen
-                </div>
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
         </div>
       </main>
-      <style jsx>{`
-        ${Array.from(
-          { length: ROWS },
-          (_, row) => `
-          @keyframes fall-to-${row} {
-            from {
-              transform: translateY(0);
-            }
-            to {
-              transform: translateY(${(row + 1) * 56 + 16}px);
-            }
+
+      <style jsx global>{`
+        @keyframes pulse {
+          0%,
+          100% {
+            box-shadow: 0 0 20px 5px rgba(251, 191, 36, 0.8);
           }
-        `,
-        ).join("\n")}
+          50% {
+            box-shadow: 0 0 30px 10px rgba(251, 191, 36, 1);
+          }
+        }
       `}</style>
     </div>
   )

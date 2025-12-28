@@ -351,11 +351,11 @@ export default function PunktePage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 font-thin">
                 {players.map((player) => (
                   <div
                     key={player.id}
-                    className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-2 bg-gray-50 rounded-lg border"
+                    className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-2 bg-gray-50 rounded-lg border font-thin"
                   >
                     <div className="flex-1 w-full sm:w-auto">
                       <Input

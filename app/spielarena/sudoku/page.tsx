@@ -374,8 +374,8 @@ export default function SudokuPage() {
                 </div>
 
                 <div className="mt-4 text-center text-xs text-gray-600">
-                  <p>Klicke auf ein leeres Feld und dann auf "Tipp", um die richtige Zahl zu erhalten.</p>
-                  <p>Klicke auf "Abschließen", um deine Lösung zu überprüfen.</p>
+                  <p>Klicke auf ein leeres Feld und dann auf <strong>"Tipp"</strong>, um die richtige Zahl zu erhalten.</p>
+                  <p>Klicke auf <strong>"Abschließen"</strong>, um deine Lösung zu überprüfen.</p>
                 </div>
               </CardContent>
             </Card>

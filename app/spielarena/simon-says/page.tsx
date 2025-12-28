@@ -96,12 +96,12 @@ export default function SimonSaysPage() {
     if (!audioUnlocked) {
       unlockAudio()
     }
+    shouldInterruptRef.current = false
     setSequence([])
     setPlayerSequence([])
-    setLevel(1)
-    setGameState("idle")
     const firstSequence = [Math.floor(Math.random() * colors.length)]
     setSequence(firstSequence)
+    setLevel(1)
     setTimeout(() => showSequence(firstSequence, colors), 100)
   }
 
@@ -154,6 +154,19 @@ export default function SimonSaysPage() {
       setPlayerSequence([])
       setTimeout(() => addToSequence(), 1000)
     }
+  }
+
+  const selectDifficulty = (diff: Difficulty) => {
+    if (!audioUnlocked) {
+      unlockAudio()
+    }
+    shouldInterruptRef.current = true
+    setActiveButton(null)
+    setDifficulty(diff)
+    setSequence([])
+    setPlayerSequence([])
+    setLevel(0)
+    setGameState("idle")
   }
 
   const startGameWithDifficulty = (diff: Difficulty) => {
@@ -212,7 +225,7 @@ export default function SimonSaysPage() {
             <p className="text-center text-sm font-handwritten text-gray-600 mb-3">Wähle Schwierigkeitsgrad:</p>
             <div className="flex justify-center gap-2">
               <Button
-                onClick={() => startGameWithDifficulty("easy")}
+                onClick={() => selectDifficulty("easy")}
                 variant={difficulty === "easy" ? "default" : "outline"}
                 size="sm"
                 className={difficulty === "easy" ? "bg-red-500 hover:bg-red-600" : ""}
@@ -220,7 +233,7 @@ export default function SimonSaysPage() {
                 Einfach (4 Farben)
               </Button>
               <Button
-                onClick={() => startGameWithDifficulty("medium")}
+                onClick={() => selectDifficulty("medium")}
                 variant={difficulty === "medium" ? "default" : "outline"}
                 size="sm"
                 className={difficulty === "medium" ? "bg-red-500 hover:bg-red-600" : ""}
@@ -228,7 +241,7 @@ export default function SimonSaysPage() {
                 Mittel (6 Farben)
               </Button>
               <Button
-                onClick={() => startGameWithDifficulty("hard")}
+                onClick={() => selectDifficulty("hard")}
                 variant={difficulty === "hard" ? "default" : "outline"}
                 size="sm"
                 className={difficulty === "hard" ? "bg-red-500 hover:bg-red-600" : ""}

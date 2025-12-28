@@ -207,9 +207,16 @@ export default function PatternMatchPage() {
                     )}
                     <p className="font-body text-gray-700 mb-2">Endpunktzahl: {score}</p>
                     <p className="font-body text-gray-700 mb-4">Du hast Runde {round} erreicht!</p>
-                    <Button onClick={resetGame} className="font-handwritten">
-                      Nochmals spielen
-                    </Button>
+                    <div className="flex gap-2 justify-center">
+                      <Button onClick={resetGame}>
+                        Nochmals spielen
+                      </Button>
+                      <Link href="/spielarena">
+                        <Button variant="outline" className="bg-transparent">
+                          Beenden
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 )}
               </CardContent>

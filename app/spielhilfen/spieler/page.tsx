@@ -145,7 +145,6 @@ export default function SpielerPage() {
             {/* First Player Announcement */}
             {firstPlayer && !gameStarted && (
               <div className="bg-gradient-to-r from-green-400 to-emerald-500 text-white p-3 rounded-xl text-center">
-                <FaRegStar className="w-6 h-6 mx-auto mb-1" />
                 <p className="text-lg font-bold">{firstPlayer.name} beginnt!</p>
               </div>
             )}
