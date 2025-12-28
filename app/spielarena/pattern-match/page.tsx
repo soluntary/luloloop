@@ -213,7 +213,7 @@ export default function PatternMatchPage() {
                       </Button>
                       <Link href="/spielarena">
                         <Button variant="outline" className="bg-transparent">
-                          Beenden
+                          Zur Spielarena
                         </Button>
                       </Link>
                     </div>

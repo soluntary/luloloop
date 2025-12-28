@@ -362,11 +362,11 @@ export default function ConnectFourPage() {
               <motion.div
                 whileHover={{ rotate: 360, scale: 1.2 }}
                 transition={{ duration: 0.6 }}
-                className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-2xl"
+                className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center transform -rotate-12"
               >
                 <MdOutlineGames className="w-8 h-8 text-white" />
               </motion.div>
-              <h1 className="font-handwritten text-4xl md:text-5xl text-gray-900 drop-shadow-lg">Vier gewinnt</h1>
+              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Vier gewinnt</h1>
             </div>
           </motion.div>
 
@@ -383,9 +383,7 @@ export default function ConnectFourPage() {
               }}
               variant={!vsAI ? "default" : "outline"}
               className={`transition-all duration-300 ${
-                !vsAI
-                  ? "bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 shadow-lg scale-105"
-                  : "border-gray-300 text-gray-700 hover:border-teal-500"
+                !vsAI ? "bg-red-600 hover:bg-red-700 text-white" : "border-gray-300 text-gray-700 hover:border-red-500"
               }`}
               size="lg"
             >
@@ -399,9 +397,7 @@ export default function ConnectFourPage() {
               }}
               variant={vsAI ? "default" : "outline"}
               className={`transition-all duration-300 ${
-                vsAI
-                  ? "bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 shadow-lg scale-105"
-                  : "border-gray-300 text-gray-700 hover:border-purple-500"
+                vsAI ? "bg-red-600 hover:bg-red-700 text-white" : "border-gray-300 text-gray-700 hover:border-red-500"
               }`}
               size="lg"
             >
@@ -415,91 +411,94 @@ export default function ConnectFourPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
               >
                 <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.8, opacity: 0 }}
-                  transition={{ type: "spring", duration: 0.5 }}
+                  initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                  transition={{ type: "spring", damping: 20, stiffness: 300 }}
                 >
-                  <Card className="w-96 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
-                    <CardContent className="p-8">
-                      <h2 className="text-3xl font-handwritten text-center mb-6 text-gray-900 drop-shadow-lg">
-                        Farbwurf!
-                      </h2>
+                  <Card className="p-8 max-w-md border-2 border-blue-200 shadow-2xl bg-white">
+                    <h2 className="text-3xl font-handwritten text-center mb-2 text-gray-800">Farbwurf</h2>
+                    <p className="text-center text-gray-600 text-sm mb-6">Wähle deine Farbe!</p>
 
-                      {!playerChoice ? (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                          <p className="text-center mb-6 text-gray-700 text-lg">Wähle deine Farbe:</p>
-                          <div className="flex gap-4 justify-center">
-                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button
-                                onClick={() => handleCoinChoice("red")}
-                                className="flex-1 bg-gradient-to-br from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 shadow-lg"
-                                size="lg"
-                              >
-                                Rot
-                              </Button>
-                            </motion.div>
-                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button
-                                onClick={() => handleCoinChoice("yellow")}
-                                className="flex-1 bg-gradient-to-br from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-gray-900 shadow-lg"
-                                size="lg"
-                              >
-                                Gelb
-                              </Button>
-                            </motion.div>
-                          </div>
+                    {!playerChoice ? (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="flex gap-4 justify-center"
+                      >
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button
+                            onClick={() => handleCoinChoice("red")}
+                            className="w-28 h-28 text-lg font-bold bg-red-500 rounded-full"
+                            size="lg"
+                          />
                         </motion.div>
-                      ) : (
-                        <div className="text-center">
-                          {isFlipping ? (
-                            <div>
-                              <motion.div
-                                animate={{
-                                  rotateY: [0, 360, 720, 1080],
-                                  scale: [1, 1.2, 1, 1.2, 1],
-                                }}
-                                transition={{ duration: 1.5 }}
-                                className="w-32 h-32 mx-auto mb-4 bg-gradient-to-r from-red-500 via-yellow-400 to-red-500 rounded-full flex items-center justify-center shadow-2xl"
-                              >
-                                <div className="w-24 h-24 bg-slate-800 rounded-full"></div>
-                              </motion.div>
-                              <p className="text-lg text-gray-300">Start-Farbe wird bestimmt...</p>
-                            </div>
-                          ) : (
-                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
-                              <motion.div
-                                animate={{ rotate: [0, 10, -10, 0] }}
-                                transition={{ duration: 0.5 }}
-                                className={`w-32 h-32 mx-auto mb-4 rounded-full flex items-center justify-center shadow-2xl ${
-                                  coinResult === "red"
-                                    ? "bg-gradient-to-br from-red-500 to-red-700"
-                                    : "bg-gradient-to-br from-yellow-400 to-yellow-600"
-                                }`}
-                              >
-                                <div className="text-white text-2xl font-bold drop-shadow-lg">
-                                  {coinResult === "red" ? "ROT" : "GELB"}
-                                </div>
-                              </motion.div>
-                              <p className="text-lg mb-2 text-gray-300">
-                                <strong className={coinResult === "red" ? "text-red-400" : "text-yellow-400"}>
-                                  {coinResult === "red" ? "Rot" : "Gelb"}
-                                </strong>{" "}
-                                gezogen
-                              </p>
-                              {coinResult === playerChoice ? (
-                                <p className="text-xl font-bold text-green-400">Du fängst an!</p>
-                              ) : (
-                                <p className="text-xl font-bold text-orange-400">KI fängst an!</p>
-                              )}
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button
+                            onClick={() => handleCoinChoice("yellow")}
+                            className="w-28 h-28 text-lg font-bold rounded-full"
+                            size="lg"
+                          />
+                        </motion.div>
+                      </motion.div>
+                    ) : (
+                      <div className="text-center">
+                        {isFlipping ? (
+                          <div>
+                            <motion.div
+                              animate={{
+                                rotate: 360,
+                                scale: [1, 1.1, 1],
+                              }}
+                              transition={{
+                                rotate: { duration: 1.5, repeat: Number.POSITIVE_INFINITY, ease: "linear" },
+                                scale: { duration: 0.8, repeat: Number.POSITIVE_INFINITY },
+                              }}
+                              className="w-28 h-28 mx-auto mb-6 relative"
+                            >
+                              <div className="w-full h-full rounded-full border-8 border-gray-200"></div>
+                              <div className="absolute inset-0 w-full h-full rounded-full border-8 border-transparent border-t-blue-500 border-r-blue-500"></div>
                             </motion.div>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
+                            <p className="text-lg font-medium text-gray-700">Start-Farbe wird bestimmt...</p>
+                          </div>
+                        ) : (
+                          <motion.div
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ type: "spring", damping: 12 }}
+                          >
+                            <motion.div
+                              animate={{ y: [0, -10, 0] }}
+                              transition={{ duration: 0.6 }}
+                              className={`w-28 h-28 mx-auto mb-6 rounded-full flex items-center justify-center shadow-xl border-4 ${
+                                coinResult === "red"
+                                  ? "bg-gradient-to-br from-red-500 to-red-600 border-red-400"
+                                  : "bg-gradient-to-br from-yellow-400 to-yellow-500 border-yellow-300"
+                              }`}
+                            >
+                              <div
+                                className={`text-2xl font-bold ${coinResult === "red" ? "text-white" : "text-gray-900"}`}
+                              >
+                                {coinResult === "red" ? "ROT" : "GELB"}
+                              </div>
+                            </motion.div>
+
+                            <div className="space-y-2">
+                              <p className="text-xl font-bold text-gray-800">
+                                {coinResult === "red" ? "Rot" : "Gelb"} gezogen!
+                              </p>
+                              <p className="text-lg text-gray-600">
+                                {coinResult === playerChoice ? "🎉 Du fängst an!" : "KI fängt an!"}
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </div>
+                    )}
                   </Card>
                 </motion.div>
               </motion.div>
@@ -512,7 +511,7 @@ export default function ConnectFourPage() {
             transition={{ delay: 0.3 }}
             className="flex justify-center"
           >
-            <Card className="w-fit border-4 border-blue-600/50 shadow-2xl bg-white backdrop-blur">
+            <Card className="w-fit border-4 border-red-600/50 shadow-2xl bg-white backdrop-red">
               <CardContent className="p-6">
                 <div className="flex justify-between items-center mb-4 gap-4">
                   {!showCoinFlip && !winner && (
@@ -523,21 +522,17 @@ export default function ConnectFourPage() {
                       className="flex items-center gap-2"
                     >
                       <div
-                        className={`w-4 h-4 rounded-full ${
-                          currentPlayer === "red"
-                            ? "bg-gradient-to-br from-red-500 to-red-700 shadow-lg shadow-red-500/50"
-                            : "bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-lg shadow-yellow-400/50"
-                        } animate-pulse`}
+                        className={`w-4 h-4 rounded-full ${currentPlayer === "red" ? "bg-red-500" : "bg-yellow-300"}`}
                       />
                       <p className="text-base font-body text-gray-800">
                         {vsAI ? (
                           currentPlayer === playerColor ? (
-                            <span>Du ({playerColor === "red" ? "Rot" : "Gelb"}) bist am Zug</span>
+                            <span>Du bist am Zug</span>
                           ) : (
-                            <span>KI ({aiColor === "red" ? "Rot" : "Gelb"}) ist am Zug</span>
+                            <span>KI ist am Zug</span>
                           )
                         ) : (
-                          <span>{currentPlayer === "red" ? "Rot" : "Gelb"} ist am Zug</span>
+                          <span>ist am Zug</span>
                         )}
                       </p>
                     </motion.div>
@@ -595,22 +590,14 @@ export default function ConnectFourPage() {
                           </motion.h2>
                           <div className="flex gap-3 justify-center">
                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button
-                                onClick={initGame}
-                                size="lg"
-                                className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700"
-                              >
+                              <Button onClick={initGame} size="sm">
                                 Nochmals spielen
                               </Button>
                             </motion.div>
                             <Link href="/spielarena">
                               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                <Button
-                                  variant="outline"
-                                  size="lg"
-                                  className="border-slate-600 hover:border-teal-500 text-slate-200 bg-transparent"
-                                >
-                                  Beenden
+                                <Button variant="outline" size="sm">
+                                  Zur Spielarena
                                 </Button>
                               </motion.div>
                             </Link>
@@ -653,20 +640,17 @@ export default function ConnectFourPage() {
                     style={{
                       zIndex: 1,
                       boxShadow: "inset 0 4px 20px rgba(0, 0, 0, 0.4)",
-                      WebkitMaskImage: `
-                        ${Array(ROWS)
-                          .fill(null)
-                          .flatMap((_, rowIdx) =>
-                            Array(COLS)
-                              .fill(null)
-                              .map(
-                                (_, colIdx) =>
-                                  `radial-gradient(circle at ${16 + colIdx * 56 + 24}px ${16 + rowIdx * 56 + 24}px, transparent 22px, black 24px)`,
-                              )
-                              .join(", "),
-                          )
-                          .join(", ")}
-                      `,
+                      WebkitMaskImage: Array(ROWS)
+                        .fill(null)
+                        .flatMap((_, rowIdx) =>
+                          Array(COLS)
+                            .fill(null)
+                            .map(
+                              (_, colIdx) =>
+                                `radial-gradient(circle at ${16 + colIdx * 56 + 24}px ${16 + rowIdx * 56 + 24}px, transparent 22px, black 24px)`,
+                            ),
+                        )
+                        .join(", "),
                       WebkitMaskComposite: "source-in",
                       maskComposite: "intersect",
                     }}

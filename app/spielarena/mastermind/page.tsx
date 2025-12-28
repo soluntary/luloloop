@@ -303,7 +303,7 @@ export default function MastermindPage() {
                       <div className="flex gap-2 justify-center">
                         <Button onClick={initGame} size="sm">Nochmals spielen</Button>
                         <Link href="/spielarena">
-                          <Button variant="outline" size="sm">Beenden</Button>
+                          <Button variant="outline" size="sm">Zur Spielarena</Button>
                         </Link>
                       </div>
                     </Card>
@@ -326,7 +326,7 @@ export default function MastermindPage() {
                       <div className="flex gap-2 justify-center">
                         <Button onClick={initGame} size="sm">Nochmals spielen</Button>
                         <Link href="/spielarena">
-                          <Button variant="outline" size="sm">Beenden</Button>
+                          <Button variant="outline" size="sm">Zur Spielarena</Button>
                         </Link>
                       </div>
                     </Card>

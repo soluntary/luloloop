@@ -277,7 +277,7 @@ export default function SimonSaysPage() {
                     </Button>
                     <Link href="/spielarena">
                       <Button variant="outline" size="lg">
-                        Beenden
+                        Zur Spielarena
                       </Button>
                     </Link>
                   </div>

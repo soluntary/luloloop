@@ -218,8 +218,8 @@ export default function TicTacToePage() {
               size="lg"
               className={`transition-all duration-300 ${
                 !vsAI
-                  ? "bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 shadow-lg scale-105"
-                  : "border-gray-300 text-gray-700 hover:border-teal-500"
+                  ? "bg-green-600 hover:bg-green-700 text-white"
+                  : "border-gray-300 text-gray-700 hover:border-green-500"
               }`}
             >
               2 Spieler
@@ -233,8 +233,8 @@ export default function TicTacToePage() {
               size="lg"
               className={`transition-all duration-300 ${
                 vsAI
-                  ? "bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 shadow-lg scale-105"
-                  : "border-gray-300 text-gray-700 hover:border-purple-500"
+                  ? "bg-green-600 hover:bg-green-700 text-white"
+                  : "border-gray-300 text-gray-700 hover:border-green-500"
               }`}
             >
               Gegen KI
@@ -290,7 +290,7 @@ export default function TicTacToePage() {
                           </Button>
                           <Link href="/spielarena">
                             <Button variant="outline" size="sm">
-                              Beenden
+                              Zur Spielarena
                             </Button>
                           </Link>
                         </div>
@@ -341,62 +341,90 @@ export default function TicTacToePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
               >
                 <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.8, opacity: 0 }}
+                  initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                  transition={{ type: "spring", damping: 20, stiffness: 300 }}
                 >
-                  <Card className="p-8 max-w-md">
-                    <h2 className="text-2xl font-handwritten text-center mb-6">Wähle dein Symbol!</h2>
+                  <Card className="p-8 max-w-md border-2 border-green-200 shadow-2xl bg-white">
+                    <h2 className="text-3xl font-handwritten text-center mb-2 text-gray-800">Symbolwurf</h2>
+                    <p className="text-center text-gray-600 text-sm mb-6">Wähle dein Symbol!</p>
 
                     {!selectedSymbol ? (
-                      <div className="flex justify-center gap-4">
-                        <Button
-                          onClick={() => handleSymbolChoice("X")}
-                          size="lg"
-                          className="w-24 h-24 text-4xl bg-blue-500 hover:bg-blue-600"
-                        >
-                          X
-                        </Button>
-                        <Button
-                          onClick={() => handleSymbolChoice("O")}
-                          size="lg"
-                          className="w-24 h-24 text-4xl bg-red-500 hover:bg-red-600"
-                        >
-                          O
-                        </Button>
-                      </div>
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="flex justify-center gap-4"
+                      >
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button
+                            onClick={() => handleSymbolChoice("X")}
+                            size="lg"
+                            className="w-28 h-28 text-5xl font-bold bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg border-2 border-blue-400"
+                          >
+                            X
+                          </Button>
+                        </motion.div>
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button
+                            onClick={() => handleSymbolChoice("O")}
+                            size="lg"
+                            className="w-28 h-28 text-5xl font-bold bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg border-2 border-red-400"
+                          >
+                            O
+                          </Button>
+                        </motion.div>
+                      </motion.div>
                     ) : (
                       <div className="text-center">
                         {isDrawing ? (
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                            className="w-24 h-24 mx-auto mb-4"
-                          >
-                            <div className="w-full h-full rounded-full border-8 border-gray-200 border-t-green-500"></div>
-                          </motion.div>
+                          <div>
+                            <motion.div
+                              animate={{
+                                rotate: 360,
+                                scale: [1, 1.1, 1],
+                              }}
+                              transition={{
+                                rotate: { duration: 1.5, repeat: Number.POSITIVE_INFINITY, ease: "linear" },
+                                scale: { duration: 0.8, repeat: Number.POSITIVE_INFINITY },
+                              }}
+                              className="w-28 h-28 mx-auto mb-6 relative"
+                            >
+                              <div className="w-full h-full rounded-full border-8 border-gray-200"></div>
+                              <div className="absolute inset-0 w-full h-full rounded-full border-8 border-transparent border-t-green-500 border-r-green-500"></div>
+                            </motion.div>
+                            <p className="text-lg font-medium text-gray-700">Start-Symbol wird bestimmt...</p>
+                          </div>
                         ) : (
-                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="mb-4">
-                            <div
-                              className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center text-5xl font-bold ${
-                                drawnSymbol === "X" ? "bg-blue-500 text-white" : "bg-red-500 text-white"
+                          <motion.div
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ type: "spring", damping: 12 }}
+                          >
+                            <motion.div
+                              animate={{ y: [0, -10, 0] }}
+                              transition={{ duration: 0.6 }}
+                              className={`w-28 h-28 mx-auto mb-6 rounded-full flex items-center justify-center text-6xl font-bold shadow-xl border-4 ${
+                                drawnSymbol === "X"
+                                  ? "bg-gradient-to-br from-blue-500 to-blue-600 border-blue-400 text-white"
+                                  : "bg-gradient-to-br from-red-500 to-red-600 border-red-400 text-white"
                               }`}
                             >
                               {drawnSymbol}
+                            </motion.div>
+
+                            <div className="space-y-2">
+                              <p className="text-xl font-bold text-gray-800">{drawnSymbol} gezogen!</p>
+                              <p className="text-lg text-gray-600">
+                                {drawnSymbol === selectedSymbol ? "🎉 Du fängst an!" : "KI fängt an!"}
+                              </p>
                             </div>
                           </motion.div>
                         )}
-
-                        <p className="text-lg font-bold">
-                          {isDrawing
-                            ? "Start-Symbol wird bestimmt..."
-                            : drawnSymbol === selectedSymbol
-                              ? `${drawnSymbol} gezogen! Du fängst an!`
-                              : `${drawnSymbol} gezogen! KI fängt an!`}
-                        </p>
                       </div>
                     )}
                   </Card>

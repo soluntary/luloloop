@@ -293,7 +293,7 @@ export default function Game2048Page() {
                       Nochmals spielen
                     </Button>
                     <Button onClick={() => router.push("/spielarena")} variant="outline" className="bg-transparent">
-                      Beenden
+                      Zur Spielarena
                     </Button>
                   </div>
                 </div>

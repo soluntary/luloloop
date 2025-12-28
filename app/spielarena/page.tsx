@@ -82,7 +82,7 @@ const games = [
   {
     id: "connect-four",
     title: "Vier gewinnt",
-    description: "Bringe als Erster vier der eigenen Spielsteine in eine Linie! Auch gegen die KI spielbar.",
+    description: "Bringe als Erster vier der eigenen Spielsteine in eine Linie! Entweder diagonal, vertikal oder horizontal. Spielt dabei gegen den Computer oder gegeneinander.",
     icon: MdOutlineGames,
     color: "red",
     rotation: "rotate-1",

@@ -413,7 +413,7 @@ export default function MinesweeperPage() {
                           </Button>
                           <Link href="/spielarena">
                             <Button variant="outline" size="sm">
-                              Beenden
+                              Zur Spielarena
                             </Button>
                           </Link>
                         </div>
@@ -437,7 +437,7 @@ export default function MinesweeperPage() {
                           </Button>
                           <Link href="/spielarena">
                             <Button variant="outline" size="sm">
-                              Beenden
+                              Zur Spielarena
                             </Button>
                           </Link>
                         </div>
