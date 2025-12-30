@@ -31,10 +31,11 @@ export default function ConnectFourPage() {
   const [aiColor, setAiColor] = useState<"red" | "yellow">("yellow")
   const [winningCells, setWinningCells] = useState<{ row: number; col: number }[]>([])
   const [fallingPiece, setFallingPiece] = useState<{
+    row: number
     col: number
-    targetRow: number
     color: "red" | "yellow"
   } | null>(null)
+  const [isAnimating, setIsAnimating] = useState(false)
 
   const initGame = () => {
     setBoard(
@@ -53,6 +54,7 @@ export default function ConnectFourPage() {
     setAiColor("yellow")
     setWinningCells([])
     setFallingPiece(null) // Reset falling piece state
+    setIsAnimating(false) // Reset animation state
   }
 
   const handleCoinChoice = (choice: "red" | "yellow") => {
@@ -89,11 +91,11 @@ export default function ConnectFourPage() {
     const opponentCount = window.filter((c) => c === opponent).length
     const emptyCount = window.filter((c) => c === null).length
 
-    if (playerCount === 4) return 100
-    if (playerCount === 3 && emptyCount === 1) score += 5
-    if (playerCount === 2 && emptyCount === 2) score += 2
+    if (playerCount === 4) return 1000
+    if (playerCount === 3 && emptyCount === 1) score += 50
+    if (playerCount === 2 && emptyCount === 2) score += 10
 
-    if (opponentCount === 3 && emptyCount === 1) score -= 4
+    if (opponentCount === 3 && emptyCount === 1) score -= 80 // Must block!
 
     return score
   }
@@ -136,51 +138,104 @@ export default function ConnectFourPage() {
     return score
   }
 
-  const getAIMove = (currentBoard: Cell[][]): number => {
-    for (let col = 0; col < COLS; col++) {
-      const row = getLowestRow(currentBoard, col)
-      if (row !== -1) {
-        const testBoard = currentBoard.map((r) => [...r])
-        testBoard[row][col] = "yellow"
-        if (checkWin(testBoard, row, col)) {
-          return col
+  const minimax = (
+    currentBoard: Cell[][],
+    depth: number,
+    isMaximizing: boolean,
+    alpha: number,
+    beta: number,
+  ): number => {
+    // Check for terminal states
+    const winner = getWinnerFromBoard(currentBoard)
+    if (winner === "yellow") return 100000 - depth
+    if (winner === "red") return depth - 100000
+    if (isBoardFull(currentBoard)) return 0
+
+    // Depth limit for performance
+    if (depth >= 6) {
+      return evaluateBoard(currentBoard, "yellow") - evaluateBoard(currentBoard, "red")
+    }
+
+    if (isMaximizing) {
+      let maxScore = Number.NEGATIVE_INFINITY
+      for (let col = 0; col < COLS; col++) {
+        const row = getLowestRow(currentBoard, col)
+        if (row !== -1) {
+          const testBoard = currentBoard.map((r) => [...r])
+          testBoard[row][col] = "yellow"
+          const score = minimax(testBoard, depth + 1, false, alpha, beta)
+          maxScore = Math.max(maxScore, score)
+          alpha = Math.max(alpha, score)
+          if (beta <= alpha) break
         }
       }
-    }
-
-    for (let col = 0; col < COLS; col++) {
-      const row = getLowestRow(currentBoard, col)
-      if (row !== -1) {
-        const testBoard = currentBoard.map((r) => [...r])
-        testBoard[row][col] = "red"
-        if (checkWin(testBoard, row, col)) {
-          return col
-        }
-      }
-    }
-
-    const columnScores: { col: number; score: number }[] = []
-    for (let col = 0; col < COLS; col++) {
-      const row = getLowestRow(currentBoard, col)
-      if (row !== -1) {
-        const testBoard = currentBoard.map((r) => [...r])
-        testBoard[row][col] = "yellow"
-        const score = evaluateBoard(testBoard, "yellow")
-        columnScores.push({ col, score })
-      }
-    }
-
-    if (columnScores.length === 0) return 3
-
-    columnScores.sort((a, b) => b.score - a.score)
-
-    const random = Math.random()
-    if (random < 0.7 || columnScores.length === 1) {
-      return columnScores[0].col
+      return maxScore
     } else {
-      const topChoices = columnScores.slice(0, Math.min(3, columnScores.length))
-      return topChoices[Math.floor(Math.random() * topChoices.length)].col
+      let minScore = Number.POSITIVE_INFINITY
+      for (let col = 0; col < COLS; col++) {
+        const row = getLowestRow(currentBoard, col)
+        if (row !== -1) {
+          const testBoard = currentBoard.map((r) => [...r])
+          testBoard[row][col] = "red"
+          const score = minimax(testBoard, depth + 1, true, alpha, beta)
+          minScore = Math.min(minScore, score)
+          beta = Math.min(beta, score)
+          if (beta <= alpha) break
+        }
+      }
+      return minScore
     }
+  }
+
+  const getWinnerFromBoard = (board: Cell[][]): Cell => {
+    // Check all possible winning positions
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS - 3; col++) {
+        const cell = board[row][col]
+        if (cell && cell === board[row][col + 1] && cell === board[row][col + 2] && cell === board[row][col + 3]) {
+          return cell
+        }
+      }
+    }
+
+    for (let col = 0; col < COLS; col++) {
+      for (let row = 0; row < ROWS - 3; row++) {
+        const cell = board[row][col]
+        if (cell && cell === board[row + 1][col] && cell === board[row + 2][col] && cell === board[row + 3][col]) {
+          return cell
+        }
+      }
+    }
+
+    for (let row = 3; row < ROWS; row++) {
+      for (let col = 0; col < COLS - 3; col++) {
+        const cell = board[row][col]
+        if (
+          cell &&
+          cell === board[row - 1][col + 1] &&
+          cell === board[row - 2][col + 2] &&
+          cell === board[row - 3][col + 3]
+        ) {
+          return cell
+        }
+      }
+    }
+
+    for (let row = 0; row < ROWS - 3; row++) {
+      for (let col = 0; col < COLS - 3; col++) {
+        const cell = board[row][col]
+        if (
+          cell &&
+          cell === board[row + 1][col + 1] &&
+          cell === board[row + 2][col + 2] &&
+          cell === board[row + 3][col + 3]
+        ) {
+          return cell
+        }
+      }
+    }
+
+    return null
   }
 
   const getLowestRow = (board: Cell[][], col: number): number => {
@@ -193,7 +248,7 @@ export default function ConnectFourPage() {
   }
 
   useEffect(() => {
-    if (vsAI && !winner && !isAIThinking && !showCoinFlip && !fallingPiece) {
+    if (vsAI && !winner && !isAIThinking && !showCoinFlip && !fallingPiece && winningCells.length === 0) {
       const isAITurn = currentPlayer === aiColor
 
       console.log("[v0] Turn check:", {
@@ -201,6 +256,7 @@ export default function ConnectFourPage() {
         playerColor,
         aiColor,
         isAITurn,
+        hasWinningCells: winningCells.length > 0,
       })
 
       if (isAITurn) {
@@ -208,49 +264,48 @@ export default function ConnectFourPage() {
         setTimeout(() => {
           const aiCol = getAIMove(board)
           if (aiCol !== undefined) {
-            dropPieceInColumn(aiCol)
+            handleColumnClick(aiCol)
           }
           setIsAIThinking(false)
         }, 500)
       }
     }
-  }, [currentPlayer, vsAI, winner, isAIThinking, showCoinFlip, board, playerColor, aiColor, fallingPiece])
+  }, [currentPlayer, vsAI, winner, isAIThinking, showCoinFlip, board, playerColor, aiColor, fallingPiece, winningCells])
 
-  const dropPieceInColumn = (col: number) => {
+  const handleColumnClick = (col: number) => {
+    if (winner || isAnimating) return
+
     for (let row = ROWS - 1; row >= 0; row--) {
-      if (!board[row][col]) {
-        setFallingPiece({
-          col,
-          targetRow: row,
-          color: currentPlayer,
-        })
+      if (board[row][col] === null) {
+        setIsAnimating(true)
+        setFallingPiece({ row, col, color: currentPlayer })
 
-        const animationDuration = 300 + row * 50
-        setTimeout(() => {
-          const newBoard = board.map((r) => [...r])
-          newBoard[row][col] = currentPlayer
-          setBoard(newBoard)
-          setFallingPiece(null)
+        setTimeout(
+          () => {
+            const newBoard = board.map((r) => [...r])
+            newBoard[row][col] = currentPlayer
 
-          const winResult = checkWinWithCells(newBoard, row, col)
-          if (winResult) {
-            setWinner(currentPlayer)
-            setWinningCells(winResult)
-          } else if (isBoardFull(newBoard)) {
-            setWinner("draw")
-          } else {
-            setCurrentPlayer(currentPlayer === "red" ? "yellow" : "red")
-          }
-        }, animationDuration) // Animation duration: faster for higher rows
+            setBoard(newBoard)
+            setIsAnimating(false)
+            setFallingPiece(null)
 
+            const winResult = checkWinWithCells(newBoard, row, col)
+            if (winResult) {
+              setWinningCells(winResult)
+              setTimeout(() => {
+                setWinner(currentPlayer)
+              }, 1000)
+            } else if (isBoardFull(newBoard)) {
+              setWinner("draw")
+            } else {
+              setCurrentPlayer(currentPlayer === "red" ? "yellow" : "red")
+            }
+          },
+          Math.max(500, row * 100),
+        )
         break
       }
     }
-  }
-
-  const dropPiece = (col: number) => {
-    if (winner || isAIThinking || fallingPiece) return
-    dropPieceInColumn(col)
   }
 
   const checkWinWithCells = (board: Cell[][], row: number, col: number): { row: number; col: number }[] | null => {
@@ -344,6 +399,49 @@ export default function ConnectFourPage() {
     }
   }
 
+  const getAIMove = (currentBoard: Cell[][]): number => {
+    for (let col = 0; col < COLS; col++) {
+      const row = getLowestRow(currentBoard, col)
+      if (row !== -1) {
+        const testBoard = currentBoard.map((r) => [...r])
+        testBoard[row][col] = "yellow"
+        if (checkWin(testBoard, row, col)) {
+          return col
+        }
+      }
+    }
+
+    for (let col = 0; col < COLS; col++) {
+      const row = getLowestRow(currentBoard, col)
+      if (row !== -1) {
+        const testBoard = currentBoard.map((r) => [...r])
+        testBoard[row][col] = "red"
+        if (checkWin(testBoard, row, col)) {
+          return col
+        }
+      }
+    }
+
+    let bestScore = Number.NEGATIVE_INFINITY
+    let bestCol = 3 // Default to center
+
+    for (let col = 0; col < COLS; col++) {
+      const row = getLowestRow(currentBoard, col)
+      if (row !== -1) {
+        const testBoard = currentBoard.map((r) => [...r])
+        testBoard[row][col] = "yellow"
+        const score = minimax(testBoard, 0, false, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY)
+
+        if (score > bestScore) {
+          bestScore = score
+          bestCol = col
+        }
+      }
+    }
+
+    return bestCol
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
       <Navigation />
@@ -428,19 +526,19 @@ export default function ConnectFourPage() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="flex gap-4 justify-center"
+                        className="flex justify-center gap-4"
                       >
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                           <Button
                             onClick={() => handleCoinChoice("red")}
-                            className="w-28 h-28 text-lg font-bold bg-red-500 rounded-full"
+                            className="w-28 h-28 text-5xl font-bold bg-red-600 hover:bg-red-700 hover:shadow-2xl shadow-lg border-2 border-red-400 rounded-full transition-all duration-300"
                             size="lg"
                           />
                         </motion.div>
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                           <Button
                             onClick={() => handleCoinChoice("yellow")}
-                            className="w-28 h-28 text-lg font-bold rounded-full"
+                            className="w-28 h-28 text-5xl font-bold bg-yellow-300 hover:bg-yellow-400 hover:shadow-2xl shadow-lg border-2 border-yellow-400 rounded-full transition-all duration-300"
                             size="lg"
                           />
                         </motion.div>
@@ -474,25 +572,17 @@ export default function ConnectFourPage() {
                             <motion.div
                               animate={{ y: [0, -10, 0] }}
                               transition={{ duration: 0.6 }}
-                              className={`w-28 h-28 mx-auto mb-6 rounded-full flex items-center justify-center shadow-xl border-4 ${
-                                coinResult === "red"
-                                  ? "bg-gradient-to-br from-red-500 to-red-600 border-red-400"
-                                  : "bg-gradient-to-br from-yellow-400 to-yellow-500 border-yellow-300"
+                              className={`w-28 h-28 mx-auto mb-6 rounded-full flex items-center justify-center ${
+                                coinResult === "red" ? "bg-red-600" : "bg-yellow-300"
                               }`}
-                            >
-                              <div
-                                className={`text-2xl font-bold ${coinResult === "red" ? "text-white" : "text-gray-900"}`}
-                              >
-                                {coinResult === "red" ? "ROT" : "GELB"}
-                              </div>
-                            </motion.div>
+                            ></motion.div>
 
                             <div className="space-y-2">
                               <p className="text-xl font-bold text-gray-800">
                                 {coinResult === "red" ? "Rot" : "Gelb"} gezogen!
                               </p>
                               <p className="text-lg text-gray-600">
-                                {coinResult === playerChoice ? "🎉 Du fängst an!" : "KI fängt an!"}
+                                {coinResult === playerChoice ? "🎉 Du fängst an!" : "Ludo fängt an!"}
                               </p>
                             </div>
                           </motion.div>
@@ -522,14 +612,14 @@ export default function ConnectFourPage() {
                       className="flex items-center gap-2"
                     >
                       <div
-                        className={`w-4 h-4 rounded-full ${currentPlayer === "red" ? "bg-red-500" : "bg-yellow-300"}`}
+                        className={`w-4 h-4 rounded-full ${currentPlayer === "red" ? "bg-red-600" : "bg-yellow-300"}`}
                       />
-                      <p className="text-base font-body text-gray-800">
+                      <p className="text-base font-body text-gray-600">
                         {vsAI ? (
                           currentPlayer === playerColor ? (
                             <span>Du bist am Zug</span>
                           ) : (
-                            <span>KI ist am Zug</span>
+                            <span>Ludo ist am Zug</span>
                           )
                         ) : (
                           <span>ist am Zug</span>
@@ -578,12 +668,12 @@ export default function ConnectFourPage() {
                                   🎉 Gratulation! Du hast gewonnen!
                                 </span>
                               ) : (
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-600">
-                                  Schade! KI hat gewonnen
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-600">
+                                  Schade! Ludo hat gewonnen
                                 </span>
                               )
                             ) : (
-                              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">
+                              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
                                 {winner === "red" ? "Rot" : "Gelb"} gewinnt!
                               </span>
                             )}
@@ -624,10 +714,10 @@ export default function ConnectFourPage() {
                           boxShadow: `0 4px 20px ${fallingPiece.color === "red" ? "rgba(239, 68, 68, 0.6)" : "rgba(250, 204, 21, 0.6)"}`,
                         }}
                         animate={{
-                          y: `${(fallingPiece.targetRow + 1) * 56 + 16}px`,
+                          y: `${(fallingPiece.row + 1) * 56 + 16}px`,
                         }}
                         transition={{
-                          duration: (300 + fallingPiece.targetRow * 50) / 1000,
+                          duration: (300 + fallingPiece.row * 50) / 1000,
                           ease: [0.4, 0, 0.6, 1],
                         }}
                       />
@@ -662,7 +752,7 @@ export default function ConnectFourPage() {
                       row.map((cell, colIdx) => (
                         <motion.button
                           key={`${rowIdx}-${colIdx}`}
-                          onClick={() => dropPiece(colIdx)}
+                          onClick={() => handleColumnClick(colIdx)}
                           disabled={!!winner || isAIThinking || !!fallingPiece}
                           whileHover={{ scale: cell ? 1 : 1.05 }}
                           whileTap={{ scale: 0.95 }}

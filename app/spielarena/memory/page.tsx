@@ -176,7 +176,11 @@ export default function MemoryPage() {
                 onClick={() => setDifficulty("easy")}
                 variant={difficulty === "easy" ? "default" : "outline"}
                 size="sm"
-                className={difficulty === "easy" ? "bg-blue-500 hover:bg-blue-600" : ""}
+                className={`transition-all duration-300 ${
+                  difficulty === "easy"
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-blue-500"
+                }`}
               >
                 Einfach (16)
               </Button>
@@ -184,7 +188,11 @@ export default function MemoryPage() {
                 onClick={() => setDifficulty("medium")}
                 variant={difficulty === "medium" ? "default" : "outline"}
                 size="sm"
-                className={difficulty === "medium" ? "bg-blue-500 hover:bg-blue-600" : ""}
+                className={`transition-all duration-300 ${
+                  difficulty === "medium"
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-blue-500"
+                }`}
               >
                 Mittel (24)
               </Button>
@@ -192,7 +200,11 @@ export default function MemoryPage() {
                 onClick={() => setDifficulty("hard")}
                 variant={difficulty === "hard" ? "default" : "outline"}
                 size="sm"
-                className={difficulty === "hard" ? "bg-blue-500 hover:bg-blue-600" : ""}
+                className={`transition-all duration-300 ${
+                  difficulty === "hard"
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-blue-500"
+                }`}
               >
                 Schwer (36)
               </Button>
@@ -269,25 +281,42 @@ export default function MemoryPage() {
           <AnimatePresence>
             {gameWon && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
               >
-                <Card className="p-8 text-center">
-                  <h2 className="text-3xl font-handwritten mb-4 text-green-600">Gratuliere! 🎉</h2>
-                  <p className="mb-4">Du hast das Spiel in {moves} Zügen geschafft!</p>
-                  <div className="flex gap-2 justify-center">
-                    <Button onClick={initializeGame} size="sm">
-                      Nochmals spielen
-                    </Button>
-                    <Link href="/spielarena">
-                      <Button variant="outline" size="sm">
-                        Beenden
-                      </Button>
-                    </Link>
-                  </div>
-                </Card>
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  exit={{ scale: 0, rotate: 180 }}
+                  transition={{ type: "spring", duration: 0.7 }}
+                >
+                  <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                    <motion.h2
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
+                      className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg"
+                    >
+                      Gratuliere! 🎉
+                    </motion.h2>
+                    <p className="mb-6 text-gray-700">Du hast das Spiel in {moves} Zügen geschafft!</p>
+                    <div className="flex gap-3 justify-center">
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button onClick={initializeGame} size="sm">
+                          Nochmals spielen
+                        </Button>
+                      </motion.div>
+                      <Link href="/spielarena">
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button variant="outline" size="sm">
+                            Beenden
+                          </Button>
+                        </motion.div>
+                      </Link>
+                    </div>
+                  </Card>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>

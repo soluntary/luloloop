@@ -105,7 +105,11 @@ export default function SlidingPuzzlePage() {
                 onClick={() => initializeBoard("easy")}
                 variant={difficulty === "easy" ? "default" : "outline"}
                 size="sm"
-                className={difficulty === "easy" ? "bg-teal-500 hover:bg-teal-600" : ""}
+                className={`transition-all duration-300 ${
+                  difficulty === "easy"
+                    ? "bg-teal-600 hover:bg-teal-700 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-teal-500"
+                }`}
               >
                 Einfach (3x3)
               </Button>
@@ -113,7 +117,11 @@ export default function SlidingPuzzlePage() {
                 onClick={() => initializeBoard("medium")}
                 variant={difficulty === "medium" ? "default" : "outline"}
                 size="sm"
-                className={difficulty === "medium" ? "bg-teal-500 hover:bg-teal-600" : ""}
+                className={`transition-all duration-300 ${
+                  difficulty === "medium"
+                    ? "bg-teal-600 hover:bg-teal-700 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-teal-500"
+                }`}
               >
                 Mittel (4x4)
               </Button>
@@ -121,7 +129,11 @@ export default function SlidingPuzzlePage() {
                 onClick={() => initializeBoard("hard")}
                 variant={difficulty === "hard" ? "default" : "outline"}
                 size="sm"
-                className={difficulty === "hard" ? "bg-teal-500 hover:bg-teal-600" : ""}
+                className={`transition-all duration-300 ${
+                  difficulty === "hard"
+                    ? "bg-teal-600 hover:bg-teal-700 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-teal-500"
+                }`}
               >
                 Schwer (5x5)
               </Button>
@@ -171,21 +183,43 @@ export default function SlidingPuzzlePage() {
           </div>
 
           {solved && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-8">
-              <Card className="p-6 text-center bg-green-50">
-                <h2 className="text-2xl font-handwritten mb-4 text-green-600">Geschafft! 🎉</h2>
-                <p className="mb-4">Du hast das Puzzle in {moves} Zügen gelöst!</p>
-                <div className="flex gap-2 justify-center">
-                  <Button onClick={() => initializeBoard()} size="sm">
-                    Nochmals spielen
-                  </Button>
-                  <Link href="/spielarena">
-                    <Button variant="outline" size="sm">
-                      Zur Spielarena
-                    </Button>
-                  </Link>
-                </div>
-              </Card>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0, rotate: 180 }}
+                transition={{ type: "spring", duration: 0.7 }}
+              >
+                <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                  <motion.h2
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
+                    className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg"
+                  >
+                    Geschafft! 🎉
+                  </motion.h2>
+                  <p className="mb-6 text-gray-700">Du hast das Puzzle in {moves} Zügen gelöst!</p>
+                  <div className="flex gap-3 justify-center">
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button onClick={() => initializeBoard()} size="sm">
+                        Nochmals spielen
+                      </Button>
+                    </motion.div>
+                    <Link href="/spielarena">
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button variant="outline" size="sm">
+                          Zur Spielarena
+                        </Button>
+                      </motion.div>
+                    </Link>
+                  </div>
+                </Card>
+              </motion.div>
             </motion.div>
           )}
 

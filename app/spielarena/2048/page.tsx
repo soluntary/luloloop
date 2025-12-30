@@ -6,8 +6,12 @@ import { Navigation } from "@/components/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FaArrowLeft, FaRedo } from "react-icons/fa"
+import { FaListOl } from "react-icons/fa"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { save2048Score, get2048Leaderboard } from "@/lib/leaderboard-client-actions"
+import { LeaderboardDisplay } from "@/components/leaderboard-display"
+import type { Game2048Score } from "@/lib/leaderboard-types"
 
 type Board = number[][]
 
@@ -30,6 +34,8 @@ const getTileColor = (value: number) => {
 
 export default function Game2048Page() {
   const [showIntro, setShowIntro] = useState(true)
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
+  const [leaderboard, setLeaderboard] = useState<Game2048Score[]>([])
   const [board, setBoard] = useState<Board>([])
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
@@ -119,6 +125,7 @@ export default function Game2048Page() {
       if (!checkMovesAvailable(newBoard)) {
         setNoMovesAvailable(true)
         setGameOver(true)
+        handleGameOver()
       }
     }
   }
@@ -137,8 +144,29 @@ export default function Game2048Page() {
   useEffect(() => {
     if (!showIntro) {
       setBoard(initializeBoard())
+      loadLeaderboard()
     }
   }, [showIntro])
+
+  const loadLeaderboard = async () => {
+    const data = await get2048Leaderboard()
+    setLeaderboard(data)
+  }
+
+  const handleGameOver = async () => {
+    console.log("[v0] Game over! Saving score:", score)
+    try {
+      const result = await save2048Score(score)
+      if (result && !result.success) {
+        console.log("[v0] Score not saved:", result.message)
+      } else {
+        console.log("[v0] Score saved successfully!")
+      }
+      await loadLeaderboard()
+    } catch (error) {
+      console.error("[v0] Error saving score:", error)
+    }
+  }
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -163,6 +191,13 @@ export default function Game2048Page() {
     setGameOver(false)
     setNoMovesAvailable(false)
   }
+
+  const leaderboardEntries = leaderboard.map((score, index) => ({
+    rank: index + 1,
+    username: score.username,
+    displayValue: `${score.score} Punkte`,
+    date: new Date(score.created_at).toLocaleDateString("de-DE"),
+  }))
 
   if (showIntro) {
     return (
@@ -237,7 +272,7 @@ export default function Game2048Page() {
                       </p>
                     </div>
 
-                    <div className="flex justify-center pt-4">
+                    <div className="flex justify-center pt-4 gap-5">
                       <Button
                         onClick={() => setShowIntro(false)}
                         size="lg"
@@ -245,11 +280,54 @@ export default function Game2048Page() {
                       >
                         Spiel starten
                       </Button>
+                      <Button
+                        onClick={() => {
+                          setShowIntro(false)
+                          setShowLeaderboard(true)
+                        }}
+                        variant="outline"
+                        size="lg"
+                        className="gap-2"
+                      >
+                        <FaListOl /> Rangliste
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (showLeaderboard) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 to-white">
+        <Navigation />
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <button
+              onClick={() => setShowLeaderboard(false)}
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+            >
+              <FaArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Zurück zum Spiel</span>
+            </button>
+
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <FaListOl className="w-16 h-16 text-purple-500" />
+                <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800">Rangliste</h1>
+              </div>
+            </div>
+
+            <LeaderboardDisplay
+              title="2048 Bestenliste"
+              entries={leaderboardEntries}
+              columns={[{ label: "Punkte", key: "displayValue" }]}
+            />
           </div>
         </main>
       </div>
@@ -283,22 +361,42 @@ export default function Game2048Page() {
           </div>
 
           {noMovesAvailable && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <Card className="p-6 bg-white max-w-sm mx-4">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-red-600 mb-2">Keine Züge mehr möglich!</p>
-                  <p className="text-sm text-gray-600 mb-6">Endpunktzahl: {score}</p>
-                  <div className="flex gap-2 justify-center">
-                    <Button onClick={resetGame} className="bg-purple-500 hover:bg-purple-600">
-                      Nochmals spielen
-                    </Button>
-                    <Button onClick={() => router.push("/spielarena")} variant="outline" className="bg-transparent">
-                      Zur Spielarena
-                    </Button>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0, rotate: 180 }}
+                transition={{ type: "spring", duration: 0.7 }}
+              >
+                <Card className="p-8 text-center mx-4 border-2 border-red-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                  <motion.h2
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
+                    className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-600 drop-shadow-lg"
+                  >
+                    Keine Züge mehr möglich!
+                  </motion.h2>
+                  <p className="text-gray-700 mb-6">Endpunktzahl: {score}</p>
+                  <div className="flex gap-3 justify-center">
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button onClick={resetGame} className="bg-purple-500 hover:bg-purple-600">
+                        Nochmals spielen
+                      </Button>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button onClick={() => router.push("/spielarena")} variant="outline" className="bg-transparent">
+                        Zur Spielarena
+                      </Button>
+                    </motion.div>
                   </div>
-                </div>
-              </Card>
-            </div>
+                </Card>
+              </motion.div>
+            </motion.div>
           )}
 
           <div className="relative">

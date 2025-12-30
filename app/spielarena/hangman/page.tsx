@@ -272,26 +272,54 @@ export default function HangmanPage() {
                 )}
 
                 {gameOver && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <Card className="border-4 border-amber-300 shadow-2xl w-full max-w-md mx-4">
-                      <CardContent className="p-8 text-center">
-                        <p className={`font-handwritten text-2xl mb-4 ${won ? "text-green-600" : "text-red-600"}`}>
-                          {won ? "🎉 Gratuliere! Du hast das Wort erraten!" : "Leider hast du das Wort nicht erraten!"}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                  >
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0, rotate: 180 }}
+                      transition={{ type: "spring", duration: 0.7 }}
+                    >
+                      <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                        <motion.h2
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
+                          className="text-3xl font-handwritten mb-4 text-gray-900 drop-shadow-lg"
+                        >
+                          {won ? (
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
+                              🎉 Gratuliere! Du hast das Wort erraten!
+                            </span>
+                          ) : (
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-600">
+                              Leider hast du das Wort nicht erraten!
+                            </span>
+                          )}
+                        </motion.h2>
+                        <p className="font-body text-gray-700 mb-4">
+                          Das Wort war: <strong>{word}</strong>
                         </p>
-                        <p className="font-body text-gray-700 mb-4">Das Wort war: {word}</p>
-                        <div className="flex gap-2 justify-center">
-                          <Button onClick={startNewGame} size="sm">
-                            Nochmals spielen
-                          </Button>
-                          <Link href="/spielarena">
-                            <Button variant="outline" size="sm" className="bg-transparent">
-                              Beenden
+                        <div className="flex gap-3 justify-center">
+                          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            <Button onClick={startNewGame} size="sm">
+                              Nochmals spielen
                             </Button>
+                          </motion.div>
+                          <Link href="/spielarena">
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                              <Button variant="outline" size="sm" className="bg-transparent">
+                                Beenden
+                              </Button>
+                            </motion.div>
                           </Link>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                      </Card>
+                    </motion.div>
+                  </motion.div>
                 )}
               </CardContent>
             </Card>

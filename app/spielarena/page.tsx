@@ -27,7 +27,7 @@ const games = [
     id: "tic-tac-toe",
     title: "Tic-Tac-Toe",
     description:
-      "Das beliebte Strategiespiel für zwei Spieler. Wer schafft drei in einer Reihe? Auch gegen die KI spielbar.",
+      "Das beliebte Zweipersonen-Strategiespiel. Wer schafft drei in einer Reihe, Spalte oder Diagonalen? Spielt dabei gegen den Computer oder gegeneinander.",
     icon: GiTicTacToe,
     color: "green",
     rotation: "-rotate-1",

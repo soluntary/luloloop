@@ -5,9 +5,13 @@ import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FaArrowLeft, FaRedo, FaCheckCircle } from "react-icons/fa"
+import { FaArrowLeft, FaRedo, FaCheckCircle, FaClock, FaTrophy } from "react-icons/fa"
 import { FaPuzzlePiece } from "react-icons/fa"
+import { FaListOl } from "react-icons/fa"
 import Link from "next/link"
+import { saveMastermindScore, getMastermindLeaderboard } from "@/lib/leaderboard-client-actions"
+import { LeaderboardDisplay } from "@/components/leaderboard-display"
+import type { MastermindScore } from "@/lib/leaderboard-types"
 
 const COLORS = ["red", "blue", "green", "yellow", "purple", "orange", "pink", "cyan"]
 const CODE_LENGTH = 4
@@ -21,12 +25,27 @@ type Guess = {
 
 export default function MastermindPage() {
   const [showIntro, setShowIntro] = useState(true)
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
+  const [leaderboard, setLeaderboard] = useState<MastermindScore[]>([])
+  const [startTime, setStartTime] = useState<number>(0)
+  const [timer, setTimer] = useState(0)
+  const [isTimerRunning, setIsTimerRunning] = useState(false)
   const [secretCode, setSecretCode] = useState<string[]>([])
   const [currentGuess, setCurrentGuess] = useState<string[]>(Array(CODE_LENGTH).fill(""))
   const [guesses, setGuesses] = useState<Guess[]>([])
   const [gameWon, setGameWon] = useState(false)
   const [gameLost, setGameLost] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(0)
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (isTimerRunning && !gameWon && !gameLost) {
+      interval = setInterval(() => {
+        setTimer(Math.floor((Date.now() - startTime) / 1000))
+      }, 1000)
+    }
+    return () => clearInterval(interval)
+  }, [isTimerRunning, gameWon, gameLost, startTime])
 
   const initGame = () => {
     const code = Array(CODE_LENGTH)
@@ -38,15 +57,41 @@ export default function MastermindPage() {
     setGameWon(false)
     setGameLost(false)
     setSelectedSlot(0)
+    setStartTime(Date.now())
+    setTimer(0)
+    setIsTimerRunning(true)
   }
 
   useEffect(() => {
     if (!showIntro) {
       initGame()
+      loadLeaderboard()
     }
   }, [showIntro])
 
-  const checkGuess = () => {
+  const loadLeaderboard = async () => {
+    console.log("[v0] Loading leaderboard...")
+    const data = await getMastermindLeaderboard()
+    console.log("[v0] Leaderboard loaded, entries:", data.length)
+    setLeaderboard(data)
+  }
+
+  const handleGameWon = async () => {
+    setIsTimerRunning(false)
+    const timeElapsed = Math.floor((Date.now() - startTime) / 1000)
+    setTimer(timeElapsed)
+    try {
+      const result = await saveMastermindScore(guesses.length, timeElapsed)
+      if (result && !result.success) {
+        console.log("[v0] Score not saved:", result.message)
+      }
+      await loadLeaderboard()
+    } catch (error) {
+      console.error("[v0] Error saving score:", error)
+    }
+  }
+
+  const checkGuess = async () => {
     if (currentGuess.some((c) => !c)) return
 
     let exactMatches = 0
@@ -85,6 +130,7 @@ export default function MastermindPage() {
 
     if (exactMatches === CODE_LENGTH) {
       setGameWon(true)
+      await handleGameWon()
     } else if (newGuesses.length >= MAX_ATTEMPTS) {
       setGameLost(true)
     } else {
@@ -93,10 +139,16 @@ export default function MastermindPage() {
     }
   }
 
-  const selectColor = (color: string) => {
+  const handleColorSelect = (color: string) => {
     const newGuess = [...currentGuess]
     newGuess[selectedSlot] = color
     setCurrentGuess(newGuess)
+    if (selectedSlot === 0) {
+      if (!isTimerRunning) {
+        setStartTime(Date.now())
+        setIsTimerRunning(true)
+      }
+    }
     if (selectedSlot < CODE_LENGTH - 1) {
       setSelectedSlot(selectedSlot + 1)
     }
@@ -116,9 +168,15 @@ export default function MastermindPage() {
     return colorMap[color] || "bg-gray-300"
   }
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+  }
+
   if (showIntro) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-violet-50 to-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-indigo-50 to-white">
         <Navigation />
         <main className="flex-1 container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
@@ -135,7 +193,7 @@ export default function MastermindPage() {
                 <motion.div
                   whileHover={{ rotate: 360, scale: 1.1 }}
                   transition={{ duration: 0.6 }}
-                  className="w-16 h-16 bg-violet-500 rounded-full flex items-center justify-center transform -rotate-12"
+                  className="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center transform -rotate-12"
                 >
                   <FaPuzzlePiece className="w-8 h-8 text-white" />
                 </motion.div>
@@ -144,8 +202,8 @@ export default function MastermindPage() {
             </div>
 
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-violet-100 to-purple-100 rounded-3xl transform rotate-1 -z-10"></div>
-              <Card className="border-4 border-violet-300 shadow-2xl transform -rotate-1">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl transform rotate-1 -z-10"></div>
+              <Card className="border-4 border-indigo-300 shadow-2xl transform -rotate-1">
                 <CardContent className="p-8">
                   <div className="space-y-6">
                     <div>
@@ -176,13 +234,24 @@ export default function MastermindPage() {
                       </div>
                     </div>
 
-                    <div className="flex justify-center pt-4">
+                    <div className="flex justify-center gap-3 pt-4">
                       <Button
                         onClick={() => setShowIntro(false)}
                         size="lg"
-                        className="bg-violet-500 hover:bg-violet-600"
+                        className="bg-indigo-500 hover:bg-indigo-600"
                       >
                         Spiel starten
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setShowIntro(false)
+                          setShowLeaderboard(true)
+                        }}
+                        variant="outline"
+                        size="lg"
+                        className="gap-2"
+                      >
+                        <FaListOl /> Rangliste
                       </Button>
                     </div>
                   </div>
@@ -195,11 +264,54 @@ export default function MastermindPage() {
     )
   }
 
+  if (showLeaderboard) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-indigo-50 to-white">
+        <Navigation />
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <button
+              onClick={() => setShowLeaderboard(false)}
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+            >
+              <FaArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Zurück zum Spiel</span>
+            </button>
+
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <FaListOl className="w-16 h-16 text-indigo-500" />
+                <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800">Rangliste</h1>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <LeaderboardDisplay
+                title="Mastermind Bestenliste"
+                entries={leaderboard.map((score, index) => ({
+                  rank: index + 1,
+                  username: score.username,
+                  displayValue: `${score.attempts} Versuche • ${Math.floor(score.time_seconds / 60)}:${(score.time_seconds % 60).toString().padStart(2, "0")}`,
+                  date: new Date(score.created_at).toLocaleDateString("de-DE", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "2-digit",
+                  }),
+                }))}
+                columns={[{ label: "Versuche & Zeit", key: "displayValue" }]}
+              />
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-violet-50 to-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-indigo-50 to-white">
       <Navigation />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-2xl mx-auto">
           <Link
             href="/spielarena"
             className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
@@ -213,7 +325,7 @@ export default function MastermindPage() {
               <motion.div
                 whileHover={{ rotate: 360, scale: 1.1 }}
                 transition={{ duration: 0.6 }}
-                className="w-16 h-16 bg-violet-500 rounded-full flex items-center justify-center transform -rotate-12"
+                className="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center transform -rotate-12"
               >
                 <FaPuzzlePiece className="w-8 h-8 text-white" />
               </motion.div>
@@ -222,16 +334,33 @@ export default function MastermindPage() {
           </div>
 
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-100 to-purple-100 rounded-3xl transform rotate-1 -z-10"></div>
-            <Card className="border-4 border-violet-300 shadow-2xl transform -rotate-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl transform rotate-1 -z-10"></div>
+            <Card className="border-4 border-indigo-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-2">
+                    <FaClock className="text-blue-500" />
+                    <span className="font-bold text-gray-600 text-sm">{formatTime(timer)}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setShowLeaderboard(true)}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 bg-transparent"
+                    >
+                      <FaTrophy /> Rangliste
+                    </Button>
+                    <Button onClick={initGame} variant="outline" size="sm" className="gap-2 bg-transparent">
+                      <FaRedo /> Zurücksetzen
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="flex justify-between items-center mb-6">
                   <p className="text-gray-600 font-body">
                     Rateversuche: {guesses.length}/{MAX_ATTEMPTS}
                   </p>
-                  <Button onClick={initGame} variant="outline" size="sm" className="gap-2 bg-transparent">
-                    <FaRedo /> Zurücksetzen
-                  </Button>
                 </div>
 
                 <div className="space-y-4 mb-6">
@@ -267,7 +396,7 @@ export default function MastermindPage() {
                           key={i}
                           onClick={() => setSelectedSlot(i)}
                           className={`w-14 h-14 rounded-full ${color ? getColorClass(color) : "bg-gray-200"} border-4 ${
-                            selectedSlot === i ? "border-violet-500" : "border-gray-300"
+                            selectedSlot === i ? "border-indigo-500" : "border-gray-300"
                           } transition-all`}
                         ></button>
                       ))}
@@ -277,7 +406,7 @@ export default function MastermindPage() {
                       {COLORS.map((color) => (
                         <button
                           key={color}
-                          onClick={() => selectColor(color)}
+                          onClick={() => handleColorSelect(color)}
                           className={`w-10 h-10 rounded-full ${getColorClass(color)} border-2 border-gray-400 hover:scale-110 transition-transform`}
                         ></button>
                       ))}
@@ -287,7 +416,7 @@ export default function MastermindPage() {
                       <Button
                         onClick={checkGuess}
                         disabled={currentGuess.some((c) => !c)}
-                        className="bg-violet-500 hover:bg-violet-600"
+                        className="bg-indigo-500 hover:bg-indigo-600"
                       >
                         Prüfen
                       </Button>
@@ -296,41 +425,96 @@ export default function MastermindPage() {
                 )}
 
                 {gameWon && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <Card className="p-8 text-center mx-4">
-                      <h2 className="text-2xl font-handwritten text-green-600 mb-4">Gratuliere! 🎉</h2>
-                      <p className="mb-4">Du hast den Code in {guesses.length} Rateversuchen geknackt!</p>
-                      <div className="flex gap-2 justify-center">
-                        <Button onClick={initGame} size="sm">Nochmals spielen</Button>
-                        <Link href="/spielarena">
-                          <Button variant="outline" size="sm">Zur Spielarena</Button>
-                        </Link>
-                      </div>
-                    </Card>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                  >
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0, rotate: 180 }}
+                      transition={{ type: "spring", duration: 0.7 }}
+                    >
+                      <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                        <motion.h2
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
+                          className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg"
+                        >
+                          Gratuliere! 🎉
+                        </motion.h2>
+                        <p className="mb-4 text-gray-700">
+                          Du hast den Code in {guesses.length} Rateversuchen geknackt!
+                        </p>
+                        <p className="mb-4 text-gray-600 text-sm">Zeit: {formatTime(timer)}</p>
+                        <div className="flex gap-3 justify-center">
+                          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            <Button onClick={initGame} size="sm">
+                              Nochmals spielen
+                            </Button>
+                          </motion.div>
+                          <Link href="/spielarena">
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                              <Button variant="outline" size="sm">
+                                Zur Spielarena
+                              </Button>
+                            </motion.div>
+                          </Link>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  </motion.div>
                 )}
 
                 {gameLost && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <Card className="p-8 text-center mx-4">
-                      <h2 className="text-2xl font-handwritten text-red-600 mb-4">Game Over!</h2>
-                      <p className="mb-2">Gesucht war der Farbcode:</p>
-                      <div className="flex justify-center gap-2 mb-4">
-                        {secretCode.map((color, i) => (
-                          <div
-                            key={i}
-                            className={`w-10 h-10 rounded-full ${getColorClass(color)} border-2 border-gray-300`}
-                          ></div>
-                        ))}
-                      </div>
-                      <div className="flex gap-2 justify-center">
-                        <Button onClick={initGame} size="sm">Nochmals spielen</Button>
-                        <Link href="/spielarena">
-                          <Button variant="outline" size="sm">Zur Spielarena</Button>
-                        </Link>
-                      </div>
-                    </Card>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                  >
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0, rotate: 180 }}
+                      transition={{ type: "spring", duration: 0.7 }}
+                    >
+                      <Card className="p-8 text-center mx-4 border-2 border-red-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                        <motion.h2
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
+                          className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-600 drop-shadow-lg"
+                        >
+                          Game Over!
+                        </motion.h2>
+                        <p className="mb-2 text-gray-700">Gesucht war der Farbcode:</p>
+                        <div className="flex justify-center gap-2 mb-4">
+                          {secretCode.map((color, i) => (
+                            <div
+                              key={i}
+                              className={`w-10 h-10 rounded-full ${getColorClass(color)} border-2 border-gray-300`}
+                            ></div>
+                          ))}
+                        </div>
+                        <div className="flex gap-3 justify-center">
+                          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            <Button onClick={initGame} size="sm">
+                              Nochmals spielen
+                            </Button>
+                          </motion.div>
+                          <Link href="/spielarena">
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                              <Button variant="outline" size="sm">
+                                Zur Spielarena
+                              </Button>
+                            </motion.div>
+                          </Link>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  </motion.div>
                 )}
 
                 <div className="mt-6 text-sm text-gray-600 text-center space-y-2">

@@ -6,8 +6,11 @@ import { Navigation } from "@/components/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FaArrowLeft, FaRedo, FaLightbulb } from "react-icons/fa"
+import { FaListOl } from "react-icons/fa"
 import { AiOutlineBulb } from "react-icons/ai"
 import Link from "next/link"
+import { saveLightsOutScore, getLightsOutLeaderboard, type LightsOutScore } from "@/lib/leaderboard-actions"
+import { LeaderboardDisplay } from "@/components/leaderboard-display"
 
 const GRID_SIZE = 5
 
@@ -19,6 +22,9 @@ export default function LightsOutPage() {
   const [gameWon, setGameWon] = useState(false)
   const [showHint, setShowHint] = useState(false)
   const [hintCell, setHintCell] = useState<{ row: number; col: number } | null>(null)
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium")
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
+  const [leaderboard, setLeaderboard] = useState<LightsOutScore[]>([])
 
   const solveLightsOut = (grid: boolean[][]): { row: number; col: number }[] => {
     const n = GRID_SIZE * GRID_SIZE
@@ -127,13 +133,31 @@ export default function LightsOutPage() {
 
   useEffect(() => {
     initGame()
-  }, [])
+    loadLeaderboard()
+  }, [difficulty])
 
   useEffect(() => {
     if (lights.length > 0 && lights.every((row) => row.every((light) => !light))) {
       setGameWon(true)
+      saveScore()
     }
   }, [lights])
+
+  const loadLeaderboard = async () => {
+    const scores = await getLightsOutLeaderboard(difficulty)
+    setLeaderboard(scores)
+  }
+
+  const saveScore = async () => {
+    const success = await saveLightsOutScore({
+      difficulty,
+      moves,
+      hintsUsed,
+    })
+    if (success) {
+      await loadLeaderboard()
+    }
+  }
 
   const toggleLight = (row: number, col: number) => {
     if (gameWon) return
@@ -274,85 +298,192 @@ export default function LightsOutPage() {
             </div>
           </div>
 
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-100 to-yellow-100 rounded-3xl transform rotate-1 -z-10"></div>
-            <Card className="border-4 border-amber-300 shadow-2xl transform -rotate-1">
-              <CardContent className="p-8">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <p className="text-gray-600 font-body">Züge: {moves}</p>
-                    <p className="text-xs text-gray-500">Tipps verwendet: {hintsUsed}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={getHint}
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 bg-transparent"
-                      disabled={gameWon}
-                    >
-                      <AiOutlineBulb /> Tipp
-                    </Button>
-                    <Button onClick={initGame} variant="outline" size="sm" className="gap-2 bg-transparent">
-                      <FaRedo /> Zurücksetzen
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex justify-center mb-6">
-                  <div className="inline-grid grid-cols-5 gap-2 bg-gray-800 p-4 rounded-lg">
-                    {lights.map((row, i) =>
-                      row.map((light, j) => (
-                        <motion.button
-                          key={`${i}-${j}`}
-                          onClick={() => toggleLight(i, j)}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          className={`w-16 h-16 rounded-lg transition-all relative ${
-                            light ? "bg-yellow-400 shadow-lg shadow-yellow-500/50" : "bg-gray-600"
-                          } ${
-                            showHint && hintCell?.row === i && hintCell?.col === j
-                              ? "ring-4 ring-green-400 animate-pulse"
-                              : ""
-                          }`}
-                        >
-                          {light && <FaLightbulb className="w-8 h-8 text-gray-800 mx-auto" />}
-                        </motion.button>
-                      )),
-                    )}
-                  </div>
-                </div>
-
-                {gameWon && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <Card className="p-8 text-center mx-4">
-                      <h2 className="text-2xl font-handwritten text-green-600 mb-4">Gratuliere! 🎉</h2>
-                      <p className="mb-4">
-                        Du hast alle Lichter in <strong>{moves} Zügen</strong> ausgeschaltet und{" "}
-                        <strong>{hintsUsed} Tipps</strong> gebraucht!
-                      </p>
-                      <div className="flex gap-2 justify-center">
-                        <Button onClick={initGame} size="sm">Nochmals spielen</Button>
-                        <Link href="/spielarena">
-                          <Button variant="outline" size="sm">Beenden</Button>
-                        </Link>
-                      </div>
-                    </Card>
-                  </div>
-                )}
-
-                <div className="mt-6 text-sm text-gray-600 text-center">
-                  <p>
-                    Jeder Klick schaltet das ausgewählte Licht sowie horizontal und vertikal direkt angrenzende Lichter
-                    um.
-                  </p>
-                  <p>
-                    <strong>Ziel:</strong> Alle Lichter ausschalten!
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="flex justify-center gap-2 mb-6">
+            <Button
+              onClick={() => setShowLeaderboard(false)}
+              variant={!showLeaderboard ? "default" : "outline"}
+              size="sm"
+              className={!showLeaderboard ? "bg-amber-600" : ""}
+            >
+              Spiel
+            </Button>
+            <Button
+              onClick={() => setShowLeaderboard(true)}
+              variant={showLeaderboard ? "default" : "outline"}
+              size="sm"
+              className={showLeaderboard ? "bg-amber-600" : ""}
+            >
+              <FaListOl className="w-4 h-4 mr-2" />
+              Rangliste
+            </Button>
           </div>
+
+          {!showLeaderboard && (
+            <div className="mb-6">
+              <p className="text-center text-sm font-handwritten text-gray-600 mb-3">Wähle Schwierigkeitsgrad:</p>
+              <div className="flex justify-center gap-2">
+                <Button
+                  onClick={() => setDifficulty("easy")}
+                  variant={difficulty === "easy" ? "default" : "outline"}
+                  size="sm"
+                  className={`transition-all duration-300 ${
+                    difficulty === "easy"
+                      ? "bg-amber-600 hover:bg-amber-700 text-white"
+                      : "border-gray-300 text-gray-700 hover:border-amber-500"
+                  }`}
+                >
+                  Einfach
+                </Button>
+                <Button
+                  onClick={() => setDifficulty("medium")}
+                  variant={difficulty === "medium" ? "default" : "outline"}
+                  size="sm"
+                  className={`transition-all duration-300 ${
+                    difficulty === "medium"
+                      ? "bg-amber-600 hover:bg-amber-700 text-white"
+                      : "border-gray-300 text-gray-700 hover:border-amber-500"
+                  }`}
+                >
+                  Mittel
+                </Button>
+                <Button
+                  onClick={() => setDifficulty("hard")}
+                  variant={difficulty === "hard" ? "default" : "outline"}
+                  size="sm"
+                  className={`transition-all duration-300 ${
+                    difficulty === "hard"
+                      ? "bg-amber-600 hover:bg-amber-700 text-white"
+                      : "border-gray-300 text-gray-700 hover:border-amber-500"
+                  }`}
+                >
+                  Schwer
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {showLeaderboard ? (
+            <LeaderboardDisplay
+              title={`Lights Out Rangliste - ${difficulty === "easy" ? "Einfach" : difficulty === "medium" ? "Mittel" : "Schwer"}`}
+              entries={leaderboard.map((score, index) => ({
+                rank: index + 1,
+                username: score.username,
+                displayValue: `${score.moves} Züge, ${score.hints_used} Tipps`,
+                date: new Date(score.created_at).toLocaleDateString("de-DE", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "2-digit",
+                }),
+              }))}
+              columns={["Platz", "Benutzername", "Züge/Tipps", "Datum"]}
+            />
+          ) : (
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-100 to-yellow-100 rounded-3xl transform rotate-1 -z-10"></div>
+              <Card className="border-4 border-amber-300 shadow-2xl transform -rotate-1">
+                <CardContent className="p-8">
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <p className="text-gray-600 font-body">Züge: {moves}</p>
+                      <p className="text-xs text-gray-500">Tipps verwendet: {hintsUsed}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={getHint}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 bg-transparent"
+                        disabled={gameWon}
+                      >
+                        <AiOutlineBulb /> Tipp
+                      </Button>
+                      <Button onClick={initGame} variant="outline" size="sm" className="gap-2 bg-transparent">
+                        <FaRedo /> Zurücksetzen
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center mb-6">
+                    <div className="inline-grid grid-cols-5 gap-2 bg-gray-800 p-4 rounded-lg">
+                      {lights.map((row, i) =>
+                        row.map((light, j) => (
+                          <motion.button
+                            key={`${i}-${j}`}
+                            onClick={() => toggleLight(i, j)}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className={`w-16 h-16 rounded-lg transition-all relative ${
+                              light ? "bg-yellow-400 shadow-lg shadow-yellow-500/50" : "bg-gray-600"
+                            } ${
+                              showHint && hintCell?.row === i && hintCell?.col === j
+                                ? "ring-4 ring-green-400 animate-pulse"
+                                : ""
+                            }`}
+                          >
+                            {light && <FaLightbulb className="w-8 h-8 text-gray-800 mx-auto" />}
+                          </motion.button>
+                        )),
+                      )}
+                    </div>
+                  </div>
+
+                  {gameWon && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                    >
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0, rotate: 180 }}
+                        transition={{ type: "spring", duration: 0.7 }}
+                      >
+                        <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                          <motion.h2
+                            animate={{ scale: [1, 1.1, 1] }}
+                            transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
+                            className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg"
+                          >
+                            Gratuliere! 🎉
+                          </motion.h2>
+                          <p className="mb-4 text-gray-700">
+                            Du hast alle Lichter in <strong>{moves} Zügen</strong> ausgeschaltet und{" "}
+                            <strong>{hintsUsed} Tipps</strong> gebraucht!
+                          </p>
+                          <div className="flex gap-3 justify-center">
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                              <Button onClick={initGame} size="sm">
+                                Nochmals spielen
+                              </Button>
+                            </motion.div>
+                            <Link href="/spielarena">
+                              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                <Button variant="outline" size="sm">
+                                  Beenden
+                                </Button>
+                              </motion.div>
+                            </Link>
+                          </div>
+                        </Card>
+                      </motion.div>
+                    </motion.div>
+                  )}
+
+                  <div className="mt-6 text-sm text-gray-600 text-center">
+                    <p>
+                      Jeder Klick schaltet das ausgewählte Licht sowie horizontal und vertikal direkt angrenzende
+                      Lichter um.
+                    </p>
+                    <p>
+                      <strong>Ziel:</strong> Alle Lichter ausschalten!
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </main>
     </div>

@@ -228,7 +228,11 @@ export default function SimonSaysPage() {
                 onClick={() => selectDifficulty("easy")}
                 variant={difficulty === "easy" ? "default" : "outline"}
                 size="sm"
-                className={difficulty === "easy" ? "bg-red-500 hover:bg-red-600" : ""}
+                className={`transition-all duration-300 ${
+                  difficulty === "easy"
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-red-500"
+                }`}
               >
                 Einfach (4 Farben)
               </Button>
@@ -236,7 +240,11 @@ export default function SimonSaysPage() {
                 onClick={() => selectDifficulty("medium")}
                 variant={difficulty === "medium" ? "default" : "outline"}
                 size="sm"
-                className={difficulty === "medium" ? "bg-red-500 hover:bg-red-600" : ""}
+                className={`transition-all duration-300 ${
+                  difficulty === "medium"
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-red-500"
+                }`}
               >
                 Mittel (6 Farben)
               </Button>
@@ -244,7 +252,11 @@ export default function SimonSaysPage() {
                 onClick={() => selectDifficulty("hard")}
                 variant={difficulty === "hard" ? "default" : "outline"}
                 size="sm"
-                className={difficulty === "hard" ? "bg-red-500 hover:bg-red-600" : ""}
+                className={`transition-all duration-300 ${
+                  difficulty === "hard"
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-red-500"
+                }`}
               >
                 Schwer (8 Farben)
               </Button>
@@ -266,24 +278,44 @@ export default function SimonSaysPage() {
           )}
 
           {gameState === "gameover" && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <Card className="border-4 border-red-300 shadow-2xl max-w-md">
-                <CardContent className="p-8 text-center">
-                  <h2 className="text-2xl font-handwritten mb-4 text-red-600">Game Over!</h2>
-                  <p className="mb-6">Du hast Level {level} erreicht!</p>
-                  <div className="flex gap-2 justify-center">
-                    <Button onClick={startGame} size="lg">
-                      Nochmals spielen
-                    </Button>
-                    <Link href="/spielarena">
-                      <Button variant="outline" size="lg">
-                        Zur Spielarena
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0, rotate: 180 }}
+                transition={{ type: "spring", duration: 0.7 }}
+              >
+                <Card className="p-8 text-center mx-4 border-2 border-red-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                  <motion.h2
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
+                    className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-600 drop-shadow-lg"
+                  >
+                    Game Over!
+                  </motion.h2>
+                  <p className="mb-6 text-gray-700">Du hast Level {level} erreicht!</p>
+                  <div className="flex gap-3 justify-center">
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button onClick={startGame} size="lg">
+                        Nochmals spielen
                       </Button>
+                    </motion.div>
+                    <Link href="/spielarena">
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button variant="outline" size="lg">
+                          Zur Spielarena
+                        </Button>
+                      </motion.div>
                     </Link>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                </Card>
+              </motion.div>
+            </motion.div>
           )}
 
           {(gameState === "showing" || gameState === "playing") && (

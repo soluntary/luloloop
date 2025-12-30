@@ -5,8 +5,11 @@ import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { FaArrowLeft, FaRedo } from "react-icons/fa"
+import { FaArrowLeft, FaRedo, FaTrophy } from "react-icons/fa"
+import { FaListOl } from "react-icons/fa"
 import { BsGrid3X3 } from "react-icons/bs"
+import { savePatternMatchScore, getPatternMatchLeaderboard, type PatternMatchScore } from "@/lib/leaderboard-actions"
+import { LeaderboardDisplay } from "@/components/leaderboard-display"
 
 const colors = ["red", "blue", "green", "yellow", "purple", "orange", "pink", "cyan"]
 
@@ -24,10 +27,27 @@ export default function PatternMatchPage() {
   const [gameStarted, setGameStarted] = useState(false)
   const [showCorrectPattern, setShowCorrectPattern] = useState(false)
   const [wrongPattern, setWrongPattern] = useState<string[]>([])
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
+  const [leaderboard, setLeaderboard] = useState<PatternMatchScore[]>([])
 
   useEffect(() => {
-    // No initial game start on load
+    loadLeaderboard()
   }, [])
+
+  const loadLeaderboard = async () => {
+    const scores = await getPatternMatchLeaderboard()
+    setLeaderboard(scores)
+  }
+
+  const saveScore = async () => {
+    const success = await savePatternMatchScore({
+      round,
+      score,
+    })
+    if (success) {
+      await loadLeaderboard()
+    }
+  }
 
   const startNewRound = () => {
     const newPattern = generatePattern(3 + round)
@@ -70,15 +90,21 @@ export default function PatternMatchPage() {
       setWrongPattern([...userPattern])
       setShowCorrectPattern(true)
       setGameOver(true)
+      saveScore()
     }
   }
 
   const resetGame = () => {
     setScore(0)
     setRound(1)
-    setGameStarted(false)
+    setGameOver(false)
     setShowCorrectPattern(false)
     setWrongPattern([])
+    setUserPattern([])
+    // Start a new game immediately
+    setTimeout(() => {
+      setGameStarted(false)
+    }, 0)
   }
 
   const getColorClass = (color: string) => {
@@ -120,108 +146,174 @@ export default function PatternMatchPage() {
               <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Pattern Match</h1>
             </div>
           </div>
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-pink-100 to-rose-100 rounded-3xl transform rotate-1 -z-10"></div>
-            <Card className="border-4 border-pink-300 shadow-2xl transform -rotate-1">
-              <CardContent className="p-8 text-center">
-                <div className="flex justify-between items-center mb-4">
-                  <p className="text-sm text-gray-600 font-body">
-                    Runde: {round} | Punkte: {score}
-                  </p>
-                  <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
-                    <FaRedo /> Zurücksetzen
-                  </Button>
-                </div>
 
-                {!gameStarted && (
-                  <div className="mb-6">
-                    <p className="font-body text-gray-600 mb-4">Bereit, dein Gedächtnis zu testen?</p>
-                    <Button onClick={startNewRound} size="lg">
-                      Start
+          <div className="flex justify-center gap-2 mb-6">
+            <Button
+              onClick={() => setShowLeaderboard(false)}
+              variant={!showLeaderboard ? "default" : "outline"}
+              size="sm"
+              className={!showLeaderboard ? "bg-pink-600" : ""}
+            >
+              Spiel
+            </Button>
+            <Button
+              onClick={() => setShowLeaderboard(true)}
+              variant={showLeaderboard ? "default" : "outline"}
+              size="sm"
+              className={showLeaderboard ? "bg-pink-600" : ""}
+            >
+              <FaListOl className="w-4 h-4 mr-2" />
+              Rangliste
+            </Button>
+          </div>
+
+          {showLeaderboard ? (
+            <LeaderboardDisplay
+              title="Pattern Match Rangliste"
+              entries={leaderboard.map((score, index) => ({
+                rank: index + 1,
+                username: score.username,
+                displayValue: `Runde ${score.round}, ${score.score} Punkte`,
+                date: new Date(score.created_at).toLocaleDateString("de-DE", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "2-digit",
+                }),
+              }))}
+              columns={["Platz", "Benutzername", "Runde/Punkte", "Datum"]}
+            />
+          ) : (
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-100 to-rose-100 rounded-3xl transform rotate-1 -z-10"></div>
+              <Card className="border-4 border-pink-300 shadow-2xl transform -rotate-1">
+                <CardContent className="p-8 text-center">
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-sm text-gray-600 font-body">
+                      Runde: {round} | Punkte: {score}
+                    </p>
+                    <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
+                      <FaRedo /> Zurücksetzen
                     </Button>
                   </div>
-                )}
 
-                {showPattern && gameStarted && (
-                  <div className="mb-6">
-                    <p className="font-body text-gray-600 mb-4">Merke dir das Muster!</p>
-                    <div className="flex gap-3 justify-center overflow-x-auto pb-2">
-                      {pattern.map((color, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: index * 0.2 }}
-                          className={`w-16 h-16 rounded-lg flex-shrink-0 ${getColorClass(color)}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {!showPattern && !gameOver && gameStarted && (
-                  <div className="mb-6">
-                    <p className="font-body text-gray-600 mb-4">Klicke das Muster nach!</p>
-                    <div className="flex gap-3 justify-center mb-6 overflow-x-auto pb-2">
-                      {userPattern.map((color, index) => (
-                        <div key={index} className={`w-16 h-16 rounded-lg flex-shrink-0 ${getColorClass(color)}`} />
-                      ))}
-                      {Array.from({ length: pattern.length - userPattern.length }).map((_, index) => (
-                        <div
-                          key={`empty-${index}`}
-                          className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex-shrink-0"
-                        />
-                      ))}
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-3 max-w-sm mx-auto">
-                      {colors.map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => handleColorClick(color)}
-                          className={`w-16 h-16 rounded-lg ${getColorClass(color)} hover:scale-110 transition-transform`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {gameOver && (
-                  <div className="text-center">
-                    <p className="font-handwritten text-2xl text-red-600 mb-4">Falsch!</p>
-                    {showCorrectPattern && (
-                      <div className="mb-4">
-                        <p className="font-body text-gray-600 mb-2">Dein Muster war:</p>
-                        <div className="flex gap-3 justify-center overflow-x-auto pb-2 mb-4">
-                          {wrongPattern.map((color, index) => (
-                            <div key={index} className={`w-16 h-16 rounded-lg flex-shrink-0 ${getColorClass(color)}`} />
-                          ))}
-                        </div>
-                        <p className="font-body text-gray-600 mb-2">Das richtige Muster war:</p>
-                        <div className="flex gap-3 justify-center overflow-x-auto pb-2">
-                          {pattern.map((color, index) => (
-                            <div key={index} className={`w-16 h-16 rounded-lg flex-shrink-0 ${getColorClass(color)}`} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <p className="font-body text-gray-700 mb-2">Endpunktzahl: {score}</p>
-                    <p className="font-body text-gray-700 mb-4">Du hast Runde {round} erreicht!</p>
-                    <div className="flex gap-2 justify-center">
-                      <Button onClick={resetGame}>
-                        Nochmals spielen
+                  {!gameStarted && (
+                    <div className="mb-6">
+                      <p className="font-body text-gray-600 mb-4">Bereit, dein Gedächtnis zu testen?</p>
+                      <Button onClick={startNewRound} size="lg">
+                        Start
                       </Button>
-                      <Link href="/spielarena">
-                        <Button variant="outline" className="bg-transparent">
-                          Zur Spielarena
-                        </Button>
-                      </Link>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                  )}
+
+                  {showPattern && gameStarted && (
+                    <div className="mb-6">
+                      <p className="font-body text-gray-600 mb-4">Merke dir das Muster!</p>
+                      <div className="flex gap-3 justify-center overflow-x-auto pb-2">
+                        {pattern.map((color, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: index * 0.2 }}
+                            className={`w-16 h-16 rounded-lg flex-shrink-0 ${getColorClass(color)}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {!showPattern && !gameOver && gameStarted && (
+                    <div className="mb-6">
+                      <p className="font-body text-gray-600 mb-4">Klicke das Muster nach!</p>
+                      <div className="flex gap-3 justify-center mb-6 overflow-x-auto pb-2">
+                        {userPattern.map((color, index) => (
+                          <div key={index} className={`w-16 h-16 rounded-lg flex-shrink-0 ${getColorClass(color)}`} />
+                        ))}
+                        {Array.from({ length: pattern.length - userPattern.length }).map((_, index) => (
+                          <div
+                            key={`empty-${index}`}
+                            className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex-shrink-0"
+                          />
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-3 max-w-sm mx-auto">
+                        {colors.map((color) => (
+                          <button
+                            key={color}
+                            onClick={() => handleColorClick(color)}
+                            className={`w-16 h-16 rounded-lg ${getColorClass(color)} hover:scale-110 transition-transform`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {gameOver && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                    >
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0, rotate: 180 }}
+                        transition={{ type: "spring", duration: 0.7 }}
+                      >
+                        <Card className="p-8 text-center mx-4 border-2 border-red-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                          <motion.h2
+                            animate={{ scale: [1, 1.1, 1] }}
+                            transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
+                            className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-600 drop-shadow-lg"
+                          >
+                            Falsch!
+                          </motion.h2>
+                          {showCorrectPattern && (
+                            <div className="mb-4">
+                              <p className="font-body text-gray-600 mb-2">Dein Muster war:</p>
+                              <div className="flex gap-3 justify-center overflow-x-auto pb-2 mb-4">
+                                {wrongPattern.map((color, index) => (
+                                  <div
+                                    key={index}
+                                    className={`w-16 h-16 rounded-lg flex-shrink-0 ${getColorClass(color)}`}
+                                  />
+                                ))}
+                              </div>
+                              <p className="font-body text-gray-600 mb-2">Das richtige Muster war:</p>
+                              <div className="flex gap-3 justify-center overflow-x-auto pb-2">
+                                {pattern.map((color, index) => (
+                                  <div
+                                    key={index}
+                                    className={`w-16 h-16 rounded-lg flex-shrink-0 ${getColorClass(color)}`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <p className="font-body text-gray-700 mb-2">Endpunktzahl: {score}</p>
+                          <p className="font-body text-gray-700 mb-4">Du hast Runde {round} erreicht!</p>
+                          <div className="flex gap-3 justify-center">
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                              <Button onClick={resetGame}>Nochmals spielen</Button>
+                            </motion.div>
+                            <Link href="/spielarena">
+                              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                <Button variant="outline" className="bg-transparent">
+                                  Zur Spielarena
+                                </Button>
+                              </motion.div>
+                            </Link>
+                          </div>
+                        </Card>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </main>
     </div>
