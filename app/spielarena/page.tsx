@@ -10,6 +10,8 @@ import { BsGrid3X3Gap, BsGrid3X3 } from "react-icons/bs"
 import { IoExtensionPuzzle } from "react-icons/io5"
 import { FaBomb, FaLightbulb, FaPuzzlePiece } from "react-icons/fa"
 import { MdOutlineGames } from "react-icons/md"
+import { TbMoodPuzzled } from "react-icons/tb"
+import { TfiLayoutGrid4 } from "react-icons/tfi"
 import { GiBrain } from "react-icons/gi"
 
 const games = [
@@ -17,7 +19,7 @@ const games = [
     id: "memory",
     title: "Memory",
     description:
-      "Spielklassiker für das Kurzzeitgedächtnis. Finde möglichst schnell alle Bildpaare und trainiere dein Gehirn. Verschiedene Schwierigkeitsgrade verfügbar.",
+      "Spielklassiker für das Kurzzeitgedächtnis. Finde möglichst schnell alle Bildpaare. Verschiedene Schwierigkeitsgrade verfügbar.",
     icon: GiBrain,
     color: "blue",
     rotation: "rotate-1",
@@ -27,7 +29,7 @@ const games = [
     id: "tic-tac-toe",
     title: "Tic-Tac-Toe",
     description:
-      "Das beliebte Zweipersonen-Strategiespiel. Wer schafft drei in einer Reihe, Spalte oder Diagonalen? Spielt dabei gegen den Computer oder gegeneinander.",
+      "Das beliebte Zweipersonen-Strategiespiel. Wer schafft als Erster drei seiner Zeichen in einer Reihe, Spalte oder Diagonalen? Spielt dabei gegen den Computer oder gegeneinander.",
     icon: GiTicTacToe,
     color: "green",
     rotation: "-rotate-1",
@@ -36,7 +38,7 @@ const games = [
   {
     id: "2048",
     title: "2048",
-    description: "Kombiniere Zahlen bis 2048! Ein süchtig machendes Puzzle-Spiel.",
+    description: "Bilde eine Kachel mit der Zahl 2048 durch geschicktes Verschieben und Kombinieren anderer Kacheln! Ein süchtig machendes Puzzle-Spiel.",
     icon: null,
     color: "purple",
     rotation: "rotate-1",
@@ -83,7 +85,7 @@ const games = [
     id: "connect-four",
     title: "Vier gewinnt",
     description: "Bringe als Erster vier der eigenen Spielsteine in eine Linie! Entweder diagonal, vertikal oder horizontal. Spielt dabei gegen den Computer oder gegeneinander.",
-    icon: MdOutlineGames,
+    icon: TfiLayoutGrid4,
     color: "red",
     rotation: "rotate-1",
     linkText: "Spielen",
@@ -110,7 +112,7 @@ const games = [
     id: "mastermind",
     title: "Mastermind",
     description: "Knacke den geheimen Farbcode! Nutze die Hinweise, um die richtige Kombination zu finden.",
-    icon: FaPuzzlePiece,
+    icon: TbMoodPuzzled,
     color: "violet",
     rotation: "-rotate-1",
     linkText: "Knobeln",

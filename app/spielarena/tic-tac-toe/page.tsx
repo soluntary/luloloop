@@ -92,6 +92,7 @@ export default function TicTacToePage() {
           currentBoard[i] = playerSymbol
           const score = minimax(currentBoard, depth + 1, true, alpha, beta)
           currentBoard[i] = null
+
           minScore = Math.min(minScore, score)
           beta = Math.min(beta, score)
           if (beta <= alpha) break // Alpha-Beta Pruning
@@ -301,47 +302,44 @@ export default function TicTacToePage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                    className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
                   >
                     <motion.div
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      exit={{ scale: 0, rotate: 180 }}
+                      initial={{ scale: 0, y: -50 }}
+                      animate={{ scale: 1, y: 0 }}
+                      exit={{ scale: 0, y: -50 }}
                       transition={{ type: "spring", duration: 0.7 }}
+                      className="pointer-events-auto"
                     >
-                      <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                      <Card className="p-8 text-center mx-4 border-4 border-green-500 shadow-2xl bg-white">
                         <motion.h2
-                          animate={{ scale: [1, 1.1, 1] }}
+                          animate={{ scale: [1, 1.05, 1] }}
                           transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                          className="text-3xl font-handwritten mb-6 drop-shadow-lg text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600"
+                          className={`text-5xl font-handwritten mb-6 ${
+                            winner === "draw" ? "text-gray-800" : "text-green-600"
+                          }`}
                         >
                           {winner === "draw" ? (
                             "Unentschieden!"
                           ) : vsAI ? (
                             winner === playerSymbol ? (
-                              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
-                                🎉 Du hast gewonnen!
-                              </span>
+                              <span>🎉 Gratuliere! Du hast gewonnen!</span>
                             ) : (
-                              <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-600">
-                                Ludo hat gewonnen!
-                              </span>
+                              <span>Ludo hat gewonnen!</span>
                             )
                           ) : (
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
-                              {winner} gewinnt!
-                            </span>
+                            <span>{winner} gewinnt! Gratuliere!</span>
                           )}
                         </motion.h2>
                         <div className="flex gap-3 justify-center">
                           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                            <Button onClick={resetGame} size="sm">
+                            <Button onClick={resetGame} size="sm" className="bg-green-600 hover:bg-green-700">
                               Nochmals spielen
                             </Button>
                           </motion.div>
                           <Link href="/spielarena">
                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50 shadow-lg">
                                 Zur Spielarena
                               </Button>
                             </motion.div>

@@ -5,14 +5,23 @@ import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FaArrowLeft, FaRedo, FaLightbulb } from "react-icons/fa"
+import { FaArrowLeft, FaRedo, FaLightbulb, FaClock } from "react-icons/fa"
 import { FaListOl } from "react-icons/fa"
 import { AiOutlineBulb } from "react-icons/ai"
 import Link from "next/link"
-import { saveLightsOutScore, getLightsOutLeaderboard, type LightsOutScore } from "@/lib/leaderboard-actions"
-import { LeaderboardDisplay } from "@/components/leaderboard-display"
+import { saveLightsOutScore, getLightsOutLeaderboard, type LightsOutScore } from "@/lib/leaderboard-client-actions"
+import LeaderboardDisplay from "@/components/leaderboard-display" // Import LeaderboardDisplay component
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
-const GRID_SIZE = 5
+type Difficulty = "easy" | "medium" | "hard" | "custom"
+
+const difficultySettings = {
+  easy: { gridSize: 3 },
+  medium: { gridSize: 5 },
+  hard: { gridSize: 7 },
+  custom: { gridSize: 5 },
+}
 
 export default function LightsOutPage() {
   const [showIntro, setShowIntro] = useState(true)
@@ -22,40 +31,47 @@ export default function LightsOutPage() {
   const [gameWon, setGameWon] = useState(false)
   const [showHint, setShowHint] = useState(false)
   const [hintCell, setHintCell] = useState<{ row: number; col: number } | null>(null)
-  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium")
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium")
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [leaderboard, setLeaderboard] = useState<LightsOutScore[]>([])
+  const [timer, setTimer] = useState(0)
+  const [isRunning, setIsRunning] = useState(false)
+  const [customRows, setCustomRows] = useState(5)
+  const [customCols, setCustomCols] = useState(5)
+  const [showCustomSettings, setShowCustomSettings] = useState(false)
+  const [gameStarted, setGameStarted] = useState(false)
+  const [timeElapsed, setTimeElapsed] = useState(0)
+
+  const rows = difficulty === "custom" ? customRows : difficultySettings[difficulty].gridSize
+  const cols = difficulty === "custom" ? customCols : difficultySettings[difficulty].gridSize
+  const initialMoves = rows + Math.floor((rows + cols) / 2)
 
   const solveLightsOut = (grid: boolean[][]): { row: number; col: number }[] => {
-    const n = GRID_SIZE * GRID_SIZE
+    const currentRows = grid.length
+    const currentCols = grid[0]?.length || 0
+    const n = currentRows * currentCols
 
-    // Create the coefficient matrix A and the result vector b
     const A: number[][] = []
-    const b: number[] = []
 
-    for (let i = 0; i < n; i++) {
-      const row = Math.floor(i / GRID_SIZE)
-      const col = i % GRID_SIZE
+    for (let r = 0; r < currentRows; r++) {
+      for (let c = 0; c < currentCols; c++) {
+        const row: number[] = Array(n).fill(0)
+        const idx = r * currentCols + c
 
-      const coeffRow = new Array(n).fill(0)
-      coeffRow[i] = 1 // This cell
+        row[idx] = 1
+        if (r > 0) row[(r - 1) * currentCols + c] = 1
+        if (r < currentRows - 1) row[(r + 1) * currentCols + c] = 1
+        if (c > 0) row[r * currentCols + (c - 1)] = 1
+        if (c < currentCols - 1) row[r * currentCols + (c + 1)] = 1
 
-      // Adjacent cells
-      if (row > 0) coeffRow[i - GRID_SIZE] = 1 // Up
-      if (row < GRID_SIZE - 1) coeffRow[i + GRID_SIZE] = 1 // Down
-      if (col > 0) coeffRow[i - 1] = 1 // Left
-      if (col < GRID_SIZE - 1) coeffRow[i + 1] = 1 // Right
-
-      A.push(coeffRow)
-      b.push(grid[row][col] ? 1 : 0)
+        A.push(row)
+      }
     }
 
-    // Gaussian elimination in GF(2)
+    const b: number[] = grid.flat().map((light) => (light ? 1 : 0))
     const augmented = A.map((row, i) => [...row, b[i]])
 
-    // Forward elimination
     for (let col = 0; col < n; col++) {
-      // Find pivot
       let pivotRow = -1
       for (let row = col; row < n; row++) {
         if (augmented[row][col] === 1) {
@@ -66,43 +82,39 @@ export default function LightsOutPage() {
 
       if (pivotRow === -1) continue
 
-      // Swap rows
       if (pivotRow !== col) {
         const temp = augmented[col]
         augmented[col] = augmented[pivotRow]
         augmented[pivotRow] = temp
       }
 
-      // Eliminate
       for (let row = 0; row < n; row++) {
         if (row !== col && augmented[row][col] === 1) {
           for (let c = 0; c <= n; c++) {
-            augmented[row][c] ^= augmented[col][c] // XOR in GF(2)
+            augmented[row][c] ^= augmented[col][c]
           }
         }
       }
     }
 
-    // Extract solution
     const solution: { row: number; col: number }[] = []
     for (let i = 0; i < n; i++) {
       if (augmented[i][n] === 1) {
-        const row = Math.floor(i / GRID_SIZE)
-        const col = i % GRID_SIZE
+        const row = Math.floor(i / currentCols)
+        const col = i % currentCols
         solution.push({ row, col })
       }
     }
 
-    console.log("[v0] Solution calculated from current state:", solution.length, "moves")
     return solution
   }
 
   const initGame = () => {
-    const newLights = Array(GRID_SIZE)
+    const newLights = Array(rows)
       .fill(null)
-      .map(() => Array(GRID_SIZE).fill(false))
+      .map(() => Array(cols).fill(false))
 
-    const numMoves = 8 + Math.floor(Math.random() * 8)
+    const numMoves = initialMoves + Math.floor(Math.random() * 4)
     const clickedCells = new Set<string>()
 
     for (let i = 0; i < numMoves; i++) {
@@ -110,8 +122,8 @@ export default function LightsOutPage() {
       let attempts = 0
 
       do {
-        row = Math.floor(Math.random() * GRID_SIZE)
-        col = Math.floor(Math.random() * GRID_SIZE)
+        row = Math.floor(Math.random() * rows)
+        col = Math.floor(Math.random() * cols)
         attempts++
       } while (clickedCells.has(`${row},${col}`) && attempts < 50)
 
@@ -120,56 +132,41 @@ export default function LightsOutPage() {
       newLights[row][col] = !newLights[row][col]
 
       if (row > 0) newLights[row - 1][col] = !newLights[row - 1][col]
-      if (row < GRID_SIZE - 1) newLights[row + 1][col] = !newLights[row + 1][col]
+      if (row < rows - 1) newLights[row + 1][col] = !newLights[row + 1][col]
       if (col > 0) newLights[row][col - 1] = !newLights[row][col - 1]
-      if (col < GRID_SIZE - 1) newLights[row][col + 1] = !newLights[row][col + 1]
+      if (col < cols - 1) newLights[row][col + 1] = !newLights[row][col + 1]
     }
 
     setLights(newLights)
     setMoves(0)
     setHintsUsed(0)
     setGameWon(false)
+    setTimer(0)
+    setIsRunning(false)
+    setTimeElapsed(0)
   }
 
-  useEffect(() => {
-    initGame()
-    loadLeaderboard()
-  }, [difficulty])
-
-  useEffect(() => {
-    if (lights.length > 0 && lights.every((row) => row.every((light) => !light))) {
-      setGameWon(true)
-      saveScore()
-    }
-  }, [lights])
-
-  const loadLeaderboard = async () => {
-    const scores = await getLightsOutLeaderboard(difficulty)
-    setLeaderboard(scores)
-  }
-
-  const saveScore = async () => {
-    const success = await saveLightsOutScore({
-      difficulty,
-      moves,
-      hintsUsed,
-    })
-    if (success) {
-      await loadLeaderboard()
-    }
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
 
   const toggleLight = (row: number, col: number) => {
     if (gameWon) return
+
+    if (!isRunning) {
+      setIsRunning(true)
+    }
 
     const newLights = lights.map((r) => [...r])
 
     newLights[row][col] = !newLights[row][col]
 
     if (row > 0) newLights[row - 1][col] = !newLights[row - 1][col]
-    if (row < GRID_SIZE - 1) newLights[row + 1][col] = !newLights[row + 1][col]
+    if (row < rows - 1) newLights[row + 1][col] = !newLights[row + 1][col]
     if (col > 0) newLights[row][col - 1] = !newLights[row][col - 1]
-    if (col < GRID_SIZE - 1) newLights[row][col + 1] = !newLights[row][col + 1]
+    if (col < cols - 1) newLights[row][col + 1] = !newLights[row][col + 1]
 
     setLights(newLights)
     setMoves(moves + 1)
@@ -179,23 +176,111 @@ export default function LightsOutPage() {
     const solution = solveLightsOut(lights)
 
     if (solution.length === 0) {
-      console.log("[v0] No solution needed - puzzle already solved")
       return
     }
 
-    // Show the first move from the calculated solution
     const nextMove = solution[0]
     setHintCell(nextMove)
     setShowHint(true)
     setHintsUsed((prev) => prev + 1)
-
-    console.log("[v0] Hint from current state:", nextMove, "Total moves needed:", solution.length)
 
     setTimeout(() => {
       setShowHint(false)
       setHintCell(null)
     }, 3000)
   }
+
+  const loadLeaderboard = async () => {
+    try {
+      const scores = await getLightsOutLeaderboard(difficulty)
+      setLeaderboard(scores)
+    } catch (error) {
+      console.error("[v0] Error loading leaderboard:", error)
+      setLeaderboard([])
+    }
+  }
+
+  const saveScore = async () => {
+    try {
+      const success = await saveLightsOutScore({
+        difficulty,
+        moves,
+        hintsUsed,
+        timeSeconds: timer,
+      })
+      if (success) {
+        await loadLeaderboard()
+      }
+    } catch (error) {
+      console.error("[v0] Error saving score:", error)
+    }
+  }
+
+  const applyCustomSettings = () => {
+    if (customRows < 3 || customRows > 10) {
+      alert("Zeilen müssen zwischen 3 und 10 sein.")
+      return
+    }
+    if (customCols < 3 || customCols > 10) {
+      alert("Spalten müssen zwischen 3 und 10 sein.")
+      return
+    }
+
+    setShowCustomSettings(false)
+    setDifficulty("custom")
+    setGameStarted(true)
+  }
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (isRunning && !gameWon) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev + 1)
+        setTimeElapsed((prev) => prev + 1)
+      }, 1000)
+    }
+    return () => clearInterval(interval)
+  }, [isRunning, gameWon])
+
+  useEffect(() => {
+    if (difficulty !== "custom") {
+      setGameStarted(true)
+      initGame()
+    } else if (difficulty === "custom" && gameStarted) {
+      initGame()
+    }
+    if (difficulty !== "custom") {
+      ;(async () => {
+        try {
+          await loadLeaderboard()
+        } catch (error) {
+          console.error("[v0] Error in useEffect loadLeaderboard:", error)
+        }
+      })()
+    }
+  }, [difficulty, gameStarted, rows, cols])
+
+  useEffect(() => {
+    if (gameWon) {
+      setIsRunning(false)
+      if (difficulty !== "custom") {
+        ;(async () => {
+          try {
+            await saveScore()
+          } catch (error) {
+            console.error("[v0] Error in useEffect saveScore:", error)
+          }
+        })()
+      }
+    }
+  }, [gameWon])
+
+  useEffect(() => {
+    if (lights.length > 0 && lights.every((row) => row.every((light) => !light))) {
+      setGameWon(true)
+      saveScore()
+    }
+  }, [lights])
 
   if (showIntro) {
     return (
@@ -232,8 +317,8 @@ export default function LightsOutPage() {
                     <div>
                       <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielprinzip</h2>
                       <p className="text-gray-600 leading-relaxed text-xs">
-                        Lights Out ist ein faszinierendes Logikpuzzle. Das Ziel ist es, alle Lichter auf dem 5x5 Gitter
-                        mit so wenigen Klicks wie möglich auszuschalten.
+                        Lights Out ist ein faszinierendes Logikpuzzle. Das Ziel ist es, alle Lichter auf dem Gitter mit
+                        so wenigen Klicks wie möglich auszuschalten.
                       </p>
                     </div>
 
@@ -323,7 +408,11 @@ export default function LightsOutPage() {
               <p className="text-center text-sm font-handwritten text-gray-600 mb-3">Wähle Schwierigkeitsgrad:</p>
               <div className="flex justify-center gap-2">
                 <Button
-                  onClick={() => setDifficulty("easy")}
+                  onClick={() => {
+                    setDifficulty("easy")
+                    setShowCustomSettings(false)
+                    setGameStarted(true)
+                  }}
                   variant={difficulty === "easy" ? "default" : "outline"}
                   size="sm"
                   className={`transition-all duration-300 ${
@@ -335,7 +424,11 @@ export default function LightsOutPage() {
                   Einfach
                 </Button>
                 <Button
-                  onClick={() => setDifficulty("medium")}
+                  onClick={() => {
+                    setDifficulty("medium")
+                    setShowCustomSettings(false)
+                    setGameStarted(true)
+                  }}
                   variant={difficulty === "medium" ? "default" : "outline"}
                   size="sm"
                   className={`transition-all duration-300 ${
@@ -347,7 +440,11 @@ export default function LightsOutPage() {
                   Mittel
                 </Button>
                 <Button
-                  onClick={() => setDifficulty("hard")}
+                  onClick={() => {
+                    setDifficulty("hard")
+                    setShowCustomSettings(false)
+                    setGameStarted(true)
+                  }}
                   variant={difficulty === "hard" ? "default" : "outline"}
                   size="sm"
                   className={`transition-all duration-300 ${
@@ -358,34 +455,95 @@ export default function LightsOutPage() {
                 >
                   Schwer
                 </Button>
+                <Button
+                  onClick={() => {
+                    setDifficulty("custom")
+                    setShowCustomSettings(!showCustomSettings)
+                    setGameStarted(false)
+                  }}
+                  variant={difficulty === "custom" || showCustomSettings ? "default" : "outline"}
+                  size="sm"
+                  className={`transition-all duration-300 ${
+                    difficulty === "custom" || showCustomSettings
+                      ? "bg-amber-600 hover:bg-amber-700 text-white"
+                      : "border-gray-300 text-gray-700 hover:border-amber-500"
+                  }`}
+                >
+                  Benutzerdefiniert
+                </Button>
               </div>
+
+              {showCustomSettings && (
+                <Card className="mt-4 border-2 border-amber-300">
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold mb-4 text-center">Benutzerdefinierte Einstellungen</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="customRows">Zeilen (3-10)</Label>
+                        <Input
+                          id="customRows"
+                          type="number"
+                          min="3"
+                          max="10"
+                          value={customRows}
+                          onChange={(e) => setCustomRows(Math.min(10, Math.max(3, Number(e.target.value))))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="customCols">Spalten (3-10)</Label>
+                        <Input
+                          id="customCols"
+                          type="number"
+                          min="3"
+                          max="10"
+                          value={customCols}
+                          onChange={(e) => setCustomCols(Math.min(10, Math.max(3, Number(e.target.value))))}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-center mt-4">
+                      <Button onClick={applyCustomSettings} size="sm" className="bg-amber-600 hover:bg-amber-700">
+                        Anwenden
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
 
-          {showLeaderboard ? (
+          {showLeaderboard && (
             <LeaderboardDisplay
-              title={`Lights Out Rangliste - ${difficulty === "easy" ? "Einfach" : difficulty === "medium" ? "Mittel" : "Schwer"}`}
+              title={`Lights Out Rangliste - Schwierigkeitsgrad: ${difficulty === "easy" ? "Einfach (3x3)" : difficulty === "medium" ? "Mittel (5x5)" : difficulty === "hard" ? "Schwer (7x7)" : "Benutzerdefiniert"}`}
               entries={leaderboard.map((score, index) => ({
                 rank: index + 1,
                 username: score.username,
-                displayValue: `${score.moves} Züge, ${score.hints_used} Tipps`,
+                displayValue: `${score.moves} Züge • ${Math.floor(score.time_seconds / 60)}:${(score.time_seconds % 60).toString().padStart(2, "0")}`,
                 date: new Date(score.created_at).toLocaleDateString("de-DE", {
                   day: "2-digit",
                   month: "2-digit",
                   year: "2-digit",
                 }),
               }))}
-              columns={["Platz", "Benutzername", "Züge/Tipps", "Datum"]}
+              columns={["Platz", "Benutzername", "Züge/Zeit", "Datum"]}
             />
-          ) : (
+          )}
+
+          {!showLeaderboard && !showCustomSettings && gameStarted && (
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-amber-100 to-yellow-100 rounded-3xl transform rotate-1 -z-10"></div>
               <Card className="border-4 border-amber-300 shadow-2xl transform -rotate-1">
                 <CardContent className="p-8">
                   <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <p className="text-gray-600 font-body">Züge: {moves}</p>
-                      <p className="text-xs text-gray-500">Tipps verwendet: {hintsUsed}</p>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-gray-700 font-medium">Züge: {moves}</span>
+                      <span className="text-gray-500">|</span>
+                      <span className="text-gray-700 font-medium">Tipps: {hintsUsed}</span>
+                      <span className="text-gray-500">|</span>
+                      <span className="flex items-center gap-1 text-gray-700 font-medium">
+                        <FaClock className="w-3 h-3" />
+                        {formatTime(timer)}
+                      </span>
                     </div>
                     <div className="flex gap-2">
                       <Button
@@ -404,7 +562,10 @@ export default function LightsOutPage() {
                   </div>
 
                   <div className="flex justify-center mb-6">
-                    <div className="inline-grid grid-cols-5 gap-2 bg-gray-800 p-4 rounded-lg">
+                    <div
+                      className={`inline-grid gap-2 bg-gray-800 p-4 rounded-lg`}
+                      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+                    >
                       {lights.map((row, i) =>
                         row.map((light, j) => (
                           <motion.button
@@ -412,7 +573,7 @@ export default function LightsOutPage() {
                             onClick={() => toggleLight(i, j)}
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
-                            className={`w-16 h-16 rounded-lg transition-all relative ${
+                            className={`w-12 h-12 md:w-16 md:h-16 rounded-lg transition-all relative ${
                               light ? "bg-yellow-400 shadow-lg shadow-yellow-500/50" : "bg-gray-600"
                             } ${
                               showHint && hintCell?.row === i && hintCell?.col === j
@@ -420,7 +581,7 @@ export default function LightsOutPage() {
                                 : ""
                             }`}
                           >
-                            {light && <FaLightbulb className="w-8 h-8 text-gray-800 mx-auto" />}
+                            {light && <FaLightbulb className="w-6 h-6 md:w-8 md:h-8 text-gray-800 mx-auto" />}
                           </motion.button>
                         )),
                       )}
@@ -432,36 +593,38 @@ export default function LightsOutPage() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                      className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
                     >
                       <motion.div
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        exit={{ scale: 0, rotate: 180 }}
+                        initial={{ scale: 0, y: -50 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0, y: -50 }}
                         transition={{ type: "spring", duration: 0.7 }}
+                        className="pointer-events-auto"
                       >
-                        <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                        <Card className="p-8 text-center mx-4 border-4 border-amber-400 shadow-2xl bg-white">
+                          <div className="text-4xl mb-4">🎉</div>
                           <motion.h2
-                            animate={{ scale: [1, 1.1, 1] }}
+                            animate={{ scale: [1, 1.05, 1] }}
                             transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                            className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg"
+                            className="text-5xl font-handwritten mb-6 text-green-600"
                           >
-                            Gratuliere! 🎉
+                            Gratuliere!
                           </motion.h2>
-                          <p className="mb-4 text-gray-700">
-                            Du hast alle Lichter in <strong>{moves} Zügen</strong> ausgeschaltet und{" "}
-                            <strong>{hintsUsed} Tipps</strong> gebraucht!
+                          <p className="text-gray-700 mb-6 text-lg font-medium">Du hast alle Lichter ausgeschaltet!</p>
+                          <p className="text-gray-700 mb-6 text-base">
+                            Züge: {moves} | Zeit: {formatTime(timeElapsed)}
                           </p>
                           <div className="flex gap-3 justify-center">
                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button onClick={initGame} size="sm">
+                              <Button onClick={initGame} size="sm" className="bg-amber-600 hover:bg-amber-700">
                                 Nochmals spielen
                               </Button>
                             </motion.div>
                             <Link href="/spielarena">
                               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                <Button variant="outline" size="sm">
-                                  Beenden
+                                <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50 shadow-lg">
+                                  Zur Spielarena
                                 </Button>
                               </motion.div>
                             </Link>

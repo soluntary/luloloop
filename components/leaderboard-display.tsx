@@ -14,10 +14,7 @@ type LeaderboardEntry = {
 type LeaderboardDisplayProps = {
   title: string
   entries: LeaderboardEntry[]
-  columns: {
-    label: string
-    key: string
-  }[]
+  columns: string[]
   loading?: boolean
 }
 
@@ -81,7 +78,7 @@ export function LeaderboardDisplay({ title, entries, columns, loading }: Leaderb
               }`}
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                className={`rounded-full flex items-center justify-center font-bold text-xs w-5 h-5 ${
                   index === 0
                     ? "bg-yellow-500 text-white"
                     : index === 1
@@ -97,9 +94,9 @@ export function LeaderboardDisplay({ title, entries, columns, loading }: Leaderb
                 className="flex-1 grid gap-2"
                 style={{ gridTemplateColumns: `2fr ${columns.map(() => "1fr").join(" ")} 1fr` }}
               >
-                <span className="text-sm font-medium text-gray-800 truncate">{entry.username}</span>
-                <span className="text-sm text-gray-600">{entry.displayValue}</span>
-                <span className="text-gray-500 text-sm">{entry.date}</span>
+                <span className="font-medium text-gray-800 truncate text-xs">{entry.username}</span>
+                <span className="text-gray-600 text-xs">{entry.displayValue}</span>
+                <span className="text-gray-500 text-right text-xs">{entry.date}</span>
               </div>
             </motion.div>
           ))}
@@ -108,3 +105,5 @@ export function LeaderboardDisplay({ title, entries, columns, loading }: Leaderb
     </Card>
   )
 }
+
+export default LeaderboardDisplay

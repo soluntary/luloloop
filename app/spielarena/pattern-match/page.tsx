@@ -5,10 +5,14 @@ import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { FaArrowLeft, FaRedo, FaTrophy } from "react-icons/fa"
+import { FaArrowLeft, FaRedo } from "react-icons/fa"
 import { FaListOl } from "react-icons/fa"
 import { BsGrid3X3 } from "react-icons/bs"
-import { savePatternMatchScore, getPatternMatchLeaderboard, type PatternMatchScore } from "@/lib/leaderboard-actions"
+import {
+  savePatternMatchScore,
+  getPatternMatchLeaderboard,
+  type PatternMatchScore,
+} from "@/lib/leaderboard-client-actions"
 import { LeaderboardDisplay } from "@/components/leaderboard-display"
 
 const colors = ["red", "blue", "green", "yellow", "purple", "orange", "pink", "cyan"]
@@ -173,7 +177,7 @@ export default function PatternMatchPage() {
               entries={leaderboard.map((score, index) => ({
                 rank: index + 1,
                 username: score.username,
-                displayValue: `Runde ${score.round}, ${score.score} Punkte`,
+                displayValue: `Runde ${score.round} • ${score.score} Punkte`,
                 date: new Date(score.created_at).toLocaleDateString("de-DE", {
                   day: "2-digit",
                   month: "2-digit",
@@ -296,11 +300,11 @@ export default function PatternMatchPage() {
                           <p className="font-body text-gray-700 mb-4">Du hast Runde {round} erreicht!</p>
                           <div className="flex gap-3 justify-center">
                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button onClick={resetGame}>Nochmals spielen</Button>
+                              <Button onClick={resetGame} size="sm">Nochmals spielen</Button>
                             </motion.div>
                             <Link href="/spielarena">
                               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                <Button variant="outline" className="bg-transparent">
+                                <Button variant="outline" className="bg-transparent" size="sm">
                                   Zur Spielarena
                                 </Button>
                               </motion.div>

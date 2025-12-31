@@ -125,7 +125,7 @@ export default function Game2048Page() {
       if (!checkMovesAvailable(newBoard)) {
         setNoMovesAvailable(true)
         setGameOver(true)
-        handleGameOver()
+        handleGameOver(newScore)
       }
     }
   }
@@ -153,10 +153,10 @@ export default function Game2048Page() {
     setLeaderboard(data)
   }
 
-  const handleGameOver = async () => {
-    console.log("[v0] Game over! Saving score:", score)
+  const handleGameOver = async (finalScore: number) => {
+    console.log("[v0] Game over! Saving score:", finalScore)
     try {
-      const result = await save2048Score(score)
+      const result = await save2048Score({ score: finalScore })
       if (result && !result.success) {
         console.log("[v0] Score not saved:", result.message)
       } else {
@@ -235,7 +235,7 @@ export default function Game2048Page() {
                       <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielprinzip</h2>
                       <p className="text-gray-600 leading-relaxed text-xs">
                         2048 ist ein faszinierendes Puzzle-Spiel. Ziel des Spiels ist das Bilden einer Kachel mit der
-                        Zahl 2048 durch das geschickte Verschieben und Kombinieren anderer Kacheln.
+                        Zahl 2048 durch geschicktes Verschieben und Kombinieren anderer Kacheln.
                       </p>
                     </div>
 
@@ -266,9 +266,9 @@ export default function Game2048Page() {
                     </div>
 
                     <div className="bg-purple-50 p-4 rounded-lg">
-                      <h3 className="font-handwritten text-gray-800 mb-2 text-base">Tipp:</h3>
-                      <p className="text-gray-600 text-xs">
-                        Versuche, die größten Zahlen in einer Ecke zu sammeln und baue systematisch von dort aus auf!
+                      <p className="text-gray-600 text-xs italic">
+                        <strong>Tipp:</strong> Versuche, die größten Zahlen in einer Ecke zu sammeln und baue
+                        systematisch von dort aus auf!
                       </p>
                     </div>
 
@@ -365,31 +365,37 @@ export default function Game2048Page() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
             >
               <motion.div
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                exit={{ scale: 0, rotate: 180 }}
+                initial={{ scale: 0, y: -50 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0, y: -50 }}
                 transition={{ type: "spring", duration: 0.7 }}
+                className="pointer-events-auto"
               >
-                <Card className="p-8 text-center mx-4 border-2 border-red-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                <Card className="p-8 text-center mx-4 border-4 border-purple-300 shadow-2xl bg-white">
                   <motion.h2
-                    animate={{ scale: [1, 1.1, 1] }}
+                    animate={{ scale: [1, 1.05, 1] }}
                     transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                    className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-600 drop-shadow-lg"
+                    className="text-5xl font-handwritten mb-6 text-red-600"
                   >
                     Keine Züge mehr möglich!
                   </motion.h2>
-                  <p className="text-gray-700 mb-6">Endpunktzahl: {score}</p>
+                  <p className="text-gray-800 text-lg font-semibold mb-7">Endpunktzahl: {score}</p>
                   <div className="flex gap-3 justify-center">
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button onClick={resetGame} className="bg-purple-500 hover:bg-purple-600">
+                      <Button onClick={resetGame} size="sm" className="bg-purple-500 hover:bg-purple-600">
                         Nochmals spielen
                       </Button>
                     </motion.div>
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button onClick={() => router.push("/spielarena")} variant="outline" className="bg-transparent">
+                      <Button
+                        onClick={() => router.push("/spielarena")}
+                        variant="outline"
+                        className="bg-white hover:bg-gray-50 shadow-lg"
+                        size="sm"
+                      >
                         Zur Spielarena
                       </Button>
                     </motion.div>

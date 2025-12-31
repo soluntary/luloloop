@@ -479,12 +479,13 @@ export default function SudokuPage() {
             transition={{ type: "spring", duration: 0.7 }}
           >
             <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+              <div className="text-4xl mb-4">🎉</div>
               <motion.h2
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
                 className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg"
               >
-                Gratulation! 🎉
+                Gratulation!
               </motion.h2>
               <div className="text-sm text-gray-700 mb-6">
                 Du hast das Sudoku in <strong>{formatTime(timer)}</strong> und mit <strong>{hintsUsed} Tipps</strong>{" "}

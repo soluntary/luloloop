@@ -291,11 +291,11 @@ export default function HangmanPage() {
                           className="text-3xl font-handwritten mb-4 text-gray-900 drop-shadow-lg"
                         >
                           {won ? (
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
+                            <span className="bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 text-green-600">
                               🎉 Gratuliere! Du hast das Wort erraten!
                             </span>
                           ) : (
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-600">
+                            <span className="bg-clip-text bg-gradient-to-r from-red-400 to-amber-600 text-red-600">
                               Leider hast du das Wort nicht erraten!
                             </span>
                           )}
@@ -305,14 +305,14 @@ export default function HangmanPage() {
                         </p>
                         <div className="flex gap-3 justify-center">
                           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                            <Button onClick={startNewGame} size="sm">
+                            <Button onClick={startNewGame} size="sm" className="bg-amber-500 hover:bg-amber-600">
                               Nochmals spielen
                             </Button>
                           </motion.div>
                           <Link href="/spielarena">
                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                               <Button variant="outline" size="sm" className="bg-transparent">
-                                Beenden
+                                Zur Spielarena
                               </Button>
                             </motion.div>
                           </Link>

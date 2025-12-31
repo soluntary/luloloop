@@ -22,6 +22,8 @@ import { MdForum } from "react-icons/md"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { MdSavings, MdGroupAdd } from "react-icons/md"
+import { GiMeepleCircle } from "react-icons/gi"
+import { GiTrade } from "react-icons/gi"
 import "@/styles/font-handwritten.css"
 import "@/styles/font-body.css"
 import { motion } from "framer-motion"
@@ -454,7 +456,7 @@ export default function HomePage() {
               rotation: "rotate-1",
             },
             {
-              icon: TbExchange,
+              icon: GiTrade,
               title: "Spiele vermieten",
               description:
                 "Lass deine Sammlung für dich arbeiten. Vermiete deine Spiele und verdiene dabei etwas Geld.",
@@ -531,7 +533,7 @@ export default function HomePage() {
               rotation: "-rotate-1",
             },
             {
-              icon: GiGamepad,
+              icon: GiMeepleCircle,
               title: "Spielarena",
               description:
                 "Entdecke klassische Mini-Games direkt im Browser: Memory, Vier gewinnt, Sudoku, Minesweeper und viele mehr. Perfekt für eine kurze Spielpause mit Spaß und Herausforderung!",

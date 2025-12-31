@@ -215,12 +215,6 @@ export default function SimonSaysPage() {
             </div>
           </div>
 
-          {!audioUnlocked && (
-            <div className="mb-4 p-3 bg-yellow-50 border-2 border-yellow-300 rounded-lg text-sm text-center">
-              <p className="text-yellow-800">Tipp: Klicke auf einen Schwierigkeitsgrad, um den Ton zu aktivieren!</p>
-            </div>
-          )}
-
           <div className="mb-6">
             <p className="text-center text-sm font-handwritten text-gray-600 mb-3">Wähle Schwierigkeitsgrad:</p>
             <div className="flex justify-center gap-2">
@@ -282,32 +276,33 @@ export default function SimonSaysPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
             >
               <motion.div
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 exit={{ scale: 0, rotate: 180 }}
                 transition={{ type: "spring", duration: 0.7 }}
+                className="pointer-events-auto"
               >
-                <Card className="p-8 text-center mx-4 border-2 border-red-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                <Card className="p-8 text-center mx-4 border-4 border-red-500 shadow-2xl bg-white">
                   <motion.h2
                     animate={{ scale: [1, 1.1, 1] }}
                     transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                    className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-600 drop-shadow-lg"
+                    className="text-3xl font-handwritten mb-4 text-red-600"
                   >
                     Game Over!
                   </motion.h2>
                   <p className="mb-6 text-gray-700">Du hast Level {level} erreicht!</p>
                   <div className="flex gap-3 justify-center">
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button onClick={startGame} size="lg">
+                      <Button onClick={startGame} size="sm" className="bg-red-500 hover:bg-red-600">
                         Nochmals spielen
                       </Button>
                     </motion.div>
                     <Link href="/spielarena">
                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <Button variant="outline" size="lg">
+                        <Button variant="outline" size="sm">
                           Zur Spielarena
                         </Button>
                       </motion.div>

@@ -11,7 +11,7 @@ import type {
 } from "@/lib/leaderboard-types"
 
 // Mastermind Actions
-export async function saveMastermindScore(attempts: number, timeSeconds: number) {
+export async function saveMastermindScore(data: { attempts: number; timeSeconds: number }) {
   const supabase = createClient()
 
   const {
@@ -41,8 +41,8 @@ export async function saveMastermindScore(attempts: number, timeSeconds: number)
   // Determine if new score is better (fewer attempts, or same attempts with less time)
   const isBetter =
     !existingScore ||
-    attempts < existingScore.attempts ||
-    (attempts === existingScore.attempts && timeSeconds < existingScore.time_seconds)
+    data.attempts < existingScore.attempts ||
+    (data.attempts === existingScore.attempts && data.timeSeconds < existingScore.time_seconds)
 
   if (!isBetter) {
     return { success: true, message: "Score not better than existing record" }
@@ -54,8 +54,8 @@ export async function saveMastermindScore(attempts: number, timeSeconds: number)
       .from("mastermind_scores")
       .update({
         username,
-        attempts,
-        time_seconds: timeSeconds,
+        attempts: data.attempts,
+        time_seconds: data.timeSeconds,
         created_at: new Date().toISOString(),
       })
       .eq("user_id", user.id)
@@ -66,8 +66,8 @@ export async function saveMastermindScore(attempts: number, timeSeconds: number)
     const { error } = await supabase.from("mastermind_scores").insert({
       user_id: user.id,
       username,
-      attempts,
-      time_seconds: timeSeconds,
+      attempts: data.attempts,
+      time_seconds: data.timeSeconds,
     })
 
     if (error) throw error
@@ -95,7 +95,7 @@ export async function getMastermindLeaderboard(limit = 10): Promise<MastermindSc
 }
 
 // 2048 Actions
-export async function save2048Score(score: number) {
+export async function save2048Score(data: { score: number }) {
   const supabase = createClient()
 
   const {
@@ -114,7 +114,7 @@ export async function save2048Score(score: number) {
   const { data: existingScore } = await supabase.from("game_2048_scores").select("*").eq("user_id", user.id).single()
 
   // Only save if new score is better (higher)
-  if (existingScore && score <= existingScore.score) {
+  if (existingScore && data.score <= existingScore.score) {
     return { success: true, message: "Score not better than existing record" }
   }
 
@@ -124,7 +124,7 @@ export async function save2048Score(score: number) {
       .from("game_2048_scores")
       .update({
         username,
-        score,
+        score: data.score,
         created_at: new Date().toISOString(),
       })
       .eq("user_id", user.id)
@@ -135,7 +135,7 @@ export async function save2048Score(score: number) {
     const { error } = await supabase.from("game_2048_scores").insert({
       user_id: user.id,
       username,
-      score,
+      score: data.score,
     })
 
     if (error) throw error
@@ -158,7 +158,7 @@ export async function get2048Leaderboard(limit = 10): Promise<Game2048Score[]> {
 }
 
 // Minesweeper Actions
-export async function saveMinesweeperScore(difficulty: "easy" | "medium" | "hard", timeSeconds: number) {
+export async function saveMinesweeperScore(data: { difficulty: "easy" | "medium" | "hard"; timeSeconds: number }) {
   const supabase = createClient()
 
   const {
@@ -178,11 +178,11 @@ export async function saveMinesweeperScore(difficulty: "easy" | "medium" | "hard
     .from("minesweeper_scores")
     .select("*")
     .eq("user_id", user.id)
-    .eq("difficulty", difficulty)
+    .eq("difficulty", data.difficulty)
     .single()
 
   // Only save if new time is better (faster)
-  if (existingScore && timeSeconds >= existingScore.time_seconds) {
+  if (existingScore && data.timeSeconds >= existingScore.time_seconds) {
     return { success: true, message: "Time not better than existing record" }
   }
 
@@ -192,11 +192,11 @@ export async function saveMinesweeperScore(difficulty: "easy" | "medium" | "hard
       .from("minesweeper_scores")
       .update({
         username,
-        time_seconds: timeSeconds,
+        time_seconds: data.timeSeconds,
         created_at: new Date().toISOString(),
       })
       .eq("user_id", user.id)
-      .eq("difficulty", difficulty)
+      .eq("difficulty", data.difficulty)
 
     if (error) throw error
   } else {
@@ -204,8 +204,8 @@ export async function saveMinesweeperScore(difficulty: "easy" | "medium" | "hard
     const { error } = await supabase.from("minesweeper_scores").insert({
       user_id: user.id,
       username,
-      difficulty,
-      time_seconds: timeSeconds,
+      difficulty: data.difficulty,
+      time_seconds: data.timeSeconds,
     })
 
     if (error) throw error
@@ -232,7 +232,7 @@ export async function getMinesweeperLeaderboard(
 }
 
 // Pattern Match Actions
-export async function savePatternMatchScore(round: number, score: number) {
+export async function savePatternMatchScore(data: { round: number; score: number }) {
   const supabase = createClient()
 
   const {
@@ -256,7 +256,9 @@ export async function savePatternMatchScore(round: number, score: number) {
 
   // Only save if new score is better (higher score, or same score with higher round)
   const isBetter =
-    !existingScore || score > existingScore.score || (score === existingScore.score && round > existingScore.round)
+    !existingScore ||
+    data.score > existingScore.score ||
+    (data.score === existingScore.score && data.round > existingScore.round)
 
   if (!isBetter) {
     return { success: true, message: "Score not better than existing record" }
@@ -268,8 +270,8 @@ export async function savePatternMatchScore(round: number, score: number) {
       .from("pattern_match_scores")
       .update({
         username,
-        round,
-        score,
+        round: data.round,
+        score: data.score,
         created_at: new Date().toISOString(),
       })
       .eq("user_id", user.id)
@@ -280,8 +282,8 @@ export async function savePatternMatchScore(round: number, score: number) {
     const { error } = await supabase.from("pattern_match_scores").insert({
       user_id: user.id,
       username,
-      round,
-      score,
+      round: data.round,
+      score: data.score,
     })
 
     if (error) throw error
@@ -305,7 +307,12 @@ export async function getPatternMatchLeaderboard(limit = 10): Promise<PatternMat
 }
 
 // Lights Out Actions
-export async function saveLightsOutScore(difficulty: "easy" | "medium" | "hard", moves: number, hintsUsed: number) {
+export async function saveLightsOutScore(data: {
+  difficulty: "easy" | "medium" | "hard"
+  moves: number
+  hintsUsed: number
+  timeSeconds: number
+}) {
   const supabase = createClient()
 
   const {
@@ -325,14 +332,14 @@ export async function saveLightsOutScore(difficulty: "easy" | "medium" | "hard",
     .from("lights_out_scores")
     .select("*")
     .eq("user_id", user.id)
-    .eq("difficulty", difficulty)
+    .eq("difficulty", data.difficulty)
     .single()
 
-  // Only save if new score is better (fewer moves, or same moves with fewer hints)
+  // Only save if new score is better (fewer moves, or same moves with less time)
   const isBetter =
     !existingScore ||
-    moves < existingScore.moves ||
-    (moves === existingScore.moves && hintsUsed < existingScore.hints_used)
+    data.moves < existingScore.moves ||
+    (data.moves === existingScore.moves && data.timeSeconds < existingScore.time_seconds)
 
   if (!isBetter) {
     return { success: true, message: "Score not better than existing record" }
@@ -344,12 +351,13 @@ export async function saveLightsOutScore(difficulty: "easy" | "medium" | "hard",
       .from("lights_out_scores")
       .update({
         username,
-        moves,
-        hints_used: hintsUsed,
+        moves: data.moves,
+        hints_used: data.hintsUsed,
+        time_seconds: data.timeSeconds,
         created_at: new Date().toISOString(),
       })
       .eq("user_id", user.id)
-      .eq("difficulty", difficulty)
+      .eq("difficulty", data.difficulty)
 
     if (error) throw error
   } else {
@@ -357,9 +365,10 @@ export async function saveLightsOutScore(difficulty: "easy" | "medium" | "hard",
     const { error } = await supabase.from("lights_out_scores").insert({
       user_id: user.id,
       username,
-      difficulty,
-      moves,
-      hints_used: hintsUsed,
+      difficulty: data.difficulty,
+      moves: data.moves,
+      hints_used: data.hintsUsed,
+      time_seconds: data.timeSeconds,
     })
 
     if (error) throw error
@@ -379,7 +388,7 @@ export async function getLightsOutLeaderboard(
     .select("*")
     .eq("difficulty", difficulty)
     .order("moves", { ascending: true })
-    .order("hints_used", { ascending: true })
+    .order("time_seconds", { ascending: true })
     .limit(limit)
 
   if (error) throw error
@@ -387,7 +396,7 @@ export async function getLightsOutLeaderboard(
 }
 
 // Sudoku Actions
-export async function saveSudokuScore(difficulty: "easy" | "medium" | "hard", timeSeconds: number) {
+export async function saveSudokuScore(data: { difficulty: "easy" | "medium" | "hard"; timeSeconds: number }) {
   const supabase = createClient()
 
   const {
@@ -407,11 +416,11 @@ export async function saveSudokuScore(difficulty: "easy" | "medium" | "hard", ti
     .from("sudoku_scores")
     .select("*")
     .eq("user_id", user.id)
-    .eq("difficulty", difficulty)
+    .eq("difficulty", data.difficulty)
     .single()
 
   // Only save if new time is better (faster)
-  if (existingScore && timeSeconds >= existingScore.time_seconds) {
+  if (existingScore && data.timeSeconds >= existingScore.time_seconds) {
     return { success: true, message: "Time not better than existing record" }
   }
 
@@ -421,11 +430,11 @@ export async function saveSudokuScore(difficulty: "easy" | "medium" | "hard", ti
       .from("sudoku_scores")
       .update({
         username,
-        time_seconds: timeSeconds,
+        time_seconds: data.timeSeconds,
         created_at: new Date().toISOString(),
       })
       .eq("user_id", user.id)
-      .eq("difficulty", difficulty)
+      .eq("difficulty", data.difficulty)
 
     if (error) throw error
   } else {
@@ -433,8 +442,8 @@ export async function saveSudokuScore(difficulty: "easy" | "medium" | "hard", ti
     const { error } = await supabase.from("sudoku_scores").insert({
       user_id: user.id,
       username,
-      difficulty,
-      time_seconds: timeSeconds,
+      difficulty: data.difficulty,
+      time_seconds: data.timeSeconds,
     })
 
     if (error) throw error

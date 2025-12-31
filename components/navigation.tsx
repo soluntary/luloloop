@@ -21,6 +21,8 @@ import {
   FaUserCheck,
   FaDice,
 } from "react-icons/fa"
+import { GiMeepleCircle } from "react-icons/gi"
+import { GiMeepleArmy } from "react-icons/gi"
 import { LiaUsersSolid } from "react-icons/lia"
 import { IoLibrary } from "react-icons/io5"
 import { MdForum } from "react-icons/md"
@@ -85,12 +87,12 @@ function Navigation({ currentPage }: NavigationProps) {
     { href: "/marketplace", label: "Spielehandel", icon: FaStore, key: "spielemarkt" },
     {
       label: "Spielplatz",
-      icon: FaDice,
+      icon: GiMeepleArmy,
       key: "spielplatz",
       dropdown: {
         items: [
           { href: "/spielhilfen", label: "Spielhilfen", icon: FaDice, key: "spielhilfen" },
-          { href: "/spielarena", label: "Spielarena", icon: GiGamepad, key: "spielarena" },
+          { href: "/spielarena", label: "Spielarena", icon: GiMeepleCircle, key: "spielarena" },
         ],
       },
     },

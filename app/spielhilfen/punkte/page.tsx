@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ArrowLeft, Trophy, Plus, Minus, Trash2, Crown, Undo2, History, RotateCcw } from "lucide-react"
 import { GiTargetPrize } from "react-icons/gi"
+import { FaListOl } from "react-icons/fa"
 import { GiPodium } from "react-icons/gi"
 import { motion } from "framer-motion"
 import { TemplateManager } from "@/components/spielhilfen/template-manager"
@@ -484,7 +485,7 @@ export default function PunktePage() {
 
               <div className="p-3 bg-gray-50 rounded-lg">
                 <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm">
-                  <GiPodium className="w-4 h-4 text-yellow-500" />
+                  <FaListOl className="w-4 h-4 text-yellow-500" />
                   Rangliste
                   <span className="text-xs text-gray-500 font-normal">
                     ({winCondition === "highest" ? "Höchste zuerst" : "Niedrigste zuerst"})

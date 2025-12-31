@@ -1,6 +1,5 @@
 "use client"
 import { useState, useEffect } from "react"
-import type React from "react"
 
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -153,15 +152,28 @@ export default function MinesweeperPage() {
     checkWin(newGrid)
   }
 
-  const toggleFlag = (r: number, c: number, e: React.MouseEvent) => {
-    e.preventDefault()
-    if (gameOver || won || grid[r][c].isRevealed) return
-
+  const handleRightClick = (r: number, c: number) => {
     if (!isRunning) setIsRunning(true)
 
     const newGrid = grid.map((row) => row.map((cell) => ({ ...cell })))
-    newGrid[r][c].isFlagged = !newGrid[r][c].isFlagged
-    setMinesLeft((prev) => (newGrid[r][c].isFlagged ? prev - 1 : prev + 1))
+    const cell = newGrid[r][c]
+
+    // Prevent flagging if already revealed
+    if (cell.isRevealed) return
+
+    // Toggle flag
+    if (cell.isFlagged) {
+      // Removing a flag
+      cell.isFlagged = false
+      setMinesLeft((prev) => prev + 1)
+    } else {
+      // Adding a flag - only if we haven't exceeded mine count
+      if (minesLeft > 0) {
+        cell.isFlagged = true
+        setMinesLeft((prev) => prev - 1)
+      }
+    }
+
     setGrid(newGrid)
   }
 
@@ -318,7 +330,7 @@ export default function MinesweeperPage() {
 
           {showLeaderboard ? (
             <LeaderboardDisplay
-              title={`Minesweeper Rangliste - Schwierigkeitsgrad: ${difficulty === "easy" ? "Einfach" : difficulty === "medium" ? "Mittel" : "Schwer"}`}
+              title={`Minesweeper Rangliste - Schwierigkeitsgrad: ${difficulty === "easy" ? "Einfach (9x9, 10 Minen)" : difficulty === "medium" ? "Mittel (16x16, 40 Minen)" : "Schwer (30x16, 99 Minen)"}`}
               entries={leaderboard.map((score, index) => ({
                 rank: index + 1,
                 username: score.username,
@@ -479,34 +491,34 @@ export default function MinesweeperPage() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                          className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
                         >
                           <motion.div
-                            initial={{ scale: 0, rotate: -180 }}
-                            animate={{ scale: 1, rotate: 0 }}
-                            exit={{ scale: 0, rotate: 180 }}
+                            initial={{ scale: 0, y: -50 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0, y: -50 }}
                             transition={{ type: "spring", duration: 0.7 }}
+                            className="pointer-events-auto"
                           >
-                            <Card className="p-8 text-center mx-4 border-2 border-red-400/50 shadow-2xl bg-white/95 backdrop-blur">
-                              <div className="text-4xl mb-4">💥</div>
+                            <Card className="p-8 text-center mx-4 border-4 border-gray-400 shadow-2xl bg-white">
                               <motion.h2
-                                animate={{ scale: [1, 1.1, 1] }}
+                                animate={{ scale: [1, 1.05, 1] }}
                                 transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                                className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-600 drop-shadow-lg"
+                                className="text-5xl font-handwritten mb-6 text-red-600"
                               >
-                                Game Over!
+                                💥 Game Over!
                               </motion.h2>
-                              <p className="text-sm text-gray-600 mb-1">Du hast eine Mine getroffen!</p>
-                              <p className="text-sm text-gray-500 mb-4">Zeit: {formatTime(timer)}</p>
+                              <p className="text-gray-800 mb-2 text-base font-semibold">Du hast eine Mine getroffen!</p>
+                              <p className="text-gray-700 mb-6 text-base font-medium">Zeit: {formatTime(timer)}</p>
                               <div className="flex gap-3 justify-center">
                                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                  <Button onClick={initGame} size="sm">
+                                  <Button onClick={initGame} size="sm" className="bg-gray-600 hover:bg-gray-700">
                                     Nochmals spielen
                                   </Button>
                                 </motion.div>
                                 <Link href="/spielarena">
                                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                    <Button variant="outline" size="sm">
+                                    <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50 shadow-lg">
                                       Zur Spielarena
                                     </Button>
                                   </motion.div>
@@ -522,33 +534,38 @@ export default function MinesweeperPage() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                          className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
                         >
                           <motion.div
-                            initial={{ scale: 0, rotate: -180 }}
-                            animate={{ scale: 1, rotate: 0 }}
-                            exit={{ scale: 0, rotate: 180 }}
+                            initial={{ scale: 0, y: -50 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0, y: -50 }}
                             transition={{ type: "spring", duration: 0.7 }}
+                            className="pointer-events-auto"
                           >
-                            <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                            <Card className="p-8 text-center mx-4 border-4 border-gray-400 shadow-2xl bg-white">
                               <div className="text-4xl mb-4">🎉</div>
                               <motion.h2
-                                animate={{ scale: [1, 1.1, 1] }}
+                                animate={{ scale: [1, 1.05, 1] }}
                                 transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                                className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg"
+                                className="text-5xl font-handwritten mb-6 text-green-600"
                               >
-                                Gewonnen!
+                                Gratuliere!
                               </motion.h2>
-                              <p className="text-sm text-gray-600 mb-4">Zeit: {formatTime(timer)}</p>
+                              <p className="text-gray-700 mb-6 text-lg font-medium">Zeit: {formatTime(timer)}</p>
                               <div className="flex gap-3 justify-center">
                                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                  <Button onClick={initGame} size="sm">
+                                  <Button
+                                    onClick={initGame}
+                                    size="sm"
+                                    className="bg-gray-600 hover:bg-gray-700 shadow-lg"
+                                  >
                                     Nochmals spielen
                                   </Button>
                                 </motion.div>
                                 <Link href="/spielarena">
                                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                    <Button variant="outline" size="sm">
+                                    <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50 shadow-lg">
                                       Zur Spielarena
                                     </Button>
                                   </motion.div>
@@ -568,7 +585,10 @@ export default function MinesweeperPage() {
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => revealCell(r, c)}
-                                onContextMenu={(e) => toggleFlag(r, c, e)}
+                                onContextMenu={(e) => {
+                                  e.preventDefault()
+                                  handleRightClick(r, c)
+                                }}
                                 className={`${getCellSize()} border flex items-center justify-center text-xs md:text-sm font-bold ${
                                   cell.isRevealed
                                     ? cell.isMine

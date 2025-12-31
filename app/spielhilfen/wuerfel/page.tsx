@@ -12,6 +12,11 @@ import {
   GiPerspectiveDiceSixFacesSix,
   GiPerspectiveDiceSixFacesThree,
   GiPerspectiveDiceSixFacesRandom,
+  GiD4,
+  GiDiceEightFacesEight,
+  GiD10,
+  GiD12,
+  GiDiceTwentyFacesTwenty
 } from "react-icons/gi"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TemplateManager } from "@/components/spielhilfen/template-manager"
@@ -157,6 +162,29 @@ export default function WuerfelPage() {
       )
     }
 
+    const getDiceIcon = () => {
+      switch (diceType) {
+        case 4:
+          return <GiD4 className={`${iconSize} ${colors.iconColor}`} />
+        case 6:
+          return index % 2 === 0 ? (
+            <GiPerspectiveDiceSixFacesSix className={`${iconSize} text-gray-700`} />
+          ) : (
+            <GiPerspectiveDiceSixFacesThree className={`${iconSize} text-gray-700`} />
+          )
+        case 8:
+          return <GiDiceEightFacesEight className={`${iconSize} ${colors.iconColor}`} />
+        case 10:
+          return <GiD10 className={`${iconSize} ${colors.iconColor}`} />
+        case 12:
+          return <GiD12 className={`${iconSize} ${colors.iconColor}`} />
+        case 20:
+          return <GiDiceTwentyFacesTwenty className={`${iconSize} ${colors.iconColor}`} />
+        default:
+          return <GiPerspectiveDiceSixFacesRandom className={`${iconSize} ${colors.iconColor}`} />
+      }
+    }
+
     return (
       <div className="flex flex-col items-center gap-2">
         <motion.div
@@ -178,15 +206,7 @@ export default function WuerfelPage() {
           }}
         >
           {rolling ? (
-            diceType === 6 ? (
-              index % 2 === 0 ? (
-                <GiPerspectiveDiceSixFacesSix className={`${iconSize} text-gray-700`} />
-              ) : (
-                <GiPerspectiveDiceSixFacesThree className={`${iconSize} text-gray-700`} />
-              )
-            ) : (
-              <GiPerspectiveDiceSixFacesRandom className={`${iconSize} ${colors.iconColor}`} />
-            )
+            getDiceIcon()
           ) : (
             <div
               className={`

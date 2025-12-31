@@ -6,7 +6,7 @@ import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { FaArrowLeft, FaRedo } from "react-icons/fa"
-import { MdOutlineGames } from "react-icons/md"
+import { TfiLayoutGrid4 } from "react-icons/tfi"
 
 type Cell = "red" | "yellow" | null
 type WinningCell = { row: number; col: number }
@@ -462,7 +462,7 @@ export default function ConnectFourPage() {
                 transition={{ duration: 0.6 }}
                 className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center transform -rotate-12"
               >
-                <MdOutlineGames className="w-8 h-8 text-white" />
+                <TfiLayoutGrid4 className="w-8 h-8 text-white" />
               </motion.div>
               <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Vier gewinnt</h1>
             </div>
@@ -499,7 +499,7 @@ export default function ConnectFourPage() {
               }`}
               size="lg"
             >
-              Gegen KI
+              Gegen Ludo
             </Button>
           </motion.div>
 
@@ -646,47 +646,44 @@ export default function ConnectFourPage() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                      className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
                     >
                       <motion.div
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        exit={{ scale: 0, rotate: 180 }}
+                        initial={{ scale: 0, y: -50 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0, y: -50 }}
                         transition={{ type: "spring", duration: 0.7 }}
+                        className="pointer-events-auto"
                       >
-                        <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                        <Card className="p-8 text-center mx-4 border-4 border-red-400 shadow-2xl bg-white">
                           <motion.h2
-                            animate={{ scale: [1, 1.1, 1] }}
+                            animate={{ scale: [1, 1.05, 1] }}
                             transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                            className="text-3xl font-handwritten mb-6 text-gray-900 drop-shadow-lg"
+                            className={`text-5xl font-handwritten mb-6 ${
+                              winner === "draw" ? "text-gray-800" : "text-green-600"
+                            }`}
                           >
                             {winner === "draw" ? (
                               "Unentschieden!"
                             ) : vsAI ? (
                               winner === playerColor ? (
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
-                                  🎉 Gratulation! Du hast gewonnen!
-                                </span>
+                                <span>🎉 Gratuliere! Du hast gewonnen!</span>
                               ) : (
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-600">
-                                  Schade! Ludo hat gewonnen
-                                </span>
+                                <span>Schade! Ludo hat gewonnen</span>
                               )
                             ) : (
-                              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
-                                {winner === "red" ? "Rot" : "Gelb"} gewinnt!
-                              </span>
+                              <span>Gratuliere! {winner === "red" ? "Rot" : "Gelb"} gewinnt!</span>
                             )}
                           </motion.h2>
                           <div className="flex gap-3 justify-center">
                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button onClick={initGame} size="sm">
+                              <Button onClick={initGame} size="sm" className="bg-red-500 hover:bg-red-600">
                                 Nochmals spielen
                               </Button>
                             </motion.div>
                             <Link href="/spielarena">
                               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50 shadow-lg">
                                   Zur Spielarena
                                 </Button>
                               </motion.div>

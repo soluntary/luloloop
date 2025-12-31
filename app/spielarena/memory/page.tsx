@@ -284,33 +284,34 @@ export default function MemoryPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
               >
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   exit={{ scale: 0, rotate: 180 }}
                   transition={{ type: "spring", duration: 0.7 }}
+                  className="pointer-events-auto"
                 >
-                  <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                  <Card className="p-8 text-center mx-4 border-4 border-blue-500 shadow-2xl bg-white">
                     <motion.h2
                       animate={{ scale: [1, 1.1, 1] }}
                       transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                      className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg"
+                      className="text-3xl font-handwritten mb-4 text-green-600"
                     >
-                      Gratuliere! 🎉
+                      🎉 Gratuliere!
                     </motion.h2>
-                    <p className="mb-6 text-gray-700">Du hast das Spiel in {moves} Zügen geschafft!</p>
+                    <p className="mb-6 text-gray-700">Du hast alle Bildpaare in {moves} Zügen gefunden!</p>
                     <div className="flex gap-3 justify-center">
                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <Button onClick={initializeGame} size="sm">
+                        <Button onClick={initializeGame} size="sm" className="bg-blue-500 hover:bg-blue-600">
                           Nochmals spielen
                         </Button>
                       </motion.div>
                       <Link href="/spielarena">
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                           <Button variant="outline" size="sm">
-                            Beenden
+                            Zur Spielarena
                           </Button>
                         </motion.div>
                       </Link>

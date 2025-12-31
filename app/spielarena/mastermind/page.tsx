@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { FaArrowLeft, FaRedo, FaCheckCircle, FaClock, FaTrophy } from "react-icons/fa"
 import { FaPuzzlePiece } from "react-icons/fa"
 import { FaListOl } from "react-icons/fa"
+import { TbMoodPuzzled } from "react-icons/tb"
 import Link from "next/link"
 import { saveMastermindScore, getMastermindLeaderboard } from "@/lib/leaderboard-client-actions"
 import { LeaderboardDisplay } from "@/components/leaderboard-display"
@@ -81,7 +82,7 @@ export default function MastermindPage() {
     const timeElapsed = Math.floor((Date.now() - startTime) / 1000)
     setTimer(timeElapsed)
     try {
-      const result = await saveMastermindScore(guesses.length, timeElapsed)
+      const result = await saveMastermindScore({ attempts: guesses.length, timeSeconds: timeElapsed })
       if (result && !result.success) {
         console.log("[v0] Score not saved:", result.message)
       }
@@ -195,7 +196,7 @@ export default function MastermindPage() {
                   transition={{ duration: 0.6 }}
                   className="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center transform -rotate-12"
                 >
-                  <FaPuzzlePiece className="w-8 h-8 text-white" />
+                  <TbMoodPuzzled className="w-8 h-8 text-white" />
                 </motion.div>
                 <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Mastermind</h1>
               </div>
@@ -429,35 +430,36 @@ export default function MastermindPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+                    className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
                   >
                     <motion.div
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      exit={{ scale: 0, rotate: 180 }}
+                      initial={{ scale: 0, y: -50 }}
+                      animate={{ scale: 1, y: 0 }}
+                      exit={{ scale: 0, y: -50 }}
                       transition={{ type: "spring", duration: 0.7 }}
+                      className="pointer-events-auto"
                     >
-                      <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                      <Card className="p-8 text-center mx-4 border-4 border-indigo-500 shadow-2xl bg-white">
                         <motion.h2
-                          animate={{ scale: [1, 1.1, 1] }}
+                          animate={{ scale: [1, 1.05, 1] }}
                           transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                          className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg"
+                          className="text-5xl font-handwritten mb-6 text-green-600"
                         >
-                          Gratuliere! 🎉
+                          🎉 Gratuliere!
                         </motion.h2>
-                        <p className="mb-4 text-gray-700">
-                          Du hast den Code in {guesses.length} Rateversuchen geknackt!
+                        <p className="mb-4 text-gray-800 text-lg font-semibold">Du hast den Farbcode geknackt!</p>
+                        <p className="mb-6 text-gray-700 text-base font-medium">
+                          Versuche: {guesses.length} | Zeit: {formatTime(timer)}
                         </p>
-                        <p className="mb-4 text-gray-600 text-sm">Zeit: {formatTime(timer)}</p>
                         <div className="flex gap-3 justify-center">
                           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                            <Button onClick={initGame} size="sm">
+                            <Button onClick={initGame} size="sm" className="bg-indigo-500 hover:bg-indigo-600">
                               Nochmals spielen
                             </Button>
                           </motion.div>
                           <Link href="/spielarena">
                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50 shadow-lg">
                                 Zur Spielarena
                               </Button>
                             </motion.div>
@@ -481,16 +483,18 @@ export default function MastermindPage() {
                       exit={{ scale: 0, rotate: 180 }}
                       transition={{ type: "spring", duration: 0.7 }}
                     >
-                      <Card className="p-8 text-center mx-4 border-2 border-red-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                      <Card className="p-8 text-center mx-4 border-4 border-indigo-300 shadow-2xl bg-white">
+                        <div className="text-4xl mb-4">😔</div>
                         <motion.h2
-                          animate={{ scale: [1, 1.1, 1] }}
+                          animate={{ scale: [1, 1.05, 1] }}
                           transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                          className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-600 drop-shadow-lg"
+                          className="text-5xl font-handwritten mb-6 text-red-600"
                         >
                           Game Over!
                         </motion.h2>
-                        <p className="mb-2 text-gray-700">Gesucht war der Farbcode:</p>
-                        <div className="flex justify-center gap-2 mb-4">
+                        <p className="mb-4 text-gray-800 text-lg font-semibold">Leider nicht geschafft!</p>
+                        <p className="mb-2 text-gray-700 text-base">Die richtige Kombination war:</p>
+                        <div className="flex justify-center gap-2 mb-6">
                           {secretCode.map((color, i) => (
                             <div
                               key={i}
@@ -500,13 +504,13 @@ export default function MastermindPage() {
                         </div>
                         <div className="flex gap-3 justify-center">
                           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                            <Button onClick={initGame} size="sm">
+                            <Button onClick={initGame} size="sm" className="bg-indigo-500 hover:bg-indigo-600">
                               Nochmals spielen
                             </Button>
                           </motion.div>
                           <Link href="/spielarena">
                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50 shadow-lg">
                                 Zur Spielarena
                               </Button>
                             </motion.div>
