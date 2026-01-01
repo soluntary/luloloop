@@ -607,24 +607,38 @@ export default function ConnectFourPage() {
                   {!showCoinFlip && !winner && (
                     <motion.div
                       key={currentPlayer}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="flex items-center gap-2"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200 }}
+                      className="flex items-center gap-3 bg-gradient-to-r from-gray-50 to-gray-100 px-5 rounded-xl border-2 border-gray-200 shadow-sm py-2"
                     >
-                      <div
-                        className={`w-4 h-4 rounded-full ${currentPlayer === "red" ? "bg-red-600" : "bg-yellow-300"}`}
+                      <motion.div
+                        animate={{
+                          y: [0, -3, 0],
+                          boxShadow:
+                            currentPlayer === "red"
+                              ? [
+                                  "0 2px 4px rgba(220, 38, 38, 0.3)",
+                                  "0 6px 8px rgba(220, 38, 38, 0.5)",
+                                  "0 2px 4px rgba(220, 38, 38, 0.3)",
+                                ]
+                              : [
+                                  "0 2px 4px rgba(250, 204, 21, 0.3)",
+                                  "0 6px 8px rgba(250, 204, 21, 0.5)",
+                                  "0 2px 4px rgba(250, 204, 21, 0.3)",
+                                ],
+                        }}
+                        transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                        className={`rounded-full h-9 w-9 ${
+                          currentPlayer === "red"
+                            ? "bg-gradient-to-br from-red-400 to-red-700"
+                            : "bg-gradient-to-br from-yellow-200 to-yellow-400"
+                        }`}
                       />
-                      <p className="text-base font-body text-gray-600">
-                        {vsAI ? (
-                          currentPlayer === playerColor ? (
-                            <span>Du bist am Zug</span>
-                          ) : (
-                            <span>Ludo ist am Zug</span>
-                          )
-                        ) : (
-                          <span>ist am Zug</span>
-                        )}
-                      </p>
+                      <div>
+                        <p className="text-gray-500 leading-none mb-1 text-base">am Zug</p>
+                        
+                      </div>
                     </motion.div>
                   )}
                   {(winner || showCoinFlip) && <div />}

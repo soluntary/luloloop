@@ -299,9 +299,11 @@ export default function MemoryPage() {
                       transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
                       className="text-3xl font-handwritten mb-4 text-green-600"
                     >
-                      🎉 Gratuliere!
+                      Gratuliere!
                     </motion.h2>
-                    <p className="mb-6 text-gray-700">Du hast alle Bildpaare in {moves} Zügen gefunden!</p>
+                    <p className="mb-6 text-gray-700 font-body text-lg">
+                      Du hast alle Bildpaare in {moves} Zügen gefunden!
+                    </p>
                     <div className="flex gap-3 justify-center">
                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                         <Button onClick={initializeGame} size="sm" className="bg-blue-500 hover:bg-blue-600">

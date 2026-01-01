@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { FaArrowLeft, FaRedo } from "react-icons/fa"
 import { FaListOl } from "react-icons/fa"
-import { BsGrid3X3 } from "react-icons/bs"
+import { IoGrid } from "react-icons/io5"
 import {
   savePatternMatchScore,
   getPatternMatchLeaderboard,
@@ -145,7 +145,7 @@ export default function PatternMatchPage() {
                 transition={{ duration: 0.6 }}
                 className="w-16 h-16 bg-pink-500 rounded-full flex items-center justify-center transform -rotate-12"
               >
-                <BsGrid3X3 className="w-8 h-8 text-white" />
+                <IoGrid className="w-8 h-8 text-white" />
               </motion.div>
               <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Pattern Match</h1>
             </div>
@@ -184,7 +184,7 @@ export default function PatternMatchPage() {
                   year: "2-digit",
                 }),
               }))}
-              columns={["Platz", "Benutzername", "Runde/Punkte", "Datum"]}
+              columns={["Platz", "Benutzername", "Details", "Datum"]}
             />
           ) : (
             <div className="relative">
@@ -300,7 +300,9 @@ export default function PatternMatchPage() {
                           <p className="font-body text-gray-700 mb-4">Du hast Runde {round} erreicht!</p>
                           <div className="flex gap-3 justify-center">
                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button onClick={resetGame} size="sm">Nochmals spielen</Button>
+                              <Button onClick={resetGame} size="sm">
+                                Nochmals spielen
+                              </Button>
                             </motion.div>
                             <Link href="/spielarena">
                               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>

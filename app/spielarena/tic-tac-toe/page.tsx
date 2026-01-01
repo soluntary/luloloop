@@ -273,23 +273,29 @@ export default function TicTacToePage() {
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-4">
                   {!winner && !showSymbolDraw && (
-                    <p className="text-base font-body text-gray-600">
-                      {vsAI ? (
-                        currentPlayer === playerSymbol ? (
-                          <span className={currentPlayer === "X" ? "text-gray-600" : "gray-600"}>
-                            {playerSymbol} ist am Zug
-                          </span>
-                        ) : (
-                          <span className={currentPlayer === "X" ? "text-gray-600" : "gray-600"}>
-                            Ludo ({aiSymbol}) ist am Zug
-                          </span>
-                        )
-                      ) : (
-                        <span className={currentPlayer === "X" ? "text-gray-600" : "gray-600"}>
-                          {currentPlayer} ist am Zug
-                        </span>
-                      )}
-                    </p>
+                    <motion.div
+                      key={currentPlayer}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200 }}
+                      className="flex items-center gap-3 bg-gradient-to-r from-gray-50 to-gray-100 px-4 rounded-xl border-2 border-gray-200 py-1.5"
+                    >
+                      <motion.div
+                        animate={{ rotate: [0, 5, -5, 0] }}
+                        transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 2 }}
+                        className={`rounded-lg flex items-center justify-center text-2xl font-bold shadow-md h-9 w-9 ${
+                          currentPlayer === "X"
+                            ? "bg-white text-blue-600 border-2 border-blue-600"
+                            : "bg-white text-red-600 border-2 border-red-600"
+                        }`}
+                      >
+                        {currentPlayer}
+                      </motion.div>
+                      <div>
+                        <p className="text-gray-500 leading-none text-base font-normal">am Zug</p>
+                        
+                      </div>
+                    </motion.div>
                   )}
                   {(winner || showSymbolDraw) && <div />}
                   <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
@@ -316,7 +322,7 @@ export default function TicTacToePage() {
                           animate={{ scale: [1, 1.05, 1] }}
                           transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
                           className={`text-5xl font-handwritten mb-6 ${
-                            winner === "draw" ? "text-gray-800" : "text-green-600"
+                            winner === "draw" ? "text-gray-800" : winner === "X" ? "text-blue-600" : "text-red-600"
                           }`}
                         >
                           {winner === "draw" ? (
@@ -328,7 +334,10 @@ export default function TicTacToePage() {
                               <span>Ludo hat gewonnen!</span>
                             )
                           ) : (
-                            <span>{winner} gewinnt! Gratuliere!</span>
+                            <span className="flex items-center justify-center gap-3">
+                              <span className={winner === "X" ? "text-blue-600" : "text-red-600"}>{winner}</span>
+                              <span>gewinnt! Gratuliere!</span>
+                            </span>
                           )}
                         </motion.h2>
                         <div className="flex gap-3 justify-center">

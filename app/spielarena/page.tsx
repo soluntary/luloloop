@@ -8,18 +8,18 @@ import { FaArrowRight } from "react-icons/fa"
 import { GiTicTacToe, GiHangingSign, GiSoundOn } from "react-icons/gi"
 import { BsGrid3X3Gap, BsGrid3X3 } from "react-icons/bs"
 import { IoExtensionPuzzle } from "react-icons/io5"
-import { FaBomb, FaLightbulb, FaPuzzlePiece } from "react-icons/fa"
-import { MdOutlineGames } from "react-icons/md"
+import { FaLightbulb } from "react-icons/fa"
+import { FaBomb } from "react-icons/fa"
 import { TbMoodPuzzled } from "react-icons/tb"
-import { TfiLayoutGrid4 } from "react-icons/tfi"
 import { GiBrain } from "react-icons/gi"
+import { IoGrid } from "react-icons/io5
 
 const games = [
   {
     id: "memory",
     title: "Memory",
     description:
-      "Spielklassiker für das Kurzzeitgedächtnis. Finde möglichst schnell alle Bildpaare. Verschiedene Schwierigkeitsgrade verfügbar.",
+      "Spielklassiker für das Kurzzeitgedächtnis mit drei Schwierigkeitsgraden. Finde möglichst schnell alle Bildpaare und trainiere deine Gedächtnisleistung.",
     icon: GiBrain,
     color: "blue",
     rotation: "rotate-1",
@@ -38,7 +38,8 @@ const games = [
   {
     id: "2048",
     title: "2048",
-    description: "Bilde eine Kachel mit der Zahl 2048 durch geschicktes Verschieben und Kombinieren anderer Kacheln! Ein süchtig machendes Puzzle-Spiel.",
+    description:
+      "Bilde eine Kachel mit der Zahl 2048 durch geschicktes Verschieben und Kombinieren anderer Kacheln! Ein süchtig machendes Puzzle-Spiel.",
     icon: null,
     color: "purple",
     rotation: "rotate-1",
@@ -84,25 +85,26 @@ const games = [
   {
     id: "connect-four",
     title: "Vier gewinnt",
-    description: "Bringe als Erster vier der eigenen Spielsteine in eine Linie! Entweder diagonal, vertikal oder horizontal. Spielt dabei gegen den Computer oder gegeneinander.",
-    icon: TfiLayoutGrid4,
-    color: "red",
-    rotation: "rotate-1",
+    description:
+      "Bringe als Erster vier der eigenen Spielsteine in eine Linie! Entweder diagonal, vertikal oder horizontal. Spielt dabei gegen den Computer oder gegeneinander.",
+    icon: BsGrid3X3,
+    color: "fuchsia",
+    rotation: "-rotate-1",
     linkText: "Spielen",
   },
   {
     id: "pattern-match",
     title: "Pattern Match",
     description: "Erkenne und reproduziere das Muster! Trainiere dein visuelles Gedächtnis.",
-    icon: BsGrid3X3,
-    color: "fuchsia",
+    icon: IoGrid,
+    color: "violet",
     rotation: "rotate-1",
     linkText: "Spielen",
   },
   {
     id: "hangman",
     title: "Hangman",
-    description: "Rate das Wort, bevor der Mann hängt! Klassisches Wortspiel.",
+    description: "Rate das Wort, bevor der Mann hängt! Klassisches Wortspiel mit Kategorieauswahl.",
     icon: GiHangingSign,
     color: "sky",
     rotation: "rotate-1",

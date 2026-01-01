@@ -44,10 +44,10 @@ export default function SlidingPuzzlePage() {
     const row = Math.floor(emptyIndex / size)
     const col = emptyIndex % size
 
-    if (row > 0) moves.push(emptyIndex - size) // up
-    if (row < size - 1) moves.push(emptyIndex + size) // down
-    if (col > 0) moves.push(emptyIndex - 1) // left
-    if (col < size - 1) moves.push(emptyIndex + 1) // right
+    if (row > 0) moves.push(emptyIndex - size)
+    if (row < size - 1) moves.push(emptyIndex + size)
+    if (col > 0) moves.push(emptyIndex - 1)
+    if (col < size - 1) moves.push(emptyIndex + 1)
 
     return moves
   }
@@ -62,7 +62,6 @@ export default function SlidingPuzzlePage() {
       setBoard(newBoard)
       setMoves(moves + 1)
 
-      // Check if solved
       const isSolved = newBoard.every((val, i) => (i === gridSize * gridSize - 1 ? val === null : val === i + 1))
       if (isSolved) setSolved(true)
     }
@@ -157,7 +156,7 @@ export default function SlidingPuzzlePage() {
                 </div>
 
                 <div
-                  className={`grid gap-2 md:gap-4`}
+                  className="grid gap-2 md:gap-4"
                   style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}
                 >
                   {board.map((tile, index) => (
@@ -187,26 +186,29 @@ export default function SlidingPuzzlePage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
             >
               <motion.div
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 exit={{ scale: 0, rotate: 180 }}
                 transition={{ type: "spring", duration: 0.7 }}
+                className="pointer-events-auto"
               >
-                <Card className="p-8 text-center mx-4 border-2 border-yellow-400/50 shadow-2xl bg-white/95 backdrop-blur">
+                <Card className="p-8 text-center mx-4 border-4 border-teal-500 shadow-2xl bg-white">
                   <motion.h2
                     animate={{ scale: [1, 1.1, 1] }}
                     transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                    className="text-3xl font-handwritten mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg"
+                    className="text-3xl font-handwritten mb-4 text-green-600"
                   >
                     Geschafft! 🎉
                   </motion.h2>
-                  <p className="mb-6 text-gray-700">Du hast das Puzzle in {moves} Zügen gelöst!</p>
+                  <p className="mb-6 text-gray-700">
+                    Du hast das Puzzle in <strong>{moves} Zügen</strong> gelöst!
+                  </p>
                   <div className="flex gap-3 justify-center">
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button onClick={() => initializeBoard()} size="sm">
+                      <Button onClick={() => initializeBoard()} size="sm" className="bg-teal-600 hover:bg-teal-700">
                         Nochmals spielen
                       </Button>
                     </motion.div>

@@ -40,13 +40,13 @@ export default function MastermindPage() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout
-    if (isTimerRunning && !gameWon && !gameLost) {
+    if (isTimerRunning && !gameWon && !gameLost && !showLeaderboard) {
       interval = setInterval(() => {
         setTimer(Math.floor((Date.now() - startTime) / 1000))
       }, 1000)
     }
     return () => clearInterval(interval)
-  }, [isTimerRunning, gameWon, gameLost, startTime])
+  }, [isTimerRunning, gameWon, gameLost, startTime, showLeaderboard])
 
   const initGame = () => {
     const code = Array(CODE_LENGTH)
@@ -141,15 +141,15 @@ export default function MastermindPage() {
   }
 
   const handleColorSelect = (color: string) => {
+    if (!isTimerRunning) {
+      setStartTime(Date.now())
+      setIsTimerRunning(true)
+    }
+
     const newGuess = [...currentGuess]
     newGuess[selectedSlot] = color
     setCurrentGuess(newGuess)
-    if (selectedSlot === 0) {
-      if (!isTimerRunning) {
-        setStartTime(Date.now())
-        setIsTimerRunning(true)
-      }
-    }
+
     if (selectedSlot < CODE_LENGTH - 1) {
       setSelectedSlot(selectedSlot + 1)
     }
@@ -339,10 +339,6 @@ export default function MastermindPage() {
             <Card className="border-4 border-indigo-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2">
-                    <FaClock className="text-blue-500" />
-                    <span className="font-bold text-gray-600 text-sm">{formatTime(timer)}</span>
-                  </div>
                   <div className="flex gap-2">
                     <Button
                       onClick={() => setShowLeaderboard(true)}
@@ -358,9 +354,10 @@ export default function MastermindPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center mb-6">
-                  <p className="text-gray-600 font-body">
-                    Rateversuche: {guesses.length}/{MAX_ATTEMPTS}
+                <div className="flex justify-center items-center mb-6">
+                  <p className="text-gray-600 font-body flex items-center gap-2">
+                    Rateversuche: {guesses.length}/{MAX_ATTEMPTS} | <FaClock className="text-indigo-500" />{" "}
+                    {formatTime(timer)}
                   </p>
                 </div>
 
