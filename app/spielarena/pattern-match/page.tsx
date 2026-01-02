@@ -184,7 +184,7 @@ export default function PatternMatchPage() {
                   year: "2-digit",
                 }),
               }))}
-              columns={["Platz", "Benutzername", "Details", "Datum"]}
+              columns={["Rang", "Benutzername", "Details", "Datum"]}
             />
           ) : (
             <div className="relative">

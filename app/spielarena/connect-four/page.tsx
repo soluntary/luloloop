@@ -610,8 +610,9 @@ export default function ConnectFourPage() {
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ type: "spring", stiffness: 200 }}
-                      className="flex items-center gap-3 bg-gradient-to-r from-gray-50 to-gray-100 px-5 rounded-xl border-2 border-gray-200 shadow-sm py-2"
+                      className="flex flex-col items-center gap-1 bg-gradient-to-r from-gray-50 to-gray-100 px-5 rounded-xl border-2 border-gray-200 shadow-sm py-2"
                     >
+                      <p className="text-gray-500 leading-none text-sm">Am Zug</p>
                       <motion.div
                         animate={{
                           y: [0, -3, 0],
@@ -635,10 +636,6 @@ export default function ConnectFourPage() {
                             : "bg-gradient-to-br from-yellow-200 to-yellow-400"
                         }`}
                       />
-                      <div>
-                        <p className="text-gray-500 leading-none mb-1 text-base">am Zug</p>
-                        
-                      </div>
                     </motion.div>
                   )}
                   {(winner || showCoinFlip) && <div />}

@@ -12,7 +12,9 @@ import { FaLightbulb } from "react-icons/fa"
 import { FaBomb } from "react-icons/fa"
 import { TbMoodPuzzled } from "react-icons/tb"
 import { GiBrain } from "react-icons/gi"
-import { IoGrid } from "react-icons/io5
+import { IoGrid } from "react-icons/io5"
+import { FaKeyboard } from "react-icons/fa"
+import { FaCalculator } from "react-icons/fa"
 
 const games = [
   {
@@ -127,6 +129,25 @@ const games = [
     color: "amber",
     rotation: "rotate-1",
     linkText: "Spielen",
+  },
+  {
+    id: "wordle",
+    title: "Luwo",
+    description: "Schaffst du es, in maximal 6 Versuchen das gesuchte Wort zu finden.",
+    icon: FaKeyboard,
+    color: "green",
+    rotation: "rotate-1",
+    linkText: "Raten",
+  },
+  {
+    id: "kakuro",
+    title: "Kakuro",
+    description:
+      "Logikrätsel wie ein Kreuzworträtsel mit Zahlen. Fülle das Gitter mit Ziffern von 1-9, um die vorgegebenen Summen zu erreichen.",
+    icon: FaCalculator,
+    color: "amber",
+    rotation: "-rotate-1",
+    linkText: "Rätseln",
   },
 ]
 

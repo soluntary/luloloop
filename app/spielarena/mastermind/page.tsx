@@ -30,6 +30,7 @@ export default function MastermindPage() {
   const [leaderboard, setLeaderboard] = useState<MastermindScore[]>([])
   const [startTime, setStartTime] = useState<number>(0)
   const [timer, setTimer] = useState(0)
+  const [pausedTime, setPausedTime] = useState(0)
   const [isTimerRunning, setIsTimerRunning] = useState(false)
   const [secretCode, setSecretCode] = useState<string[]>([])
   const [currentGuess, setCurrentGuess] = useState<string[]>(Array(CODE_LENGTH).fill(""))
@@ -45,8 +46,11 @@ export default function MastermindPage() {
         setTimer(Math.floor((Date.now() - startTime) / 1000))
       }, 1000)
     }
+    if (!isTimerRunning && timer > 0) {
+      setPausedTime(timer)
+    }
     return () => clearInterval(interval)
-  }, [isTimerRunning, gameWon, gameLost, startTime, showLeaderboard])
+  }, [isTimerRunning, gameWon, gameLost, startTime, showLeaderboard, timer])
 
   const initGame = () => {
     const code = Array(CODE_LENGTH)
@@ -60,7 +64,8 @@ export default function MastermindPage() {
     setSelectedSlot(0)
     setStartTime(Date.now())
     setTimer(0)
-    setIsTimerRunning(true)
+    setPausedTime(0)
+    setIsTimerRunning(false)
   }
 
   useEffect(() => {
@@ -141,14 +146,20 @@ export default function MastermindPage() {
   }
 
   const handleColorSelect = (color: string) => {
-    if (!isTimerRunning) {
-      setStartTime(Date.now())
-      setIsTimerRunning(true)
-    }
-
     const newGuess = [...currentGuess]
     newGuess[selectedSlot] = color
     setCurrentGuess(newGuess)
+
+    if (!isTimerRunning && !gameWon && !gameLost) {
+      if (guesses.length === 0 && pausedTime === 0) {
+        // First move of the game - start fresh timer
+        setStartTime(Date.now())
+      } else {
+        // Resuming after leaderboard view - continue from paused time
+        setStartTime(Date.now() - pausedTime * 1000)
+      }
+      setIsTimerRunning(true)
+    }
 
     if (selectedSlot < CODE_LENGTH - 1) {
       setSelectedSlot(selectedSlot + 1)
@@ -339,9 +350,21 @@ export default function MastermindPage() {
             <Card className="border-4 border-indigo-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-4">
+                    <p className="text-sm text-gray-600 font-body">
+                      Rateversuche: {guesses.length}/{MAX_ATTEMPTS}
+                    </p>
+                    <p className="text-sm text-gray-600 font-body flex items-center gap-1">
+                      <FaClock className="w-3 h-3" />
+                      {formatTime(timer)}
+                    </p>
+                  </div>
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => setShowLeaderboard(true)}
+                      onClick={() => {
+                        setIsTimerRunning(false)
+                        setShowLeaderboard(true)
+                      }}
                       variant="outline"
                       size="sm"
                       className="gap-2 bg-transparent"
@@ -354,14 +377,7 @@ export default function MastermindPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-center items-center mb-6">
-                  <p className="text-gray-600 font-body flex items-center gap-2">
-                    Rateversuche: {guesses.length}/{MAX_ATTEMPTS} | <FaClock className="text-indigo-500" />{" "}
-                    {formatTime(timer)}
-                  </p>
-                </div>
-
-                <div className="space-y-4 mb-6">
+                <div className="flex flex-col gap-3 mb-6">
                   {guesses.map((guess, i) => (
                     <div key={i} className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg">
                       <div className="flex gap-2">
@@ -444,7 +460,7 @@ export default function MastermindPage() {
                         >
                           🎉 Gratuliere!
                         </motion.h2>
-                        <p className="mb-4 text-gray-800 text-lg font-semibold">Du hast den Farbcode geknackt!</p>
+                        <p className="mb-4 text-gray-800 text-lg font-regular">Du hast den Farbcode geknackt!</p>
                         <p className="mb-6 text-gray-700 text-base font-medium">
                           Versuche: {guesses.length} | Zeit: {formatTime(timer)}
                         </p>
@@ -489,7 +505,7 @@ export default function MastermindPage() {
                         >
                           Game Over!
                         </motion.h2>
-                        <p className="mb-4 text-gray-800 text-lg font-semibold">Leider nicht geschafft!</p>
+                        <p className="mb-4 text-gray-800 text-lg font-regular">Leider nicht geschafft!</p>
                         <p className="mb-2 text-gray-700 text-base">Die richtige Kombination war:</p>
                         <div className="flex justify-center gap-2 mb-6">
                           {secretCode.map((color, i) => (

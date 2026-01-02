@@ -67,7 +67,7 @@ export function LeaderboardDisplay({ title, entries, columns, loading }: Leaderb
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
-              className={`flex items-center gap-3 p-2 rounded-lg ${
+              className={`flex items-center gap-3 p-2 rounded-lg text-right ${
                 index === 0
                   ? "bg-gradient-to-r from-yellow-100 to-amber-100"
                   : index === 1
@@ -90,10 +90,7 @@ export function LeaderboardDisplay({ title, entries, columns, loading }: Leaderb
               >
                 {entry.rank}
               </div>
-              <div
-                className="flex-1 grid gap-2"
-                style={{ gridTemplateColumns: `2fr ${columns.map(() => "1fr").join(" ")} 1fr` }}
-              >
+              <div className="flex-1 grid gap-2" style={{ gridTemplateColumns: "auto 2fr 2fr auto" }}>
                 <span className="font-medium text-gray-800 truncate text-xs">{entry.username}</span>
                 <span className="text-gray-600 text-xs">{entry.displayValue}</span>
                 <span className="text-gray-500 text-right text-xs">{entry.date}</span>
