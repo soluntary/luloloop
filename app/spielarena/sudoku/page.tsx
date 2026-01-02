@@ -487,7 +487,7 @@ export default function SudokuPage() {
               >
                 🎉 Gratulation!
               </motion.h2>
-              <p className="text-xl font-semibold mb-4 text-green-600">Du hast das Sudoku gelöst!</p>
+              <p className="text-xl font-regular mb-4 text-gray-700">Du hast das Sudoku gelöst!</p>
               <div className="text-sm text-gray-700 mb-6">
                 Züge: <strong>{formatTime(timer)}</strong> | Tipps: <strong>{hintsUsed}</strong>
               </div>

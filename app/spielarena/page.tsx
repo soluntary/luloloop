@@ -14,7 +14,6 @@ import { TbMoodPuzzled } from "react-icons/tb"
 import { GiBrain } from "react-icons/gi"
 import { IoGrid } from "react-icons/io5"
 import { FaKeyboard } from "react-icons/fa"
-import { FaCalculator } from "react-icons/fa"
 
 const games = [
   {
@@ -138,16 +137,6 @@ const games = [
     color: "green",
     rotation: "rotate-1",
     linkText: "Raten",
-  },
-  {
-    id: "kakuro",
-    title: "Kakuro",
-    description:
-      "Logikrätsel wie ein Kreuzworträtsel mit Zahlen. Fülle das Gitter mit Ziffern von 1-9, um die vorgegebenen Summen zu erreichen.",
-    icon: FaCalculator,
-    color: "amber",
-    rotation: "-rotate-1",
-    linkText: "Rätseln",
   },
 ]
 

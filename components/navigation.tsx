@@ -20,6 +20,7 @@ import {
   FaCalendarAlt,
   FaUserCheck,
   FaDice,
+  FaToolbox,
 } from "react-icons/fa"
 import { GiMeepleCircle } from "react-icons/gi"
 import { GiMeepleArmy } from "react-icons/gi"
@@ -91,7 +92,7 @@ function Navigation({ currentPage }: NavigationProps) {
       key: "spielplatz",
       dropdown: {
         items: [
-          { href: "/spielhilfen", label: "Spielhilfen", icon: FaDice, key: "spielhilfen" },
+          { href: "/spielhilfen", label: "Spielhilfen", icon: FaToolbox, key: "spielhilfen" },
           { href: "/spielarena", label: "Spielarena", icon: GiMeepleCircle, key: "spielarena" },
         ],
       },
@@ -122,8 +123,8 @@ function Navigation({ currentPage }: NavigationProps) {
       key: "spielplatz",
       dropdown: {
         items: [
-          { href: "/spielhilfen", label: "Spielhilfen", icon: FaDice, key: "spielhilfen" },
-          { href: "/spielarena", label: "Spielarena", icon: GiGamepad, key: "spielarena" },
+          { href: "/spielhilfen", label: "Spielhilfen", icon: FaToolbox, key: "spielhilfen" },
+          { href: "/spielarena", label: "Spielarena", icon: GiMeepleCircle, key: "spielarena" },
         ],
       },
     },
