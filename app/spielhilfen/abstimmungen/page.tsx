@@ -227,7 +227,7 @@ export default function AbstimmungenPage() {
           className="inline-flex items-center gap-2 text-gray-600 hover:text-emerald-600 mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Zurück zur Übersicht</span>
+          <span className="text-sm">Zurück zu Spielhilfen</span>
         </Link>
 
         <div className="max-w-2xl mx-auto">

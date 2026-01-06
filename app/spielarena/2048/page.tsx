@@ -5,8 +5,7 @@ import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FaArrowLeft, FaRedo } from "react-icons/fa"
-import { FaListOl } from "react-icons/fa"
+import { FaArrowLeft, FaRedo, FaListOl } from "react-icons/fa"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { save2048Score, get2048Leaderboard } from "@/lib/leaderboard-client-actions"
@@ -213,22 +212,21 @@ export default function Game2048Page() {
               <span className="text-sm">Zurück zur Spielarena</span>
             </Link>
 
-            <div className="text-center mb-8">
-              <div className="flex items-center justify-center gap-4 mb-4">
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.1 }}
-                  transition={{ duration: 0.6 }}
-                  className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center transform -rotate-12"
-                >
-                  <span className="text-3xl text-white font-bold">2048</span>
-                </motion.div>
-                <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">2048</h1>
-              </div>
-            </div>
-
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl transform rotate-1 -z-10"></div>
               <Card className="border-4 border-purple-300 shadow-2xl transform -rotate-1">
+                <div className="text-center pt-8 pb-4">
+                  <div className="flex items-center justify-center gap-4 mb-4">
+                    <motion.div
+                      whileHover={{ rotate: 360, scale: 1.1 }}
+                      transition={{ duration: 0.6 }}
+                      className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center transform -rotate-12"
+                    >
+                      <span className="text-3xl text-white font-bold">2048</span>
+                    </motion.div>
+                    <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">2048</h1>
+                  </div>
+                </div>
                 <CardContent className="p-8">
                   <div className="space-y-6">
                     <div>
@@ -263,13 +261,6 @@ export default function Game2048Page() {
                           • Das Spiel endet, wenn alle Felder mit Kacheln belegt sind und keine Züge mehr möglich sind.
                         </li>
                       </ul>
-                    </div>
-
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <p className="text-gray-600 text-xs italic">
-                        <strong>Tipp:</strong> Versuche, die größten Zahlen in einer Ecke zu sammeln und baue
-                        systematisch von dort aus auf!
-                      </p>
                     </div>
 
                     <div className="flex justify-center pt-4 gap-5">
@@ -347,67 +338,21 @@ export default function Game2048Page() {
             <span className="text-sm">Zurück zur Spielarena</span>
           </Link>
 
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <motion.div
-                whileHover={{ rotate: 360, scale: 1.1 }}
-                transition={{ duration: 0.6 }}
-                className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center transform -rotate-12"
-              >
-                <span className="text-3xl text-white font-bold">2048</span>
-              </motion.div>
-              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">2048</h1>
-            </div>
-          </div>
-
-          {noMovesAvailable && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
-            >
-              <motion.div
-                initial={{ scale: 0, y: -50 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0, y: -50 }}
-                transition={{ type: "spring", duration: 0.7 }}
-                className="pointer-events-auto"
-              >
-                <Card className="p-8 text-center mx-4 border-4 border-purple-300 shadow-2xl bg-white">
-                  <motion.h2
-                    animate={{ scale: [1, 1.05, 1] }}
-                    transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                    className="text-5xl font-handwritten mb-6 text-red-600"
-                  >
-                    Keine Züge mehr möglich!
-                  </motion.h2>
-                  <p className="text-gray-800 text-lg font-semibold mb-7">Endpunktzahl: {score}</p>
-                  <div className="flex gap-3 justify-center">
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button onClick={resetGame} size="sm" className="bg-purple-500 hover:bg-purple-600">
-                        Nochmals spielen
-                      </Button>
-                    </motion.div>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button
-                        onClick={() => router.push("/spielarena")}
-                        variant="outline"
-                        className="bg-white hover:bg-gray-50 shadow-lg"
-                        size="sm"
-                      >
-                        Zur Spielarena
-                      </Button>
-                    </motion.div>
-                  </div>
-                </Card>
-              </motion.div>
-            </motion.div>
-          )}
-
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl transform rotate-1 -z-10"></div>
             <Card className="border-4 border-purple-300 shadow-2xl transform -rotate-1">
+              <div className="text-center pt-6 pb-2">
+                <div className="flex items-center justify-center gap-4 mb-2">
+                  <motion.div
+                    whileHover={{ rotate: 360, scale: 1.1 }}
+                    transition={{ duration: 0.6 }}
+                    className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center transform -rotate-12"
+                  >
+                    <span className="text-2xl text-white font-bold">2048</span>
+                  </motion.div>
+                  <h1 className="font-handwritten text-2xl text-gray-800 transform rotate-1">2048</h1>
+                </div>
+              </div>
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-4">
                   <p className="text-gray-600 font-body">Punkte: {score}</p>

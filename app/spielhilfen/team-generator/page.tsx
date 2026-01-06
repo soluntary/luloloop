@@ -312,7 +312,7 @@ export default function TeamGeneratorPage() {
             className="inline-flex items-center text-gray-600 hover:text-teal-600 mb-6 transition-colors text-sm"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Zurück zur Übersicht
+            Zurück zu Spielhilfen
           </Link>
 
           <Card className="border-2 border-indigo-200">

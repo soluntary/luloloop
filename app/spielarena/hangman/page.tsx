@@ -4,7 +4,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FaArrowLeft, FaRedo } from "react-icons/fa"
 import { GiHangingSign } from "react-icons/gi"
 import { Input } from "@/components/ui/input"
@@ -149,26 +149,28 @@ export default function HangmanPage() {
             <span className="text-sm">Zurück zur Spielarena</span>
           </Link>
 
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <motion.div
-                whileHover={{ rotate: 360, scale: 1.1 }}
-                transition={{ duration: 0.6 }}
-                className="w-16 h-16 bg-amber-500 rounded-full flex items-center justify-center transform -rotate-12"
-              >
-                <GiHangingSign className="w-8 h-8 text-white" />
-              </motion.div>
-              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Hangman</h1>
-            </div>
-            {!showCategorySelection && (
-              <p className="text-gray-600 font-body transform -rotate-1">
-                Fehlversuche: {wrongGuesses} / {maxWrongGuesses}
-              </p>
-            )}
-          </div>
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-br from-amber-100 to-orange-100 rounded-3xl transform rotate-1 -z-10"></div>
             <Card className="border-4 border-amber-300 shadow-2xl transform -rotate-1">
+              <CardHeader className="text-center border-b bg-gradient-to-r from-amber-50 to-amber-100">
+                <div className="flex flex-col items-center gap-3">
+                  <motion.div
+                    whileHover={{ rotate: 360, scale: 1.1 }}
+                    transition={{ duration: 0.6 }}
+                    className="w-14 h-14 bg-amber-500 rounded-full flex items-center justify-center"
+                  >
+                    <GiHangingSign className="w-8 h-8 text-white" />
+                  </motion.div>
+                  <div>
+                    <CardTitle className="text-2xl">Hangman</CardTitle>
+                    {!showCategorySelection && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        Fehlversuche: {wrongGuesses} / {maxWrongGuesses}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
               <CardContent className="p-8 text-center">
                 {!showCategorySelection && (
                   <div className="flex justify-between items-center mb-4">

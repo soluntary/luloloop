@@ -20,7 +20,7 @@ const games = [
     id: "memory",
     title: "Memory",
     description:
-      "Spielklassiker für das Kurzzeitgedächtnis mit drei Schwierigkeitsgraden. Finde möglichst schnell alle Bildpaare und trainiere deine Gedächtnisleistung.",
+      "Finde möglichst schnell alle Bildpaare und fordere dein Gedächtnis auf spielerische Weise heraus.",
     icon: GiBrain,
     color: "blue",
     rotation: "rotate-1",
