@@ -107,7 +107,7 @@ export default function NotizblockPage() {
             className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
-            Zurück zu Spielhilfen
+             Zurück zu Spielhilfen
           </Link>
 
           <Card className="border-2 border-lime-200">

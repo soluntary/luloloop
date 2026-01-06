@@ -4,7 +4,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { FaArrowLeft, FaClock, FaRedo, FaLightbulb } from "react-icons/fa"
 import { FaListOl } from "react-icons/fa"
 import { BsGrid3X3Gap } from "react-icons/bs"
@@ -270,6 +270,19 @@ export default function SudokuPage() {
             <span className="text-sm">Zurück zur Spielarena</span>
           </Link>
 
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <motion.div
+                whileHover={{ rotate: 360, scale: 1.1 }}
+                transition={{ duration: 0.6 }}
+                className="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center transform -rotate-12"
+              >
+                <BsGrid3X3Gap className="w-8 h-8 text-white" />
+              </motion.div>
+              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Sudoku</h1>
+            </div>
+          </div>
+
           <div className="flex justify-center gap-2 mb-6">
             <Button
               onClick={() => setShowLeaderboard(false)}
@@ -292,7 +305,7 @@ export default function SudokuPage() {
 
           {!showLeaderboard && (
             <div className="mb-6">
-              <p className="text-center text-sm text-gray-600 mb-3">Wähle Schwierigkeitsgrad:</p>
+              <p className="text-center text-sm font-handwritten text-gray-600 mb-3">Wähle Schwierigkeitsgrad:</p>
               <div className="flex justify-center gap-2">
                 <Button
                   onClick={() => initGame("easy")}
@@ -350,116 +363,104 @@ export default function SudokuPage() {
               columns={["Platz", "Benutzername", "Zeit", "Datum"]}
             />
           ) : (
-            <Card className="max-w-2xl mx-auto border-2 border-gray-200">
-              <CardHeader className="text-center border-b bg-gradient-to-r from-indigo-50 to-indigo-100">
-                <div className="flex flex-col items-center gap-3">
-                  <motion.div
-                    whileHover={{ rotate: 360, scale: 1.1 }}
-                    transition={{ duration: 0.6 }}
-                    className="w-14 h-14 bg-indigo-500 rounded-full flex items-center justify-center"
-                  >
-                    <BsGrid3X3Gap className="w-8 h-8 text-white" />
-                  </motion.div>
-                  <div>
-                    <CardTitle className="text-2xl">Sudoku</CardTitle>
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-8">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2">
-                    <FaClock className="text-blue-500" />
-                    <span className="font-bold text-gray-600 text-sm">{formatTime(timer)}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    {selectedCell && (
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl transform rotate-1 -z-10"></div>
+              <Card className="border-4 border-indigo-300 shadow-2xl transform -rotate-1">
+                <CardContent className="p-8">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-2">
+                      <FaClock className="text-blue-500" />
+                      <span className="font-bold text-gray-600 text-sm">{formatTime(timer)}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      {selectedCell && (
+                        <Button
+                          onClick={showHintForCell}
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 bg-amber-50 border-amber-300"
+                        >
+                          <FaLightbulb className="text-amber-500" /> Tipp
+                        </Button>
+                      )}
+                      {!showingResults && !won && (
+                        <Button onClick={checkResults} variant="outline" size="sm" className="gap-2 bg-transparent">
+                          Abschließen
+                        </Button>
+                      )}
                       <Button
-                        onClick={showHintForCell}
+                        onClick={() => {
+                          initGame(difficulty)
+                          setShowingResults(false)
+                        }}
                         variant="outline"
                         size="sm"
-                        className="gap-2 bg-amber-50 border-amber-300"
+                        className="gap-2 bg-transparent"
                       >
-                        <FaLightbulb className="text-amber-500" /> Tipp
+                        <FaRedo /> Zurücksetzen
                       </Button>
-                    )}
-                    {!showingResults && !won && (
-                      <Button onClick={checkResults} variant="outline" size="sm" className="gap-2 bg-transparent">
-                        Abschließen
-                      </Button>
-                    )}
-                    <Button
-                      onClick={() => {
-                        initGame(difficulty)
-                        setShowingResults(false)
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 bg-transparent"
-                    >
-                      <FaRedo /> Zurücksetzen
-                    </Button>
-                  </div>
-                </div>
-
-                {showingResults && !won && (
-                  <div className="text-center mb-4 p-4 bg-blue-50 rounded-lg">
-                    <div className="text-sm text-gray-700">
-                      <span className="text-green-600 font-bold">Grün</span> = Richtig,{" "}
-                      <span className="text-red-600 font-bold">Rot</span> = Falsch
                     </div>
                   </div>
-                )}
 
-                <div className="flex justify-center">
-                  <div className="inline-grid gap-0 border-4 border-gray-800">
-                    {grid.map((row, r) => (
-                      <div key={r} className="flex">
-                        {row.map((cell, c) => (
-                          <input
-                            key={`${r}-${c}`}
-                            type="text"
-                            maxLength={1}
-                            value={cell.value || ""}
-                            onChange={(e) => handleCellChange(r, c, e.target.value)}
-                            onClick={() => {
-                              if (!cell.isFixed && !showingResults) {
-                                setSelectedCell({ row: r, col: c })
-                              }
-                            }}
-                            className={`w-10 h-10 text-center text-lg font-bold border ${
-                              cell.isFixed
-                                ? "bg-gray-200 text-gray-800"
-                                : showingResults
-                                  ? cell.isCorrect
-                                    ? "bg-green-100 text-green-700"
-                                    : cell.isInvalid
-                                      ? "bg-red-100 text-red-600"
-                                      : "bg-white text-blue-600"
-                                  : selectedCell?.row === r && selectedCell?.col === c
-                                    ? "bg-amber-100 text-blue-600 ring-2 ring-amber-400"
-                                    : "bg-white text-blue-600"
-                            } ${c % 3 === 2 && c !== 8 ? "border-r-2 border-r-gray-800" : "border-r"} ${
-                              r % 3 === 2 && r !== 8 ? "border-b-2 border-b-gray-800" : "border-b"
-                            } ${cell.isFixed || showingResults ? "cursor-not-allowed" : "cursor-pointer"}`}
-                            disabled={cell.isFixed || showingResults}
-                          />
-                        ))}
+                  {showingResults && !won && (
+                    <div className="text-center mb-4 p-4 bg-blue-50 rounded-lg">
+                      <div className="text-sm text-gray-700">
+                        <span className="text-green-600 font-bold">Grün</span> = Richtig,{" "}
+                        <span className="text-red-600 font-bold">Rot</span> = Falsch
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                  )}
 
-                <div className="mt-4 text-center text-xs text-gray-600">
-                  <p>
-                    Klicke auf ein leeres Feld und dann auf <strong>"Tipp"</strong>, um die richtige Zahl zu erhalten.
-                  </p>
-                  <p>
-                    Klicke auf <strong>"Abschließen"</strong>, um deine Lösung zu überprüfen.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="flex justify-center">
+                    <div className="inline-grid gap-0 border-4 border-gray-800">
+                      {grid.map((row, r) => (
+                        <div key={r} className="flex">
+                          {row.map((cell, c) => (
+                            <input
+                              key={`${r}-${c}`}
+                              type="text"
+                              maxLength={1}
+                              value={cell.value || ""}
+                              onChange={(e) => handleCellChange(r, c, e.target.value)}
+                              onClick={() => {
+                                if (!cell.isFixed && !showingResults) {
+                                  setSelectedCell({ row: r, col: c })
+                                }
+                              }}
+                              className={`w-10 h-10 text-center text-lg font-bold border ${
+                                cell.isFixed
+                                  ? "bg-gray-200 text-gray-800"
+                                  : showingResults
+                                    ? cell.isCorrect
+                                      ? "bg-green-100 text-green-700"
+                                      : cell.isInvalid
+                                        ? "bg-red-100 text-red-600"
+                                        : "bg-white text-blue-600"
+                                    : selectedCell?.row === r && selectedCell?.col === c
+                                      ? "bg-amber-100 text-blue-600 ring-2 ring-amber-400"
+                                      : "bg-white text-blue-600"
+                              } ${c % 3 === 2 && c !== 8 ? "border-r-2 border-r-gray-800" : "border-r"} ${
+                                r % 3 === 2 && r !== 8 ? "border-b-2 border-b-gray-800" : "border-b"
+                              } ${cell.isFixed || showingResults ? "cursor-not-allowed" : "cursor-pointer"}`}
+                              disabled={cell.isFixed || showingResults}
+                            />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 text-center text-xs text-gray-600">
+                    <p>
+                      Klicke auf ein leeres Feld und dann auf <strong>"Tipp"</strong>, um die richtige Zahl zu erhalten.
+                    </p>
+                    <p>
+                      Klicke auf <strong>"Abschließen"</strong>, um deine Lösung zu überprüfen.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       </main>

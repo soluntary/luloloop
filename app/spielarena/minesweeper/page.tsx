@@ -544,12 +544,13 @@ export default function MinesweeperPage() {
                             className="pointer-events-auto"
                           >
                             <Card className="p-8 text-center mx-4 border-4 border-gray-400 shadow-2xl bg-white">
+                              <div className="text-4xl mb-4">🎉</div>
                               <motion.h2
                                 animate={{ scale: [1, 1.05, 1] }}
                                 transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
                                 className="text-5xl font-handwritten mb-6 text-green-600"
                               >
-                                🎉 Gratuliere!
+                                Gratuliere!
                               </motion.h2>
                               <p className="text-gray-700 mb-6 text-lg font-medium">Zeit: {formatTime(timer)}</p>
                               <div className="flex gap-3 justify-center">

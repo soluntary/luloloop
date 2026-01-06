@@ -401,7 +401,7 @@ export default function HomePage() {
             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
             className="text-gray-600 mb-8 transform rotate-1 font-body text-base"
           >
-            Entdecke, teile und geniesse Brettspiele wie nie zuvor
+            Entdecke und geniesse Brettspiele wie nie zuvor
           </motion.p>
         </div>
       </section>

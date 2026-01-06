@@ -57,8 +57,8 @@ const tools = [
   },
   {
     id: "zufallszahl",
-    title: "Zufallszahl",
-    description: "Generiere zufällige Zahlen in einem beliebigen Bereich mit Verlauf.",
+    title: "Zahlengenerator",
+    description: "Generiere zufällige Zahlen in einem beliebigen Bereich.",
     icon: FaRandom,
     color: "purple",
     rotation: "rotate-1",
@@ -66,7 +66,7 @@ const tools = [
   },
   {
     id: "zufallsbuchstaben",
-    title: "Zufallsbuchstaben",
+    title: "Buchstabengenerator",
     description: "Generiere zufällige Buchstaben für Wortspiele wie Stadt-Land-Fluss.",
     icon: TiSortAlphabeticallyOutline,
     color: "teal",

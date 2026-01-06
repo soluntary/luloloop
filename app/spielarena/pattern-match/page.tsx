@@ -4,7 +4,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { FaArrowLeft, FaRedo } from "react-icons/fa"
 import { FaListOl } from "react-icons/fa"
 import { IoGrid } from "react-icons/io5"
@@ -138,6 +138,19 @@ export default function PatternMatchPage() {
             <span className="text-sm">Zurück zur Spielarena</span>
           </Link>
 
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <motion.div
+                whileHover={{ rotate: 360, scale: 1.1 }}
+                transition={{ duration: 0.6 }}
+                className="w-16 h-16 bg-pink-500 rounded-full flex items-center justify-center transform -rotate-12"
+              >
+                <IoGrid className="w-8 h-8 text-white" />
+              </motion.div>
+              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Pattern Match</h1>
+            </div>
+          </div>
+
           <div className="flex justify-center gap-2 mb-6">
             <Button
               onClick={() => setShowLeaderboard(false)}
@@ -177,18 +190,6 @@ export default function PatternMatchPage() {
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-pink-100 to-rose-100 rounded-3xl transform rotate-1 -z-10"></div>
               <Card className="border-4 border-pink-300 shadow-2xl transform -rotate-1">
-                <CardHeader className="text-center border-b bg-gradient-to-r from-pink-50 to-pink-100">
-                  <div className="flex flex-col items-center gap-3">
-                    <motion.div
-                      whileHover={{ rotate: 360, scale: 1.1 }}
-                      transition={{ duration: 0.6 }}
-                      className="w-14 h-14 bg-pink-500 rounded-full flex items-center justify-center"
-                    >
-                      <IoGrid className="w-8 h-8 text-white" />
-                    </motion.div>
-                    <CardTitle className="text-2xl">Pattern Match</CardTitle>
-                  </div>
-                </CardHeader>
                 <CardContent className="p-8 text-center">
                   <div className="flex justify-between items-center mb-4">
                     <p className="text-sm text-gray-600 font-body">

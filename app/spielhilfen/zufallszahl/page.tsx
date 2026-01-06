@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
@@ -18,15 +18,67 @@ export default function ZufallszahlPage() {
   const [history, setHistory] = useState<{ value: number; min: number; max: number }[]>([])
   const [isExpanded, setIsExpanded] = useState(false)
 
+  const [displayNumber, setDisplayNumber] = useState<number | null>(null)
+  const [isSpinning, setIsSpinning] = useState(false)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  const spinNumbers = (finalNumber: number) => {
+    setIsSpinning(true)
+    let count = 0
+    const maxSpins = 30 // Number of spins before slowing down
+
+    const spin = () => {
+      count++
+      setDisplayNumber(Math.floor(Math.random() * (max - min + 1)) + min)
+
+      if (count < maxSpins) {
+        // Fast spinning (50ms)
+        intervalRef.current = setTimeout(spin, 50)
+      } else if (count < maxSpins + 10) {
+        // Slowing down (200ms)
+        intervalRef.current = setTimeout(spin, 200)
+      } else {
+        // Stop at final number
+        setDisplayNumber(finalNumber)
+        setResult(finalNumber)
+        setIsSpinning(false)
+      }
+    }
+
+    spin()
+  }
+
+  const stopSpinning = () => {
+    if (intervalRef.current) {
+      clearTimeout(intervalRef.current)
+      intervalRef.current = null
+    }
+    const finalValue = Math.floor(Math.random() * (max - min + 1)) + min
+    setDisplayNumber(finalValue)
+    setResult(finalValue)
+    setIsSpinning(false)
+    setHistory((prev) => [{ value: finalValue, min, max }, ...prev].slice(0, 10))
+  }
+
   const generate = () => {
     setIsGenerating(true)
+    const finalNumber = Math.floor(Math.random() * (max - min + 1)) + min
+
+    spinNumbers(finalNumber)
+
     setTimeout(() => {
-      const value = Math.floor(Math.random() * (max - min + 1)) + min
-      setResult(value)
-      setHistory((prev) => [{ value, min, max }, ...prev].slice(0, 10))
+      setHistory((prev) => [{ value: finalNumber, min, max }, ...prev].slice(0, 10))
       setIsGenerating(false)
-    }, 500)
+    }, 3500) // Total animation time
   }
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearTimeout(intervalRef.current)
+      }
+    }
+  }, [])
 
   if (isExpanded) {
     return (
@@ -47,10 +99,22 @@ export default function ZufallszahlPage() {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4">
-          <div className="text-center py-12 px-16 rounded-3xl bg-white/10">
-            <span className={`text-9xl font-bold ${isGenerating ? "animate-pulse text-gray-500" : "text-purple-400"}`}>
-              {isGenerating ? "?" : (result ?? "...")}
-            </span>
+          <div className="relative">
+            <div className="text-center py-12 px-16 rounded-3xl bg-white/10 border-4 border-purple-500/50 shadow-2xl">
+              <div className="overflow-hidden h-28">
+                <motion.span
+                  key={displayNumber}
+                  initial={{ y: -100, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.1 }}
+                  className={`text-9xl font-bold ${isSpinning ? "text-gray-400" : "text-purple-400"}`}
+                >
+                  {displayNumber ?? result ?? "..."}
+                </motion.span>
+              </div>
+            </div>
+            <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-2 h-20 bg-purple-500 rounded-full shadow-lg" />
+            <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-2 h-20 bg-purple-500 rounded-full shadow-lg" />
           </div>
 
           <div className="flex items-center gap-4">
@@ -61,6 +125,7 @@ export default function ZufallszahlPage() {
                 value={min}
                 onChange={(e) => setMin(Number(e.target.value))}
                 className="w-24 h-12 text-center text-lg bg-white/10 border-white/20 text-white"
+                disabled={isSpinning}
               />
             </div>
             <span className="text-gray-400 text-2xl mt-6">-</span>
@@ -71,18 +136,27 @@ export default function ZufallszahlPage() {
                 value={max}
                 onChange={(e) => setMax(Number(e.target.value))}
                 className="w-24 h-12 text-center text-lg bg-white/10 border-white/20 text-white"
+                disabled={isSpinning}
               />
             </div>
           </div>
 
-          <Button
-            onClick={generate}
-            disabled={isGenerating || min >= max}
-            size="lg"
-            className="h-14 px-12 text-lg bg-purple-500 hover:bg-purple-600"
-          >
-            {isGenerating ? "Generiert..." : "Zufallszahl generieren"}
-          </Button>
+          <div className="flex gap-4">
+            {isSpinning ? (
+              <Button onClick={stopSpinning} size="lg" className="h-14 px-12 text-lg bg-red-500 hover:bg-red-600">
+                Stopp
+              </Button>
+            ) : (
+              <Button
+                onClick={generate}
+                disabled={min >= max}
+                size="lg"
+                className="h-14 px-12 text-lg bg-purple-500 hover:bg-purple-600"
+              >
+                Zahlenrad starten
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -110,7 +184,7 @@ export default function ZufallszahlPage() {
               <FaRandom className="w-8 h-8 text-white" />
             </motion.div>
             <CardTitle className="text-2xl">Zufallszahl</CardTitle>
-            <p className="text-gray-500 text-sm">Generiere Zahlen in beliebigem Bereich</p>
+            <p className="text-gray-500 text-sm">Generiere Zahlen mit animiertem Zahlenrad</p>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
             <div className="flex items-center gap-2 justify-center">
@@ -121,6 +195,7 @@ export default function ZufallszahlPage() {
                   value={min}
                   onChange={(e) => setMin(Number(e.target.value))}
                   className="w-20 h-8 text-center text-sm"
+                  disabled={isSpinning}
                 />
               </div>
               <span className="text-gray-400 mt-5 text-xs">bis</span>
@@ -131,13 +206,14 @@ export default function ZufallszahlPage() {
                   value={max}
                   onChange={(e) => setMax(Number(e.target.value))}
                   className="w-20 h-8 text-center text-sm"
+                  disabled={isSpinning}
                 />
               </div>
             </div>
 
             <div className="relative">
               <div
-                className={`text-center py-6 min-h-[140px] flex flex-col items-center justify-center rounded-xl border-2 ${result !== null ? "bg-purple-50 border-purple-200" : "bg-gray-50 border-gray-200"}`}
+                className={`text-center py-6 min-h-[140px] flex flex-col items-center justify-center rounded-xl border-2 ${displayNumber !== null || result !== null ? "bg-purple-50 border-purple-200" : "bg-gray-50 border-gray-200"}`}
               >
                 <Button
                   variant="ghost"
@@ -148,21 +224,33 @@ export default function ZufallszahlPage() {
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
                 </Button>
-                <span
-                  className={`text-5xl font-bold ${isGenerating ? "animate-pulse text-gray-300" : "text-purple-600"}`}
-                >
-                  {isGenerating ? "?" : (result ?? "...")}
-                </span>
+                <div className="overflow-hidden h-16">
+                  <motion.span
+                    key={displayNumber}
+                    initial={{ y: isSpinning ? -50 : 0, opacity: isSpinning ? 0 : 1 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.1 }}
+                    className={`text-5xl font-bold ${isSpinning ? "text-gray-400" : "text-purple-600"}`}
+                  >
+                    {displayNumber ?? result ?? "..."}
+                  </motion.span>
+                </div>
               </div>
             </div>
 
-            <Button
-              onClick={generate}
-              disabled={isGenerating || min >= max}
-              className="w-full h-8 text-sm bg-purple-500 hover:bg-purple-600"
-            >
-              {isGenerating ? "Generiert..." : "Zufallszahl generieren"}
-            </Button>
+            {isSpinning ? (
+              <Button onClick={stopSpinning} className="w-full h-8 text-sm bg-red-500 hover:bg-red-600">
+                Stopp
+              </Button>
+            ) : (
+              <Button
+                onClick={generate}
+                disabled={min >= max}
+                className="w-full h-8 text-sm bg-purple-500 hover:bg-purple-600"
+              >
+                Zahlenrad starten
+              </Button>
+            )}
 
             {history.length > 0 && (
               <div className="border-t pt-3">

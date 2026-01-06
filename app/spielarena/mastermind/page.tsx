@@ -38,7 +38,6 @@ export default function MastermindPage() {
   const [gameWon, setGameWon] = useState(false)
   const [gameLost, setGameLost] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(0)
-  const [gameStarted, setGameStarted] = useState(false)
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -67,7 +66,6 @@ export default function MastermindPage() {
     setTimer(0)
     setPausedTime(0)
     setIsTimerRunning(false)
-    setGameStarted(true)
   }
 
   useEffect(() => {
@@ -188,110 +186,20 @@ export default function MastermindPage() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
 
-  if (!gameStarted) {
-    return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 to-white">
-        <Navigation />
-        <main className="flex-1 container mx-auto px-4 py-8">
-          <Link
-            href="/spielarena"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
-          >
-            <FaArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Zurück zur Spielarena</span>
-          </Link>
-
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-8">
-              <div className="flex items-center justify-center gap-4 mb-4">
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.1 }}
-                  transition={{ duration: 0.6 }}
-                  className="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center transform -rotate-12"
-                >
-                  <TbMoodPuzzled className="w-8 h-8 text-white" />
-                </motion.div>
-                <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Mastermind</h1>
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl transform rotate-1 -z-10"></div>
-              <Card className="border-4 border-indigo-300 shadow-2xl transform -rotate-1">
-                <CardContent className="p-8">
-                  <div className="space-y-6">
-                    <div>
-                      <h2 className="font-handwritten text-gray-800 mb-3 text-base">Spielprinzip</h2>
-                      <p className="text-gray-600 leading-relaxed text-xs">
-                        Mastermind ist ein klassisches Logikspiel, bei dem einen geheimen 4-stelligen geordneten
-                        Farbcode durch sukzessive Vermutungen ermittelt werden soll. Ziel des Spieles ist es, den
-                        Farbcode in möglichst wenigen Rateversuchen zu knacken.
-                      </p>
-                    </div>
-
-                    <div>
-                      <h3 className="font-handwritten text-gray-800 mb-2 text-base">So funktioniert's:</h3>
-                      <ul className="space-y-2 text-gray-600 text-xs">
-                        <li>• Wähle 4 Farben aus und prüfe deine Kombination</li>
-                        <li>• Du hast maximal 10 Rateversuche</li>
-                        <li>• Nach jedem Versuch erhältst du Hinweise:</li>
-                      </ul>
-                      <div className="mt-4 space-y-2 bg-gray-50 p-4 rounded-lg text-xs">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-black rounded-full"></div>
-                          <span className="text-gray-600">= Richtige Farbe an richtiger Position</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-white border-2 border-black rounded-full"></div>
-                          <span className="text-gray-600">= Richtige Farbe an falscher Position</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-center gap-3 pt-4">
-                      <Button
-                        onClick={() => setShowIntro(false)}
-                        size="lg"
-                        className="bg-indigo-500 hover:bg-indigo-600"
-                      >
-                        Spiel starten
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setShowIntro(false)
-                          setShowLeaderboard(true)
-                        }}
-                        variant="outline"
-                        size="lg"
-                        className="gap-2"
-                      >
-                        <FaListOl /> Rangliste
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </main>
-      </div>
-    )
-  }
-
   if (showIntro) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-indigo-50 to-white">
         <Navigation />
         <main className="flex-1 container mx-auto px-4 py-8">
-          <Link
-            href="/spielarena"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
-          >
-            <FaArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Zurück zur Spielarena</span>
-          </Link>
-
           <div className="max-w-4xl mx-auto">
+            <Link
+              href="/spielarena"
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+            >
+              <FaArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Zurück zur Spielarena</span>
+            </Link>
+
             <div className="text-center mb-8">
               <div className="flex items-center justify-center gap-4 mb-4">
                 <motion.div
@@ -373,36 +281,38 @@ export default function MastermindPage() {
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-indigo-50 to-white">
         <Navigation />
         <main className="flex-1 container mx-auto px-4 py-8">
-          <button
-            onClick={() => setShowLeaderboard(false)}
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
-          >
-            <FaArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Zurück zum Spiel</span>
-          </button>
-
           <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <FaListOl className="w-16 h-16 text-indigo-500" />
-              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800">Rangliste</h1>
-            </div>
-          </div>
+            <button
+              onClick={() => setShowLeaderboard(false)}
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+            >
+              <FaArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Zurück zum Spiel</span>
+            </button>
 
-          <div className="space-y-4">
-            <LeaderboardDisplay
-              title="Mastermind Bestenliste"
-              entries={leaderboard.map((score, index) => ({
-                rank: index + 1,
-                username: score.username,
-                displayValue: `${score.attempts} Versuche • ${Math.floor(score.time_seconds / 60)}:${(score.time_seconds % 60).toString().padStart(2, "0")}`,
-                date: new Date(score.created_at).toLocaleDateString("de-DE", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "2-digit",
-                }),
-              }))}
-              columns={[{ label: "Versuche & Zeit", key: "displayValue" }]}
-            />
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <FaListOl className="w-16 h-16 text-indigo-500" />
+                <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800">Rangliste</h1>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <LeaderboardDisplay
+                title="Mastermind Bestenliste"
+                entries={leaderboard.map((score, index) => ({
+                  rank: index + 1,
+                  username: score.username,
+                  displayValue: `${score.attempts} Versuche • ${Math.floor(score.time_seconds / 60)}:${(score.time_seconds % 60).toString().padStart(2, "0")}`,
+                  date: new Date(score.created_at).toLocaleDateString("de-DE", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "2-digit",
+                  }),
+                }))}
+                columns={[{ label: "Versuche & Zeit", key: "displayValue" }]}
+              />
+            </div>
           </div>
         </main>
       </div>
@@ -410,18 +320,18 @@ export default function MastermindPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 to-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-indigo-50 to-white">
       <Navigation />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <Link
-          href="/spielarena"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
-        >
-          <FaArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Zurück zur Spielarena</span>
-        </Link>
-
         <div className="max-w-2xl mx-auto">
+          <Link
+            href="/spielarena"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+          >
+            <FaArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Zurück zur Spielarena</span>
+          </Link>
+
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-4 mb-4">
               <motion.div

@@ -67,7 +67,7 @@ export default function ZufallsbuchstabenPage() {
         <div className="flex justify-between items-center p-4">
           <div className="flex items-center gap-3">
             <TiSortAlphabeticallyOutline className="w-8 h-8 text-teal-400" />
-            <span className="text-white font-bold text-xl">Zufallsbuchstaben</span>
+            <span className="text-white font-bold text-xl">Buchstabengenerator</span>
           </div>
           <Button
             variant="ghost"

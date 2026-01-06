@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Navigation } from "@/components/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FaArrowLeft, FaRedo } from "react-icons/fa"
 import { GiBrain } from "react-icons/gi"
@@ -147,178 +147,183 @@ export default function MemoryPage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
       <Navigation />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <Link
-          href="/spielarena"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
-        >
-          <FaArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Zurück zur Spielarena</span>
-        </Link>
+        <div className="max-w-4xl mx-auto">
+          <Link
+            href="/spielarena"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+          >
+            <FaArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Zurück zur Spielarena</span>
+          </Link>
 
-        <Card className="max-w-4xl mx-auto border-2 border-gray-200">
-          <CardHeader className="text-center border-b bg-gradient-to-r from-blue-50 to-blue-100">
-            <div className="flex flex-col items-center gap-3">
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-4 mb-4">
               <motion.div
                 whileHover={{ rotate: 360, scale: 1.1 }}
                 transition={{ duration: 0.6 }}
-                className="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center"
+                className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center transform -rotate-12"
               >
                 <GiBrain className="w-8 h-8 text-white" />
               </motion.div>
-              <div>
-                <CardTitle className="text-2xl">Memory</CardTitle>
-              </div>
+              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Memory</h1>
             </div>
-          </CardHeader>
+          </div>
 
-          <CardContent className="p-6">
-            <div className="mb-6">
-              <p className="text-center text-sm text-gray-600 mb-3">Wähle Schwierigkeitsgrad:</p>
-              <div className="flex justify-center gap-2">
-                <Button
-                  onClick={() => setDifficulty("easy")}
-                  variant={difficulty === "easy" ? "default" : "outline"}
-                  size="sm"
-                  className={`transition-all duration-300 ${
-                    difficulty === "easy"
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "border-gray-300 text-gray-700 hover:border-blue-500"
-                  }`}
-                >
-                  Einfach (16)
-                </Button>
-                <Button
-                  onClick={() => setDifficulty("medium")}
-                  variant={difficulty === "medium" ? "default" : "outline"}
-                  size="sm"
-                  className={`transition-all duration-300 ${
-                    difficulty === "medium"
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "border-gray-300 text-gray-700 hover:border-blue-500"
-                  }`}
-                >
-                  Mittel (24)
-                </Button>
-                <Button
-                  onClick={() => setDifficulty("hard")}
-                  variant={difficulty === "hard" ? "default" : "outline"}
-                  size="sm"
-                  className={`transition-all duration-300 ${
-                    difficulty === "hard"
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "border-gray-300 text-gray-700 hover:border-blue-500"
-                  }`}
-                >
-                  Schwer (36)
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center mb-4">
-              <p className="text-gray-600">Züge: {moves}</p>
-              <Button onClick={initializeGame} variant="outline" size="sm" className="gap-2 bg-transparent">
-                <FaRedo /> Zurücksetzen
+          <div className="mb-6">
+            <p className="text-center text-sm font-handwritten text-gray-600 mb-3">Wähle Schwierigkeitsgrad:</p>
+            <div className="flex justify-center gap-2">
+              <Button
+                onClick={() => setDifficulty("easy")}
+                variant={difficulty === "easy" ? "default" : "outline"}
+                size="sm"
+                className={`transition-all duration-300 ${
+                  difficulty === "easy"
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-blue-500"
+                }`}
+              >
+                Einfach (16)
+              </Button>
+              <Button
+                onClick={() => setDifficulty("medium")}
+                variant={difficulty === "medium" ? "default" : "outline"}
+                size="sm"
+                className={`transition-all duration-300 ${
+                  difficulty === "medium"
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-blue-500"
+                }`}
+              >
+                Mittel (24)
+              </Button>
+              <Button
+                onClick={() => setDifficulty("hard")}
+                variant={difficulty === "hard" ? "default" : "outline"}
+                size="sm"
+                className={`transition-all duration-300 ${
+                  difficulty === "hard"
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-blue-500"
+                }`}
+              >
+                Schwer (36)
               </Button>
             </div>
+          </div>
 
-            <div
-              className={`grid gap-4`}
-              style={{ gridTemplateColumns: `repeat(${DIFFICULTY_CONFIG[difficulty].gridCols}, minmax(0, 1fr))` }}
-            >
-              {cards.map((card) => (
-                <motion.div
-                  key={card.id}
-                  whileHover={{ scale: card.isMatched ? 1 : 1.05 }}
-                  whileTap={{ scale: card.isMatched ? 1 : 0.95 }}
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl transform rotate-1 -z-10"></div>
+            <Card className="border-4 border-blue-300 shadow-2xl transform -rotate-1">
+              <CardContent className="p-8">
+                <div className="flex justify-between items-center mb-4">
+                  <p className="text-gray-600 font-body">Züge: {moves}</p>
+                  <Button onClick={initializeGame} variant="outline" size="sm" className="gap-2 bg-transparent">
+                    <FaRedo /> Zurücksetzen
+                  </Button>
+                </div>
+
+                <div
+                  className={`grid gap-4`}
+                  style={{ gridTemplateColumns: `repeat(${DIFFICULTY_CONFIG[difficulty].gridCols}, minmax(0, 1fr))` }}
                 >
-                  <Card
-                    onClick={() => handleCardClick(card.id)}
-                    className={`aspect-square flex items-center justify-center cursor-pointer transition-all border-2 overflow-hidden ${
-                      card.isMatched
-                        ? "bg-green-100 border-green-400"
-                        : "bg-white border-blue-200 hover:shadow-lg hover:border-blue-400"
-                    }`}
-                  >
-                    <AnimatePresence mode="wait">
-                      {card.isFlipped || card.isMatched ? (
-                        <motion.div
-                          key="front"
-                          initial={{ rotateY: 90 }}
-                          animate={{ rotateY: 0 }}
-                          exit={{ rotateY: 90 }}
-                          transition={{ duration: 0.15 }}
-                          className="w-full h-full relative"
-                        >
-                          <Image
-                            src={card.imageUrl || "/placeholder.svg"}
-                            alt={card.imageId}
-                            fill
-                            className="object-cover"
-                          />
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="back"
-                          initial={{ rotateY: 90 }}
-                          animate={{ rotateY: 0 }}
-                          exit={{ rotateY: 90 }}
-                          transition={{ duration: 0.15 }}
-                          className="text-blue-500 text-5xl font-bold"
-                        >
-                          ?
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <AnimatePresence>
-          {gameWon && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
-            >
-              <motion.div
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                exit={{ scale: 0, rotate: 180 }}
-                transition={{ type: "spring", duration: 0.7 }}
-                className="pointer-events-auto"
-              >
-                <Card className="p-8 text-center mx-4 border-4 border-blue-500 shadow-2xl bg-white">
-                  <motion.h2
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                    className="text-3xl mb-4 text-green-600"
-                  >
-                    Gratuliere!
-                  </motion.h2>
-                  <p className="mb-6 text-gray-700 text-lg">Du hast alle Bildpaare in {moves} Zügen gefunden!</p>
-                  <div className="flex gap-3 justify-center">
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button onClick={initializeGame} size="sm" className="bg-blue-500 hover:bg-blue-600">
-                        Nochmals spielen
-                      </Button>
+                  {cards.map((card) => (
+                    <motion.div
+                      key={card.id}
+                      whileHover={{ scale: card.isMatched ? 1 : 1.05 }}
+                      whileTap={{ scale: card.isMatched ? 1 : 0.95 }}
+                    >
+                      <Card
+                        onClick={() => handleCardClick(card.id)}
+                        className={`aspect-square flex items-center justify-center cursor-pointer transition-all border-2 overflow-hidden ${
+                          card.isMatched
+                            ? "bg-green-100 border-green-400"
+                            : "bg-white border-blue-200 hover:shadow-lg hover:border-blue-400"
+                        }`}
+                      >
+                        <AnimatePresence mode="wait">
+                          {card.isFlipped || card.isMatched ? (
+                            <motion.div
+                              key="front"
+                              initial={{ rotateY: 90 }}
+                              animate={{ rotateY: 0 }}
+                              exit={{ rotateY: 90 }}
+                              transition={{ duration: 0.15 }}
+                              className="w-full h-full relative"
+                            >
+                              <Image
+                                src={card.imageUrl || "/placeholder.svg"}
+                                alt={card.imageId}
+                                fill
+                                className="object-cover"
+                              />
+                            </motion.div>
+                          ) : (
+                            <motion.div
+                              key="back"
+                              initial={{ rotateY: 90 }}
+                              animate={{ rotateY: 0 }}
+                              exit={{ rotateY: 90 }}
+                              transition={{ duration: 0.15 }}
+                              className="text-blue-500 text-5xl font-bold"
+                            >
+                              ?
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </Card>
                     </motion.div>
-                    <Link href="/spielarena">
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <AnimatePresence>
+            {gameWon && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+              >
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  exit={{ scale: 0, rotate: 180 }}
+                  transition={{ type: "spring", duration: 0.7 }}
+                  className="pointer-events-auto"
+                >
+                  <Card className="p-8 text-center mx-4 border-4 border-blue-500 shadow-2xl bg-white">
+                    <motion.h2
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
+                      className="text-3xl font-handwritten mb-4 text-green-600"
+                    >
+                      Gratuliere!
+                    </motion.h2>
+                    <p className="mb-6 text-gray-700 font-body text-lg">
+                      Du hast alle Bildpaare in {moves} Zügen gefunden!
+                    </p>
+                    <div className="flex gap-3 justify-center">
                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <Button variant="outline" size="sm">
-                          Zur Spielarena
+                        <Button onClick={initializeGame} size="sm" className="bg-blue-500 hover:bg-blue-600">
+                          Nochmals spielen
                         </Button>
                       </motion.div>
-                    </Link>
-                  </div>
-                </Card>
+                      <Link href="/spielarena">
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button variant="outline" size="sm">
+                            Zur Spielarena
+                          </Button>
+                        </motion.div>
+                      </Link>
+                    </div>
+                  </Card>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
+        </div>
       </main>
     </div>
   )
