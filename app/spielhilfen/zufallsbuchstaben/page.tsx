@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,10 @@ export default function ZufallsbuchstabenPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [history, setHistory] = useState<{ letters: string[]; set: string }[]>([])
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isSpinning, setIsSpinning] = useState(false)
+  const [currentLetters, setCurrentLetters] = useState<string[]>([])
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const slowdownRef = useRef<NodeJS.Timeout | null>(null)
 
   const allLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
   const vowels = "AEIOU"
@@ -49,6 +53,60 @@ export default function ZufallsbuchstabenPage() {
         return "Alle"
     }
   }
+
+  const startSpinning = () => {
+    if (isSpinning) return
+
+    setIsSpinning(true)
+    setResults([])
+
+    const pool = getLetterPool()
+    let speed = 50
+
+    const spin = () => {
+      const newLetters = Array.from({ length: letterCount }, () => pool[Math.floor(Math.random() * pool.length)])
+      setCurrentLetters(newLetters)
+    }
+
+    intervalRef.current = setInterval(spin, speed)
+
+    slowdownRef.current = setTimeout(() => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+
+      speed = 200
+      intervalRef.current = setInterval(spin, speed)
+
+      setTimeout(() => {
+        if (intervalRef.current) clearInterval(intervalRef.current)
+        const finalLetters = Array.from({ length: letterCount }, () => pool[Math.floor(Math.random() * pool.length)])
+        setCurrentLetters(finalLetters)
+        setResults(finalLetters)
+        setHistory((prev) => [{ letters: finalLetters, set: getSetLabel() }, ...prev].slice(0, 10))
+        setIsSpinning(false)
+      }, 1500)
+    }, 1500)
+  }
+
+  const stopSpinning = () => {
+    if (!isSpinning) return
+
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    if (slowdownRef.current) clearTimeout(slowdownRef.current)
+
+    const pool = getLetterPool()
+    const finalLetters = Array.from({ length: letterCount }, () => pool[Math.floor(Math.random() * pool.length)])
+    setCurrentLetters(finalLetters)
+    setResults(finalLetters)
+    setHistory((prev) => [{ letters: finalLetters, set: getSetLabel() }, ...prev].slice(0, 10))
+    setIsSpinning(false)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      if (slowdownRef.current) clearTimeout(slowdownRef.current)
+    }
+  }, [])
 
   const generate = () => {
     setIsGenerating(true)
@@ -81,32 +139,41 @@ export default function ZufallsbuchstabenPage() {
 
         <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4">
           <div className="flex justify-center gap-4">
-            {results.length > 0 ? (
-              results.map((letter, i) => (
-                <div
+            {(isSpinning ? currentLetters : results).length > 0 ? (
+              (isSpinning ? currentLetters : results).map((letter, i) => (
+                <motion.div
                   key={i}
-                  className={`w-24 h-24 flex items-center justify-center rounded-2xl bg-white/10 border-2 border-teal-400 ${isGenerating ? "animate-bounce" : ""}`}
+                  animate={isSpinning ? { y: [0, -10, 0] } : {}}
+                  transition={{ duration: 0.3, repeat: isSpinning ? Number.POSITIVE_INFINITY : 0 }}
+                  className={`w-24 h-24 flex items-center justify-center rounded-2xl bg-white/10 border-2 ${
+                    isSpinning ? "border-yellow-400 shadow-lg shadow-yellow-400/50" : "border-teal-400"
+                  }`}
                 >
-                  <span className="text-6xl font-bold text-teal-400">{isGenerating ? "?" : letter}</span>
-                </div>
+                  <span className={`text-6xl font-bold ${isSpinning ? "text-yellow-400" : "text-teal-400"}`}>
+                    {letter}
+                  </span>
+                </motion.div>
               ))
             ) : (
-              <span className="text-gray-400 text-xl">Tippe auf "Buchstaben generieren"</span>
+              <span className="text-gray-400 text-xl">Tippe auf "Start" um zu beginnen</span>
             )}
           </div>
 
-          <Button
-            onClick={generate}
-            disabled={isGenerating}
-            size="lg"
-            className="h-14 px-12 text-lg bg-teal-500 hover:bg-teal-600"
-          >
-            {isGenerating ? "Generiert..." : "Buchstaben generieren"}
-          </Button>
+          <div className="flex gap-4">
+            {!isSpinning ? (
+              <Button onClick={startSpinning} size="lg" className="h-14 px-12 text-lg bg-teal-500 hover:bg-teal-600">
+                Start
+              </Button>
+            ) : (
+              <Button onClick={stopSpinning} size="lg" className="h-14 px-12 text-lg bg-red-500 hover:bg-red-600">
+                Stopp
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="p-4 flex justify-center gap-4">
-          <Select value={letterCount.toString()} onValueChange={(v) => setLetterCount(Number(v))}>
+          <Select value={letterCount.toString()} onValueChange={(v) => setLetterCount(Number(v))} disabled={isSpinning}>
             <SelectTrigger className="w-40 h-10 bg-white/10 border-white/20 text-white">
               <SelectValue />
             </SelectTrigger>
@@ -118,7 +185,7 @@ export default function ZufallsbuchstabenPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={letterSet} onValueChange={(v) => setLetterSet(v as typeof letterSet)}>
+          <Select value={letterSet} onValueChange={(v) => setLetterSet(v as typeof letterSet)} disabled={isSpinning}>
             <SelectTrigger className="w-36 h-10 bg-white/10 border-white/20 text-white">
               <SelectValue />
             </SelectTrigger>
@@ -162,7 +229,11 @@ export default function ZufallsbuchstabenPage() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <p className="mb-1 font-bold text-sm text-black">Anzahl</p>
-                <Select value={letterCount.toString()} onValueChange={(v) => setLetterCount(Number(v))}>
+                <Select
+                  value={letterCount.toString()}
+                  onValueChange={(v) => setLetterCount(Number(v))}
+                  disabled={isSpinning}
+                >
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
@@ -177,7 +248,11 @@ export default function ZufallsbuchstabenPage() {
               </div>
               <div>
                 <p className="mb-1 font-bold text-sm text-foreground">Buchstaben</p>
-                <Select value={letterSet} onValueChange={(v) => setLetterSet(v as typeof letterSet)}>
+                <Select
+                  value={letterSet}
+                  onValueChange={(v) => setLetterSet(v as typeof letterSet)}
+                  disabled={isSpinning}
+                >
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
@@ -197,12 +272,19 @@ export default function ZufallsbuchstabenPage() {
                 value={customLetters}
                 onChange={(e) => setCustomLetters(e.target.value.toUpperCase())}
                 className="h-8 text-xs"
+                disabled={isSpinning}
               />
             )}
 
             <div className="relative">
               <div
-                className={`flex flex-wrap justify-center gap-2 py-4 min-h-[140px] items-center rounded-xl border-2 ${results.length > 0 ? "bg-teal-50 border-teal-200" : "bg-gray-50 border-gray-200"}`}
+                className={`flex flex-wrap justify-center gap-2 py-4 min-h-[140px] items-center rounded-xl border-2 ${
+                  (isSpinning ? currentLetters : results).length > 0
+                    ? isSpinning
+                      ? "bg-yellow-50 border-yellow-200"
+                      : "bg-teal-50 border-teal-200"
+                    : "bg-gray-50 border-gray-200"
+                }`}
               >
                 <Button
                   variant="ghost"
@@ -213,28 +295,38 @@ export default function ZufallsbuchstabenPage() {
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
                 </Button>
-                {results.length > 0 ? (
-                  results.map((letter, i) => (
-                    <div
+                {(isSpinning ? currentLetters : results).length > 0 ? (
+                  (isSpinning ? currentLetters : results).map((letter, i) => (
+                    <motion.div
                       key={i}
-                      className={`w-12 h-12 flex items-center justify-center rounded-lg bg-white border-2 border-teal-300 shadow ${isGenerating ? "animate-bounce" : ""}`}
+                      animate={isSpinning ? { y: [0, -5, 0] } : {}}
+                      transition={{ duration: 0.2, repeat: isSpinning ? Number.POSITIVE_INFINITY : 0 }}
+                      className={`w-12 h-12 flex items-center justify-center rounded-lg bg-white border-2 shadow ${
+                        isSpinning ? "border-yellow-300" : "border-teal-300"
+                      }`}
                     >
-                      <span className="text-2xl font-bold text-teal-600">{isGenerating ? "?" : letter}</span>
-                    </div>
+                      <span className={`text-2xl font-bold ${isSpinning ? "text-yellow-600" : "text-teal-600"}`}>
+                        {letter}
+                      </span>
+                    </motion.div>
                   ))
                 ) : (
-                  <span className="text-gray-400 text-xs">Klicke auf "Buchstaben generieren"</span>
+                  <span className="text-gray-400 text-xs">Klicke auf "Start" um zu beginnen</span>
                 )}
               </div>
             </div>
 
-            <Button
-              onClick={generate}
-              disabled={isGenerating}
-              className="w-full h-8 text-sm bg-teal-500 hover:bg-teal-600"
-            >
-              {isGenerating ? "Generiert..." : "Buchstaben generieren"}
-            </Button>
+            <div className="flex gap-2">
+              {!isSpinning ? (
+                <Button onClick={startSpinning} className="flex-1 h-8 text-sm bg-teal-500 hover:bg-teal-600">
+                  Start
+                </Button>
+              ) : (
+                <Button onClick={stopSpinning} className="flex-1 h-8 text-sm bg-red-500 hover:bg-red-600">
+                  Stopp
+                </Button>
+              )}
+            </div>
 
             {history.length > 0 && (
               <div className="border-t pt-3">
