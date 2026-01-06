@@ -86,7 +86,7 @@ export default function ZufallszahlPage() {
         <div className="flex justify-between items-center p-4">
           <div className="flex items-center gap-3">
             <FaRandom className="w-8 h-8 text-purple-400" />
-            <span className="text-white font-bold text-xl">Zufallszahl</span>
+            <span className="text-white font-bold text-xl">Zufallszahlen-Generator</span>
           </div>
           <Button
             variant="ghost"
@@ -99,18 +99,39 @@ export default function ZufallszahlPage() {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4">
-          <div className="relative">
-            <div className="text-center py-12 px-16 rounded-3xl bg-white/10 border-4 border-purple-500/50 shadow-2xl">
-              <div className="overflow-hidden h-28">
-                <motion.span
-                  key={displayNumber}
-                  initial={{ y: -100, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 0.1 }}
-                  className={`text-9xl font-bold ${isSpinning ? "text-gray-400" : "text-purple-400"}`}
-                >
-                  {displayNumber ?? result ?? "..."}
-                </motion.span>
+          <div className="relative w-[500px] h-[350px] flex items-center justify-center">
+            <div className="w-full h-full text-center py-16 px-16 rounded-3xl bg-white/10 border-4 border-purple-500/50 shadow-2xl flex items-center justify-center">
+              <div className="overflow-visible w-full h-full flex items-center justify-center">
+                {displayNumber === null && result === null ? (
+                  <div className="flex gap-2">
+                    <motion.div
+                      className="w-6 h-6 bg-purple-400 rounded-full"
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0 }}
+                    />
+                    <motion.div
+                      className="w-6 h-6 bg-purple-400 rounded-full"
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.2 }}
+                    />
+                    <motion.div
+                      className="w-6 h-6 bg-purple-400 rounded-full"
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.4 }}
+                    />
+                  </div>
+                ) : (
+                  <motion.span
+                    key={displayNumber}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.15 }}
+                    className={`text-9xl font-bold ${isSpinning ? "text-gray-400" : "text-purple-400"} tabular-nums`}
+                    style={{ minWidth: "200px", textAlign: "center" }}
+                  >
+                    {displayNumber ?? result}
+                  </motion.span>
+                )}
               </div>
             </div>
             <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-2 h-20 bg-purple-500 rounded-full shadow-lg" />
@@ -153,7 +174,7 @@ export default function ZufallszahlPage() {
                 size="lg"
                 className="h-14 px-12 text-lg bg-purple-500 hover:bg-purple-600"
               >
-                Zahlenrad starten
+                Generieren
               </Button>
             )}
           </div>
@@ -183,8 +204,10 @@ export default function ZufallszahlPage() {
             >
               <FaRandom className="w-8 h-8 text-white" />
             </motion.div>
-            <CardTitle className="text-2xl">Zufallszahl</CardTitle>
-            <p className="text-gray-500 text-sm">Generiere Zahlen mit animiertem Zahlenrad</p>
+            <CardTitle className="text-2xl">Zufallszahlengenerator</CardTitle>
+            <p className="text-gray-500 text-sm">
+              Generiere zufällige Zahlen in beliebigen natürlichen Zahlenbereichen
+            </p>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
             <div className="flex items-center gap-2 justify-center">
@@ -213,7 +236,7 @@ export default function ZufallszahlPage() {
 
             <div className="relative">
               <div
-                className={`text-center py-6 min-h-[140px] flex flex-col items-center justify-center rounded-xl border-2 ${displayNumber !== null || result !== null ? "bg-purple-50 border-purple-200" : "bg-gray-50 border-gray-200"}`}
+                className={`text-center py-8 min-h-[160px] flex flex-col items-center justify-center rounded-xl border-2 ${displayNumber !== null || result !== null ? "bg-purple-50 border-purple-200" : "bg-gray-50 border-gray-200"}`}
               >
                 <Button
                   variant="ghost"
@@ -224,16 +247,37 @@ export default function ZufallszahlPage() {
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
                 </Button>
-                <div className="overflow-hidden h-16">
-                  <motion.span
-                    key={displayNumber}
-                    initial={{ y: isSpinning ? -50 : 0, opacity: isSpinning ? 0 : 1 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.1 }}
-                    className={`text-5xl font-bold ${isSpinning ? "text-gray-400" : "text-purple-600"}`}
-                  >
-                    {displayNumber ?? result ?? "..."}
-                  </motion.span>
+                <div className="overflow-visible h-20 flex items-center justify-center">
+                  {displayNumber === null && result === null ? (
+                    <div className="flex gap-1.5">
+                      <motion.div
+                        className="w-3 h-3 bg-purple-500 rounded-full"
+                        animate={{ scale: [1, 1.3, 1] }}
+                        transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0 }}
+                      />
+                      <motion.div
+                        className="w-3 h-3 bg-purple-500 rounded-full"
+                        animate={{ scale: [1, 1.3, 1] }}
+                        transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.2 }}
+                      />
+                      <motion.div
+                        className="w-3 h-3 bg-purple-500 rounded-full"
+                        animate={{ scale: [1, 1.3, 1] }}
+                        transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.4 }}
+                      />
+                    </div>
+                  ) : (
+                    <motion.span
+                      key={displayNumber}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.15 }}
+                      className={`text-5xl font-bold ${isSpinning ? "text-gray-400" : "text-purple-600"} tabular-nums`}
+                      style={{ minWidth: "200px", textAlign: "center" }}
+                    >
+                      {displayNumber ?? result}
+                    </motion.span>
+                  )}
                 </div>
               </div>
             </div>
@@ -248,7 +292,7 @@ export default function ZufallszahlPage() {
                 disabled={min >= max}
                 className="w-full h-8 text-sm bg-purple-500 hover:bg-purple-600"
               >
-                Zahlenrad starten
+                Generieren
               </Button>
             )}
 

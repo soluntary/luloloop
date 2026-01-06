@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, RefreshCw, Trash2, Maximize2, X } from "lucide-react"
+import { ArrowLeft, Trash2, Maximize2, X } from "lucide-react"
 import { MessageSquareText } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { wordCategories, categoryLabels } from "@/lib/word-categories"
@@ -17,6 +17,64 @@ export default function WortGeneratorPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [history, setHistory] = useState<{ word: string; category: string }[]>([])
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isSpinning, setIsSpinning] = useState(false)
+  const [displayWord, setDisplayWord] = useState<string | null>(null)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const slowdownRef = useRef<NodeJS.Timeout | null>(null)
+
+  const startSpinning = () => {
+    if (isSpinning) return
+
+    setIsSpinning(true)
+    setDisplayWord(null)
+
+    const words = wordCategories[category]
+    let speed = 50
+
+    const spin = () => {
+      const randomWord = words[Math.floor(Math.random() * words.length)]
+      setDisplayWord(randomWord)
+    }
+
+    intervalRef.current = setInterval(spin, speed)
+
+    slowdownRef.current = setTimeout(() => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+
+      speed = 200
+      intervalRef.current = setInterval(spin, speed)
+
+      setTimeout(() => {
+        if (intervalRef.current) clearInterval(intervalRef.current)
+        const finalWord = words[Math.floor(Math.random() * words.length)]
+        setDisplayWord(finalWord)
+        setCurrentWord(finalWord)
+        setHistory((prev) => [{ word: finalWord, category: categoryLabels[category] }, ...prev.slice(0, 19)])
+        setIsSpinning(false)
+      }, 1500)
+    }, 1500)
+  }
+
+  const stopSpinning = () => {
+    if (!isSpinning) return
+
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    if (slowdownRef.current) clearTimeout(slowdownRef.current)
+
+    const words = wordCategories[category]
+    const finalWord = words[Math.floor(Math.random() * words.length)]
+    setDisplayWord(finalWord)
+    setCurrentWord(finalWord)
+    setHistory((prev) => [{ word: finalWord, category: categoryLabels[category] }, ...prev.slice(0, 19)])
+    setIsSpinning(false)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      if (slowdownRef.current) clearTimeout(slowdownRef.current)
+    }
+  }, [])
 
   const generateWord = () => {
     setIsGenerating(true)
@@ -61,33 +119,55 @@ export default function WortGeneratorPage() {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4">
-          <div className="text-center py-12 px-16 rounded-3xl bg-white/10 w-[500px] h-[300px] flex items-center justify-center">
-            <AnimatePresence mode="wait">
-              {currentWord ? (
-                <motion.div
-                  key={currentWord}
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.5, opacity: 0 }}
-                  className={`text-6xl font-bold ${isGenerating ? "text-gray-500" : "text-pink-400"} break-words`}
-                >
-                  {currentWord}
-                </motion.div>
+          <div className="text-center py-16 px-16 rounded-3xl bg-white/10 w-[700px] min-h-[350px] flex items-center justify-center border-4 border-pink-500/50 shadow-2xl relative">
+            <div className="overflow-visible w-full h-full flex items-center justify-center px-8">
+              {!displayWord && !currentWord ? (
+                <div className="flex gap-3">
+                  <motion.div
+                    className="w-5 h-5 bg-pink-400 rounded-full"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0 }}
+                  />
+                  <motion.div
+                    className="w-5 h-5 bg-pink-400 rounded-full"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.2 }}
+                  />
+                  <motion.div
+                    className="w-5 h-5 bg-pink-400 rounded-full"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.4 }}
+                  />
+                </div>
               ) : (
-                <span className="text-gray-400 text-xl">Tippe auf Wort generieren</span>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={displayWord || currentWord}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.15 }}
+                    className={`text-6xl font-bold ${isSpinning ? "text-gray-400" : "text-pink-400"} break-words text-center leading-tight`}
+                  >
+                    {displayWord || currentWord}
+                  </motion.div>
+                </AnimatePresence>
               )}
-            </AnimatePresence>
+            </div>
+            <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-2 h-20 bg-pink-500 rounded-full shadow-lg" />
+            <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-2 h-20 bg-pink-500 rounded-full shadow-lg" />
           </div>
 
-          <Button
-            onClick={generateWord}
-            disabled={isGenerating}
-            size="lg"
-            className="h-14 px-12 text-lg bg-pink-500 hover:bg-pink-600"
-          >
-            <RefreshCw className={`w-5 h-5 mr-3 ${isGenerating ? "animate-spin" : ""}`} />
-            {isGenerating ? "Generiere..." : "Wort generieren"}
-          </Button>
+          <div className="flex gap-4">
+            {!isSpinning ? (
+              <Button onClick={startSpinning} size="lg" className="h-14 px-12 text-lg bg-pink-500 hover:bg-pink-600">
+                Generieren
+              </Button>
+            ) : (
+              <Button onClick={stopSpinning} size="lg" className="h-14 px-12 text-lg bg-red-500 hover:bg-red-600">
+                Stopp
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="p-4 flex justify-center">
@@ -96,7 +176,9 @@ export default function WortGeneratorPage() {
             onValueChange={(val) => {
               setCategory(val)
               setCurrentWord(null)
+              setDisplayWord(null)
             }}
+            disabled={isSpinning}
           >
             <SelectTrigger className="w-48 h-10 bg-white/10 border-white/20 text-white">
               <SelectValue />
@@ -146,8 +228,10 @@ export default function WortGeneratorPage() {
                 onValueChange={(val) => {
                   setCategory(val)
                   setCurrentWord(null)
+                  setDisplayWord(null)
                   setHistory([])
                 }}
+                disabled={isSpinning}
               >
                 <SelectTrigger className="w-full h-8 text-xs">
                   <SelectValue />
@@ -172,33 +256,60 @@ export default function WortGeneratorPage() {
               >
                 <Maximize2 className="w-3.5 h-3.5" />
               </Button>
-              <div className="bg-gray-50 rounded-xl p-6 text-center h-[180px] flex items-center justify-center border-2 border-gray-200">
-                <AnimatePresence mode="wait">
-                  {currentWord ? (
-                    <motion.div
-                      key={currentWord}
-                      initial={{ scale: 0.5, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.5, opacity: 0 }}
-                      className={`text-3xl font-bold ${isGenerating ? "text-gray-400" : "text-pink-600"} break-words`}
-                    >
-                      {currentWord}
-                    </motion.div>
+              <div
+                className={`rounded-xl p-6 text-center h-[200px] flex items-center justify-center border-2 ${
+                  displayWord || currentWord
+                    ? isSpinning
+                      ? "bg-pink-50 border-pink-200"
+                      : "bg-pink-50 border-pink-200"
+                    : "bg-gray-50 border-gray-200"
+                }`}
+              >
+                <div className="overflow-visible h-20 w-full flex items-center justify-center">
+                  {!displayWord && !currentWord ? (
+                    <div className="flex gap-1.5">
+                      <motion.div
+                        className="w-2.5 h-2.5 bg-pink-500 rounded-full"
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0 }}
+                      />
+                      <motion.div
+                        className="w-2.5 h-2.5 bg-pink-500 rounded-full"
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.2 }}
+                      />
+                      <motion.div
+                        className="w-2.5 h-2.5 bg-pink-500 rounded-full"
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.4 }}
+                      />
+                    </div>
                   ) : (
-                    <span className="text-gray-400 text-xs">Klicke auf "Wort generieren"</span>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={displayWord || currentWord}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.15 }}
+                        className={`text-3xl font-bold ${isSpinning ? "text-gray-400" : "text-pink-600"} break-words`}
+                      >
+                        {displayWord || currentWord}
+                      </motion.div>
+                    </AnimatePresence>
                   )}
-                </AnimatePresence>
+                </div>
               </div>
             </div>
 
-            <Button
-              onClick={generateWord}
-              disabled={isGenerating}
-              className="w-full h-8 text-sm bg-pink-500 hover:bg-pink-600"
-            >
-              <RefreshCw className={`w-3 h-3 mr-2 ${isGenerating ? "animate-spin" : ""}`} />
-              {isGenerating ? "Generiere..." : "Wort generieren"}
-            </Button>
+            {!isSpinning ? (
+              <Button onClick={startSpinning} className="w-full h-8 text-sm bg-pink-500 hover:bg-pink-600">
+                Generieren
+              </Button>
+            ) : (
+              <Button onClick={stopSpinning} className="w-full h-8 text-sm bg-red-500 hover:bg-red-600">
+                Stopp
+              </Button>
+            )}
 
             {history.length > 0 && (
               <div className="border-t pt-3">

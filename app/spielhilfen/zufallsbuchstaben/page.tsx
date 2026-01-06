@@ -54,45 +54,32 @@ export default function ZufallsbuchstabenPage() {
     }
   }
 
-  const startSpinning = () => {
-    if (isSpinning) return
-
+  const spinNumbers = (finalLetters: string[]) => {
     setIsSpinning(true)
-    setResults([])
-
     const pool = getLetterPool()
-    let speed = 50
+    let count = 0
+    const maxSpins = 30
 
     const spin = () => {
+      count++
       const newLetters = Array.from({ length: letterCount }, () => pool[Math.floor(Math.random() * pool.length)])
       setCurrentLetters(newLetters)
-    }
 
-    intervalRef.current = setInterval(spin, speed)
-
-    slowdownRef.current = setTimeout(() => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-
-      speed = 200
-      intervalRef.current = setInterval(spin, speed)
-
-      setTimeout(() => {
-        if (intervalRef.current) clearInterval(intervalRef.current)
-        const finalLetters = Array.from({ length: letterCount }, () => pool[Math.floor(Math.random() * pool.length)])
+      if (count < maxSpins) {
+        setTimeout(spin, 50)
+      } else if (count < maxSpins + 10) {
+        setTimeout(spin, 200)
+      } else {
         setCurrentLetters(finalLetters)
         setResults(finalLetters)
-        setHistory((prev) => [{ letters: finalLetters, set: getSetLabel() }, ...prev].slice(0, 10))
         setIsSpinning(false)
-      }, 1500)
-    }, 1500)
+      }
+    }
+
+    spin()
   }
 
   const stopSpinning = () => {
-    if (!isSpinning) return
-
-    if (intervalRef.current) clearInterval(intervalRef.current)
-    if (slowdownRef.current) clearTimeout(slowdownRef.current)
-
     const pool = getLetterPool()
     const finalLetters = Array.from({ length: letterCount }, () => pool[Math.floor(Math.random() * pool.length)])
     setCurrentLetters(finalLetters)
@@ -110,13 +97,15 @@ export default function ZufallsbuchstabenPage() {
 
   const generate = () => {
     setIsGenerating(true)
+    const pool = getLetterPool()
+    const finalLetters = Array.from({ length: letterCount }, () => pool[Math.floor(Math.random() * pool.length)])
+
+    spinNumbers(finalLetters)
+
     setTimeout(() => {
-      const pool = getLetterPool()
-      const newResults = Array.from({ length: letterCount }, () => pool[Math.floor(Math.random() * pool.length)])
-      setResults(newResults)
-      setHistory((prev) => [{ letters: newResults, set: getSetLabel() }, ...prev].slice(0, 10))
+      setHistory((prev) => [{ letters: finalLetters, set: getSetLabel() }, ...prev].slice(0, 10))
       setIsGenerating(false)
-    }, 300)
+    }, 3500)
   }
 
   if (isExpanded) {
@@ -125,7 +114,7 @@ export default function ZufallsbuchstabenPage() {
         <div className="flex justify-between items-center p-4">
           <div className="flex items-center gap-3">
             <TiSortAlphabeticallyOutline className="w-8 h-8 text-teal-400" />
-            <span className="text-white font-bold text-xl">Buchstabengenerator</span>
+            <span className="text-white font-bold text-xl">Zufallsbuchstaben-Generator</span>
           </div>
           <Button
             variant="ghost"
@@ -138,35 +127,51 @@ export default function ZufallsbuchstabenPage() {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4">
-          <div className="flex justify-center gap-4">
-            {(isSpinning ? currentLetters : results).length > 0 ? (
-              (isSpinning ? currentLetters : results).map((letter, i) => (
+          <div className="w-[600px] min-h-[300px] flex items-center justify-center">
+            {!isSpinning && currentLetters.length === 0 && results.length === 0 ? (
+              <div className="flex gap-2">
                 <motion.div
-                  key={i}
-                  animate={isSpinning ? { y: [0, -10, 0] } : {}}
-                  transition={{ duration: 0.3, repeat: isSpinning ? Number.POSITIVE_INFINITY : 0 }}
-                  className={`w-24 h-24 flex items-center justify-center rounded-2xl bg-white/10 border-2 ${
-                    isSpinning ? "border-yellow-400 shadow-lg shadow-yellow-400/50" : "border-teal-400"
-                  }`}
-                >
-                  <span className={`text-6xl font-bold ${isSpinning ? "text-yellow-400" : "text-teal-400"}`}>
-                    {letter}
-                  </span>
-                </motion.div>
-              ))
+                  className="w-4 h-4 bg-teal-400 rounded-full"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0 }}
+                />
+                <motion.div
+                  className="w-4 h-4 bg-teal-400 rounded-full"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.2 }}
+                />
+                <motion.div
+                  className="w-4 h-4 bg-teal-400 rounded-full"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.4 }}
+                />
+              </div>
             ) : (
-              <span className="text-gray-400 text-xl">Tippe auf "Start" um zu beginnen</span>
+              <div className="flex flex-wrap justify-center gap-4">
+                {(isSpinning ? currentLetters : results).map((letter, i) => (
+                  <div
+                    key={`${i}-${letter}`}
+                    className={`w-24 h-24 flex items-center justify-center rounded-2xl bg-white/10 border-2 ${
+                      isSpinning ? "border-teal-300" : "border-teal-400"
+                    }`}
+                  >
+                    <span className={`text-6xl font-bold ${isSpinning ? "text-teal-300" : "text-teal-400"}`}>
+                      {letter}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
           <div className="flex gap-4">
-            {!isSpinning ? (
-              <Button onClick={startSpinning} size="lg" className="h-14 px-12 text-lg bg-teal-500 hover:bg-teal-600">
-                Start
-              </Button>
-            ) : (
+            {isSpinning ? (
               <Button onClick={stopSpinning} size="lg" className="h-14 px-12 text-lg bg-red-500 hover:bg-red-600">
                 Stopp
+              </Button>
+            ) : (
+              <Button onClick={generate} size="lg" className="h-14 px-12 text-lg bg-teal-500 hover:bg-teal-600">
+                Generieren
               </Button>
             )}
           </div>
@@ -278,11 +283,9 @@ export default function ZufallsbuchstabenPage() {
 
             <div className="relative">
               <div
-                className={`flex flex-wrap justify-center gap-2 py-4 min-h-[140px] items-center rounded-xl border-2 ${
+                className={`flex flex-wrap justify-center gap-2 py-6 min-h-[160px] items-center rounded-xl border-2 ${
                   (isSpinning ? currentLetters : results).length > 0
-                    ? isSpinning
-                      ? "bg-yellow-50 border-yellow-200"
-                      : "bg-teal-50 border-teal-200"
+                    ? "bg-teal-50 border-teal-200"
                     : "bg-gray-50 border-gray-200"
                 }`}
               >
@@ -295,35 +298,49 @@ export default function ZufallsbuchstabenPage() {
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
                 </Button>
-                {(isSpinning ? currentLetters : results).length > 0 ? (
-                  (isSpinning ? currentLetters : results).map((letter, i) => (
+                {!isSpinning && currentLetters.length === 0 && results.length === 0 ? (
+                  <div className="flex gap-1.5">
                     <motion.div
-                      key={i}
-                      animate={isSpinning ? { y: [0, -5, 0] } : {}}
-                      transition={{ duration: 0.2, repeat: isSpinning ? Number.POSITIVE_INFINITY : 0 }}
+                      className="w-2.5 h-2.5 bg-teal-500 rounded-full"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0 }}
+                    />
+                    <motion.div
+                      className="w-2.5 h-2.5 bg-teal-500 rounded-full"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.2 }}
+                    />
+                    <motion.div
+                      className="w-2.5 h-2.5 bg-teal-500 rounded-full"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.4 }}
+                    />
+                  </div>
+                ) : (
+                  (isSpinning ? currentLetters : results).map((letter, i) => (
+                    <div
+                      key={`${i}-${letter}`}
                       className={`w-12 h-12 flex items-center justify-center rounded-lg bg-white border-2 shadow ${
-                        isSpinning ? "border-yellow-300" : "border-teal-300"
+                        isSpinning ? "border-teal-300" : "border-teal-300"
                       }`}
                     >
-                      <span className={`text-2xl font-bold ${isSpinning ? "text-yellow-600" : "text-teal-600"}`}>
+                      <span className={`text-2xl font-bold ${isSpinning ? "text-teal-500" : "text-teal-600"}`}>
                         {letter}
                       </span>
-                    </motion.div>
+                    </div>
                   ))
-                ) : (
-                  <span className="text-gray-400 text-xs">Klicke auf "Start" um zu beginnen</span>
                 )}
               </div>
             </div>
 
             <div className="flex gap-2">
-              {!isSpinning ? (
-                <Button onClick={startSpinning} className="flex-1 h-8 text-sm bg-teal-500 hover:bg-teal-600">
-                  Start
-                </Button>
-              ) : (
+              {isSpinning ? (
                 <Button onClick={stopSpinning} className="flex-1 h-8 text-sm bg-red-500 hover:bg-red-600">
                   Stopp
+                </Button>
+              ) : (
+                <Button onClick={generate} className="flex-1 h-8 text-sm bg-teal-500 hover:bg-teal-600">
+                  Generieren
                 </Button>
               )}
             </div>
