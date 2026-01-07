@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Trash2, Maximize2, X } from "lucide-react"
 import { MessageSquareText } from "lucide-react"
@@ -119,8 +119,8 @@ export default function WortGeneratorPage() {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4">
-          <div className="text-center py-16 px-16 rounded-3xl bg-white/10 w-[700px] min-h-[350px] flex items-center justify-center border-4 border-pink-500/50 shadow-2xl relative">
-            <div className="overflow-visible w-full h-full flex items-center justify-center px-8">
+          <div className="text-center py-12 sm:py-16 px-8 sm:px-16 rounded-3xl bg-white/10 w-full max-w-[700px] min-h-[300px] sm:min-h-[350px] flex items-center justify-center border-4 border-pink-500/50 shadow-2xl relative">
+            <div className="overflow-visible w-full h-full flex items-center justify-center px-4 sm:px-8">
               {!displayWord && !currentWord ? (
                 <div className="flex gap-3">
                   <motion.div
@@ -146,7 +146,7 @@ export default function WortGeneratorPage() {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.15 }}
-                    className={`text-6xl font-bold ${isSpinning ? "text-gray-400" : "text-pink-400"} break-words text-center leading-tight`}
+                    className={`sm:text-5xl md:text-6xl font-bold text-5xl ${isSpinning ? "text-gray-400" : "text-pink-400"} break-words text-center leading-tight`}
                   >
                     {displayWord || currentWord}
                   </motion.div>
@@ -210,14 +210,16 @@ export default function WortGeneratorPage() {
 
         <Card className="max-w-2xl mx-auto border-2 border-gray-200">
           <CardHeader className="text-center border-b bg-gradient-to-r from-pink-50 to-pink-100">
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-              className="w-14 h-14 rounded-xl bg-pink-500 flex items-center justify-center mx-auto mb-2 shadow-lg"
-            >
-              <MessageSquareText className="w-8 h-8 text-white" />
-            </motion.div>
-            <CardTitle className="text-2xl">Wort-Generator</CardTitle>
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <motion.div
+                whileHover={{ rotate: 360, scale: 1.1 }}
+                transition={{ duration: 0.6 }}
+                className="w-14 h-14 sm:w-16 sm:h-16 bg-pink-500 rounded-full flex items-center justify-center transform -rotate-12"
+              >
+                <MessageSquareText className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+              </motion.div>
+              <h1 className="font-handwritten text-2xl md:text-3xl text-gray-800 transform rotate-1">Wort-Generator</h1>
+            </div>
             <p className="text-gray-500 text-sm">Zufällige Wörter für Wortspiele</p>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
@@ -291,7 +293,7 @@ export default function WortGeneratorPage() {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.15 }}
-                        className={`text-3xl font-bold ${isSpinning ? "text-gray-400" : "text-pink-600"} break-words`}
+                        className={`sm:text-4xl md:text-5xl font-bold text-4xl  ${isSpinning ? "text-gray-400" : "text-pink-600"} break-words`}
                       >
                         {displayWord || currentWord}
                       </motion.div>

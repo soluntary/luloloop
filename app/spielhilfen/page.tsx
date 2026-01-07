@@ -284,7 +284,7 @@ export default function SpielHilfenPage() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h1 className="font-handwritten text-center text-gray-800 mb-4 transform rotate-1 text-2xl sm:text-3xl md:text-4xl">
+          <h1 className="font-handwritten text-center text-gray-800 mb-4 transform rotate-1 text-2xl sm:text-3xl md:text-5xl">
             Spielhilfen
           </h1>
           <p className="text-gray-600 text-center font-body transform -rotate-1 text-base max-w-2xl mx-auto">

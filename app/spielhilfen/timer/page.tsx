@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ArrowLeft, Play, Pause, RotateCcw, Maximize2, X } from "lucide-react"
 import { MdOutlineTimer } from "react-icons/md"
@@ -195,14 +195,16 @@ export default function TimerPage() {
                 onLoadTemplate={handleLoadTemplate}
               />
             </div>
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-              className="w-14 h-14 rounded-xl bg-blue-500 flex items-center justify-center mx-auto mb-2 shadow-lg"
-            >
-              <MdOutlineTimer className="w-8 h-8 text-white" />
-            </motion.div>
-            <CardTitle className="text-2xl">Timer</CardTitle>
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <motion.div
+                whileHover={{ rotate: 360, scale: 1.1 }}
+                transition={{ duration: 0.6 }}
+                className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-500 rounded-full flex items-center justify-center transform -rotate-12"
+              >
+                <MdOutlineTimer className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+              </motion.div>
+              <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Timer</h1>
+            </div>
             <p className="text-gray-500 text-sm">Countdown für zeitbasierte Spiele</p>
           </CardHeader>
           <CardContent className="p-4 space-y-4">

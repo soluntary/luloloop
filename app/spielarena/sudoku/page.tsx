@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { FaArrowLeft, FaClock, FaRedo, FaLightbulb } from "react-icons/fa"
 import { FaListOl } from "react-icons/fa"
 import { BsGrid3X3Gap } from "react-icons/bs"
+import { Maximize2 } from "lucide-react"
 import { saveSudokuScore, getSudokuLeaderboard, type SudokuScore } from "@/lib/leaderboard-actions"
 import { LeaderboardDisplay } from "@/components/leaderboard-display"
 
@@ -32,6 +33,7 @@ export default function SudokuPage() {
   const [hintsUsed, setHintsUsed] = useState(0) // Added hintsUsed counter
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [leaderboard, setLeaderboard] = useState<SudokuScore[]>([])
+  const [isExpanded, setIsExpanded] = useState(false) // Added isExpanded state for fullscreen mode
 
   useEffect(() => {
     initGame(difficulty)
@@ -257,8 +259,15 @@ export default function SudokuPage() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
 
+  const resetGame = () => {
+    initGame(difficulty)
+    setShowingResults(false)
+  }
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-indigo-50 to-white">
+    <div
+      className={`min-h-screen flex flex-col bg-gradient-to-b from-indigo-50 to-white ${isExpanded ? "max-h-screen" : ""}`}
+    >
       <Navigation />
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
@@ -275,11 +284,11 @@ export default function SudokuPage() {
               <motion.div
                 whileHover={{ rotate: 360, scale: 1.1 }}
                 transition={{ duration: 0.6 }}
-                className="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center transform -rotate-12"
+                className="w-14 h-14 sm:w-16 sm:h-16 bg-indigo-500 rounded-full flex items-center justify-center transform -rotate-12"
               >
-                <BsGrid3X3Gap className="w-8 h-8 text-white" />
+                <BsGrid3X3Gap className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </motion.div>
-              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Sudoku</h1>
+              <h1 className="font-handwritten text-2xl md:text-3xl text-gray-800 transform rotate-1">Sudoku</h1>
             </div>
           </div>
 
@@ -388,16 +397,17 @@ export default function SudokuPage() {
                           Abschließen
                         </Button>
                       )}
-                      <Button
-                        onClick={() => {
-                          initGame(difficulty)
-                          setShowingResults(false)
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2 bg-transparent"
-                      >
+                      <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
                         <FaRedo /> Zurücksetzen
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsExpanded(true)}
+                        className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                        title="Vergrössern"
+                      >
+                        <Maximize2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </div>

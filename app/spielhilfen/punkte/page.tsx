@@ -5,12 +5,11 @@ import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ArrowLeft, Trophy, Plus, Minus, Trash2, Crown, Undo2, History, RotateCcw } from "lucide-react"
 import { GiTargetPrize } from "react-icons/gi"
 import { FaListOl } from "react-icons/fa"
-import { GiPodium } from "react-icons/gi"
 import { motion } from "framer-motion"
 import { TemplateManager } from "@/components/spielhilfen/template-manager"
 import { Label } from "@/components/ui/label"
@@ -257,14 +256,18 @@ export default function PunktePage() {
                   onLoadTemplate={handleLoadTemplate}
                 />
               </div>
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                className="w-14 h-14 rounded-xl bg-green-500 flex items-center justify-center mx-auto mb-2 shadow-lg"
-              >
-                <Trophy className="w-8 h-8 text-white" />
-              </motion.div>
-              <CardTitle className="text-2xl">Punkte-Tracker</CardTitle>
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <motion.div
+                  whileHover={{ rotate: 360, scale: 1.1 }}
+                  transition={{ duration: 0.6 }}
+                  className="w-14 h-14 sm:w-16 sm:h-16 bg-green-500 rounded-full flex items-center justify-center transform -rotate-12"
+                >
+                  <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                </motion.div>
+                <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">
+                  Punkte-Tracker
+                </h1>
+              </div>
               <p className="text-gray-500 text-sm">Spielstände auswerten und verfolgen</p>
             </CardHeader>
             <CardContent className="p-4 space-y-4">

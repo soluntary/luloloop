@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -278,7 +278,7 @@ export default function SchachuhrPage() {
 
         <div className="max-w-2xl mx-auto">
           <Card className="border-2 border-slate-200">
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 text-center">
+            <CardHeader className="text-center border-b bg-gradient-to-r from-slate-50 to-slate-100">
               <div className="flex justify-end mb-2">
                 <TemplateManager
                   spielhilfeType="schachuhr"
@@ -286,15 +286,17 @@ export default function SchachuhrPage() {
                   onLoadTemplate={handleLoadTemplate}
                 />
               </div>
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                className="w-14 h-14 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl flex items-center justify-center shadow-lg mx-auto mb-3"
-              >
-                <PiClockCountdownFill className="w-8 h-8 text-white" />
-              </motion.div>
-              <CardTitle className="text-2xl">Schachuhr</CardTitle>
-              <CardDescription>Zwei Timer für rundenbasierte Spiele mit Zeitlimit</CardDescription>
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <motion.div
+                  whileHover={{ rotate: 360, scale: 1.1 }}
+                  transition={{ duration: 0.6 }}
+                  className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-600 rounded-full flex items-center justify-center shadow-lg transform -rotate-12"
+                >
+                  <PiClockCountdownFill className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                </motion.div>
+                <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Schachuhr</h1>
+              </div>
+              <p className="text-gray-500 text-sm">Zwei Timer für rundenbasierte Spiele mit Zeitlimit</p>
             </CardHeader>
             <CardContent className="p-4 space-y-4">
               <div className="relative bg-gradient-to-b from-gray-100 to-gray-50 rounded-xl border border-gray-200 p-3 pt-8">

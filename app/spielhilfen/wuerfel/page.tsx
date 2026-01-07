@@ -5,7 +5,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { ArrowLeft, Trash2, Maximize2, X } from "lucide-react"
 import {
   GiRollingDices,
@@ -16,7 +16,7 @@ import {
   GiDiceEightFacesEight,
   GiD10,
   GiD12,
-  GiDiceTwentyFacesTwenty
+  GiDiceTwentyFacesTwenty,
 } from "react-icons/gi"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TemplateManager } from "@/components/spielhilfen/template-manager"
@@ -396,19 +396,17 @@ export default function WuerfelPage() {
                 onLoadTemplate={handleLoadTemplate}
               />
             </div>
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center justify-center gap-4 mb-4">
               <motion.div
-                className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg"
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
+                whileHover={{ rotate: 360, scale: 1.1 }}
+                transition={{ duration: 0.6 }}
+                className="w-14 h-14 sm:w-16 sm:h-16 bg-red-500 rounded-full flex items-center justify-center transform -rotate-12"
               >
-                <GiRollingDices className="w-8 h-8 text-white" />
+                <GiRollingDices className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </motion.div>
-              <div>
-                <CardTitle className="text-2xl">Würfel</CardTitle>
-                <p className="text-gray-500 text-sm">Virtuelle Würfel mit 3D-Animation</p>
-              </div>
+              <h1 className="font-handwritten text-2xl md:text-3xl text-gray-800 transform rotate-1">Würfel</h1>
             </div>
+            <p className="text-gray-500 text-sm">Virtuelle Würfel mit 3D-Animation</p>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
             <div className="flex flex-wrap gap-2 justify-center">

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { GiCartwheel } from "react-icons/gi"
@@ -577,7 +577,7 @@ export default function GluecksradPage() {
         </Link>
 
         <Card className="max-w-2xl mx-auto border-2 border-amber-200 shadow-xl">
-          <CardHeader className="text-center border-b bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50">
+          <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100 text-center">
             <div className="flex justify-end mb-2">
               <TemplateManager
                 spielhilfeType="gluecksrad"
@@ -585,21 +585,17 @@ export default function GluecksradPage() {
                 onLoadTemplate={handleLoadTemplate}
               />
             </div>
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center justify-center gap-4 mb-4">
               <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                className="w-14 h-14 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-lg"
+                whileHover={{ rotate: 360, scale: 1.1 }}
+                transition={{ duration: 0.6 }}
+                className="w-14 h-14 sm:w-16 sm:h-16 bg-amber-500 rounded-full flex items-center justify-center shadow-lg transform -rotate-12"
               >
-                <GiCartwheel className="w-8 h-8 text-white" />
+                <GiCartwheel className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </motion.div>
-              <div className="text-center">
-                <CardTitle className="text-2xl bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
-                  Glücksrad
-                </CardTitle>
-                <p className="text-sm text-gray-500">Drehe das Rad für eine zufällige Auswahl</p>
-              </div>
+              <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Glücksrad</h1>
             </div>
+            <p className="text-gray-500 text-sm">Interaktives Glücksrad für zufällige Auswahl</p>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
             {showHistory && (

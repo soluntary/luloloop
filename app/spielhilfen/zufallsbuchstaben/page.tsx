@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ArrowLeft, Trash2, Maximize2, X } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -127,7 +127,7 @@ export default function ZufallsbuchstabenPage() {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4">
-          <div className="w-[600px] min-h-[300px] flex items-center justify-center">
+          <div className="w-full max-w-[600px] min-h-[300px] flex items-center justify-center px-2">
             {!isSpinning && currentLetters.length === 0 && results.length === 0 ? (
               <div className="flex gap-2">
                 <motion.div
@@ -151,11 +151,13 @@ export default function ZufallsbuchstabenPage() {
                 {(isSpinning ? currentLetters : results).map((letter, i) => (
                   <div
                     key={`${i}-${letter}`}
-                    className={`w-24 h-24 flex items-center justify-center rounded-2xl bg-white/10 border-2 ${
+                    className={`w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex items-center justify-center rounded-2xl bg-white/10 border-2 ${
                       isSpinning ? "border-teal-300" : "border-teal-400"
                     }`}
                   >
-                    <span className={`text-6xl font-bold ${isSpinning ? "text-teal-300" : "text-teal-400"}`}>
+                    <span
+                      className={`text-4xl sm:text-5xl md:text-6xl font-bold ${isSpinning ? "text-teal-300" : "text-teal-400"}`}
+                    >
                       {letter}
                     </span>
                   </div>
@@ -220,14 +222,18 @@ export default function ZufallsbuchstabenPage() {
 
         <Card className="max-w-2xl mx-auto border-2 border-gray-200">
           <CardHeader className="text-center border-b bg-gradient-to-r from-teal-50 to-teal-100">
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-              className="w-14 h-14 rounded-xl bg-teal-500 flex items-center justify-center mx-auto mb-2 shadow-lg"
-            >
-              <TiSortAlphabeticallyOutline className="w-8 h-8 text-white" />
-            </motion.div>
-            <CardTitle className="text-2xl">Zufallsbuchstaben</CardTitle>
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <motion.div
+                whileHover={{ rotate: 360, scale: 1.1 }}
+                transition={{ duration: 0.6 }}
+                className="w-14 h-14 sm:w-16 sm:h-16 bg-teal-500 rounded-full flex items-center justify-center transform -rotate-12"
+              >
+                <TiSortAlphabeticallyOutline className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+              </motion.div>
+              <h1 className="font-handwritten text-2xl md:text-3xl text-gray-800 transform rotate-1">
+                Zufallsbuchstaben
+              </h1>
+            </div>
             <p className="text-gray-500 text-sm">Für Wortspiele wie Stadt-Land-Fluss</p>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
@@ -320,11 +326,13 @@ export default function ZufallsbuchstabenPage() {
                   (isSpinning ? currentLetters : results).map((letter, i) => (
                     <div
                       key={`${i}-${letter}`}
-                      className={`w-12 h-12 flex items-center justify-center rounded-lg bg-white border-2 shadow ${
+                      className={`sm:w-16 sm:h-16 md:w-20 md:h-20 flex items-center justify-center rounded-lg bg-white border-2 shadow h-14 w-14 ${
                         isSpinning ? "border-teal-300" : "border-teal-300"
                       }`}
                     >
-                      <span className={`text-2xl font-bold ${isSpinning ? "text-teal-500" : "text-teal-600"}`}>
+                      <span
+                        className={`sm:text-3xl md:text-4xl font-bold text-5xl ${isSpinning ? "text-teal-500" : "text-teal-600"}`}
+                      >
                         {letter}
                       </span>
                     </div>
