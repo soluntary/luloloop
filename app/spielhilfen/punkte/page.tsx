@@ -247,6 +247,17 @@ export default function PunktePage() {
         </Link>
 
         <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <motion.div
+              whileHover={{ rotate: 360, scale: 1.1 }}
+              transition={{ duration: 0.6 }}
+              className="w-14 h-14 sm:w-16 sm:h-16 bg-green-500 rounded-full flex items-center justify-center transform -rotate-12"
+            >
+              <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+            </motion.div>
+            <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Punkte-Tracker</h1>
+          </div>
+
           <Card className="border-2 border-green-200">
             <CardHeader className="text-center border-b bg-gradient-to-r from-green-50 to-green-100">
               <div className="flex justify-end mb-2">
@@ -255,18 +266,6 @@ export default function PunktePage() {
                   currentData={getCurrentData()}
                   onLoadTemplate={handleLoadTemplate}
                 />
-              </div>
-              <div className="flex items-center justify-center gap-4 mb-4">
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.1 }}
-                  transition={{ duration: 0.6 }}
-                  className="w-14 h-14 sm:w-16 sm:h-16 bg-green-500 rounded-full flex items-center justify-center transform -rotate-12"
-                >
-                  <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                </motion.div>
-                <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">
-                  Punkte-Tracker
-                </h1>
               </div>
               <p className="text-gray-500 text-sm">Spielstände auswerten und verfolgen</p>
             </CardHeader>

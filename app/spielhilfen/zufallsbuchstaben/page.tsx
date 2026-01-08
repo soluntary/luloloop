@@ -220,20 +220,19 @@ export default function ZufallsbuchstabenPage() {
           <span className="text-sm">Zurück zu Spielhilfen</span>
         </Link>
 
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <motion.div
+            whileHover={{ rotate: 360, scale: 1.1 }}
+            transition={{ duration: 0.6 }}
+            className="w-14 h-14 sm:w-16 sm:h-16 bg-teal-500 rounded-full flex items-center justify-center transform -rotate-12"
+          >
+            <TiSortAlphabeticallyOutline className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+          </motion.div>
+          <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Zufallsbuchstaben</h1>
+        </div>
+
         <Card className="max-w-2xl mx-auto border-2 border-gray-200">
           <CardHeader className="text-center border-b bg-gradient-to-r from-teal-50 to-teal-100">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <motion.div
-                whileHover={{ rotate: 360, scale: 1.1 }}
-                transition={{ duration: 0.6 }}
-                className="w-14 h-14 sm:w-16 sm:h-16 bg-teal-500 rounded-full flex items-center justify-center transform -rotate-12"
-              >
-                <TiSortAlphabeticallyOutline className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-              </motion.div>
-              <h1 className="font-handwritten text-2xl md:text-3xl text-gray-800 transform rotate-1">
-                Zufallsbuchstaben
-              </h1>
-            </div>
             <p className="text-gray-500 text-sm">Für Wortspiele wie Stadt-Land-Fluss</p>
           </CardHeader>
           <CardContent className="p-4 space-y-4">

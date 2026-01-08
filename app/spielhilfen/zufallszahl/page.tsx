@@ -195,20 +195,21 @@ export default function ZufallszahlPage() {
           <span className="text-sm">Zurück zu Spielhilfen</span>
         </Link>
 
+        <div className="flex items-center justify-center gap-4 mb-6 max-w-2xl mx-auto">
+          <motion.div
+            whileHover={{ rotate: 360, scale: 1.1 }}
+            transition={{ duration: 0.6 }}
+            className="w-14 h-14 sm:w-16 sm:h-16 bg-purple-500 rounded-full flex items-center justify-center transform -rotate-12"
+          >
+            <FaRandom className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+          </motion.div>
+          <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">
+            Zufallszahlengenerator
+          </h1>
+        </div>
+
         <Card className="max-w-2xl mx-auto border-2 border-gray-200">
           <CardHeader className="text-center border-b bg-gradient-to-r from-purple-50 to-purple-100">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <motion.div
-                whileHover={{ rotate: 360, scale: 1.1 }}
-                transition={{ duration: 0.6 }}
-                className="w-14 h-14 sm:w-16 sm:h-16 bg-purple-500 rounded-full flex items-center justify-center transform -rotate-12"
-              >
-                <FaRandom className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-              </motion.div>
-              <h1 className="font-handwritten text-2xl md:text-3xl text-gray-800 transform rotate-1">
-                Zufallszahlengenerator
-              </h1>
-            </div>
             <p className="text-gray-500 text-sm">
               Generiere zufällige Zahlen in beliebigen natürlichen Zahlenbereichen
             </p>
