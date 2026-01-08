@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { ArrowLeft, Play, Pause, Volume2, VolumeX } from "lucide-react"
@@ -236,18 +236,22 @@ export default function HintergrundmusikPage() {
           <span className="text-sm">Zurück zu Spielhilfen</span>
         </Link>
 
-        <Card className="max-w-4xl mx-auto border-2 border-violet-200">
-          <CardHeader className="text-center bg-gradient-to-r from-violet-50 to-violet-100 rounded-t-lg">
+        <div className="max-w-4xl mx-auto mb-4">
+          <div className="flex items-center justify-center gap-4 mb-2">
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-              className="w-14 h-14 bg-gradient-to-br from-violet-500 to-purple-500 rounded-xl flex items-center justify-center mx-auto shadow-lg"
+              className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-violet-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg"
             >
-              <GiSoundWaves className="w-8 h-8 text-white" />
+              <GiSoundWaves className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </motion.div>
-            <CardTitle className="text-2xl">Hintergrundmusik</CardTitle>
-            <CardDescription>Ambient-Musik für verschiedene Spielatmosphären</CardDescription>
-          </CardHeader>
+            <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Hintergrundmusik</h1>
+          </div>
+          <p className="text-center text-gray-600 text-sm">Ambient-Musik für verschiedene Spielatmosphären</p>
+        </div>
+
+        <Card className="max-w-4xl mx-auto border-2 border-violet-200">
+          <CardHeader className="bg-gradient-to-r from-violet-50 to-violet-100 rounded-t-lg"></CardHeader>
           <CardContent className="p-4 space-y-4">
             {/* Now Playing */}
             {currentTrack && (

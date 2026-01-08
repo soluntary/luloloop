@@ -197,9 +197,9 @@ export default function ZufallszahlPage() {
 
         <div className="flex items-center justify-center gap-4 mb-6 max-w-2xl mx-auto">
           <motion.div
-            whileHover={{ rotate: 360, scale: 1.1 }}
-            transition={{ duration: 0.6 }}
-            className="w-14 h-14 sm:w-16 sm:h-16 bg-purple-500 rounded-full flex items-center justify-center transform -rotate-12"
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 0.8, repeat: Number.POSITIVE_INFINITY, repeatDelay: 2 }}
+            className="w-14 h-14 sm:w-16 sm:h-16 bg-purple-500 rounded-full flex items-center justify-center shadow-lg"
           >
             <FaRandom className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
           </motion.div>
@@ -208,12 +208,12 @@ export default function ZufallszahlPage() {
           </h1>
         </div>
 
+        <p className="text-center text-gray-600 text-sm mb-6 max-w-2xl mx-auto">
+          Generiere zufällige Zahlen in beliebigen natürlichen Zahlenbereichen
+        </p>
+
         <Card className="max-w-2xl mx-auto border-2 border-gray-200">
-          <CardHeader className="text-center border-b bg-gradient-to-r from-purple-50 to-purple-100">
-            <p className="text-gray-500 text-sm">
-              Generiere zufällige Zahlen in beliebigen natürlichen Zahlenbereichen
-            </p>
-          </CardHeader>
+          <CardHeader className="text-center border-b bg-gradient-to-r from-purple-50 to-purple-100"></CardHeader>
           <CardContent className="p-4 space-y-4">
             <div className="flex items-center gap-2 justify-center">
               <div className="text-center">

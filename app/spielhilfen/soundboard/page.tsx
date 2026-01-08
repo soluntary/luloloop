@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { ArrowLeft, Volume2, VolumeX, Square } from "lucide-react"
@@ -201,18 +201,22 @@ export default function SoundboardPage() {
           <span className="text-sm">Zurück zu Spielhilfen</span>
         </Link>
 
-        <Card className="max-w-2xl mx-auto border-2 border-rose-200">
-          <CardHeader className="text-center bg-gradient-to-r from-rose-50 to-rose-100 rounded-t-lg">
+        <div className="max-w-2xl mx-auto mb-4">
+          <div className="flex items-center justify-center gap-4 mb-2">
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-              className="w-14 h-14 bg-gradient-to-br from-rose-500 to-pink-500 rounded-xl flex items-center justify-center mx-auto shadow-lg"
+              className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-rose-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg"
             >
-              <GiSoundOn className="w-8 h-8 text-white" />
+              <GiSoundOn className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </motion.div>
-            <CardTitle className="text-2xl">Soundboard</CardTitle>
-            <CardDescription>Verschiedene Sounds für deine Spielrunden</CardDescription>
-          </CardHeader>
+            <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Soundboard</h1>
+          </div>
+          <p className="text-center text-gray-600 text-sm">Verschiedene Sounds für deine Spielrunden</p>
+        </div>
+
+        <Card className="max-w-2xl mx-auto border-2 border-rose-200">
+          <CardHeader className="bg-gradient-to-r from-rose-50 to-rose-100 rounded-t-lg"></CardHeader>
           <CardContent className="p-4 space-y-4">
             {/* Volume Control */}
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">

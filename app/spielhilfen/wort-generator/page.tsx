@@ -146,7 +146,7 @@ export default function WortGeneratorPage() {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.15 }}
-                    className={`sm:text-5xl md:text-6xl font-bold text-5xl ${isSpinning ? "text-gray-400" : "text-pink-400"} break-words text-center leading-tight`}
+                    className={`text-4xl font-bold ${isSpinning ? "text-gray-400" : "text-pink-400"} break-words text-center leading-tight`}
                   >
                     {displayWord || currentWord}
                   </motion.div>
@@ -210,19 +210,19 @@ export default function WortGeneratorPage() {
 
         <div className="flex items-center justify-center gap-4 mb-6">
           <motion.div
-            whileHover={{ rotate: 360, scale: 1.1 }}
-            transition={{ duration: 0.6 }}
-            className="w-14 h-14 sm:w-16 sm:h-16 bg-pink-500 rounded-full flex items-center justify-center transform -rotate-12"
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 0.8, repeat: Number.POSITIVE_INFINITY, repeatDelay: 2 }}
+            className="w-14 h-14 sm:w-16 sm:h-16 bg-pink-500 rounded-full flex items-center justify-center shadow-lg"
           >
             <MessageSquareText className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
           </motion.div>
           <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Wort-Generator</h1>
         </div>
 
+        <p className="text-center text-gray-600 text-sm mb-6 max-w-2xl mx-auto">Zufällige Wörter für Wortspiele</p>
+
         <Card className="max-w-2xl mx-auto border-2 border-gray-200">
-          <CardHeader className="text-center border-b bg-gradient-to-r from-pink-50 to-pink-100">
-            <p className="text-gray-500 text-sm">Zufällige Wörter für Wortspiele</p>
-          </CardHeader>
+          <CardHeader className="text-center border-b bg-gradient-to-r from-pink-50 to-pink-100"></CardHeader>
           <CardContent className="p-4 space-y-4">
             <div>
               <label className="mb-1 block font-bold text-sm text-foreground">Kategorie</label>
@@ -294,7 +294,7 @@ export default function WortGeneratorPage() {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.15 }}
-                        className={`sm:text-4xl md:text-5xl font-bold text-4xl  ${isSpinning ? "text-gray-400" : "text-pink-600"} break-words`}
+                        className={`text-4xl font-bold ${isSpinning ? "text-gray-400" : "text-pink-600"} break-words`}
                       >
                         {displayWord || currentWord}
                       </motion.div>

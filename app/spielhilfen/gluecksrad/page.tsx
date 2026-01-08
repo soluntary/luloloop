@@ -570,267 +570,268 @@ export default function GluecksradPage() {
       <main className="flex-1 container mx-auto px-4 py-8">
         <Link
           href="/spielhilfen"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-amber-600 mb-6 transition-colors"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Zurück zu Spielhilfen</span>
+          Zurück zu Spielhilfen
         </Link>
 
-        <div className="flex items-center justify-center gap-4 mb-6">
-          <motion.div
-            whileHover={{ rotate: 360, scale: 1.1 }}
-            transition={{ duration: 0.6 }}
-            className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg transform -rotate-12"
-          >
-            <GiCartwheel className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-          </motion.div>
-          <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Glücksrad</h1>
+        <div className="max-w-4xl mx-auto mb-4">
+          <div className="flex items-center justify-center gap-4 mb-2">
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 0.8, repeat: Number.POSITIVE_INFINITY, repeatDelay: 2 }}
+              className="w-14 h-14 sm:w-16 sm:h-16 bg-amber-500 rounded-full flex items-center justify-center shadow-lg"
+            >
+              <GiCartwheel className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+            </motion.div>
+            <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Glücksrad</h1>
+          </div>
+          <p className="text-center text-gray-600 text-sm">Entscheidungen per Glücksrad treffen</p>
         </div>
 
-        <div className="max-w-4xl mx-auto">
-          <Card className="max-w-2xl mx-auto border-2 border-amber-200 shadow-xl">
-            <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100 text-center">
-              <div className="flex justify-end mb-2">
-                <TemplateManager
-                  spielhilfeType="gluecksrad"
-                  currentData={getCurrentData()}
-                  onLoadTemplate={handleLoadTemplate}
-                />
-              </div>
-              <p className="text-gray-500 text-sm">Interaktives Glücksrad für zufällige Auswahl</p>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              {showHistory && (
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-3 border">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-gray-700 font-bold text-sm">Verlauf ({history.length})</h3>
-                    {history.length > 0 && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={clearHistory}
-                        className="h-6 px-2 text-xs text-red-500 hover:text-red-600"
+        <Card className="max-w-4xl mx-auto border-2 border-amber-200 shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100 text-center">
+            <div className="flex justify-end mb-2">
+              <TemplateManager
+                spielhilfeType="gluecksrad"
+                currentData={getCurrentData()}
+                onLoadTemplate={handleLoadTemplate}
+              />
+            </div>
+            <p className="text-gray-500 text-sm">Interaktives Glücksrad für zufällige Auswahl</p>
+          </CardHeader>
+          <CardContent className="p-4 space-y-4">
+            {showHistory && (
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-3 border">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-gray-700 font-bold text-sm">Verlauf ({history.length})</h3>
+                  {history.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={clearHistory}
+                      className="h-6 px-2 text-xs text-red-500 hover:text-red-600"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1" />
+                      Löschen
+                    </Button>
+                  )}
+                </div>
+                {history.length === 0 ? (
+                  <p className="text-xs text-gray-500 py-2 text-center">Noch keine Ergebnisse</p>
+                ) : (
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {history.map((entry, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg bg-white shadow-sm"
                       >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" />
-                        Löschen
-                      </Button>
+                        <span className="text-gray-400 w-4 font-mono">{history.length - i}.</span>
+                        <div
+                          className="w-4 h-4 rounded-full shadow-inner"
+                          style={{ backgroundColor: entry.winner.color }}
+                        />
+                        {entry.winner.emoji && <span>{entry.winner.emoji}</span>}
+                        <span className="font-medium text-gray-700">{entry.winner.name}</span>
+                        <span className="text-gray-400 ml-auto text-[10px]">
+                          {entry.timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Main wheel area */}
+            <div className="relative bg-gradient-to-b from-gray-100 via-gray-50 to-white rounded-2xl border-2 border-gray-200 p-6 shadow-inner">
+              <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+                <Button
+                  size="sm"
+                  variant={showHistory ? "default" : "ghost"}
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="h-7 w-7 p-0"
+                  title="Verlauf"
+                >
+                  <History className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSoundEnabled(!soundEnabled)}
+                  className="h-7 w-7 p-0"
+                  title="Lautstärke"
+                >
+                  {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsExpanded(true)}
+                  className="h-7 w-7 p-0 text-gray-400 hover:text-gray-600"
+                  title="Vergrössern"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
+              <div className="flex justify-center items-center py-4">
+                <div className="relative">
+                  {/* Glow effect */}
+                  <div className="absolute inset-0 bg-amber-400/10 blur-2xl rounded-full scale-110" />
+                  <div className="relative">
+                    {renderWheel(280, false)}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10">
+                      {renderPointer(35)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-center">
+              <Button
+                onClick={spinWheel}
+                disabled={isSpinning || segments.length < 2}
+                size="sm"
+                className="h-10 px-8 text-sm font-bold bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 shadow-md"
+              >
+                {isSpinning ? (
+                  <span className="flex items-center gap-2">
+                    <RotateCcw className="w-4 h-4 animate-spin" />
+                    Dreht...
+                  </span>
+                ) : (
+                  "Rad drehen!"
+                )}
+              </Button>
+            </div>
+
+            {winner && !isSpinning && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="text-center p-4 bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-100 rounded-xl border-2 border-amber-300 shadow-md"
+              >
+                <p className="text-xs text-amber-700 mb-1 font-medium">Ergebnis</p>
+                <p className="text-xl font-bold text-amber-800">{winner}</p>
+              </motion.div>
+            )}
+
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <Input
+                  value={newSegment}
+                  onChange={(e) => setNewSegment(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addSegment()}
+                  placeholder="Neues Segment hinzufügen..."
+                  className="h-9 text-sm"
+                  maxLength={20}
+                />
+                <Button
+                  onClick={addSegment}
+                  disabled={!newSegment.trim() || segments.length >= 12}
+                  size="sm"
+                  className="h-9 px-3 bg-amber-500 hover:bg-amber-600"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-1.5 max-h-52 overflow-y-auto">
+                {segments.map((segment, i) => (
+                  <div key={i} className="relative">
+                    <div
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-white shadow-sm transition-all hover:shadow-md"
+                      style={{ backgroundColor: segment.color }}
+                    >
+                      {segment.emoji && <span className="text-base">{segment.emoji}</span>}
+
+                      {editingIndex === i ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <Input
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && saveEdit()}
+                            className="h-6 text-xs bg-white/90 text-gray-800 px-2"
+                            maxLength={20}
+                            autoFocus
+                          />
+                          <button onClick={saveEdit} className="hover:bg-white/20 rounded p-1">
+                            <Check className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="flex-1 truncate font-medium text-xs">{segment.name}</span>
+                          <button onClick={() => startEditing(i)} className="hover:bg-white/20 rounded p-1">
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setShowColorPicker(showColorPicker === i ? null : i)}
+                            className="hover:bg-white/20 rounded p-1"
+                          >
+                            <Palette className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setShowEmojiPicker(showEmojiPicker === i ? null : i)}
+                            className="hover:bg-white/20 rounded p-1"
+                          >
+                            <SmilePlus className="w-3.5 h-3.5" />
+                          </button>
+                          {segments.length > 2 && (
+                            <button onClick={() => removeSegment(i)} className="hover:bg-white/20 rounded p-1">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {showColorPicker === i && (
+                      <div className="absolute left-0 top-full mt-1 z-20 bg-white rounded-xl shadow-xl border p-3 grid grid-cols-6 gap-2">
+                        {availableColors.map((color) => (
+                          <button
+                            key={color.value}
+                            onClick={() => changeColor(i, color.value)}
+                            className="w-7 h-7 rounded-full border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm"
+                            style={{ backgroundColor: color.value }}
+                            title={color.name}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {showEmojiPicker === i && (
+                      <div className="absolute left-0 top-full mt-1 z-20 bg-white rounded-xl shadow-xl border p-3 grid grid-cols-8 gap-1">
+                        {availableEmojis.map((emoji) => (
+                          <button
+                            key={emoji}
+                            onClick={() => changeEmoji(i, emoji)}
+                            className={`w-8 h-8 rounded-lg hover:bg-gray-100 text-lg transition-colors ${segment.emoji === emoji ? "bg-amber-100 ring-2 ring-amber-400" : ""}`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  {history.length === 0 ? (
-                    <p className="text-xs text-gray-500 py-2 text-center">Noch keine Ergebnisse</p>
-                  ) : (
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {history.map((entry, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg bg-white shadow-sm"
-                        >
-                          <span className="text-gray-400 w-4 font-mono">{history.length - i}.</span>
-                          <div
-                            className="w-4 h-4 rounded-full shadow-inner"
-                            style={{ backgroundColor: entry.winner.color }}
-                          />
-                          {entry.winner.emoji && <span>{entry.winner.emoji}</span>}
-                          <span className="font-medium text-gray-700">{entry.winner.name}</span>
-                          <span className="text-gray-400 ml-auto text-[10px]">
-                            {entry.timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Main wheel area */}
-              <div className="relative bg-gradient-to-b from-gray-100 via-gray-50 to-white rounded-2xl border-2 border-gray-200 p-6 shadow-inner">
-                <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
-                  <Button
-                    size="sm"
-                    variant={showHistory ? "default" : "ghost"}
-                    onClick={() => setShowHistory(!showHistory)}
-                    className="h-7 w-7 p-0"
-                    title="Verlauf"
-                  >
-                    <History className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setSoundEnabled(!soundEnabled)}
-                    className="h-7 w-7 p-0"
-                    title="Lautstärke"
-                  >
-                    {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setIsExpanded(true)}
-                    className="h-7 w-7 p-0 text-gray-400 hover:text-gray-600"
-                    title="Vergrössern"
-                  >
-                    <Maximize2 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-
-                <div className="flex justify-center items-center py-4">
-                  <div className="relative">
-                    {/* Glow effect */}
-                    <div className="absolute inset-0 bg-amber-400/10 blur-2xl rounded-full scale-110" />
-                    <div className="relative">
-                      {renderWheel(280, false)}
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10">
-                        {renderPointer(35)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
 
-              <div className="flex justify-center">
-                <Button
-                  onClick={spinWheel}
-                  disabled={isSpinning || segments.length < 2}
-                  size="sm"
-                  className="h-10 px-8 text-sm font-bold bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 shadow-md"
-                >
-                  {isSpinning ? (
-                    <span className="flex items-center gap-2">
-                      <RotateCcw className="w-4 h-4 animate-spin" />
-                      Dreht...
-                    </span>
-                  ) : (
-                    "Rad drehen!"
-                  )}
-                </Button>
-              </div>
-
-              {winner && !isSpinning && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  className="text-center p-4 bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-100 rounded-xl border-2 border-amber-300 shadow-md"
-                >
-                  <p className="text-xs text-amber-700 mb-1 font-medium">Ergebnis</p>
-                  <p className="text-xl font-bold text-amber-800">{winner}</p>
-                </motion.div>
-              )}
-
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    value={newSegment}
-                    onChange={(e) => setNewSegment(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addSegment()}
-                    placeholder="Neues Segment hinzufügen..."
-                    className="h-9 text-sm"
-                    maxLength={20}
-                  />
-                  <Button
-                    onClick={addSegment}
-                    disabled={!newSegment.trim() || segments.length >= 12}
-                    size="sm"
-                    className="h-9 px-3 bg-amber-500 hover:bg-amber-600"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                <div className="space-y-1.5 max-h-52 overflow-y-auto">
-                  {segments.map((segment, i) => (
-                    <div key={i} className="relative">
-                      <div
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-white shadow-sm transition-all hover:shadow-md"
-                        style={{ backgroundColor: segment.color }}
-                      >
-                        {segment.emoji && <span className="text-base">{segment.emoji}</span>}
-
-                        {editingIndex === i ? (
-                          <div className="flex items-center gap-2 flex-1">
-                            <Input
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => e.key === "Enter" && saveEdit()}
-                              className="h-6 text-xs bg-white/90 text-gray-800 px-2"
-                              maxLength={20}
-                              autoFocus
-                            />
-                            <button onClick={saveEdit} className="hover:bg-white/20 rounded p-1">
-                              <Check className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <span className="flex-1 truncate font-medium text-xs">{segment.name}</span>
-                            <button onClick={() => startEditing(i)} className="hover:bg-white/20 rounded p-1">
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => setShowColorPicker(showColorPicker === i ? null : i)}
-                              className="hover:bg-white/20 rounded p-1"
-                            >
-                              <Palette className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => setShowEmojiPicker(showEmojiPicker === i ? null : i)}
-                              className="hover:bg-white/20 rounded p-1"
-                            >
-                              <SmilePlus className="w-3.5 h-3.5" />
-                            </button>
-                            {segments.length > 2 && (
-                              <button onClick={() => removeSegment(i)} className="hover:bg-white/20 rounded p-1">
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-
-                      {showColorPicker === i && (
-                        <div className="absolute left-0 top-full mt-1 z-20 bg-white rounded-xl shadow-xl border p-3 grid grid-cols-6 gap-2">
-                          {availableColors.map((color) => (
-                            <button
-                              key={color.value}
-                              onClick={() => changeColor(i, color.value)}
-                              className="w-7 h-7 rounded-full border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm"
-                              style={{ backgroundColor: color.value }}
-                              title={color.name}
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {showEmojiPicker === i && (
-                        <div className="absolute left-0 top-full mt-1 z-20 bg-white rounded-xl shadow-xl border p-3 grid grid-cols-8 gap-1">
-                          {availableEmojis.map((emoji) => (
-                            <button
-                              key={emoji}
-                              onClick={() => changeEmoji(i, emoji)}
-                              className={`w-8 h-8 rounded-lg hover:bg-gray-100 text-lg transition-colors ${segment.emoji === emoji ? "bg-amber-100 ring-2 ring-amber-400" : ""}`}
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <Button
-                  onClick={resetWheel}
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs w-full text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200 bg-transparent"
-                >
-                  <RiResetLeftFill className="w-3.5 h-3.5 mr-1.5" />
-                  Zurücksetzen
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Button
+                onClick={resetWheel}
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs w-full text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200 bg-transparent"
+              >
+                <RiResetLeftFill className="w-3.5 h-3.5 mr-1.5" />
+                Zurücksetzen
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   )

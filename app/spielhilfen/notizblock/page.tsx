@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -107,21 +107,25 @@ export default function NotizblockPage() {
             className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
-             Zurück zu Spielhilfen
+            Zurück zu Spielhilfen
           </Link>
 
-          <Card className="border-2 border-lime-200">
-            <CardHeader className="text-center border-b bg-gradient-to-r from-lime-50 to-lime-100">
+          <div className="mb-4">
+            <div className="flex items-center justify-center gap-4 mb-2">
               <motion.div
                 animate={{ rotate: [0, 10, -10, 0] }}
                 transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                className="w-14 h-14 rounded-xl bg-lime-500 flex items-center justify-center mx-auto mb-2 shadow-lg"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-lime-500 flex items-center justify-center shadow-lg"
               >
-                <MdOutlineStickyNote2 className="w-8 h-8 text-white" />
+                <MdOutlineStickyNote2 className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </motion.div>
-              <CardTitle className="text-2xl">Notizblock</CardTitle>
-              <p className="text-gray-500 text-sm">Schnelle Notizen während des Spiels</p>
-            </CardHeader>
+              <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Notizblock</h1>
+            </div>
+            <p className="text-center text-gray-600 text-sm">Schnelle Notizen während des Spiels</p>
+          </div>
+
+          <Card className="border-2 border-lime-200">
+            <CardHeader className="border-b bg-gradient-to-r from-lime-50 to-lime-100"></CardHeader>
             <CardContent className="p-4">
               <div className="grid md:grid-cols-3 gap-4">
                 {/* Notes List */}

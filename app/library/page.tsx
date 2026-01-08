@@ -2073,7 +2073,7 @@ function LibraryContent() {
                         <div className="absolute bottom-3 left-0 right-0 bg-gradient-to-b from-amber-600 to-amber-700 rounded-lg shadow-md px-2 h-2.5 py-1.5"></div>
 
                         {/* First row with Add Game Cover and up to 8 games */}
-                        <div className="flex gap-1 md:gap-2 overflow-x-hidden pt-3 pl-1.5 pb-6 pr-1.5">
+                        <div className="flex gap-1 md:gap-2 overflow-x-auto pt-3 pl-1.5 pb-6 pr-1.5">
                           {/* Add Game Cover - always first */}
                           <div
                             className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300"

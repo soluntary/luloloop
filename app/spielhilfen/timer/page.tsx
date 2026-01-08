@@ -186,16 +186,18 @@ export default function TimerPage() {
           <span className="text-sm">Zurück zu Spielhilfen</span>
         </Link>
 
-        <div className="flex items-center justify-center gap-4 mb-6 max-w-2xl mx-auto">
+        <div className="flex items-center justify-center gap-4 mb-2 max-w-2xl mx-auto">
           <motion.div
-            whileHover={{ rotate: 360, scale: 1.1 }}
-            transition={{ duration: 0.6 }}
-            className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-500 rounded-full flex items-center justify-center transform -rotate-12"
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 0.8, repeat: Number.POSITIVE_INFINITY, repeatDelay: 2 }}
+            className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-500 rounded-full flex items-center justify-center shadow-lg"
           >
             <MdOutlineTimer className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
           </motion.div>
           <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Timer</h1>
         </div>
+
+        <p className="text-center text-gray-600 text-sm mb-6 max-w-2xl mx-auto">Countdown für zeitbasierte Spiele</p>
 
         <Card className="max-w-2xl mx-auto border-2 border-gray-200">
           <CardHeader className="text-center border-b bg-gradient-to-r from-blue-50 to-blue-100">
@@ -206,7 +208,6 @@ export default function TimerPage() {
                 onLoadTemplate={handleLoadTemplate}
               />
             </div>
-            <p className="text-gray-500 text-sm">Countdown für zeitbasierte Spiele</p>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
             <div className="relative flex flex-col items-center justify-center py-4 min-h-[180px] bg-gradient-to-b from-gray-100 to-gray-50 rounded-xl border border-gray-200">

@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Navigation } from "@/components/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -315,24 +315,29 @@ export default function TeamGeneratorPage() {
             Zurück zu Spielhilfen
           </Link>
 
+          <div className="mb-4">
+            <div className="flex items-center justify-center gap-4 mb-2">
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-indigo-500 flex items-center justify-center shadow-lg"
+              >
+                <FaUsersRectangle className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+              </motion.div>
+              <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Team-Generator</h1>
+            </div>
+            <p className="text-center text-gray-600 text-sm">Spieler zufällig in Teams aufteilen</p>
+          </div>
+
           <Card className="border-2 border-indigo-200">
-            <CardHeader className="text-center border-b bg-gradient-to-r from-indigo-50 to-indigo-100">
-              <div className="flex justify-end mb-2">
+            <CardHeader className="border-b bg-gradient-to-r from-indigo-50 to-indigo-100">
+              <div className="flex justify-end">
                 <TemplateManager
                   spielhilfeType="team-generator"
                   currentData={getCurrentData()}
                   onLoadTemplate={handleLoadTemplate}
                 />
               </div>
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                className="w-14 h-14 rounded-xl bg-indigo-500 flex items-center justify-center mx-auto mb-2 shadow-lg"
-              >
-                <FaUsersRectangle className="w-8 h-8 text-white" />
-              </motion.div>
-              <CardTitle className="text-2xl">Team-Generator</CardTitle>
-              <p className="text-gray-500 text-sm">Spieler zufällig in Teams aufteilen</p>
             </CardHeader>
             <CardContent className="p-4 space-y-4">
               {!tournamentStarted ? (

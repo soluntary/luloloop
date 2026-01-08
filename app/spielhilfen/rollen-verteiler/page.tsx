@@ -584,913 +584,774 @@ export default function RollenVerteilerPage() {
           className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Zurück zu Spielhilfen</span>
+          Zurück zu Spielhilfen
         </Link>
 
-        <div className="max-w-4xl mx-auto">
-          <Card className="shadow-lg border-0 overflow-hidden">
-            <CardHeader className="text-center border-b bg-gradient-to-r from-indigo-50 to-purple-100">
-              <div className="flex justify-end mb-2">
-                <TemplateManager
-                  spielhilfeType="rollen-verteiler"
-                  getCurrentData={getCurrentData}
-                  onLoadTemplate={handleLoadTemplate}
-                />
+        <div className="max-w-4xl mx-auto mb-4">
+          <div className="flex items-center justify-center gap-4 mb-2">
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg"
+            >
+              <TbUserQuestion className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+            </motion.div>
+            <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Rollen-Verteiler</h1>
+          </div>
+          <p className="text-center text-gray-600 text-sm">Rollen für Spiele zufällig verteilen</p>
+        </div>
+
+        <Card className="max-w-4xl mx-auto border-2 border-purple-200">
+          <CardHeader className="text-center border-b bg-gradient-to-r from-indigo-50 to-purple-100">
+            <div className="flex justify-end mb-2">
+              <TemplateManager
+                spielhilfeType="rollen-verteiler"
+                getCurrentData={getCurrentData}
+                onLoadTemplate={handleLoadTemplate}
+              />
+            </div>
+            <div className="flex flex-col items-center gap-3">
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg"
+              >
+                <TbUserQuestion className="w-8 h-8 text-white" />
+              </motion.div>
+              <div>
+                <CardTitle className="text-2xl">Rollen-Verteiler</CardTitle>
+                <p className="text-gray-500 text-sm">Verteile geheim Rollen an alle Spieler</p>
               </div>
-              <div className="flex flex-col items-center gap-3">
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-4">
+            <AnimatePresence mode="wait">
+              {currentReveal !== null && !isComplete ? (
+                /* Role Reveal Phase */
                 <motion.div
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                  className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg"
+                  key="reveal"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center space-y-6"
                 >
-                  <TbUserQuestion className="w-8 h-8 text-white" />
-                </motion.div>
-                <div>
-                  <CardTitle className="text-2xl">Rollen-Verteiler</CardTitle>
-                  <p className="text-gray-500 text-sm">Verteile geheim Rollen an alle Spieler</p>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-4">
-              <AnimatePresence mode="wait">
-                {currentReveal !== null && !isComplete ? (
-                  /* Role Reveal Phase */
-                  <motion.div
-                    key="reveal"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="text-center space-y-6"
-                  >
-                    <div className="flex justify-end">
-                      <Button
-                        variant="outline"
-                        onClick={distributeRoles}
-                        size="sm"
-                        className="h-7 text-xs bg-transparent"
-                      >
-                        <RotateCcw className="w-3 h-3 mr-1" />
-                        Neu verteilen
-                      </Button>
-                    </div>
-
-                    <div className="text-sm text-gray-500">
-                      Spieler {currentReveal + 1} von {assignedRoles.length}
-                    </div>
-
-                    <motion.div
-                      key={currentReveal}
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="p-8 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl"
+                  <div className="flex justify-end">
+                    <Button
+                      variant="outline"
+                      onClick={distributeRoles}
+                      size="sm"
+                      className="h-7 text-xs bg-transparent"
                     >
-                      <h3 className="text-2xl font-bold mb-4">{assignedRoles[currentReveal]?.player}</h3>
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      Neu verteilen
+                    </Button>
+                  </div>
 
-                      {!showRole ? (
-                        <Button
-                          onClick={() => setShowRole(true)}
-                          className="bg-indigo-600 hover:bg-indigo-700"
-                          size="lg"
-                        >
-                          <Eye className="w-5 h-5 mr-2" />
-                          Rolle anzeigen
-                        </Button>
-                      ) : (
-                        <motion.div initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} className="space-y-4">
-                          <div
-                            className={`text-4xl font-bold ${
-                              assignedRoles[currentReveal]?.role.team === "werwolf"
-                                ? "text-red-600"
-                                : assignedRoles[currentReveal]?.role.team === "fascist"
-                                  ? "text-orange-600"
-                                  : assignedRoles[currentReveal]?.role.team === "neutral"
-                                    ? "text-gray-600"
-                                    : "text-green-600"
-                            }`}
-                          >
-                            {assignedRoles[currentReveal]?.role.name}
-                          </div>
-                          {assignedRoles[currentReveal]?.role.description && (
-                            <p className="text-gray-600 text-sm max-w-md mx-auto">
-                              {assignedRoles[currentReveal]?.role.description}
-                            </p>
-                          )}
-                          <Button onClick={() => setShowRole(false)} variant="outline" size="sm">
-                            <EyeOff className="w-4 h-4 mr-1" />
-                            Verstecken
-                          </Button>
-                        </motion.div>
-                      )}
-                    </motion.div>
+                  <div className="text-sm text-gray-500">
+                    Spieler {currentReveal + 1} von {assignedRoles.length}
+                  </div>
 
-                    <div className="flex gap-2 justify-center">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs bg-transparent"
-                        onClick={prevPlayer}
-                        disabled={currentReveal === 0}
-                      >
-                        <ChevronLeft className="w-3 h-3 mr-1" />
-                        Zurück
-                      </Button>
-                      {currentReveal < assignedRoles.length - 1 ? (
-                        <Button size="sm" className="h-7 text-xs" onClick={nextPlayer}>
-                          Weiter
-                          <ChevronRight className="w-3 h-3 ml-1" />
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => setIsComplete(true)}
-                          className="bg-green-600 hover:bg-green-700 h-7 text-xs"
-                        >
-                          <Check className="w-3 h-3 mr-1" />
-                          Fertig
-                        </Button>
-                      )}
-                    </div>
-                  </motion.div>
-                ) : isComplete ? (
-                  /* Completion Screen */
                   <motion.div
-                    key="complete"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-center space-y-6 py-8"
+                    key={currentReveal}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="p-8 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl"
                   >
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", bounce: 0.5 }}
-                      className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto"
-                    >
-                      <Check className="w-10 h-10 text-green-600" />
-                    </motion.div>
+                    <h3 className="text-2xl font-bold mb-4">{assignedRoles[currentReveal]?.player}</h3>
 
-                    <div>
-                      <h3 className="text-2xl font-bold text-gray-800">Alle Rollen verteilt!</h3>
-                      <p className="text-gray-600 mt-2">Das Spiel kann beginnen!</p>
-                    </div>
-
-                    {/* Hinweis: Das Dorf wählt jetzt einen Hauptmann! Seine Stimme zählt doppelt bei Abstimmungen. */}
-                    {hasHauptmann() && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 max-w-md mx-auto">
-                        <p className="text-amber-800 text-sm">
-                          <strong>Hinweis:</strong> Das Dorf wählt jetzt einen Hauptmann! Seine Stimme zählt doppelt bei
-                          Abstimmungen.
-                        </p>
-                      </div>
-                    )}
-
-                    {thiefCards.length > 0 && (
-                      <div className="flex justify-center">
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 max-w-md">
-                          <div className="flex items-center justify-center gap-2 mb-3">
-                            <GiHoodedFigure className="w-5 h-5 text-purple-600" />
-                            <p className="text-purple-800 text-sm font-medium">
-                              Übrige Rollen für <strong>{thiefPlayerName}</strong>
-                            </p>
-                          </div>
-
-                          {thiefSelectedCard !== null ? (
-                            <div className="space-y-2 text-center">
-                              <p className="text-green-600 text-sm font-medium">
-                                {thiefPlayerName} hat gewählt: <strong>{thiefCards[thiefSelectedCard].name}</strong>
-                              </p>
-                              <p className="text-xs text-gray-500">Die neue Rolle wurde übernommen.</p>
-                            </div>
-                          ) : thiefKeptOriginal ? (
-                            <div className="space-y-2 text-center">
-                              <p className="text-blue-600 text-sm font-medium">
-                                {thiefPlayerName} behält seine Rolle und ist nun <strong>Dorfbewohner</strong>.
-                              </p>
-                              <p className="text-xs text-gray-500">Der Dieb hat sich entschieden, nicht zu tauschen.</p>
-                            </div>
-                          ) : (
-                            <>
-                              <p className="text-xs text-purple-600 mb-3 text-center">
-                                Die 2 übrigen Rollen stehen fest. Gib das Gerät an <strong>{thiefPlayerName}</strong>.
-                              </p>
-                              <Button
-                                onClick={() => setShowThiefCards(!showThiefCards)}
-                                variant="outline"
-                                size="sm"
-                                className="border-purple-300 text-purple-700 w-full h-7 text-xs"
-                              >
-                                {showThiefCards ? (
-                                  <>
-                                    <EyeOff className="w-3 h-3 mr-1" />
-                                    Karten verbergen
-                                  </>
-                                ) : (
-                                  <>
-                                    <Eye className="w-3 h-3 mr-1" />
-                                    Übrige Rollen ansehen
-                                  </>
-                                )}
-                              </Button>
-
-                              {showThiefCards && (
-                                <motion.div
-                                  initial={{ opacity: 0, height: 0 }}
-                                  animate={{ opacity: 1, height: "auto" }}
-                                  className="mt-3 space-y-3"
-                                >
-                                  {(() => {
-                                    const bothWerewolves = thiefCards.every((c) => c.team === "werwolf")
-                                    const bothSameRole = thiefCards[0]?.id === thiefCards[1]?.id
-                                    const sameRoleName = thiefCards[0]?.name
-                                    const sameRoleTeam = thiefCards[0]?.team
-
-                                    return (
-                                      <>
-                                        {bothWerewolves ? (
-                                          <div className="space-y-3">
-                                            <div className="bg-red-100 border border-red-300 rounded-lg p-3">
-                                              <p className="text-red-700 text-sm font-medium text-center">
-                                                Beide Rollen sind <strong>Werwölfe</strong>!
-                                              </p>
-                                              <p className="text-red-600 text-xs text-center mt-1">
-                                                Du gehörst nun zu den Werwölfen und spielst auf ihrer Seite.
-                                              </p>
-                                            </div>
-                                            <div className="flex gap-4 justify-center">
-                                              {thiefCards.map((card, idx) => (
-                                                <div
-                                                  key={idx}
-                                                  className="p-4 rounded-xl border-2 border-red-300 bg-red-50"
-                                                >
-                                                  <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 bg-red-200">
-                                                    {card.icon && getWerwolfIcon(card.icon)}
-                                                  </div>
-                                                  <p className="font-bold text-center">{card.name}</p>
-                                                  <p className="text-xs text-gray-500 text-center">Werwolf</p>
-                                                </div>
-                                              ))}
-                                            </div>
-                                            <Button
-                                              onClick={() => {
-                                                // Auto-assign first werewolf card
-                                                const newAssignments = [...assignedRoles]
-                                                const thiefIdx = newAssignments.findIndex(
-                                                  (a) => a.role.id === "dieb" || a.role.name === "Dieb",
-                                                )
-                                                if (thiefIdx !== -1) {
-                                                  newAssignments[thiefIdx] = {
-                                                    ...newAssignments[thiefIdx],
-                                                    role: thiefCards[0],
-                                                  }
-                                                  setAssignedRoles(newAssignments)
-                                                }
-                                                setThiefSelectedCard(0)
-                                                setShowThiefCards(false)
-                                              }}
-                                              className="w-full bg-red-500 hover:bg-red-600 text-white"
-                                              size="sm"
-                                            >
-                                              Verstanden - Ich bin jetzt Werwolf
-                                            </Button>
-                                          </div>
-                                        ) : bothSameRole ? (
-                                          <div className="space-y-3">
-                                            <div className="bg-green-100 border border-green-300 rounded-lg p-3">
-                                              <p className="text-green-700 text-sm font-medium text-center">
-                                                Beide Rollen sind <strong>{sameRoleName}</strong>!
-                                              </p>
-                                              <p className="text-green-600 text-xs text-center mt-1">
-                                                Du wirst automatisch {sameRoleName} und spielst auf der Seite des
-                                                Dorfes.
-                                              </p>
-                                            </div>
-                                            <div className="flex gap-4 justify-center">
-                                              {thiefCards.map((card, idx) => (
-                                                <div
-                                                  key={idx}
-                                                  className="p-4 rounded-xl border-2 border-green-300 bg-green-50"
-                                                >
-                                                  <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 bg-green-200">
-                                                    {card.icon && getWerwolfIcon(card.icon)}
-                                                  </div>
-                                                  <p className="font-bold text-center">{card.name}</p>
-                                                  <p className="text-xs text-gray-500 text-center">Dorf</p>
-                                                </div>
-                                              ))}
-                                            </div>
-                                            <Button
-                                              onClick={() => {
-                                                // Auto-assign first card
-                                                const newAssignments = [...assignedRoles]
-                                                const thiefIdx = newAssignments.findIndex(
-                                                  (a) => a.role.id === "dieb" || a.role.name === "Dieb",
-                                                )
-                                                if (thiefIdx !== -1) {
-                                                  newAssignments[thiefIdx] = {
-                                                    ...newAssignments[thiefIdx],
-                                                    role: thiefCards[0],
-                                                  }
-                                                  setAssignedRoles(newAssignments)
-                                                }
-                                                setThiefSelectedCard(0)
-                                                setShowThiefCards(false)
-                                              }}
-                                              className="w-full bg-green-500 hover:bg-green-600 text-white"
-                                              size="sm"
-                                            >
-                                              Verstanden - Ich bin jetzt {sameRoleName}
-                                            </Button>
-                                          </div>
-                                        ) : (
-                                          <>
-                                            <p className="text-xs text-center text-gray-600 mb-2">
-                                              Klicke auf eine Karte, um sie zu wählen:
-                                            </p>
-                                            <div className="flex gap-4 justify-center">
-                                              {thiefCards.map((card, idx) => (
-                                                <motion.button
-                                                  key={idx}
-                                                  whileHover={{ scale: 1.05 }}
-                                                  whileTap={{ scale: 0.95 }}
-                                                  onClick={() => {
-                                                    // Swap thief's role with selected card
-                                                    const newAssignments = [...assignedRoles]
-                                                    const thiefIdx = newAssignments.findIndex(
-                                                      (a) => a.role.id === "dieb" || a.role.name === "Dieb",
-                                                    )
-                                                    if (thiefIdx !== -1) {
-                                                      newAssignments[thiefIdx] = {
-                                                        ...newAssignments[thiefIdx],
-                                                        role: card,
-                                                      }
-                                                      setAssignedRoles(newAssignments)
-                                                    }
-                                                    setThiefSelectedCard(idx)
-                                                    setShowThiefCards(false)
-                                                  }}
-                                                  className={`p-4 rounded-xl border-2 transition-all ${
-                                                    card.team === "werwolf"
-                                                      ? "border-red-300 bg-red-50 hover:bg-red-100"
-                                                      : "border-green-300 bg-green-50 hover:bg-green-100"
-                                                  }`}
-                                                >
-                                                  <div
-                                                    className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 ${
-                                                      card.team === "werwolf" ? "bg-red-200" : "bg-green-200"
-                                                    }`}
-                                                  >
-                                                    {card.icon && getWerwolfIcon(card.icon)}
-                                                  </div>
-                                                  <p className="font-bold">{card.name}</p>
-                                                  <p className="text-xs text-gray-500">
-                                                    {card.team === "werwolf" ? "Werwolf" : "Dorf"}
-                                                  </p>
-                                                </motion.button>
-                                              ))}
-                                            </div>
-                                            <Button
-                                              onClick={() => {
-                                                // Change thief's role to Dorfbewohner
-                                                const newAssignments = [...assignedRoles]
-                                                const thiefIdx = newAssignments.findIndex(
-                                                  (a) => a.role.id === "dieb" || a.role.name === "Dieb",
-                                                )
-                                                if (thiefIdx !== -1) {
-                                                  newAssignments[thiefIdx] = {
-                                                    ...newAssignments[thiefIdx],
-                                                    role: {
-                                                      id: "dorfbewohner",
-                                                      name: "Dorfbewohner",
-                                                      description: "Ein einfacher Dorfbewohner ohne Spezialfähigkeit.",
-                                                      team: "dorf",
-                                                      icon: "village",
-                                                    },
-                                                  }
-                                                  setAssignedRoles(newAssignments)
-                                                }
-                                                setThiefKeptOriginal(true)
-                                                setShowThiefCards(false)
-                                              }}
-                                              variant="outline"
-                                              size="sm"
-                                              className="w-full mt-2"
-                                            >
-                                              Nicht tauschen (werde Dorfbewohner)
-                                            </Button>
-                                          </>
-                                        )}
-                                      </>
-                                    )
-                                  })()}
-                                </motion.div>
-                              )}
-                            </>
-                          )}
+                    {!showRole ? (
+                      <Button onClick={() => setShowRole(true)} className="bg-indigo-600 hover:bg-indigo-700" size="lg">
+                        <Eye className="w-5 h-5 mr-2" />
+                        Rolle anzeigen
+                      </Button>
+                    ) : (
+                      <motion.div initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} className="space-y-4">
+                        <div
+                          className={`text-4xl font-bold ${
+                            assignedRoles[currentReveal]?.role.team === "werwolf"
+                              ? "text-red-600"
+                              : assignedRoles[currentReveal]?.role.team === "fascist"
+                                ? "text-orange-600"
+                                : assignedRoles[currentReveal]?.role.team === "neutral"
+                                  ? "text-gray-600"
+                                  : "text-green-600"
+                          }`}
+                        >
+                          {assignedRoles[currentReveal]?.role.name}
                         </div>
-                      </div>
-                    )}
-
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-w-md mx-auto">
-                      <p className="text-gray-700 text-sm font-medium mb-3">
-                        <strong>Spielleiter:</strong> Alle Rollen einsehen
-                      </p>
-                      <Button
-                        onClick={() => setShowAllRoles(!showAllRoles)}
-                        variant="outline"
-                        size="sm"
-                        className="border-gray-300 h-7 text-xs"
-                      >
-                        {showAllRoles ? (
-                          <>
-                            <EyeOff className="w-3 h-3 mr-1" />
-                            Rollen verbergen
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="w-3 h-3 mr-1" />
-                            Alle Rollen anzeigen
-                          </>
+                        {assignedRoles[currentReveal]?.role.description && (
+                          <p className="text-gray-600 text-sm max-w-md mx-auto">
+                            {assignedRoles[currentReveal]?.role.description}
+                          </p>
                         )}
-                      </Button>
-                      {showAllRoles && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="mt-3 grid grid-cols-2 gap-2 text-left"
-                        >
-                          {assignedRoles.map((assignment, i) => (
-                            <div
-                              key={i}
-                              className={`px-2 py-1 rounded text-xs ${
-                                assignment.role.team === "werwolf"
-                                  ? "bg-red-50 text-red-700"
-                                  : assignment.role.team === "fascist"
-                                    ? "bg-orange-50 text-orange-700"
-                                    : assignment.role.team === "neutral"
-                                      ? "bg-gray-100 text-gray-700"
-                                      : "bg-green-50 text-green-700"
-                              }`}
-                            >
-                              <span className="font-medium">{assignment.player}:</span> {assignment.role.name}
-                            </div>
-                          ))}
-                        </motion.div>
-                      )}
-                    </div>
-
-                    <div className="flex justify-center gap-3 pt-4">
-                      <Button
-                        variant="outline"
-                        onClick={distributeRoles}
-                        size="sm"
-                        className="h-7 text-xs bg-transparent"
-                      >
-                        <RotateCcw className="w-3 h-3 mr-1" />
-                        Nochmal verteilen
-                      </Button>
-                      <Button
-                        onClick={resetGame}
-                        variant="outline"
-                        size="sm"
-                        className="text-red-500 bg-transparent h-7 text-xs"
-                      >
-                        <RotateCcw className="w-3 h-3 mr-1" />
-                        Zurücksetzen
-                      </Button>
-                      <Button onClick={resetGame} size="sm" className="h-7 text-xs">
-                        <Shuffle className="w-3 h-3 mr-1" />
-                        Neues Spiel
-                      </Button>
-                    </div>
-                  </motion.div>
-                ) : (
-                  /* Setup Mode - Step by Step */
-                  <div className="space-y-6">
-                    {/* Step Indicator */}
-                    <div className="flex items-center justify-center gap-4 mb-6">
-                      <div
-                        className={`flex items-center gap-2 ${currentStep === 1 ? "text-indigo-600 font-medium" : "text-gray-400"}`}
-                      >
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 1 ? "bg-indigo-600 text-white" : currentStep > 1 ? "bg-green-500 text-white" : "bg-gray-200"}`}
-                        >
-                          {currentStep > 1 ? <Check className="w-4 h-4" /> : "1"}
-                        </div>
-                        <span className="text-sm font-bold">Spieler</span>
-                      </div>
-                      <div className="w-8 h-0.5 bg-gray-200" />
-                      <div
-                        className={`flex items-center gap-2 ${currentStep === 2 ? "text-indigo-600 font-medium" : "text-gray-400"}`}
-                      >
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 2 ? "bg-indigo-600 text-white" : currentStep > 2 ? "bg-green-500 text-white" : "bg-gray-200"}`}
-                        >
-                          {currentStep > 2 ? <Check className="w-4 h-4" /> : "2"}
-                        </div>
-                        <span className="text-sm font-bold">Rollen</span>
-                      </div>
-                    </div>
-
-                    {/* Step 1: Players */}
-                    {currentStep === 1 && (
-                      <motion.div
-                        key="step1"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        className="space-y-4"
-                      >
-                        {/* Game Selection */}
-                        <div>
-                          <Label className="text-sm font-bold mb-2 block">Spielvorlage</Label>
-                          <Select
-                            value={selectedPreset}
-                            onValueChange={(v) => {
-                              setSelectedPreset(v)
-                              setSelectedRoles([])
-                              setCustomRoles([])
-                              setEnableCustomRoles(false)
-                            }}
-                          >
-                            <SelectTrigger className="h-7 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(gamePresets).map(([key, preset]) => (
-                                <SelectItem key={key} value={key} className="text-xs">
-                                  {preset.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* Players */}
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between font-bold">
-                            <Label className="text-sm font-bold">Spieler ({players.length})</Label>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={addPlayer}
-                              disabled={players.length >= 20}
-                              className="h-7 text-xs"
-                            >
-                              <Plus className="w-3 h-3 mr-1" />
-                              Hinzufügen
-                            </Button>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                            {players.map((player, index) => (
-                              <div key={index} className="flex items-center gap-1">
-                                <Input
-                                  value={player}
-                                  onChange={(e) => updatePlayerName(index, e.target.value)}
-                                  className="h-7 text-xs"
-                                />
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removePlayer(index)}
-                                  disabled={players.length <= 2}
-                                  className="h-7 w-7 p-0 text-red-500"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end pt-4">
-                          <Button onClick={() => setCurrentStep(2)} className="h-8 text-xs">
-                            Weiter
-                            <ChevronRight className="w-4 h-4 ml-1" />
-                          </Button>
-                        </div>
+                        <Button onClick={() => setShowRole(false)} variant="outline" size="sm">
+                          <EyeOff className="w-4 h-4 mr-1" />
+                          Verstecken
+                        </Button>
                       </motion.div>
                     )}
+                  </motion.div>
 
-                    {/* Step 2: Roles */}
-                    {currentStep === 2 && (
-                      <motion.div
-                        key="step2"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        className="space-y-4"
+                  <div className="flex gap-2 justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs bg-transparent"
+                      onClick={prevPlayer}
+                      disabled={currentReveal === 0}
+                    >
+                      <ChevronLeft className="w-3 h-3 mr-1" />
+                      Zurück
+                    </Button>
+                    {currentReveal < assignedRoles.length - 1 ? (
+                      <Button size="sm" className="h-7 text-xs" onClick={nextPlayer}>
+                        Weiter
+                        <ChevronRight className="w-3 h-3 ml-1" />
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => setIsComplete(true)}
+                        className="bg-green-600 hover:bg-green-700 h-7 text-xs"
                       >
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setCurrentStep(1)}
-                          className="h-7 text-xs mb-2"
-                        >
-                          <ChevronLeft className="w-3 h-3 mr-1" />
-                          Zurück zu Spieler
-                        </Button>
+                        <Check className="w-3 h-3 mr-1" />
+                        Fertig
+                      </Button>
+                    )}
+                  </div>
+                </motion.div>
+              ) : isComplete ? (
+                /* Completion Screen */
+                <motion.div
+                  key="complete"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center space-y-6 py-8"
+                >
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", bounce: 0.5 }}
+                    className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto"
+                  >
+                    <Check className="w-10 h-10 text-green-600" />
+                  </motion.div>
 
-                        {selectedPreset === "werwolf" && (
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-800">Alle Rollen verteilt!</h3>
+                    <p className="text-gray-600 mt-2">Das Spiel kann beginnen!</p>
+                  </div>
+
+                  {/* Hinweis: Das Dorf wählt jetzt einen Hauptmann! Seine Stimme zählt doppelt bei Abstimmungen. */}
+                  {hasHauptmann() && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 max-w-md mx-auto">
+                      <p className="text-amber-800 text-sm">
+                        <strong>Hinweis:</strong> Das Dorf wählt jetzt einen Hauptmann! Seine Stimme zählt doppelt bei
+                        Abstimmungen.
+                      </p>
+                    </div>
+                  )}
+
+                  {thiefCards.length > 0 && (
+                    <div className="flex justify-center">
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 max-w-md">
+                        <div className="flex items-center justify-center gap-2 mb-3">
+                          <GiHoodedFigure className="w-5 h-5 text-purple-600" />
+                          <p className="text-purple-800 text-sm font-medium">
+                            Übrige Rollen für <strong>{thiefPlayerName}</strong>
+                          </p>
+                        </div>
+
+                        {thiefSelectedCard !== null ? (
+                          <div className="space-y-2 text-center">
+                            <p className="text-green-600 text-sm font-medium">
+                              {thiefPlayerName} hat gewählt: <strong>{thiefCards[thiefSelectedCard].name}</strong>
+                            </p>
+                            <p className="text-xs text-gray-500">Die neue Rolle wurde übernommen.</p>
+                          </div>
+                        ) : thiefKeptOriginal ? (
+                          <div className="space-y-2 text-center">
+                            <p className="text-blue-600 text-sm font-medium">
+                              {thiefPlayerName} behält seine Rolle und ist nun <strong>Dorfbewohner</strong>.
+                            </p>
+                            <p className="text-xs text-gray-500">Der Dieb hat sich entschieden, nicht zu tauschen.</p>
+                          </div>
+                        ) : (
                           <>
-                            {/* Recommended roles info */}
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                              <div className="flex items-start gap-2">
-                                <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <p className="text-blue-800 text-xs font-bold">
-                                    Empfohlene Rollenverteilung ({players.length} Spieler):
-                                  </p>
-                                  <p className="text-xs text-blue-700 mt-1">{getRecommendedRolesText()}</p>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Role Selection */}
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <Label className="text-sm font-bold">Rollen auswählen</Label>
-                                <span
-                                  className={`text-xs ${getTotalSelectedRoles() === players.length ? "text-green-600" : "text-orange-600"}`}
-                                >
-                                  {getTotalSelectedRoles()} / {players.length} ausgewählt
-                                  {hasDiebSelected() && (
-                                    <span className="text-purple-600 ml-1">
-                                      (+2 Rollen mehr, da mit Dieb gespielt wird )
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
-
-                              {hasDiebSelected() && (
-                                <motion.div
-                                  initial={{ opacity: 0, y: -10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-3"
-                                >
-                                  <div className="flex items-start gap-2">
-                                    <Info className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0" />
-                                    <div className="text-xs text-purple-700">
-                                      <p className="mb-1 font-bold">Dieb-Regel aktiv!</p>
-                                      <p className="text-justify">
-                                        Es werden automatisch 2 Dorfbewohner-Rollen mehr eingemischt. Nach der
-                                        Rollenverteilung darf sich der Dieb diese anschauen und seine eigene gegen eine
-                                        davon austauschen. Möchte er nicht tauschen, ist er für den Rest des Spiels
-                                        einfacher Dorfbewohner. Sind beide Rollen Werwölfe, <strong>muss</strong> er
-                                        seine Rolle tauschen. Die nun gewählte Rolle bleibt bis Spielende beibehalten.
-                                      </p>
-                                    </div>
-                                  </div>
-                                </motion.div>
+                            <p className="text-xs text-purple-600 mb-3 text-center">
+                              Die 2 übrigen Rollen stehen fest. Gib das Gerät an <strong>{thiefPlayerName}</strong>.
+                            </p>
+                            <Button
+                              onClick={() => setShowThiefCards(!showThiefCards)}
+                              variant="outline"
+                              size="sm"
+                              className="border-purple-300 text-purple-700 w-full h-7 text-xs"
+                            >
+                              {showThiefCards ? (
+                                <>
+                                  <EyeOff className="w-3 h-3 mr-1" />
+                                  Karten verbergen
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  Übrige Rollen ansehen
+                                </>
                               )}
+                            </Button>
 
-                              <TooltipProvider>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                  {werwolfRoles
-                                    .filter((r) => r.specialType !== "hauptmann")
-                                    .map((role) => (
-                                      <div
-                                        key={role.id}
-                                        className={`p-2 rounded-lg border ${
-                                          role.team === "werwolf"
-                                            ? "bg-red-50 border-red-200"
-                                            : role.team === "neutral"
-                                              ? "bg-gray-50 border-gray-200"
-                                              : "bg-green-50 border-green-200"
-                                        }`}
-                                      >
-                                        <div className="flex items-center gap-1 mb-1">
-                                          <div
-                                            className={`${role.team === "werwolf" ? "text-red-600" : role.team === "neutral" ? "text-gray-600" : "text-green-600"}`}
-                                          >
-                                            {getWerwolfIcon(role.icon)}
+                            {showThiefCards && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                className="mt-3 space-y-3"
+                              >
+                                {(() => {
+                                  const bothWerewolves = thiefCards.every((c) => c.team === "werwolf")
+                                  const bothSameRole = thiefCards[0]?.id === thiefCards[1]?.id
+                                  const sameRoleName = thiefCards[0]?.name
+                                  const sameRoleTeam = thiefCards[0]?.team
+
+                                  return (
+                                    <>
+                                      {bothWerewolves ? (
+                                        <div className="space-y-3">
+                                          <div className="bg-red-100 border border-red-300 rounded-lg p-3">
+                                            <p className="text-red-700 text-sm font-medium text-center">
+                                              Beide Rollen sind <strong>Werwölfe</strong>!
+                                            </p>
+                                            <p className="text-red-600 text-xs text-center mt-1">
+                                              Du gehörst nun zu den Werwölfen und spielst auf ihrer Seite.
+                                            </p>
                                           </div>
-                                          <span className="text-xs font-medium truncate flex-1">{role.name}</span>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <button className="text-gray-400 hover:text-gray-600">
-                                                <Info className="w-3 h-3" />
-                                              </button>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top" className="max-w-[200px] text-xs">
-                                              <p>{role.description}</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </div>
-                                        <div className="flex items-center gap-1">
+                                          <div className="flex gap-4 justify-center">
+                                            {thiefCards.map((card, idx) => (
+                                              <div
+                                                key={idx}
+                                                className="p-4 rounded-xl border-2 border-red-300 bg-red-50"
+                                              >
+                                                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 bg-red-200">
+                                                  {card.icon && getWerwolfIcon(card.icon)}
+                                                </div>
+                                                <p className="font-bold text-center">{card.name}</p>
+                                                <p className="text-xs text-gray-500 text-center">Werwolf</p>
+                                              </div>
+                                            ))}
+                                          </div>
                                           <Button
-                                            variant="outline"
+                                            onClick={() => {
+                                              // Auto-assign first werewolf card
+                                              const newAssignments = [...assignedRoles]
+                                              const thiefIdx = newAssignments.findIndex(
+                                                (a) => a.role.id === "dieb" || a.role.name === "Dieb",
+                                              )
+                                              if (thiefIdx !== -1) {
+                                                newAssignments[thiefIdx] = {
+                                                  ...newAssignments[thiefIdx],
+                                                  role: thiefCards[0],
+                                                }
+                                                setAssignedRoles(newAssignments)
+                                              }
+                                              setThiefSelectedCard(0)
+                                              setShowThiefCards(false)
+                                            }}
+                                            className="w-full bg-red-500 hover:bg-red-600 text-white"
                                             size="sm"
-                                            onClick={() => updateRoleCount(role.id, getRoleCount(role.id) - 1)}
-                                            disabled={getRoleCount(role.id) === 0}
-                                            className="h-6 w-6 p-0 text-xs"
                                           >
-                                            -
-                                          </Button>
-                                          <span className="w-6 text-center text-xs font-normal">
-                                            {getRoleCount(role.id)}
-                                          </span>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => updateRoleCount(role.id, getRoleCount(role.id) + 1)}
-                                            className="h-6 w-6 p-0 text-xs"
-                                          >
-                                            +
+                                            Verstanden - Ich bin jetzt Werwolf
                                           </Button>
                                         </div>
-                                      </div>
-                                    ))}
-                                </div>
-                              </TooltipProvider>
-
-                              {/* Hauptmann Hint */}
-                              {players.length >= 12 && (
-                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-amber-800">
-                                  <strong>Hinweis:</strong> Der Hauptmann wird vom Dorf gewählt (nicht verteilt). Seine
-                                  Stimme zählt doppelt.
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Custom Roles Option - AFTER role selection */}
-                            <div className="border-t pt-4 mt-4">
-                              <div className="flex items-center gap-2 mb-3 font-bold">
-                                <Checkbox
-                                  id="enableCustomRoles"
-                                  checked={enableCustomRoles}
-                                  onCheckedChange={(checked) => setEnableCustomRoles(checked as boolean)}
-                                />
-                                <Label htmlFor="enableCustomRoles" className="text-sm font-bold cursor-pointer">
-                                  Eigene Rollen erstellen (optional)
-                                </Label>
-                              </div>
-
-                              {enableCustomRoles && (
-                                <motion.div
-                                  initial={{ opacity: 0, height: 0 }}
-                                  animate={{ opacity: 1, height: "auto" }}
-                                  className="space-y-3 bg-purple-50 border border-purple-200 rounded-lg p-3"
-                                >
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                                    <Input
-                                      value={newRoleName}
-                                      onChange={(e) => setNewRoleName(e.target.value)}
-                                      placeholder="Rollenname"
-                                      className="h-7 text-xs"
-                                    />
-                                    <Select value={newRoleTeam} onValueChange={setNewRoleTeam}>
-                                      <SelectTrigger className="h-7 text-xs">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="dorf" className="text-xs">
-                                          Dorf
-                                        </SelectItem>
-                                        <SelectItem value="werwolf" className="text-xs">
-                                          Werwolf
-                                        </SelectItem>
-                                        <SelectItem value="neutral" className="text-xs">
-                                          Neutral
-                                        </SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <Button
-                                      onClick={addCustomRole}
-                                      disabled={!newRoleName.trim()}
-                                      size="sm"
-                                      className="h-7 text-xs"
-                                    >
-                                      <Plus className="w-3 h-3 mr-1" />
-                                      Hinzufügen
-                                    </Button>
-                                  </div>
-                                  <Input
-                                    value={newRoleDescription}
-                                    onChange={(e) => setNewRoleDescription(e.target.value)}
-                                    placeholder="Beschreibung (optional)"
-                                    className="h-7 text-xs"
-                                  />
-
-                                  {customRoles.length > 0 && (
-                                    <div className="space-y-2">
-                                      <Label className="text-xs font-medium">
-                                        Erstellte Rollen ({getTotalSelectedRoles()}/{players.length})
-                                      </Label>
-                                      <div className="flex flex-wrap gap-2">
-                                        {customRoles.map((role, index) => (
-                                          <div
-                                            key={index}
-                                            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                                              role.team === "werwolf"
-                                                ? "bg-red-100 text-red-700"
-                                                : role.team === "neutral"
-                                                  ? "bg-gray-100 text-gray-700"
-                                                  : "bg-green-100 text-green-700"
-                                            }`}
-                                          >
-                                            <span>{role.name}</span>
-                                            <div className="flex items-center gap-1 ml-1">
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() =>
-                                                  updateRoleCount(
-                                                    `custom-${index}`,
-                                                    getRoleCount(`custom-${index}`) - 1,
-                                                  )
-                                                }
-                                                disabled={getRoleCount(`custom-${index}`) === 0}
-                                                className="h-4 w-4 p-0"
-                                              >
-                                                -
-                                              </Button>
-                                              <span className="w-4 text-center">{getRoleCount(`custom-${index}`)}</span>
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() =>
-                                                  updateRoleCount(
-                                                    `custom-${index}`,
-                                                    getRoleCount(`custom-${index}`) + 1,
-                                                  )
-                                                }
-                                                className="h-4 w-4 p-0"
-                                              >
-                                                +
-                                              </Button>
-                                            </div>
-                                            <button
-                                              onClick={() => removeCustomRole(index)}
-                                              className="ml-1 hover:text-red-600"
-                                            >
-                                              <Trash2 className="w-3 h-3" />
-                                            </button>
+                                      ) : bothSameRole ? (
+                                        <div className="space-y-3">
+                                          <div className="bg-green-100 border border-green-300 rounded-lg p-3">
+                                            <p className="text-green-700 text-sm font-medium text-center">
+                                              Beide Rollen sind <strong>{sameRoleName}</strong>!
+                                            </p>
+                                            <p className="text-green-600 text-xs text-center mt-1">
+                                              Du wirst automatisch {sameRoleName} und spielst auf der Seite des Dorfes.
+                                            </p>
                                           </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </motion.div>
-                              )}
-                            </div>
+                                          <div className="flex gap-4 justify-center">
+                                            {thiefCards.map((card, idx) => (
+                                              <div
+                                                key={idx}
+                                                className="p-4 rounded-xl border-2 border-green-300 bg-green-50"
+                                              >
+                                                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 bg-green-200">
+                                                  {card.icon && getWerwolfIcon(card.icon)}
+                                                </div>
+                                                <p className="font-bold text-center">{card.name}</p>
+                                                <p className="text-xs text-gray-500 text-center">Dorf</p>
+                                              </div>
+                                            ))}
+                                          </div>
+                                          <Button
+                                            onClick={() => {
+                                              // Auto-assign first card
+                                              const newAssignments = [...assignedRoles]
+                                              const thiefIdx = newAssignments.findIndex(
+                                                (a) => a.role.id === "dieb" || a.role.name === "Dieb",
+                                              )
+                                              if (thiefIdx !== -1) {
+                                                newAssignments[thiefIdx] = {
+                                                  ...newAssignments[thiefIdx],
+                                                  role: thiefCards[0],
+                                                }
+                                                setAssignedRoles(newAssignments)
+                                              }
+                                              setThiefSelectedCard(0)
+                                              setShowThiefCards(false)
+                                            }}
+                                            className="w-full bg-green-500 hover:bg-green-600 text-white"
+                                            size="sm"
+                                          >
+                                            Verstanden - Ich bin jetzt {sameRoleName}
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <p className="text-xs text-center text-gray-600 mb-2">
+                                            Klicke auf eine Karte, um sie zu wählen:
+                                          </p>
+                                          <div className="flex gap-4 justify-center">
+                                            {thiefCards.map((card, idx) => (
+                                              <motion.button
+                                                key={idx}
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => {
+                                                  // Swap thief's role with selected card
+                                                  const newAssignments = [...assignedRoles]
+                                                  const thiefIdx = newAssignments.findIndex(
+                                                    (a) => a.role.id === "dieb" || a.role.name === "Dieb",
+                                                  )
+                                                  if (thiefIdx !== -1) {
+                                                    newAssignments[thiefIdx] = {
+                                                      ...newAssignments[thiefIdx],
+                                                      role: card,
+                                                    }
+                                                    setAssignedRoles(newAssignments)
+                                                  }
+                                                  setThiefSelectedCard(idx)
+                                                  setShowThiefCards(false)
+                                                }}
+                                                className={`p-4 rounded-xl border-2 transition-all ${
+                                                  card.team === "werwolf"
+                                                    ? "border-red-300 bg-red-50 hover:bg-red-100"
+                                                    : "border-green-300 bg-green-50 hover:bg-green-100"
+                                                }`}
+                                              >
+                                                <div
+                                                  className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 ${
+                                                    card.team === "werwolf" ? "bg-red-200" : "bg-green-200"
+                                                  }`}
+                                                >
+                                                  {card.icon && getWerwolfIcon(card.icon)}
+                                                </div>
+                                                <p className="font-bold">{card.name}</p>
+                                                <p className="text-xs text-gray-500">
+                                                  {card.team === "werwolf" ? "Werwolf" : "Dorf"}
+                                                </p>
+                                              </motion.button>
+                                            ))}
+                                          </div>
+                                          <Button
+                                            onClick={() => {
+                                              // Change thief's role to Dorfbewohner
+                                              const newAssignments = [...assignedRoles]
+                                              const thiefIdx = newAssignments.findIndex(
+                                                (a) => a.role.id === "dieb" || a.role.name === "Dieb",
+                                              )
+                                              if (thiefIdx !== -1) {
+                                                newAssignments[thiefIdx] = {
+                                                  ...newAssignments[thiefIdx],
+                                                  role: {
+                                                    id: "dorfbewohner",
+                                                    name: "Dorfbewohner",
+                                                    description: "Ein einfacher Dorfbewohner ohne Spezialfähigkeit.",
+                                                    team: "dorf",
+                                                    icon: "village",
+                                                  },
+                                                }
+                                                setAssignedRoles(newAssignments)
+                                              }
+                                              setThiefKeptOriginal(true)
+                                              setShowThiefCards(false)
+                                            }}
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full mt-2"
+                                          >
+                                            Nicht tauschen (werde Dorfbewohner)
+                                          </Button>
+                                        </>
+                                      )}
+                                    </>
+                                  )
+                                })()}
+                              </motion.div>
+                            )}
                           </>
                         )}
+                      </div>
+                    </div>
+                  )}
 
-                        {selectedPreset === "secretHitler" && (
-                          <div className="space-y-4">
-                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                              <h4 className="font-bold text-orange-800 mb-3">
-                                Secret Hitler Rollenverteilung ({players.length} Spieler)
-                              </h4>
-                              <div className="grid grid-cols-3 gap-3">
-                                <div className="bg-white rounded-lg p-3 border border-orange-200 text-center">
-                                  <div className="text-2xl font-bold text-red-600">1</div>
-                                  <div className="text-xs text-gray-600">Hitler</div>
-                                </div>
-                                <div className="bg-white rounded-lg p-3 border border-orange-200 text-center">
-                                  <div className="text-2xl font-bold text-orange-600">
-                                    {players.length <= 6 ? 1 : players.length <= 8 ? 2 : 3}
-                                  </div>
-                                  <div className="text-xs text-gray-600">Faschisten</div>
-                                </div>
-                                <div className="bg-white rounded-lg p-3 border border-orange-200 text-center">
-                                  <div className="text-2xl font-bold text-blue-600">
-                                    {players.length <= 6
-                                      ? players.length - 2
-                                      : players.length <= 8
-                                        ? players.length - 3
-                                        : players.length - 4}
-                                  </div>
-                                  <div className="text-xs text-gray-600">Liberale</div>
-                                </div>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-w-md mx-auto">
+                    <p className="text-gray-700 text-sm font-medium mb-3">
+                      <strong>Spielleiter:</strong> Alle Rollen einsehen
+                    </p>
+                    <Button
+                      onClick={() => setShowAllRoles(!showAllRoles)}
+                      variant="outline"
+                      size="sm"
+                      className="border-gray-300 h-7 text-xs"
+                    >
+                      {showAllRoles ? (
+                        <>
+                          <EyeOff className="w-3 h-3 mr-1" />
+                          Rollen verbergen
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-3 h-3 mr-1" />
+                          Alle Rollen anzeigen
+                        </>
+                      )}
+                    </Button>
+                    {showAllRoles && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="mt-3 grid grid-cols-2 gap-2 text-left"
+                      >
+                        {assignedRoles.map((assignment, i) => (
+                          <div
+                            key={i}
+                            className={`px-2 py-1 rounded text-xs ${
+                              assignment.role.team === "werwolf"
+                                ? "bg-red-50 text-red-700"
+                                : assignment.role.team === "fascist"
+                                  ? "bg-orange-50 text-orange-700"
+                                  : assignment.role.team === "neutral"
+                                    ? "bg-gray-100 text-gray-700"
+                                    : "bg-green-50 text-green-700"
+                            }`}
+                          >
+                            <span className="font-medium">{assignment.player}:</span> {assignment.role.name}
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-center gap-3 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={distributeRoles}
+                      size="sm"
+                      className="h-7 text-xs bg-transparent"
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      Nochmal verteilen
+                    </Button>
+                    <Button
+                      onClick={resetGame}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-500 bg-transparent h-7 text-xs"
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      Zurücksetzen
+                    </Button>
+                    <Button onClick={resetGame} size="sm" className="h-7 text-xs">
+                      <Shuffle className="w-3 h-3 mr-1" />
+                      Neues Spiel
+                    </Button>
+                  </div>
+                </motion.div>
+              ) : (
+                /* Setup Mode - Step by Step */
+                <div className="space-y-6">
+                  {/* Step Indicator */}
+                  <div className="flex items-center justify-center gap-4 mb-6">
+                    <div
+                      className={`flex items-center gap-2 ${currentStep === 1 ? "text-indigo-600 font-medium" : "text-gray-400"}`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 1 ? "bg-indigo-600 text-white" : currentStep > 1 ? "bg-green-500 text-white" : "bg-gray-200"}`}
+                      >
+                        {currentStep > 1 ? <Check className="w-4 h-4" /> : "1"}
+                      </div>
+                      <span className="text-sm font-bold">Spieler</span>
+                    </div>
+                    <div className="w-8 h-0.5 bg-gray-200" />
+                    <div
+                      className={`flex items-center gap-2 ${currentStep === 2 ? "text-indigo-600 font-medium" : "text-gray-400"}`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 2 ? "bg-indigo-600 text-white" : currentStep > 2 ? "bg-green-500 text-white" : "bg-gray-200"}`}
+                      >
+                        {currentStep > 2 ? <Check className="w-4 h-4" /> : "2"}
+                      </div>
+                      <span className="text-sm font-bold">Rollen</span>
+                    </div>
+                  </div>
+
+                  {/* Step 1: Players */}
+                  {currentStep === 1 && (
+                    <motion.div
+                      key="step1"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className="space-y-4"
+                    >
+                      {/* Game Selection */}
+                      <div>
+                        <Label className="text-sm font-bold mb-2 block">Spielvorlage</Label>
+                        <Select
+                          value={selectedPreset}
+                          onValueChange={(v) => {
+                            setSelectedPreset(v)
+                            setSelectedRoles([])
+                            setCustomRoles([])
+                            setEnableCustomRoles(false)
+                          }}
+                        >
+                          <SelectTrigger className="h-7 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(gamePresets).map(([key, preset]) => (
+                              <SelectItem key={key} value={key} className="text-xs">
+                                {preset.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Players */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between font-bold">
+                          <Label className="text-sm font-bold">Spieler ({players.length})</Label>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={addPlayer}
+                            disabled={players.length >= 20}
+                            className="h-7 text-xs"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Hinzufügen
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                          {players.map((player, index) => (
+                            <div key={index} className="flex items-center gap-1">
+                              <Input
+                                value={player}
+                                onChange={(e) => updatePlayerName(index, e.target.value)}
+                                className="h-7 text-xs"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removePlayer(index)}
+                                disabled={players.length <= 2}
+                                className="h-7 w-7 p-0 text-red-500"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end pt-4">
+                        <Button onClick={() => setCurrentStep(2)} className="h-8 text-xs">
+                          Weiter
+                          <ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Step 2: Roles */}
+                  {currentStep === 2 && (
+                    <motion.div
+                      key="step2"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-4"
+                    >
+                      <Button variant="ghost" size="sm" onClick={() => setCurrentStep(1)} className="h-7 text-xs mb-2">
+                        <ChevronLeft className="w-3 h-3 mr-1" />
+                        Zurück zu Spieler
+                      </Button>
+
+                      {selectedPreset === "werwolf" && (
+                        <>
+                          {/* Recommended roles info */}
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div className="flex items-start gap-2">
+                              <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-blue-800 text-xs font-bold">
+                                  Empfohlene Rollenverteilung ({players.length} Spieler):
+                                </p>
+                                <p className="text-xs text-blue-700 mt-1">{getRecommendedRolesText()}</p>
                               </div>
                             </div>
                           </div>
-                        )}
 
-                        {selectedPreset === "custom" && (
-                          <div className="space-y-4">
-                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                              <h4 className="font-bold text-purple-800 mb-3">Eigene Rollen erstellen</h4>
-                              <div className="space-y-3">
+                          {/* Role Selection */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-sm font-bold">Rollen auswählen</Label>
+                              <span
+                                className={`text-xs ${getTotalSelectedRoles() === players.length ? "text-green-600" : "text-orange-600"}`}
+                              >
+                                {getTotalSelectedRoles()} / {players.length} ausgewählt
+                                {hasDiebSelected() && (
+                                  <span className="text-purple-600 ml-1">
+                                    (+2 Rollen mehr, da mit Dieb gespielt wird )
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+
+                            {hasDiebSelected() && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-3"
+                              >
+                                <div className="flex items-start gap-2">
+                                  <Info className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0" />
+                                  <div className="text-xs text-purple-700">
+                                    <p className="mb-1 font-bold">Dieb-Regel aktiv!</p>
+                                    <p className="text-justify">
+                                      Es werden automatisch 2 Dorfbewohner-Rollen mehr eingemischt. Nach der
+                                      Rollenverteilung darf sich der Dieb diese anschauen und seine eigene gegen eine
+                                      davon austauschen. Möchte er nicht tauschen, ist er für den Rest des Spiels
+                                      einfacher Dorfbewohner. Sind beide Rollen Werwölfe, <strong>muss</strong> er seine
+                                      Rolle tauschen. Die nun gewählte Rolle bleibt bis Spielende beibehalten.
+                                    </p>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+
+                            <TooltipProvider>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {werwolfRoles
+                                  .filter((r) => r.specialType !== "hauptmann")
+                                  .map((role) => (
+                                    <div
+                                      key={role.id}
+                                      className={`p-2 rounded-lg border ${
+                                        role.team === "werwolf"
+                                          ? "bg-red-50 border-red-200"
+                                          : role.team === "neutral"
+                                            ? "bg-gray-50 border-gray-200"
+                                            : "bg-green-50 border-green-200"
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-1 mb-1">
+                                        <div
+                                          className={`${role.team === "werwolf" ? "text-red-600" : role.team === "neutral" ? "text-gray-600" : "text-green-600"}`}
+                                        >
+                                          {getWerwolfIcon(role.icon)}
+                                        </div>
+                                        <span className="text-xs font-medium truncate flex-1">{role.name}</span>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <button className="text-gray-400 hover:text-gray-600">
+                                              <Info className="w-3 h-3" />
+                                            </button>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top" className="max-w-[200px] text-xs">
+                                            <p>{role.description}</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => updateRoleCount(role.id, getRoleCount(role.id) - 1)}
+                                          disabled={getRoleCount(role.id) === 0}
+                                          className="h-6 w-6 p-0 text-xs"
+                                        >
+                                          -
+                                        </Button>
+                                        <span className="w-6 text-center text-xs font-normal">
+                                          {getRoleCount(role.id)}
+                                        </span>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => updateRoleCount(role.id, getRoleCount(role.id) + 1)}
+                                          className="h-6 w-6 p-0 text-xs"
+                                        >
+                                          +
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
+                            </TooltipProvider>
+
+                            {/* Hauptmann Hint */}
+                            {players.length >= 12 && (
+                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-amber-800">
+                                <strong>Hinweis:</strong> Der Hauptmann wird vom Dorf gewählt (nicht verteilt). Seine
+                                Stimme zählt doppelt.
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Custom Roles Option - AFTER role selection */}
+                          <div className="border-t pt-4 mt-4">
+                            <div className="flex items-center gap-2 mb-3 font-bold">
+                              <Checkbox
+                                id="enableCustomRoles"
+                                checked={enableCustomRoles}
+                                onCheckedChange={(checked) => setEnableCustomRoles(checked as boolean)}
+                              />
+                              <Label htmlFor="enableCustomRoles" className="text-sm font-bold cursor-pointer">
+                                Eigene Rollen erstellen (optional)
+                              </Label>
+                            </div>
+
+                            {enableCustomRoles && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                className="space-y-3 bg-purple-50 border border-purple-200 rounded-lg p-3"
+                              >
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                   <Input
                                     value={newRoleName}
                                     onChange={(e) => setNewRoleName(e.target.value)}
                                     placeholder="Rollenname"
-                                    className="h-8 text-xs"
+                                    className="h-7 text-xs"
                                   />
                                   <Select value={newRoleTeam} onValueChange={setNewRoleTeam}>
-                                    <SelectTrigger className="h-8 text-xs">
+                                    <SelectTrigger className="h-7 text-xs">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="dorf" className="text-xs">
-                                        Team Gut
+                                        Dorf
                                       </SelectItem>
                                       <SelectItem value="werwolf" className="text-xs">
-                                        Team Böse
+                                        Werwolf
                                       </SelectItem>
                                       <SelectItem value="neutral" className="text-xs">
                                         Neutral
@@ -1501,7 +1362,7 @@ export default function RollenVerteilerPage() {
                                     onClick={addCustomRole}
                                     disabled={!newRoleName.trim()}
                                     size="sm"
-                                    className="h-8 text-xs"
+                                    className="h-7 text-xs"
                                   >
                                     <Plus className="w-3 h-3 mr-1" />
                                     Hinzufügen
@@ -1511,95 +1372,230 @@ export default function RollenVerteilerPage() {
                                   value={newRoleDescription}
                                   onChange={(e) => setNewRoleDescription(e.target.value)}
                                   placeholder="Beschreibung (optional)"
-                                  className="h-8 text-xs"
+                                  className="h-7 text-xs"
                                 />
-                              </div>
 
-                              {customRoles.length > 0 && (
-                                <div className="mt-4 space-y-2">
-                                  <Label className="text-xs font-medium text-purple-700">
-                                    Erstellte Rollen ({getTotalSelectedRoles()}/{players.length})
-                                  </Label>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    {customRoles.map((role, index) => (
-                                      <div
-                                        key={index}
-                                        className={`p-2 rounded-lg border ${
-                                          role.team === "werwolf"
-                                            ? "bg-red-50 border-red-200"
-                                            : role.team === "neutral"
-                                              ? "bg-gray-50 border-gray-200"
-                                              : "bg-green-50 border-green-200"
-                                        }`}
-                                      >
-                                        <div className="flex items-center justify-between mb-1">
-                                          <span className="text-xs font-medium">{role.name}</span>
+                                {customRoles.length > 0 && (
+                                  <div className="space-y-2">
+                                    <Label className="text-xs font-medium">
+                                      Erstellte Rollen ({getTotalSelectedRoles()}/{players.length})
+                                    </Label>
+                                    <div className="flex flex-wrap gap-2">
+                                      {customRoles.map((role, index) => (
+                                        <div
+                                          key={index}
+                                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                                            role.team === "werwolf"
+                                              ? "bg-red-100 text-red-700"
+                                              : role.team === "neutral"
+                                                ? "bg-gray-100 text-gray-700"
+                                                : "bg-green-100 text-green-700"
+                                          }`}
+                                        >
+                                          <span>{role.name}</span>
+                                          <div className="flex items-center gap-1 ml-1">
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() =>
+                                                updateRoleCount(`custom-${index}`, getRoleCount(`custom-${index}`) - 1)
+                                              }
+                                              disabled={getRoleCount(`custom-${index}`) === 0}
+                                              className="h-4 w-4 p-0"
+                                            >
+                                              -
+                                            </Button>
+                                            <span className="w-4 text-center">{getRoleCount(`custom-${index}`)}</span>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() =>
+                                                updateRoleCount(`custom-${index}`, getRoleCount(`custom-${index}`) + 1)
+                                              }
+                                              className="h-4 w-4 p-0"
+                                            >
+                                              +
+                                            </Button>
+                                          </div>
                                           <button
                                             onClick={() => removeCustomRole(index)}
-                                            className="text-red-500 hover:text-red-700"
+                                            className="ml-1 hover:text-red-600"
                                           >
                                             <Trash2 className="w-3 h-3" />
                                           </button>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() =>
-                                              updateRoleCount(`custom-${index}`, getRoleCount(`custom-${index}`) - 1)
-                                            }
-                                            disabled={getRoleCount(`custom-${index}`) === 0}
-                                            className="h-6 w-6 p-0 text-xs"
-                                          >
-                                            -
-                                          </Button>
-                                          <span className="w-6 text-center text-xs font-bold">
-                                            {getRoleCount(`custom-${index}`)}
-                                          </span>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() =>
-                                              updateRoleCount(`custom-${index}`, getRoleCount(`custom-${index}`) + 1)
-                                            }
-                                            className="h-6 w-6 p-0 text-xs"
-                                          >
-                                            +
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    ))}
+                                      ))}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
+                              </motion.div>
+                            )}
+                          </div>
+                        </>
+                      )}
 
-                              {customRoles.length === 0 && (
-                                <p className="text-xs text-purple-600 mt-3">
-                                  Erstelle mindestens eine Rolle um fortzufahren.
-                                </p>
-                              )}
+                      {selectedPreset === "secretHitler" && (
+                        <div className="space-y-4">
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                            <h4 className="font-bold text-orange-800 mb-3">
+                              Secret Hitler Rollenverteilung ({players.length} Spieler)
+                            </h4>
+                            <div className="grid grid-cols-3 gap-3">
+                              <div className="bg-white rounded-lg p-3 border border-orange-200 text-center">
+                                <div className="text-2xl font-bold text-red-600">1</div>
+                                <div className="text-xs text-gray-600">Hitler</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-orange-200 text-center">
+                                <div className="text-2xl font-bold text-orange-600">
+                                  {players.length <= 6 ? 1 : players.length <= 8 ? 2 : 3}
+                                </div>
+                                <div className="text-xs text-gray-600">Faschisten</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-orange-200 text-center">
+                                <div className="text-2xl font-bold text-blue-600">
+                                  {players.length <= 6
+                                    ? players.length - 2
+                                    : players.length <= 8
+                                      ? players.length - 3
+                                      : players.length - 4}
+                                </div>
+                                <div className="text-xs text-gray-600">Liberale</div>
+                              </div>
                             </div>
                           </div>
-                        )}
-
-                        <div className="flex justify-end pt-4">
-                          <Button
-                            onClick={distributeRoles}
-                            disabled={!canDistribute()}
-                            className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700"
-                          >
-                            <Shuffle className="w-3 h-3 mr-1" />
-                            Rollen verteilen
-                          </Button>
                         </div>
-                      </motion.div>
-                    )}
-                  </div>
-                )}
-              </AnimatePresence>
-            </CardContent>
-          </Card>
-        </div>
+                      )}
+
+                      {selectedPreset === "custom" && (
+                        <div className="space-y-4">
+                          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                            <h4 className="font-bold text-purple-800 mb-3">Eigene Rollen erstellen</h4>
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                <Input
+                                  value={newRoleName}
+                                  onChange={(e) => setNewRoleName(e.target.value)}
+                                  placeholder="Rollenname"
+                                  className="h-8 text-xs"
+                                />
+                                <Select value={newRoleTeam} onValueChange={setNewRoleTeam}>
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="dorf" className="text-xs">
+                                      Team Gut
+                                    </SelectItem>
+                                    <SelectItem value="werwolf" className="text-xs">
+                                      Team Böse
+                                    </SelectItem>
+                                    <SelectItem value="neutral" className="text-xs">
+                                      Neutral
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  onClick={addCustomRole}
+                                  disabled={!newRoleName.trim()}
+                                  size="sm"
+                                  className="h-8 text-xs"
+                                >
+                                  <Plus className="w-3 h-3 mr-1" />
+                                  Hinzufügen
+                                </Button>
+                              </div>
+                              <Input
+                                value={newRoleDescription}
+                                onChange={(e) => setNewRoleDescription(e.target.value)}
+                                placeholder="Beschreibung (optional)"
+                                className="h-8 text-xs"
+                              />
+                            </div>
+
+                            {customRoles.length > 0 && (
+                              <div className="mt-4 space-y-2">
+                                <Label className="text-xs font-medium text-purple-700">
+                                  Erstellte Rollen ({getTotalSelectedRoles()}/{players.length})
+                                </Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {customRoles.map((role, index) => (
+                                    <div
+                                      key={index}
+                                      className={`p-2 rounded-lg border ${
+                                        role.team === "werwolf"
+                                          ? "bg-red-50 border-red-200"
+                                          : role.team === "neutral"
+                                            ? "bg-gray-50 border-gray-200"
+                                            : "bg-green-50 border-green-200"
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between mb-1">
+                                        <span className="text-xs font-medium">{role.name}</span>
+                                        <button
+                                          onClick={() => removeCustomRole(index)}
+                                          className="text-red-500 hover:text-red-700"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() =>
+                                            updateRoleCount(`custom-${index}`, getRoleCount(`custom-${index}`) - 1)
+                                          }
+                                          disabled={getRoleCount(`custom-${index}`) === 0}
+                                          className="h-6 w-6 p-0 text-xs"
+                                        >
+                                          -
+                                        </Button>
+                                        <span className="w-6 text-center text-xs font-bold">
+                                          {getRoleCount(`custom-${index}`)}
+                                        </span>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() =>
+                                            updateRoleCount(`custom-${index}`, getRoleCount(`custom-${index}`) + 1)
+                                          }
+                                          className="h-6 w-6 p-0 text-xs"
+                                        >
+                                          +
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {customRoles.length === 0 && (
+                              <p className="text-xs text-purple-600 mt-3">
+                                Erstelle mindestens eine Rolle um fortzufahren.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end pt-4">
+                        <Button
+                          onClick={distributeRoles}
+                          disabled={!canDistribute()}
+                          className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700"
+                        >
+                          <Shuffle className="w-3 h-3 mr-1" />
+                          Rollen verteilen
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              )}
+            </AnimatePresence>
+          </CardContent>
+        </Card>
       </main>
     </div>
   )
