@@ -446,15 +446,15 @@ export default function ConnectFourPage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
       <Navigation />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto">
-          <Link
-            href="/spielarena"
-            className="inline-flex items-center gap-2 text-gray-700 hover:text-teal-600 mb-6 transition-colors"
-          >
-            <FaArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Zurück zur Spielarena</span>
-          </Link>
+        <Link
+          href="/spielarena"
+          className="inline-flex items-center gap-2 text-gray-700 hover:text-teal-600 mb-6 transition-colors"
+        >
+          <FaArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Zurück zur Spielarena</span>
+        </Link>
 
+        <div className="max-w-3xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
             <div className="flex items-center justify-center gap-4 mb-4">
               <motion.div

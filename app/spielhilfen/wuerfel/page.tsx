@@ -312,7 +312,16 @@ export default function WuerfelPage() {
             {results.length > 0 ? (
               results.map((r, i) => renderDice(r, i))
             ) : (
-              <p className="text-gray-400 text-lg">Tippe auf "Würfeln", um zu starten</p>
+              <div className="flex gap-2 items-center">
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    className="w-4 h-4 rounded-full bg-gray-400"
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, delay: i * 0.2 }}
+                  />
+                ))}
+              </div>
             )}
           </div>
 
@@ -468,7 +477,16 @@ export default function WuerfelPage() {
                 {results.length > 0 ? (
                   results.map((r, i) => renderDice(r, i))
                 ) : (
-                  <p className="text-gray-400 text-sm">Klicke auf "Würfeln", um zu starten</p>
+                  <div className="flex gap-2 items-center">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        className="w-4 h-4 rounded-full bg-gray-400"
+                        animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, delay: i * 0.2 }}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

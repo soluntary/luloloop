@@ -4,7 +4,7 @@ import { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -23,7 +23,6 @@ import {
   GiHoodedFigure,
   GiRollingDices,
 } from "react-icons/gi"
-import { TbUserQuestion } from "react-icons/tb"
 import {
   ArrowLeft,
   Plus,
@@ -584,44 +583,33 @@ export default function RollenVerteilerPage() {
           className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Zurück zu Spielhilfen
+          <span className="text-sm">Zurück zu Spielhilfen</span>
         </Link>
 
-        <div className="max-w-4xl mx-auto mb-4">
-          <div className="flex items-center justify-center gap-4 mb-2">
+        <div className="max-w-2xl mx-auto mb-6">
+          <div className="flex items-center justify-center gap-4 mb-3">
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg"
+              transition={{ duration: 0.8, repeat: Number.POSITIVE_INFINITY, repeatDelay: 2 }}
+              className="w-14 h-14 sm:w-14 sm:h-14 bg-indigo-500 rounded-full flex items-center justify-center shadow-lg"
             >
-              <TbUserQuestion className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+              <GiRollingDices className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </motion.div>
             <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Rollen-Verteiler</h1>
           </div>
-          <p className="text-center text-gray-600 text-sm">Rollen für Spiele zufällig verteilen</p>
+          <p className="text-center text-gray-600 text-sm">
+            Verteile Rollen zufällig für Spiele wie Werwölfe von Düsterwald, Secret Hitler oder eigene Spiele
+          </p>
         </div>
 
-        <Card className="max-w-4xl mx-auto border-2 border-purple-200">
-          <CardHeader className="text-center border-b bg-gradient-to-r from-indigo-50 to-purple-100">
-            <div className="flex justify-end mb-2">
+        <Card className="max-w-2xl mx-auto border-2 border-gray-200">
+          <CardHeader className="border-b bg-gradient-to-r from-indigo-50 to-indigo-100 py-3">
+            <div className="flex justify-end">
               <TemplateManager
-                spielhilfeType="rollen-verteiler"
-                getCurrentData={getCurrentData}
+                spielhilfeType="rollenverteiler"
+                currentData={getCurrentData()}
                 onLoadTemplate={handleLoadTemplate}
               />
-            </div>
-            <div className="flex flex-col items-center gap-3">
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg"
-              >
-                <TbUserQuestion className="w-8 h-8 text-white" />
-              </motion.div>
-              <div>
-                <CardTitle className="text-2xl">Rollen-Verteiler</CardTitle>
-                <p className="text-gray-500 text-sm">Verteile geheim Rollen an alle Spieler</p>
-              </div>
             </div>
           </CardHeader>
 

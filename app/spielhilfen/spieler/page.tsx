@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -129,26 +129,33 @@ export default function SpielerPage() {
           <span className="text-sm">Zurück zu Spielhilfen</span>
         </Link>
 
-        <Card className="max-w-2xl mx-auto border-2 border-green-200">
-          <CardHeader className="text-center border-b bg-gradient-to-r from-green-50 to-green-100">
+        <div className="max-w-2xl mx-auto mb-6">
+          <div className="flex items-center justify-center gap-4 mb-3">
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-              className="w-14 h-14 rounded-xl bg-green-500 flex items-center justify-center mx-auto mb-2 shadow-lg"
+              transition={{ duration: 0.8, repeat: Number.POSITIVE_INFINITY, repeatDelay: 2 }}
+              className="w-14 h-14 sm:w-16 sm:h-16 bg-green-500 rounded-full flex items-center justify-center shadow-lg"
             >
-              <FaUsersLine className="w-8 h-8 text-white" />
+              <FaUsersLine className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </motion.div>
-            <CardTitle className="text-2xl">Spieler & Zugreihenfolge</CardTitle>
-            <p className="text-gray-500 text-sm">Verwalte Spieler und Züge</p>
-          </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            {/* First Player Announcement */}
+            <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">
+              Spieler & Zugreihenfolge
+            </h1>
+          </div>
+          <p className="text-center text-gray-600 text-sm">
+            Verwalte Spieler, bestimme die Reihenfolge und verfolge die Züge in deinem Spiel
+          </p>
+        </div>
+
+        <Card className="max-w-2xl mx-auto border-2 border-green-200">
+          <CardHeader className="text-center border-b bg-gradient-to-r from-green-50 to-green-100">
             {firstPlayer && !gameStarted && (
               <div className="bg-gradient-to-r from-green-400 to-emerald-500 text-white p-3 rounded-xl text-center">
                 <p className="text-lg font-bold">{firstPlayer.name} beginnt!</p>
               </div>
             )}
-
+          </CardHeader>
+          <CardContent className="p-4 space-y-4">
             {/* Game Controls when started */}
             {gameStarted && (
               <div className="bg-green-50 border-2 border-green-200 rounded-xl p-3 text-center">

@@ -270,20 +270,21 @@ export default function SudokuPage() {
     >
       <Navigation />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <Link
-            href="/spielarena"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
-          >
-            <FaArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Zurück zur Spielarena</span>
-          </Link>
+        <Link
+          href="/spielarena"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+        >
+          <FaArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Zurück zur Spielarena</span>
+        </Link>
 
+        <div className="max-w-2xl mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-4 mb-4">
               <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 0.8, repeat: Number.POSITIVE_INFINITY, repeatDelay: 2 }}
                 whileHover={{ rotate: 360, scale: 1.1 }}
-                transition={{ duration: 0.6 }}
                 className="w-14 h-14 sm:w-16 sm:h-16 bg-indigo-500 rounded-full flex items-center justify-center transform -rotate-12"
               >
                 <BsGrid3X3Gap className="w-6 h-6 sm:w-8 sm:h-8 text-white" />

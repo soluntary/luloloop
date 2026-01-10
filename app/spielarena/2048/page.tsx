@@ -206,20 +206,22 @@ export default function Game2048Page() {
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 to-white">
         <Navigation />
         <main className="flex-1 container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto">
-            <Link
-              href="/spielarena"
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
-            >
-              <FaArrowLeft className="w-4 h-4" />
-              <span className="text-sm">Zurück zur Spielarena</span>
-            </Link>
+          <Link
+            href="/spielarena"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+          >
+            <FaArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Zurück zur Spielarena</span>
+          </Link>
 
+          <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
               <div className="flex items-center justify-center gap-4 mb-4">
                 <motion.div
                   whileHover={{ rotate: 360, scale: 1.1 }}
                   transition={{ duration: 0.6 }}
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 0.8, repeat: Number.POSITIVE_INFINITY, repeatDelay: 2 }}
                   className="w-14 h-14 sm:w-16 sm:h-16 bg-purple-500 rounded-full flex items-center justify-center transform -rotate-12"
                 >
                   <span className="text-2xl sm:text-3xl text-white font-bold">2048</span>
@@ -342,20 +344,22 @@ export default function Game2048Page() {
     >
       <Navigation />
       <main className={`flex-1 container mx-auto px-4 py-8 ${isExpanded ? "h-screen" : ""}`}>
-        <div className={`max-w-md mx-auto ${isExpanded ? "max-w-7xl" : ""}`}>
-          <Link
-            href="/spielarena"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
-          >
-            <FaArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Zurück zur Spielarena</span>
-          </Link>
+        <Link
+          href="/spielarena"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+        >
+          <FaArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Zurück zur Spielarena</span>
+        </Link>
 
+        <div className={`max-w-md mx-auto ${isExpanded ? "max-w-7xl" : ""}`}>
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-4 mb-4">
               <motion.div
                 whileHover={{ rotate: 360, scale: 1.1 }}
                 transition={{ duration: 0.6 }}
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 0.8, repeat: Number.POSITIVE_INFINITY, repeatDelay: 2 }}
                 className="w-14 h-14 sm:w-16 sm:h-16 bg-purple-500 rounded-full flex items-center justify-center transform -rotate-12"
               >
                 <span className="text-2xl sm:text-3xl text-white font-bold">2048</span>

@@ -286,25 +286,25 @@ export default function MinesweeperPage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
       <Navigation />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <Link
-            href="/spielarena"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
-          >
-            <FaArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Zurück zur Spielarena</span>
-          </Link>
+        <Link
+          href="/spielarena"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
+        >
+          <FaArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Zurück zur Spielarena</span>
+        </Link>
 
+        <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-4 mb-4">
               <motion.div
-                whileHover={{ rotate: 360, scale: 1.1 }}
-                transition={{ duration: 0.6 }}
-                className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center transform -rotate-12"
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
+                className="w-14 h-14 sm:w-16 sm:h-16 bg-gray-600 rounded-full flex items-center justify-center shadow-lg"
               >
-                <FaBomb className="w-8 h-8 text-white" />
+                <FaBomb className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </motion.div>
-              <h1 className="font-handwritten text-3xl md:text-4xl text-gray-800 transform rotate-1">Minesweeper</h1>
+              <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Minesweeper</h1>
             </div>
           </div>
 
@@ -544,13 +544,12 @@ export default function MinesweeperPage() {
                             className="pointer-events-auto"
                           >
                             <Card className="p-8 text-center mx-4 border-4 border-gray-400 shadow-2xl bg-white">
-                              <div className="text-4xl mb-4">🎉</div>
                               <motion.h2
                                 animate={{ scale: [1, 1.05, 1] }}
                                 transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
                                 className="text-5xl font-handwritten mb-6 text-green-600"
                               >
-                                Gratuliere!
+                                🎉 Gratuliere!
                               </motion.h2>
                               <p className="text-gray-700 mb-6 text-lg font-medium">Zeit: {formatTime(timer)}</p>
                               <div className="flex gap-3 justify-center">
