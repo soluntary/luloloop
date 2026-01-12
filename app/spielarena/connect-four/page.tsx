@@ -280,6 +280,10 @@ export default function ConnectFourPage() {
   const handleColumnClick = (col: number) => {
     if (winner || isAnimating || fallingPiece) return
 
+    dropPiece(col)
+  }
+
+  const dropPiece = (col: number) => {
     for (let row = ROWS - 1; row >= 0; row--) {
       if (board[row][col] === null) {
         const newBoard = board.map((r) => [...r])
@@ -288,7 +292,6 @@ export default function ConnectFourPage() {
         const winResult = checkWinWithCells(newBoard, row, col)
 
         if (winResult) {
-          setWinner(currentPlayer)
           setWinningCells(winResult)
         }
 
@@ -296,13 +299,17 @@ export default function ConnectFourPage() {
         setIsAnimating(true)
         setFallingPiece({ row, col, color: currentPlayer })
 
-        const animationDuration = 800 + row * 150
+        const animationDuration = 400 + row * 80
 
         setTimeout(() => {
           setFallingPiece(null)
           setIsAnimating(false)
 
-          if (!winResult) {
+          if (winResult) {
+            setTimeout(() => {
+              setWinner(currentPlayer)
+            }, 800)
+          } else {
             const nextPlayer = currentPlayer === "red" ? "yellow" : "red"
             setCurrentPlayer(nextPlayer)
           }
@@ -629,7 +636,9 @@ export default function ConnectFourPage() {
                           : "bg-gradient-to-br from-yellow-300 to-yellow-500"
                       }`}
                     />
-                    <span className="text-sm sm:text-base font-medium text-gray-700">am Zug</span>
+                    <span className="text-sm sm:text-base font-medium text-gray-700">
+                      {vsAI ? (currentPlayer === playerColor ? "Du bist am Zug" : "Ludo ist am Zug") : "am Zug"}
+                    </span>
                   </motion.div>
 
                   <Button onClick={resetGame} variant="outline" className="ml-auto bg-transparent">
@@ -680,7 +689,7 @@ export default function ConnectFourPage() {
                                         initial={{ y: "-110%" }}
                                         animate={{ y: `${stopPosition}%` }}
                                         transition={{
-                                          duration: (800 + fallingPiece.row * 150) / 1000,
+                                          duration: (400 + fallingPiece.row * 80) / 1000,
                                           ease: [0.34, 1.56, 0.64, 1],
                                         }}
                                         className={`absolute inset-0 rounded-full ${
@@ -712,14 +721,14 @@ export default function ConnectFourPage() {
 
                   {/* Board mask layer - on top with transparent holes */}
                   <div
-                    className="relative grid gap-2 sm:gap-3 md:gap-4 p-4 sm:p-6 md:p-8 rounded-lg"
+                    className="relative grid gap-2 sm:gap-3 md:gap-4 p-4 sm:p-6 md:p-8 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 rounded-lg"
                     style={{
                       gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,
                       gridTemplateRows: `repeat(${ROWS}, minmax(0, 1fr))`,
                       transformStyle: "preserve-3d",
                       transform: "rotateX(0deg)",
                       zIndex: 2,
-                      boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3), inset 0 2px 8px rgba(30, 64, 175, 0.2)",
+                      boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3), inset 0 2px 8px rgba(255, 255, 255, 0.2)",
                     }}
                     onMouseMove={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect()
@@ -735,7 +744,8 @@ export default function ConnectFourPage() {
                     {board.map((row, rowIndex) =>
                       row.map((cell, colIndex) => {
                         const landingRow = hoverColumn === colIndex ? getLowestRow(board, colIndex) : -1
-                        const showGhost = !winner && !isAnimating && landingRow === rowIndex
+                        const showGhost =
+                          !winner && !isAnimating && landingRow === rowIndex && (!vsAI || currentPlayer === playerColor)
 
                         return (
                           <button
@@ -746,12 +756,13 @@ export default function ConnectFourPage() {
                             className="relative w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 disabled:cursor-not-allowed group"
                           >
                             <div
-                              className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
+                              className="absolute inset-0 rounded-full bg-transparent overflow-hidden"
                               style={{
                                 boxShadow: "inset 0 4px 12px rgba(0,0,0,0.6)",
-                                background: "transparent",
                               }}
                             />
+                            <div className="absolute inset-0 rounded-full ring-4 ring-blue-800 ring-inset" />
+
                             {showGhost && (
                               <motion.div
                                 initial={{ opacity: 0, scale: 0.8 }}
@@ -759,7 +770,7 @@ export default function ConnectFourPage() {
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 className={`absolute inset-2 rounded-full z-10 ${
                                   currentPlayer === "red"
-                                    ? "bg-gradient-to-b from-red-400 via-red-500 to-red-700"
+                                    ? "bg-gradient-to-b from-red-400 via-red-500 to-red-600"
                                     : "bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600"
                                 }`}
                                 style={{
@@ -776,8 +787,8 @@ export default function ConnectFourPage() {
                                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
                                 className={`absolute inset-2 rounded-full z-10 ${
                                   cell === "red"
-                                    ? "bg-gradient-to-b from-red-400 via-red-500 to-red-700"
-                                    : "bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600"
+                                    ? "bg-gradient-to-br from-red-400 via-red-500 to-red-700"
+                                    : "bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600"
                                 } ${isWinningCell(rowIndex, colIndex) ? "ring-4 ring-white animate-pulse" : ""}`}
                                 style={{
                                   boxShadow:

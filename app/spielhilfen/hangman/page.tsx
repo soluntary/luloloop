@@ -1,5 +1,6 @@
 "use client"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 const HangmanPage = () => {
   const [word, setWord] = useState("")
@@ -7,6 +8,7 @@ const HangmanPage = () => {
   const [incorrectGuesses, setIncorrectGuesses] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   const [message, setMessage] = useState("")
+  const router = useRouter()
 
   const handleGuess = (letter) => {}
 
