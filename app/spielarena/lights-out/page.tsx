@@ -406,7 +406,7 @@ export default function LightsOutPage() {
           {!showLeaderboard && (
             <div className="mb-6">
               <p className="text-center text-sm font-handwritten text-gray-600 mb-3">Wähle Schwierigkeitsgrad:</p>
-              <div className="flex justify-center gap-2">
+              <div className="flex flex-wrap justify-center gap-2">
                 <Button
                   onClick={() => {
                     setDifficulty("easy")
@@ -415,13 +415,13 @@ export default function LightsOutPage() {
                   }}
                   variant={difficulty === "easy" ? "default" : "outline"}
                   size="sm"
-                  className={`transition-all duration-300 ${
+                  className={`transition-all duration-300 text-xs ${
                     difficulty === "easy"
                       ? "bg-amber-600 hover:bg-amber-700 text-white"
                       : "border-gray-300 text-gray-700 hover:border-amber-500"
                   }`}
                 >
-                  Einfach
+                  Leicht
                 </Button>
                 <Button
                   onClick={() => {
@@ -431,7 +431,7 @@ export default function LightsOutPage() {
                   }}
                   variant={difficulty === "medium" ? "default" : "outline"}
                   size="sm"
-                  className={`transition-all duration-300 ${
+                  className={`transition-all duration-300 text-xs ${
                     difficulty === "medium"
                       ? "bg-amber-600 hover:bg-amber-700 text-white"
                       : "border-gray-300 text-gray-700 hover:border-amber-500"
@@ -447,7 +447,7 @@ export default function LightsOutPage() {
                   }}
                   variant={difficulty === "hard" ? "default" : "outline"}
                   size="sm"
-                  className={`transition-all duration-300 ${
+                  className={`transition-all duration-300 text-xs ${
                     difficulty === "hard"
                       ? "bg-amber-600 hover:bg-amber-700 text-white"
                       : "border-gray-300 text-gray-700 hover:border-amber-500"
@@ -463,7 +463,7 @@ export default function LightsOutPage() {
                   }}
                   variant={difficulty === "custom" || showCustomSettings ? "default" : "outline"}
                   size="sm"
-                  className={`transition-all duration-300 ${
+                  className={`transition-all duration-300 text-xs ${
                     difficulty === "custom" || showCustomSettings
                       ? "bg-amber-600 hover:bg-amber-700 text-white"
                       : "border-gray-300 text-gray-700 hover:border-amber-500"
@@ -514,7 +514,7 @@ export default function LightsOutPage() {
 
           {showLeaderboard && (
             <LeaderboardDisplay
-              title={`Lights Out Rangliste - Schwierigkeitsgrad: ${difficulty === "easy" ? "Einfach (3x3)" : difficulty === "medium" ? "Mittel (5x5)" : difficulty === "hard" ? "Schwer (7x7)" : "Benutzerdefiniert"}`}
+              title={`Lights Out Rangliste - Schwierigkeitsgrad: ${difficulty === "easy" ? "Leicht (3x3)" : difficulty === "medium" ? "Mittel (5x5)" : difficulty === "hard" ? "Schwer (7x7)" : "Benutzerdefiniert"}`}
               entries={leaderboard.map((score, index) => ({
                 rank: index + 1,
                 username: score.username,
@@ -534,57 +534,75 @@ export default function LightsOutPage() {
               <div className="absolute inset-0 bg-gradient-to-br from-amber-100 to-yellow-100 rounded-3xl transform rotate-1 -z-10"></div>
               <Card className="border-4 border-amber-300 shadow-2xl transform -rotate-1">
                 <CardContent className="p-8">
-                  <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-4 text-sm">
+                  <div className="text-center space-y-3 mb-6">
+                    <div className="flex items-center justify-center gap-2 text-sm">
                       <span className="text-gray-700 font-medium">Züge: {moves}</span>
                       <span className="text-gray-500">|</span>
-                      <span className="text-gray-700 font-medium">Tipps: {hintsUsed}</span>
+                      <span className="text-gray-700">Tipps: {hintsUsed}</span>
                       <span className="text-gray-500">|</span>
-                      <span className="flex items-center gap-1 text-gray-700 font-medium">
-                        <FaClock className="w-3 h-3" />
-                        {formatTime(timer)}
+                      <span className="flex items-center gap-1 text-gray-700">
+                        <FaClock className="w-3 h-3" /> {formatTime(timer)}
                       </span>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 justify-center flex-wrap">
                       <Button
                         onClick={getHint}
                         variant="outline"
                         size="sm"
-                        className="gap-2 bg-transparent"
-                        disabled={gameWon}
+                        className="gap-1 bg-amber-100 border-amber-300 text-xs px-2"
                       >
-                        <AiOutlineBulb /> Tipp
+                        <AiOutlineBulb className="w-3 h-3" /> Tipps
                       </Button>
-                      <Button onClick={initGame} variant="outline" size="sm" className="gap-2 bg-transparent">
-                        <FaRedo /> Zurücksetzen
+                      <Button
+                        onClick={() => setShowLeaderboard(true)}
+                        variant="outline"
+                        size="sm"
+                        className="gap-1 bg-transparent text-xs px-2"
+                      >
+                        <FaListOl className="w-3 h-3" /> Rangliste
+                      </Button>
+                      <Button
+                        onClick={initGame}
+                        variant="outline"
+                        size="sm"
+                        className="gap-1 bg-transparent text-xs px-2"
+                      >
+                        <FaRedo className="w-3 h-3" /> Zurücksetzen
                       </Button>
                     </div>
                   </div>
 
                   <div className="flex justify-center mb-6">
-                    <div
-                      className={`inline-grid gap-2 bg-gray-800 p-4 rounded-lg`}
-                      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-                    >
-                      {lights.map((row, i) =>
-                        row.map((light, j) => (
-                          <motion.button
-                            key={`${i}-${j}`}
-                            onClick={() => toggleLight(i, j)}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            className={`w-12 h-12 md:w-16 md:h-16 rounded-lg transition-all relative ${
-                              light ? "bg-yellow-400 shadow-lg shadow-yellow-500/50" : "bg-gray-600"
-                            } ${
-                              showHint && hintCell?.row === i && hintCell?.col === j
-                                ? "ring-4 ring-green-400 animate-pulse"
-                                : ""
-                            }`}
-                          >
-                            {light && <FaLightbulb className="w-6 h-6 md:w-8 md:h-8 text-gray-800 mx-auto" />}
-                          </motion.button>
-                        )),
-                      )}
+                    <div className="bg-slate-700 p-4 sm:p-6 rounded-2xl shadow-2xl">
+                      <div
+                        className={`grid gap-2 sm:gap-3 justify-center mx-auto`}
+                        style={{
+                          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                          width: "fit-content",
+                        }}
+                      >
+                        {lights.map((row, r) =>
+                          row.map((light, c) => (
+                            <motion.button
+                              key={`${r}-${c}`}
+                              onClick={() => toggleLight(r, c)}
+                              className={`w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl transition-all border-4 ${
+                                light
+                                  ? "bg-amber-400 border-amber-500 shadow-2xl shadow-amber-500/60"
+                                  : "bg-slate-600 border-slate-500"
+                              } ${
+                                showHint && hintCell && hintCell.row === r && hintCell.col === c
+                                  ? "ring-4 ring-green-500 animate-pulse"
+                                  : ""
+                              } flex items-center justify-center`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              {light && <FaLightbulb className="w-4 h-4 sm:w-6 sm:h-6 md:w-7 md:h-7 text-slate-800" />}
+                            </motion.button>
+                          )),
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -603,15 +621,14 @@ export default function LightsOutPage() {
                         className="pointer-events-auto"
                       >
                         <Card className="p-8 text-center mx-4 border-4 border-amber-400 shadow-2xl bg-white">
-                          <div className="text-4xl mb-4">🎉</div>
                           <motion.h2
                             animate={{ scale: [1, 1.05, 1] }}
                             transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                            className="text-5xl font-handwritten mb-6 text-green-600"
+                            className="font-handwritten mb-6 text-green-600 text-4xl"
                           >
-                            Gratuliere!
+                            🎉 Gratuliere!
                           </motion.h2>
-                          <p className="text-gray-700 mb-6 text-lg font-medium">Du hast alle Lichter ausgeschaltet!</p>
+                          <p className="text-gray-700 mb-6 font-medium text-base">Du hast alle Lichter ausgeschaltet!</p>
                           <p className="text-gray-700 mb-6 text-base">
                             Züge: {moves} | Zeit: {formatTime(timeElapsed)}
                           </p>
@@ -635,11 +652,11 @@ export default function LightsOutPage() {
                   )}
 
                   <div className="mt-6 text-sm text-gray-600 text-center">
-                    <p>
+                    <p className="text-xs">
                       Jeder Klick schaltet das ausgewählte Licht sowie horizontal und vertikal direkt angrenzende
                       Lichter um.
                     </p>
-                    <p>
+                    <p className="text-xs">
                       <strong>Ziel:</strong> Alle Lichter ausschalten!
                     </p>
                   </div>

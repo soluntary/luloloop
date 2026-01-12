@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FaArrowLeft, FaRedo } from "react-icons/fa"
 import { FaListOl } from "react-icons/fa"
-import { Maximize2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { save2048Score, get2048Leaderboard } from "@/lib/leaderboard-client-actions"
@@ -42,7 +41,6 @@ export default function Game2048Page() {
   const [gameOver, setGameOver] = useState(false)
   const [noMovesAvailable, setNoMovesAvailable] = useState(false)
   const router = useRouter()
-  const [isExpanded, setIsExpanded] = useState(false)
 
   const initializeBoard = (): Board => {
     const newBoard: Board = Array(4)
@@ -339,11 +337,9 @@ export default function Game2048Page() {
   }
 
   return (
-    <div
-      className={`min-h-screen flex flex-col bg-gradient-to-b from-purple-50 to-white ${isExpanded ? "h-screen" : ""}`}
-    >
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 to-white">
       <Navigation />
-      <main className={`flex-1 container mx-auto px-4 py-8 ${isExpanded ? "h-screen" : ""}`}>
+      <main className="flex-1 container mx-auto px-4 py-8">
         <Link
           href="/spielarena"
           className="inline-flex items-center gap-2 text-gray-600 hover:text-teal-600 mb-6 transition-colors"
@@ -352,7 +348,7 @@ export default function Game2048Page() {
           <span className="text-sm">Zurück zur Spielarena</span>
         </Link>
 
-        <div className={`max-w-md mx-auto ${isExpanded ? "max-w-7xl" : ""}`}>
+        <div className="max-w-md mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-4 mb-4">
               <motion.div
@@ -418,21 +414,10 @@ export default function Game2048Page() {
             <Card className="border-4 border-purple-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-4">
-                  <p className="text-gray-600 font-body">Punkte: {score}</p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsExpanded(true)}
-                      className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                      title="Vergrössern"
-                    >
-                      <Maximize2 className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
-                      <FaRedo /> Zurücksetzen
-                    </Button>
-                  </div>
+                  <p className="font-body text-gray-700">Punkte: {score}</p>
+                  <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
+                    <FaRedo /> Zurücksetzen
+                  </Button>
                 </div>
 
                 <div className="grid grid-cols-4 gap-3">

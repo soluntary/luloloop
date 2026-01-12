@@ -160,11 +160,6 @@ export default function HangmanPage() {
               </motion.div>
               <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Hangman</h1>
             </div>
-            {!showCategorySelection && (
-              <p className="text-gray-600 font-body transform -rotate-1">
-                Fehlversuche: {wrongGuesses} / {maxWrongGuesses}
-              </p>
-            )}
           </div>
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-br from-amber-100 to-orange-100 rounded-3xl transform rotate-1 -z-10"></div>
@@ -221,13 +216,13 @@ export default function HangmanPage() {
 
                     <div className="my-8 text-center">{renderWord()}</div>
 
-                    <div className="grid grid-cols-10 gap-2 max-w-2xl mx-auto">
+                    <div className="grid grid-cols-9 sm:grid-cols-10 gap-1 sm:gap-2 max-w-2xl mx-auto">
                       {alphabet.map((letter) => (
                         <button
                           key={letter}
                           onClick={() => guessLetter(letter)}
                           disabled={guessedLetters.includes(letter)}
-                          className={`w-10 h-10 rounded-lg font-bold text-sm ${
+                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg font-bold text-xs sm:text-sm ${
                             guessedLetters.includes(letter)
                               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                               : "bg-blue-500 text-white hover:bg-blue-600"

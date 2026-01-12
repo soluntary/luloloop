@@ -192,7 +192,7 @@ export default function PatternMatchPage() {
               <Card className="border-4 border-pink-300 shadow-2xl transform -rotate-1">
                 <CardContent className="p-8 text-center">
                   <div className="flex justify-between items-center mb-4">
-                    <p className="text-sm text-gray-600 font-body">
+                    <p className="text-sm font-body text-gray-700">
                       Runde: {round} | Punkte: {score}
                     </p>
                     <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">

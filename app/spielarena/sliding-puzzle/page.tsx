@@ -110,7 +110,7 @@ export default function SlidingPuzzlePage() {
                     : "border-gray-300 text-gray-700 hover:border-teal-500"
                 }`}
               >
-                Einfach (3x3)
+                Leicht (3x3)
               </Button>
               <Button
                 onClick={() => initializeBoard("medium")}
@@ -144,7 +144,7 @@ export default function SlidingPuzzlePage() {
             <Card className="border-4 border-teal-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-4">
-                  <p className="text-gray-600 font-body">Züge: {moves}</p>
+                  <p className="font-body text-gray-700">Züge: {moves}</p>
                   <Button
                     onClick={() => initializeBoard()}
                     variant="outline"

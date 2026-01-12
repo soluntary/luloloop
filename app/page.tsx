@@ -391,7 +391,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 30, rotate: -1 }}
             animate={{ opacity: 1, y: 0, rotate: -1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="font-bold text-gray-800 mb-6 transform -rotate-1 font-handwritten text-5xl"
+            className="font-bold text-gray-800 mb-6 transform -rotate-1 font-handwritten text-4xl"
           >
             Bring deine Spiele ins Spiel
           </motion.h2>

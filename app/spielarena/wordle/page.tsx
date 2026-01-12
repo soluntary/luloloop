@@ -472,10 +472,10 @@ export default function WordlePage() {
 
   const getKeyColor = (key: string) => {
     const status = usedLetters[key]
-    if (status === "correct") return "bg-green-500 text-white"
+    if (status === "correct") return "bg-green-600 text-white"
     if (status === "present") return "bg-yellow-500 text-white"
-    if (status === "absent") return "bg-gray-500 text-white"
-    return "bg-gray-300" // Default color
+    if (status === "absent") return "bg-gray-400 text-white"
+    return "bg-gray-200 text-gray-800 hover:bg-gray-300"
   }
 
   const keyboard = [
@@ -679,16 +679,15 @@ export default function WordlePage() {
                 {gameStatus === "playing" && (
                   <div className="space-y-2">
                     {keyboard.map((row, rowIndex) => (
-                      <div key={rowIndex} className="flex gap-1 justify-center">
+                      <div key={rowIndex} className="flex justify-center gap-1">
                         {row.map((key) => (
                           <button
                             key={key}
                             onClick={() => handleKeyPress(key)}
-                            className={`px-3 py-4 rounded font-bold text-sm transition-colors ${
-                              key === "ENTER" || key === "BACK"
-                                ? "bg-blue-500 text-white hover:bg-blue-600 px-4"
-                                : `${getKeyColor(key)} hover:opacity-80`
-                            }`}
+                            disabled={gameStatus !== "playing"}
+                            className={`px-2 py-3 sm:px-3 sm:py-4 rounded text-xs sm:text-sm font-bold transition-all ${
+                              key === "ENTER" || key === "BACK" ? "px-3 sm:px-4" : ""
+                            } ${getKeyColor(key)} ${gameStatus !== "playing" ? "cursor-not-allowed opacity-50" : ""}`}
                           >
                             {key === "BACK" ? "←" : key}
                           </button>

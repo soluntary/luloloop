@@ -217,42 +217,42 @@ export default function SimonSaysPage() {
 
           <div className="mb-6">
             <p className="text-center text-sm font-handwritten text-gray-600 mb-3">Wähle Schwierigkeitsgrad:</p>
-            <div className="flex justify-center gap-2">
+            <div className="flex flex-wrap justify-center gap-2">
               <Button
                 onClick={() => selectDifficulty("easy")}
                 variant={difficulty === "easy" ? "default" : "outline"}
                 size="sm"
-                className={`transition-all duration-300 ${
+                className={`transition-all duration-300 text-xs ${
                   difficulty === "easy"
                     ? "bg-red-600 hover:bg-red-700 text-white"
                     : "border-gray-300 text-gray-700 hover:border-red-500"
                 }`}
               >
-                Einfach (4 Farben)
+                Leicht
               </Button>
               <Button
                 onClick={() => selectDifficulty("medium")}
                 variant={difficulty === "medium" ? "default" : "outline"}
                 size="sm"
-                className={`transition-all duration-300 ${
+                className={`transition-all duration-300 text-xs ${
                   difficulty === "medium"
                     ? "bg-red-600 hover:bg-red-700 text-white"
                     : "border-gray-300 text-gray-700 hover:border-red-500"
                 }`}
               >
-                Mittel (6 Farben)
+                Mittel
               </Button>
               <Button
                 onClick={() => selectDifficulty("hard")}
                 variant={difficulty === "hard" ? "default" : "outline"}
                 size="sm"
-                className={`transition-all duration-300 ${
+                className={`transition-all duration-300 text-xs ${
                   difficulty === "hard"
                     ? "bg-red-600 hover:bg-red-700 text-white"
                     : "border-gray-300 text-gray-700 hover:border-red-500"
                 }`}
               >
-                Schwer (8 Farben)
+                Schwer
               </Button>
             </div>
           </div>
@@ -319,7 +319,7 @@ export default function SimonSaysPage() {
               <Card className="border-4 border-red-300 shadow-2xl transform -rotate-1">
                 <CardContent className="p-8">
                   <div className="flex justify-between items-center mb-4">
-                    <p className="text-gray-600 font-body">Level: {level}</p>
+                    <p className="font-body text-gray-700 text-gray-600">Level: {level}</p>
                     <Button
                       onClick={() => setGameState("idle")}
                       variant="outline"

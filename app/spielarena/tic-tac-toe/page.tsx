@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FaArrowLeft, FaRedo } from "react-icons/fa"
 import { GiTicTacToe } from "react-icons/gi"
-import { Maximize2 } from "lucide-react"
 import Link from "next/link"
 
 type Player = "X" | "O" | null
@@ -299,15 +298,6 @@ export default function TicTacToePage() {
                     </motion.div>
                   )}
                   {(winner || showSymbolDraw) && <div />}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsExpanded(true)}
-                    className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                    title="Vergrössern"
-                  >
-                    <Maximize2 className="w-3.5 h-3.5" />
-                  </Button>
                   <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
                     <FaRedo /> Zurücksetzen
                   </Button>
@@ -370,7 +360,7 @@ export default function TicTacToePage() {
                 )}
 
                 <div
-                  className="grid grid-cols-3 gap-6 justify-items-center mx-auto my-3.5 mt-0 mb-8"
+                  className="grid grid-cols-3 gap-3 sm:gap-6 justify-items-center mx-auto my-3.5 mt-0 mb-8"
                   style={{ width: "fit-content" }}
                 >
                   {board.map((cell, index) => (
@@ -381,7 +371,7 @@ export default function TicTacToePage() {
                     >
                       <Card
                         onClick={() => handleClick(index)}
-                        className={`w-32 h-32 flex items-center justify-center text-6xl font-bold cursor-pointer transition-all border-2 ${
+                        className={`w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 flex items-center justify-center text-4xl sm:text-5xl md:text-6xl font-bold cursor-pointer transition-all border-2 ${
                           winningLine.includes(index)
                             ? "bg-green-100 border-green-400 border-4"
                             : "bg-white hover:shadow-lg hover:border-green-400"

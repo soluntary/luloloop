@@ -349,17 +349,17 @@ export default function MastermindPage() {
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl transform rotate-1 -z-10"></div>
             <Card className="border-4 border-indigo-300 shadow-2xl transform -rotate-1">
               <CardContent className="p-8">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-4">
-                    <p className="text-sm text-gray-600 font-body">
+                <div className="text-center space-y-3 mb-4">
+                  <div className="flex items-center justify-center gap-4 text-sm">
+                    <p className="font-body text-gray-700">
                       Rateversuche: {guesses.length}/{MAX_ATTEMPTS}
                     </p>
-                    <p className="text-sm text-gray-600 font-body flex items-center gap-1">
+                    <p className="font-body flex items-center gap-1 text-gray-700">
                       <FaClock className="w-3 h-3" />
                       {formatTime(timer)}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 justify-center flex-wrap">
                     <Button
                       onClick={() => {
                         setIsTimerRunning(false)
@@ -367,12 +367,17 @@ export default function MastermindPage() {
                       }}
                       variant="outline"
                       size="sm"
-                      className="gap-2 bg-transparent"
+                      className="gap-1 bg-transparent text-xs px-2"
                     >
-                      <FaTrophy /> Rangliste
+                      <FaTrophy className="w-3 h-3" /> Rangliste
                     </Button>
-                    <Button onClick={initGame} variant="outline" size="sm" className="gap-2 bg-transparent">
-                      <FaRedo /> Zurücksetzen
+                    <Button
+                      onClick={initGame}
+                      variant="outline"
+                      size="sm"
+                      className="gap-1 bg-transparent text-xs px-2"
+                    >
+                      <FaRedo className="w-3 h-3" /> Zurücksetzen
                     </Button>
                   </div>
                 </div>
@@ -535,10 +540,10 @@ export default function MastermindPage() {
                 )}
 
                 <div className="mt-6 text-sm text-gray-600 text-center space-y-2">
-                  <p>
+                  <p className="text-xs">
                     <strong>Schwarze Pins:</strong> Richtige Farbe an richtiger Position
                   </p>
-                  <p>
+                  <p className="text-xs">
                     <strong>Weiße Pins:</strong> Richtige Farbe an falscher Position
                   </p>
                 </div>

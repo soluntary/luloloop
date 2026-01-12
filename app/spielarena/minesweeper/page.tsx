@@ -261,9 +261,9 @@ export default function MinesweeperPage() {
   }
 
   const getCellSize = () => {
-    if (difficulty === "easy") return "w-10 h-10 md:w-12 md:h-12" // 9x9
-    if (difficulty === "medium") return "w-6 h-6 md:w-8 md:h-8" // 16x16
-    return "w-4 h-4 md:w-5 md:h-5" // 30x16 (hard)
+    if (difficulty === "easy") return "w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10"
+    if (difficulty === "medium") return "w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6"
+    return "w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5"
   }
 
   const loadLeaderboard = async () => {
@@ -330,7 +330,7 @@ export default function MinesweeperPage() {
 
           {showLeaderboard ? (
             <LeaderboardDisplay
-              title={`Minesweeper Rangliste - Schwierigkeitsgrad: ${difficulty === "easy" ? "Einfach (9x9, 10 Minen)" : difficulty === "medium" ? "Mittel (16x16, 40 Minen)" : "Schwer (30x16, 99 Minen)"}`}
+              title={`Minesweeper Rangliste - Schwierigkeitsgrad: ${difficulty === "easy" ? "Leicht (9x9, 10 Minen)" : difficulty === "medium" ? "Mittel (16x16, 40 Minen)" : "Schwer (30x16, 99 Minen)"}`}
               entries={leaderboard.map((score, index) => ({
                 rank: index + 1,
                 username: score.username,
@@ -362,7 +362,7 @@ export default function MinesweeperPage() {
                         : "border-gray-300 text-gray-700 hover:border-gray-500"
                     }`}
                   >
-                    Einfach (9x9, 10 Minen)
+                    Leicht (9x9, 10 Minen)
                   </Button>
                   <Button
                     onClick={() => {
@@ -474,11 +474,11 @@ export default function MinesweeperPage() {
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2 text-sm">
                             <FaFlag className="text-red-500" />
-                            <span className="font-semibold">{minesLeft}</span>
+                            <span className="font-normal text-gray-700">{minesLeft}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-sm">
+                          <div className="flex items-center gap-2 text-sm text-gray-700">
                             <FaClock className="text-gray-600" />
-                            <span className="font-semibold">{formatTime(timer)}</span>
+                            <span className="font-normal">{formatTime(timer)}</span>
                           </div>
                         </div>
                         <Button onClick={initGame} variant="outline" size="sm" className="gap-2 bg-transparent">
@@ -504,7 +504,7 @@ export default function MinesweeperPage() {
                               <motion.h2
                                 animate={{ scale: [1, 1.05, 1] }}
                                 transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                                className="text-5xl font-handwritten mb-6 text-red-600"
+                                className="font-handwritten mb-6 text-red-600 text-4xl"
                               >
                                 💥 Game Over!
                               </motion.h2>
@@ -575,8 +575,11 @@ export default function MinesweeperPage() {
                         </motion.div>
                       )}
 
-                      <div className="flex justify-center">
-                        <div className="inline-grid gap-1" style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)` }}>
+                      <div className="flex justify-center overflow-x-auto pb-2">
+                        <div
+                          className="inline-grid gap-0 border-4 border-gray-800"
+                          style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)` }}
+                        >
                           {grid.map((row, r) =>
                             row.map((cell, c) => (
                               <motion.button

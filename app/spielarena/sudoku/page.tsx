@@ -8,7 +8,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { FaArrowLeft, FaClock, FaRedo, FaLightbulb } from "react-icons/fa"
 import { FaListOl } from "react-icons/fa"
 import { BsGrid3X3Gap } from "react-icons/bs"
-import { Maximize2 } from "lucide-react"
 import { saveSudokuScore, getSudokuLeaderboard, type SudokuScore } from "@/lib/leaderboard-actions"
 import { LeaderboardDisplay } from "@/components/leaderboard-display"
 
@@ -327,7 +326,7 @@ export default function SudokuPage() {
                       : "border-gray-300 text-gray-700 hover:border-indigo-500"
                   }`}
                 >
-                  Einfach
+                  Leicht
                 </Button>
                 <Button
                   onClick={() => initGame("medium")}
@@ -359,7 +358,7 @@ export default function SudokuPage() {
 
           {showLeaderboard ? (
             <LeaderboardDisplay
-              title={`Sudoku Rangliste - Schwierigkeitsgrad: ${difficulty === "easy" ? "Einfach" : difficulty === "medium" ? "Mittel" : "Schwer"}`}
+              title={`Sudoku Rangliste - Schwierigkeitsgrad: ${difficulty === "easy" ? "Leicht" : difficulty === "medium" ? "Mittel" : "Schwer"}`}
               entries={leaderboard.map((score, index) => ({
                 rank: index + 1,
                 username: score.username,
@@ -379,50 +378,49 @@ export default function SudokuPage() {
                 <CardContent className="p-8">
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
-                      <FaClock className="text-blue-500" />
-                      <span className="font-bold text-gray-600 text-sm">{formatTime(timer)}</span>
+                      <FaClock className="text-gray-700" />
+                      <span className="text-sm font-thin text-gray-700">{formatTime(timer)}</span>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {selectedCell && (
                         <Button
                           onClick={showHintForCell}
                           variant="outline"
                           size="sm"
-                          className="gap-2 bg-amber-50 border-amber-300"
+                          className="gap-1 bg-amber-50 border-amber-300 text-xs px-2"
                         >
-                          <FaLightbulb className="text-amber-500" /> Tipp
+                          <FaLightbulb className="text-amber-500 w-3 h-3" /> Tipp
                         </Button>
                       )}
                       {!showingResults && !won && (
-                        <Button onClick={checkResults} variant="outline" size="sm" className="gap-2 bg-transparent">
+                        <Button
+                          onClick={checkResults}
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 bg-transparent text-xs px-2"
+                        >
                           Abschließen
                         </Button>
                       )}
-                      <Button onClick={resetGame} variant="outline" size="sm" className="gap-2 bg-transparent">
-                        <FaRedo /> Zurücksetzen
-                      </Button>
                       <Button
-                        variant="ghost"
+                        onClick={resetGame}
+                        variant="outline"
                         size="sm"
-                        onClick={() => setIsExpanded(true)}
-                        className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                        title="Vergrössern"
+                        className="gap-1 bg-transparent text-xs px-2"
                       >
-                        <Maximize2 className="w-3.5 h-3.5" />
+                        <FaRedo className="w-3 h-3" /> Zurücksetzen
                       </Button>
                     </div>
                   </div>
 
-                  {showingResults && !won && (
-                    <div className="text-center mb-4 p-4 bg-blue-50 rounded-lg">
-                      <div className="text-sm text-gray-700">
-                        <span className="text-green-600 font-bold">Grün</span> = Richtig,{" "}
-                        <span className="text-red-600 font-bold">Rot</span> = Falsch
-                      </div>
+                  <div className="text-center mb-4 p-4 bg-blue-50 rounded-lg">
+                    <div className="text-sm text-gray-700">
+                      <span className="text-green-600 font-bold">Grün</span> = Richtig,{" "}
+                      <span className="text-red-600 font-bold">Rot</span> = Falsch
                     </div>
-                  )}
+                  </div>
 
-                  <div className="flex justify-center">
+                  <div className="flex justify-center overflow-x-auto pb-2">
                     <div className="inline-grid gap-0 border-4 border-gray-800">
                       {grid.map((row, r) => (
                         <div key={r} className="flex">
@@ -438,7 +436,7 @@ export default function SudokuPage() {
                                   setSelectedCell({ row: r, col: c })
                                 }
                               }}
-                              className={`w-10 h-10 text-center text-lg font-bold border ${
+                              className={`w-8 h-8 sm:w-10 sm:h-10 text-center text-base sm:text-lg font-bold border ${
                                 cell.isFixed
                                   ? "bg-gray-200 text-gray-800"
                                   : showingResults

@@ -11,50 +11,64 @@ export async function detectSecurityEvents(request: NextRequest): Promise<Securi
   const events: SecurityEventData[] = []
 
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const timeoutPromise = new Promise<SecurityEventData[]>((resolve) => {
+      setTimeout(() => resolve([]), 1000) // 1 second timeout
+    })
 
-    if (!user) return events
+    const detectionPromise = (async () => {
+      const supabase = await createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
-    const userAgent = request.headers.get("user-agent") || ""
-    const forwardedFor = request.headers.get("x-forwarded-for")
-    const realIp = request.headers.get("x-real-ip")
-    const ipAddress = forwardedFor?.split(",")[0] || realIp || "127.0.0.1"
+      if (!user) return []
 
-    // Check for new device login
-    const isNewDevice = await checkNewDevice(user.id, userAgent, ipAddress)
-    if (isNewDevice) {
-      events.push({
-        eventType: "new_device_login",
-        success: true,
-        additionalData: {
-          userAgent,
-          ipAddress,
-          timestamp: new Date().toISOString(),
-        },
-      })
-    }
+      const userAgent = request.headers.get("user-agent") || ""
+      const forwardedFor = request.headers.get("x-forwarded-for")
+      const realIp = request.headers.get("x-real-ip")
+      const ipAddress = forwardedFor?.split(",")[0] || realIp || "127.0.0.1"
 
-    // Check for suspicious activity patterns
-    const suspiciousActivity = await checkSuspiciousActivity(user.id, ipAddress, userAgent)
-    if (suspiciousActivity) {
-      events.push({
-        eventType: "suspicious_activity",
-        additionalData: {
-          reason: suspiciousActivity.reason,
-          userAgent,
-          ipAddress,
-          timestamp: new Date().toISOString(),
-        },
-      })
-    }
+      // Check for new device login
+      const isNewDevice = await checkNewDevice(user.id, userAgent, ipAddress)
+      if (isNewDevice) {
+        events.push({
+          eventType: "new_device_login",
+          success: true,
+          additionalData: {
+            userAgent,
+            ipAddress,
+            timestamp: new Date().toISOString(),
+          },
+        })
+      }
+
+      // Check for suspicious activity patterns
+      const suspiciousActivity = await checkSuspiciousActivity(user.id, ipAddress, userAgent)
+      if (suspiciousActivity) {
+        events.push({
+          eventType: "suspicious_activity",
+          additionalData: {
+            reason: suspiciousActivity.reason,
+            userAgent,
+            ipAddress,
+            timestamp: new Date().toISOString(),
+          },
+        })
+      }
+
+      return events
+    })()
+
+    // Race between detection and timeout
+    return await Promise.race([detectionPromise, timeoutPromise])
   } catch (error) {
+    if (error && typeof error === "object" && "name" in error && error.name === "AbortError") {
+      // Silently ignore abort errors
+      return []
+    }
     console.error("Error detecting security events:", error)
+    return []
   }
-
-  return events
 }
 
 async function checkNewDevice(userId: string, userAgent: string, ipAddress: string): Promise<boolean> {

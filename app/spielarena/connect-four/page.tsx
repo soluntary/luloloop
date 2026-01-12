@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { FaArrowLeft, FaRedo } from "react-icons/fa"
 import { TfiLayoutGrid4 } from "react-icons/tfi"
+import React from "react"
 
 type Cell = "red" | "yellow" | null
 type WinningCell = { row: number; col: number }
@@ -36,6 +37,7 @@ export default function ConnectFourPage() {
     color: "red" | "yellow"
   } | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [hoverColumn, setHoverColumn] = useState<number | null>(null)
 
   const initGame = () => {
     setBoard(
@@ -55,6 +57,7 @@ export default function ConnectFourPage() {
     setWinningCells([])
     setFallingPiece(null) // Reset falling piece state
     setIsAnimating(false) // Reset animation state
+    setHoverColumn(null) // Reset hover column state
   }
 
   const handleCoinChoice = (choice: "red" | "yellow") => {
@@ -248,16 +251,18 @@ export default function ConnectFourPage() {
   }
 
   useEffect(() => {
-    if (vsAI && !winner && !isAIThinking && !showCoinFlip && !fallingPiece && winningCells.length === 0) {
-      const isAITurn = currentPlayer === aiColor
+    const isAITurn = vsAI && currentPlayer === aiColor && !winner && !isAIThinking && !showCoinFlip
 
-      console.log("[v0] Turn check:", {
-        currentPlayer,
-        playerColor,
-        aiColor,
-        isAITurn,
-        hasWinningCells: winningCells.length > 0,
-      })
+    if (isAITurn && board) {
+      const isBoardFull = board.every((row) => row.every((cell) => cell !== null))
+
+      if (isBoardFull) {
+        setTimeout(() => {
+          alert("Unentschieden!")
+          resetGame()
+        }, 500)
+        return
+      }
 
       if (isAITurn) {
         setIsAIThinking(true)
@@ -270,40 +275,40 @@ export default function ConnectFourPage() {
         }, 500)
       }
     }
-  }, [currentPlayer, vsAI, winner, isAIThinking, showCoinFlip, board, playerColor, aiColor, fallingPiece, winningCells])
+  }, [currentPlayer, vsAI, winner, isAIThinking, showCoinFlip, board, playerColor, aiColor])
 
   const handleColumnClick = (col: number) => {
-    if (winner || isAnimating) return
+    if (winner || isAnimating || fallingPiece) return
 
     for (let row = ROWS - 1; row >= 0; row--) {
       if (board[row][col] === null) {
+        const newBoard = board.map((r) => [...r])
+        newBoard[row][col] = currentPlayer
+
+        const winResult = checkWinWithCells(newBoard, row, col)
+
+        if (winResult) {
+          setWinner(currentPlayer)
+          setWinningCells(winResult)
+        }
+
+        setBoard(newBoard)
         setIsAnimating(true)
         setFallingPiece({ row, col, color: currentPlayer })
 
-        setTimeout(
-          () => {
-            const newBoard = board.map((r) => [...r])
-            newBoard[row][col] = currentPlayer
+        const animationDuration = 800 + row * 150
 
-            setBoard(newBoard)
-            setIsAnimating(false)
-            setFallingPiece(null)
+        setTimeout(() => {
+          setFallingPiece(null)
+          setIsAnimating(false)
 
-            const winResult = checkWinWithCells(newBoard, row, col)
-            if (winResult) {
-              setWinningCells(winResult)
-              setTimeout(() => {
-                setWinner(currentPlayer)
-              }, 1000)
-            } else if (isBoardFull(newBoard)) {
-              setWinner("draw")
-            } else {
-              setCurrentPlayer(currentPlayer === "red" ? "yellow" : "red")
-            }
-          },
-          Math.max(500, row * 100),
-        )
-        break
+          if (!winResult) {
+            const nextPlayer = currentPlayer === "red" ? "yellow" : "red"
+            setCurrentPlayer(nextPlayer)
+          }
+        }, animationDuration)
+
+        return
       }
     }
   }
@@ -440,6 +445,10 @@ export default function ConnectFourPage() {
     }
 
     return bestCol
+  }
+
+  const resetGame = () => {
+    initGame()
   }
 
   return (
@@ -601,195 +610,260 @@ export default function ConnectFourPage() {
             transition={{ delay: 0.3 }}
             className="flex justify-center"
           >
-            <Card className="w-fit border-4 border-red-600/50 shadow-2xl bg-white backdrop-red">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center mb-4 gap-4">
-                  {!showCoinFlip && !winner && (
-                    <motion.div
-                      key={currentPlayer}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ type: "spring", stiffness: 200 }}
-                      className="flex flex-col items-center gap-1 bg-gradient-to-r from-gray-50 to-gray-100 px-5 rounded-xl border-2 border-gray-200 shadow-sm py-2"
-                    >
-                      <p className="text-gray-500 leading-none text-sm">Am Zug</p>
-                      <motion.div
-                        animate={{
-                          y: [0, -3, 0],
-                          boxShadow:
-                            currentPlayer === "red"
-                              ? [
-                                  "0 2px 4px rgba(220, 38, 38, 0.3)",
-                                  "0 6px 8px rgba(220, 38, 38, 0.5)",
-                                  "0 2px 4px rgba(220, 38, 38, 0.3)",
-                                ]
-                              : [
-                                  "0 2px 4px rgba(250, 204, 21, 0.3)",
-                                  "0 6px 8px rgba(250, 204, 21, 0.5)",
-                                  "0 2px 4px rgba(250, 204, 21, 0.3)",
-                                ],
-                        }}
-                        transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                        className={`rounded-full h-9 w-9 ${
-                          currentPlayer === "red"
-                            ? "bg-gradient-to-br from-red-400 to-red-700"
-                            : "bg-gradient-to-br from-yellow-200 to-yellow-400"
-                        }`}
-                      />
-                    </motion.div>
-                  )}
-                  {(winner || showCoinFlip) && <div />}
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button
-                      onClick={initGame}
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 hover:bg-gray-100 transition-all bg-transparent"
-                    >
-                      <FaRedo /> Zurücksetzen
-                    </Button>
+            <Card className="relative border-4 border-red-400 shadow-2xl bg-white max-w-fit mx-auto">
+              <CardContent className="p-4 sm:p-6">
+                {/* Current Player Indicator */}
+                <div className="flex items-center justify-center gap-3 mb-6">
+                  <motion.div
+                    animate={{ scale: currentPlayer === "red" && !winner ? [1, 1.1, 1] : 1 }}
+                    transition={{
+                      repeat: currentPlayer === "red" && !winner ? Number.POSITIVE_INFINITY : 0,
+                      duration: 1,
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <div
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full shadow-md ${
+                        currentPlayer === "red"
+                          ? "bg-gradient-to-br from-red-500 to-red-700"
+                          : "bg-gradient-to-br from-yellow-300 to-yellow-500"
+                      }`}
+                    />
+                    <span className="text-sm sm:text-base font-medium text-gray-700">am Zug</span>
                   </motion.div>
+
+                  <Button onClick={resetGame} variant="outline" className="ml-auto bg-transparent">
+                    <FaRedo className="w-4 h-4" />
+                    <span className="ml-2 text-sm">Zurücksetzen</span>
+                  </Button>
                 </div>
 
-                <AnimatePresence>
-                  {winner && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
-                    >
-                      <motion.div
-                        initial={{ scale: 0, y: -50 }}
-                        animate={{ scale: 1, y: 0 }}
-                        exit={{ scale: 0, y: -50 }}
-                        transition={{ type: "spring", duration: 0.7 }}
-                        className="pointer-events-auto"
-                      >
-                        <Card className="p-8 text-center mx-4 border-4 border-red-400 shadow-2xl bg-white">
-                          <motion.h2
-                            animate={{ scale: [1, 1.05, 1] }}
-                            transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 1 }}
-                            className={`text-5xl font-handwritten mb-6 ${
-                              winner === "draw" ? "text-gray-800" : "text-green-600"
-                            }`}
-                          >
-                            {winner === "draw" ? (
-                              "Unentschieden!"
-                            ) : vsAI ? (
-                              winner === playerColor ? (
-                                <span>🎉 Gratuliere! Du hast gewonnen!</span>
-                              ) : (
-                                <span>Schade! Ludo hat gewonnen</span>
-                              )
-                            ) : (
-                              <span>Gratuliere! {winner === "red" ? "Rot" : "Gelb"} gewinnt!</span>
-                            )}
-                          </motion.h2>
-                          <div className="flex gap-3 justify-center">
-                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button onClick={initGame} size="sm" className="bg-red-500 hover:bg-red-600">
-                                Nochmals spielen
-                              </Button>
-                            </motion.div>
-                            <Link href="/spielarena">
-                              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50 shadow-lg">
-                                  Zur Spielarena
-                                </Button>
-                              </motion.div>
-                            </Link>
-                          </div>
-                        </Card>
-                      </motion.div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="relative overflow-hidden rounded-xl" style={{ width: "fit-content" }}>
-                  {/* Falling piece with improved animation */}
-                  {fallingPiece && (
-                    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
-                      <motion.div
-                        className={`absolute w-12 h-12 rounded-full shadow-2xl ${
-                          fallingPiece.color === "red"
-                            ? "bg-gradient-to-br from-red-400 via-red-500 to-red-700"
-                            : "bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600"
-                        }`}
-                        style={{
-                          left: `${16 + fallingPiece.col * 56}px`,
-                          top: "-56px",
-                          boxShadow: `0 4px 20px ${fallingPiece.color === "red" ? "rgba(239, 68, 68, 0.6)" : "rgba(250, 204, 21, 0.6)"}`,
-                        }}
-                        animate={{
-                          y: `${(fallingPiece.row + 1) * 56 + 16}px`,
-                        }}
-                        transition={{
-                          duration: (300 + fallingPiece.row * 50) / 1000,
-                          ease: [0.4, 0, 0.6, 1],
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {/* Blue board with improved styling */}
+                {/* Board Container with 3D Blue Frame and Top Slot */}
+                <div className="relative">
+                  {/* Background layer for pieces to fall against */}
                   <div
-                    className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 pointer-events-none rounded-xl shadow-inner"
+                    className="absolute inset-0 rounded-lg bg-gradient-to-b from-gray-800 via-gray-900 to-black"
                     style={{
-                      zIndex: 1,
-                      boxShadow: "inset 0 4px 20px rgba(0, 0, 0, 0.4)",
-                      WebkitMaskImage: Array(ROWS)
-                        .fill(null)
-                        .flatMap((_, rowIdx) =>
-                          Array(COLS)
-                            .fill(null)
-                            .map(
-                              (_, colIdx) =>
-                                `radial-gradient(circle at ${16 + colIdx * 56 + 24}px ${16 + rowIdx * 56 + 24}px, transparent 22px, black 24px)`,
-                            ),
-                        )
-                        .join(", "),
-                      WebkitMaskComposite: "source-in",
-                      maskComposite: "intersect",
+                      zIndex: 0,
                     }}
                   />
 
-                  {/* Grid with enhanced 3D pieces */}
-                  <div className="relative grid grid-cols-7 gap-2 p-4 rounded-xl" style={{ zIndex: 2 }}>
-                    {board.map((row, rowIdx) =>
-                      row.map((cell, colIdx) => (
-                        <motion.button
-                          key={`${rowIdx}-${colIdx}`}
-                          onClick={() => handleColumnClick(colIdx)}
-                          disabled={!!winner || isAIThinking || !!fallingPiece}
-                          whileHover={{ scale: cell ? 1 : 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className={`w-12 h-12 rounded-full border-2 transition-all duration-200 ${
-                            cell
-                              ? ""
-                              : "border-transparent hover:border-teal-400/30 hover:bg-slate-700/20 cursor-pointer"
-                          } ${!cell && !winner && !isAIThinking && !fallingPiece ? "hover:shadow-lg" : ""}`}
-                          style={{
-                            background: cell
-                              ? cell === "red"
-                                ? "linear-gradient(135deg, #f87171 0%, #dc2626 50%, #991b1b 100%)"
-                                : "linear-gradient(135deg, #fef08a 0%, #facc15 50%, #eab308 100%)"
-                              : "transparent",
-                            boxShadow: cell
-                              ? `inset 0 2px 4px rgba(255, 255, 255, 0.3), inset 0 -2px 4px rgba(0, 0, 0, 0.3), 0 4px 12px ${cell === "red" ? "rgba(239, 68, 68, 0.4)" : "rgba(250, 204, 21, 0.4)"}`
-                              : isWinningCell(rowIdx, colIdx)
-                                ? "0 0 20px 5px rgba(251, 191, 36, 0.8)"
-                                : "none",
-                            animation: isWinningCell(rowIdx, colIdx) ? "pulse 1.5s ease-in-out infinite" : "none",
-                          }}
-                        />
-                      )),
+                  {/* Falling pieces layer - behind the board */}
+                  {fallingPiece && (
+                    <div
+                      className="absolute inset-0 rounded-lg overflow-hidden"
+                      style={{
+                        zIndex: 1,
+                      }}
+                    >
+                      <div
+                        className="grid gap-2 sm:gap-3 md:gap-4 p-4 sm:p-6 md:p-8"
+                        style={{
+                          gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,
+                          gridTemplateRows: `repeat(${ROWS}, minmax(0, 1fr))`,
+                        }}
+                      >
+                        {board.map((row, rowIndex) => {
+                          return (
+                            <React.Fragment key={`falling-row-${rowIndex}`}>
+                              {row.map((cell, colIndex) => {
+                                if (colIndex === fallingPiece.col && rowIndex <= fallingPiece.row) {
+                                  const rowsToFall = fallingPiece.row - rowIndex
+                                  const stopPosition = rowsToFall * 100
+
+                                  return (
+                                    <div
+                                      key={`falling-${rowIndex}-${colIndex}`}
+                                      className="relative w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20"
+                                    >
+                                      <motion.div
+                                        initial={{ y: "-110%" }}
+                                        animate={{ y: `${stopPosition}%` }}
+                                        transition={{
+                                          duration: (800 + fallingPiece.row * 150) / 1000,
+                                          ease: [0.34, 1.56, 0.64, 1],
+                                        }}
+                                        className={`absolute inset-0 rounded-full ${
+                                          fallingPiece.color === "red"
+                                            ? "bg-gradient-to-b from-red-400 via-red-500 to-red-600"
+                                            : "bg-gradient-to-b from-yellow-300 via-yellow-400 to-yellow-500"
+                                        }`}
+                                        style={{
+                                          boxShadow:
+                                            "inset 0 -4px 8px rgba(255,255,255,0.4), 0 8px 16px rgba(0,0,0,0.3)",
+                                        }}
+                                      />
+                                    </div>
+                                  )
+                                }
+                                return (
+                                  <div
+                                    key={`falling-empty-${rowIndex}-${colIndex}`}
+                                    className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20"
+                                  />
+                                )
+                              })}
+                            </React.Fragment>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Board mask layer - on top with transparent holes */}
+                  <div
+                    className="relative grid gap-2 sm:gap-3 md:gap-4 p-4 sm:p-6 md:p-8 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 rounded-lg"
+                    style={{
+                      gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,
+                      gridTemplateRows: `repeat(${ROWS}, minmax(0, 1fr))`,
+                      transformStyle: "preserve-3d",
+                      transform: "rotateX(0deg)",
+                      zIndex: 2,
+                      boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3), inset 0 2px 8px rgba(255, 255, 255, 0.2)",
+                    }}
+                    onMouseMove={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      const cellWidth = rect.width / COLS
+                      const x = e.clientX - rect.left
+                      const col = Math.floor(x / cellWidth)
+                      setHoverColumn(col)
+                    }}
+                    onMouseLeave={() => {
+                      setHoverColumn(null)
+                    }}
+                  >
+                    {board.map((row, rowIndex) =>
+                      row.map((cell, colIndex) => {
+                        const landingRow = hoverColumn === colIndex ? getLowestRow(board, colIndex) : -1
+                        const showGhost = !winner && !isAnimating && landingRow === rowIndex
+
+                        return (
+                          <button
+                            key={`cell-${rowIndex}-${colIndex}`}
+                            onClick={() => handleColumnClick(colIndex)}
+                            onMouseEnter={() => setHoverColumn(colIndex)}
+                            disabled={winner !== null || isAnimating}
+                            className="relative w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 disabled:cursor-not-allowed group"
+                          >
+                            <div
+                              className="absolute inset-0 rounded-full bg-transparent overflow-hidden"
+                              style={{
+                                boxShadow: "inset 0 4px 12px rgba(0,0,0,0.6)",
+                              }}
+                            />
+                            <div className="absolute inset-0 rounded-full ring-4 ring-blue-800 ring-inset" />
+
+                            {showGhost && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 0.4, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                className={`absolute inset-2 rounded-full z-10 ${
+                                  currentPlayer === "red"
+                                    ? "bg-gradient-to-b from-red-400 via-red-500 to-red-600"
+                                    : "bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600"
+                                }`}
+                                style={{
+                                  boxShadow: "inset 0 -4px 8px rgba(255,255,255,0.4), 0 8px 16px rgba(0,0,0,0.3)",
+                                }}
+                              />
+                            )}
+
+                            {/* Placed pieces (visible on top) */}
+                            {cell && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                className={`absolute inset-2 rounded-full z-10 ${
+                                  cell === "red"
+                                    ? "bg-gradient-to-b from-red-400 via-red-500 to-red-700"
+                                    : "bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600"
+                                } ${isWinningCell(rowIndex, colIndex) ? "ring-4 ring-white animate-pulse" : ""}`}
+                                style={{
+                                  boxShadow:
+                                    cell === "red"
+                                      ? "0 10px 40px rgba(239, 68, 68, 0.6), inset 0 -8px 20px rgba(127, 29, 29, 0.5), inset 0 8px 20px rgba(252, 165, 165, 0.5)"
+                                      : "0 10px 40px rgba(250, 204, 21, 0.6), inset 0 -8px 20px rgba(161, 98, 7, 0.5), inset 0 8px 20px rgba(254, 240, 138, 0.5)",
+                                }}
+                              />
+                            )}
+                          </button>
+                        )
+                      }),
                     )}
                   </div>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
+
+          {/* Win message display after game ends */}
+          {winner && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+            >
+              <motion.div
+                initial={{ scale: 0, y: -50 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0, y: -50 }}
+                transition={{ type: "spring", duration: 0.7 }}
+                className="pointer-events-auto"
+              >
+                <Card className="p-8 text-center mx-4 border-4 border-blue-500 shadow-2xl bg-white">
+                  <div className="flex items-center justify-center gap-4 mb-6">
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: "spring", damping: 8, stiffness: 200 }}
+                    >
+                      <motion.div
+                        animate={{
+                          y: [0, -15, 0],
+                          rotate: [0, 5, -5, 0],
+                        }}
+                        transition={{
+                          duration: 1.2,
+                          repeat: Number.POSITIVE_INFINITY,
+                          ease: "easeInOut",
+                        }}
+                        className={`w-20 h-20 rounded-full shadow-2xl ${
+                          winner === "red"
+                            ? "bg-gradient-to-br from-red-400 via-red-500 to-red-700"
+                            : "bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600"
+                        }`}
+                      />
+                    </motion.div>
+                    <motion.h2
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-5xl font-handwritten text-gray-800"
+                    >
+                      {"gewinnt! Gratuliere!"}
+                    </motion.h2>
+                  </div>
+                  <div className="flex gap-3 justify-center">
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button onClick={resetGame} size="sm" className="bg-blue-600 hover:bg-blue-700">
+                        Nochmals spielen
+                      </Button>
+                    </motion.div>
+                    <Link href="/spielarena">
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50 shadow-lg">
+                          Zur Spielarena
+                        </Button>
+                      </motion.div>
+                    </Link>
+                  </div>
+                </Card>
+              </motion.div>
+            </motion.div>
+          )}
         </div>
       </main>
 
