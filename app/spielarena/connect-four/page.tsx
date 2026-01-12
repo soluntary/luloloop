@@ -712,14 +712,14 @@ export default function ConnectFourPage() {
 
                   {/* Board mask layer - on top with transparent holes */}
                   <div
-                    className="relative grid gap-2 sm:gap-3 md:gap-4 p-4 sm:p-6 md:p-8 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 rounded-lg"
+                    className="relative grid gap-2 sm:gap-3 md:gap-4 p-4 sm:p-6 md:p-8 rounded-lg"
                     style={{
                       gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,
                       gridTemplateRows: `repeat(${ROWS}, minmax(0, 1fr))`,
                       transformStyle: "preserve-3d",
                       transform: "rotateX(0deg)",
                       zIndex: 2,
-                      boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3), inset 0 2px 8px rgba(255, 255, 255, 0.2)",
+                      boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3), inset 0 2px 8px rgba(30, 64, 175, 0.2)",
                     }}
                     onMouseMove={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect()
@@ -746,13 +746,12 @@ export default function ConnectFourPage() {
                             className="relative w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 disabled:cursor-not-allowed group"
                           >
                             <div
-                              className="absolute inset-0 rounded-full bg-transparent overflow-hidden"
+                              className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
                               style={{
                                 boxShadow: "inset 0 4px 12px rgba(0,0,0,0.6)",
+                                background: "transparent",
                               }}
                             />
-                            <div className="absolute inset-0 rounded-full ring-4 ring-blue-800 ring-inset" />
-
                             {showGhost && (
                               <motion.div
                                 initial={{ opacity: 0, scale: 0.8 }}
@@ -760,7 +759,7 @@ export default function ConnectFourPage() {
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 className={`absolute inset-2 rounded-full z-10 ${
                                   currentPlayer === "red"
-                                    ? "bg-gradient-to-b from-red-400 via-red-500 to-red-600"
+                                    ? "bg-gradient-to-b from-red-400 via-red-500 to-red-700"
                                     : "bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600"
                                 }`}
                                 style={{
