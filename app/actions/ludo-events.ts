@@ -241,25 +241,21 @@ export async function createLudoEvent(eventData: LudoEventData, creatorId: strin
 
     const supabase = await createClient()
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    const { data: userData, error: userError } = await supabase
+      .from("user_profiles")
+      .select("id")
+      .eq("id", creatorId)
+      .single()
 
-    if (authError || !user) {
-      console.error("[v0] Authentication failed:", authError?.message || "Auth session missing!")
+    if (userError || !userData) {
+      console.error("[v0] User verification failed:", userError?.message || "User not found!")
       return {
         success: false,
         error: "Benutzer nicht authentifiziert. Bitte melden Sie sich erneut an.",
       }
     }
 
-    if (user.id !== creatorId) {
-      console.error("[v0] User ID mismatch:", user.id, "vs", creatorId)
-      return { success: false, error: "Benutzer-ID stimmt nicht überein" }
-    }
-
-    console.log("[v0] Authentication successful for user:", user.id)
+    console.log("[v0] User verified:", userData.id)
 
     const dbEventData = {
       title: eventData.title,

@@ -67,6 +67,47 @@ const parseLocalDate = (dateString: string): Date => {
   return new Date(year, month - 1, day, 0, 0, 0, 0)
 }
 
+const adjustStartDateToMatchWeekdays = (startDate: string, weeklyDays: string[]): string => {
+  if (!startDate || weeklyDays.length === 0) return startDate
+
+  const germanToEnglishDay = (germanDay: string): string => {
+    const dayMap: Record<string, string> = {
+      Montag: "Monday",
+      Dienstag: "Tuesday",
+      Mittwoch: "Wednesday",
+      Donnerstag: "Thursday",
+      Freitag: "Friday",
+      Samstag: "Saturday",
+      Sonntag: "Sunday",
+    }
+    return dayMap[germanDay] || germanDay
+  }
+
+  const englishWeeklyDays = weeklyDays.map(germanToEnglishDay)
+  const start = new Date(startDate)
+  const startDayOfWeek = start.toLocaleDateString("en-US", { weekday: "long" })
+
+  // If start date already matches one of the selected weekdays, return it
+  if (englishWeeklyDays.includes(startDayOfWeek)) {
+    return startDate
+  }
+
+  // Find the nearest future date that matches one of the selected weekdays
+  let daysToAdd = 1
+  while (daysToAdd <= 7) {
+    const tempDate = new Date(start)
+    tempDate.setDate(tempDate.getDate() + daysToAdd)
+    const dayOfWeek = tempDate.toLocaleDateString("en-US", { weekday: "long" })
+
+    if (englishWeeklyDays.includes(dayOfWeek)) {
+      return tempDate.toISOString().split("T")[0]
+    }
+    daysToAdd++
+  }
+
+  return startDate
+}
+
 const generateSeriesDates = (
   startDate: string,
   frequency: string,
@@ -497,6 +538,46 @@ export default function CreateLudoEventForm({
   const [locationType, setLocationType] = useState<"local" | "virtual">("local")
 
   useEffect(() => {
+    if (
+      formData.frequency === "wöchentlich" &&
+      formData.seriesMode === "series" &&
+      formData.weeklyDays.length > 0 &&
+      formData.eventDate
+    ) {
+      const startDate = new Date(formData.eventDate)
+      const dayNames = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"]
+      const currentDay = dayNames[startDate.getDay()]
+
+      // Check if current start date matches one of the selected weekdays
+      if (!formData.weeklyDays.includes(currentDay)) {
+        // Find the next matching weekday
+        const dayIndices = formData.weeklyDays.map((day) => dayNames.indexOf(day)).sort((a, b) => a - b)
+        const currentDayIndex = startDate.getDay()
+
+        // Find the next matching day
+        let nextDayIndex = dayIndices.find((idx) => idx > currentDayIndex)
+        if (nextDayIndex === undefined) {
+          // If no day later in the week, take the first selected day of next week
+          nextDayIndex = dayIndices[0] + 7
+        }
+
+        // Calculate days to add
+        const daysToAdd = nextDayIndex - currentDayIndex
+        const newDate = new Date(startDate)
+        newDate.setDate(newDate.getDate() + daysToAdd)
+
+        // Update the start date
+        const formattedDate = newDate.toISOString().split("T")[0]
+        setFormData((prev) => ({ ...prev, eventDate: formattedDate }))
+
+        console.log(
+          `[v0] Adjusted start date from ${formData.eventDate} (${currentDay}) to ${formattedDate} (${dayNames[newDate.getDay()]}) to match selected weekdays`,
+        )
+      }
+    }
+  }, [formData.weeklyDays, formData.frequency, formData.seriesMode, formData.eventDate]) // Added eventDate dependency
+
+  useEffect(() => {
     // Initialize form values with initialData, including selectedGames, friends, etc.
     if (initialData) {
       setSelectedGames(initialData.games || parseSelectedGames(initialData))
@@ -580,6 +661,22 @@ export default function CreateLudoEventForm({
     console.log(`[v0] Input change - Field: ${field}, Value: ${value}`)
     setFormData((prev) => {
       const newData = { ...prev, [field]: value }
+
+      if (
+        field === "weeklyDays" &&
+        prev.frequency === "wöchentlich" &&
+        prev.seriesMode === "series" &&
+        prev.eventDate
+      ) {
+        const adjustedDate = adjustStartDateToMatchWeekdays(prev.eventDate, value)
+        if (adjustedDate !== prev.eventDate) {
+          newData.eventDate = adjustedDate
+          toast.success(
+            `Start-Datum wurde auf ${new Date(adjustedDate).toLocaleDateString("de-DE")} angepasst, um mit den ausgewählten Wochentagen übereinzustimmen.`,
+          )
+        }
+      }
+
       console.log(`[v0] Updated form data for ${field}:`, newData[field])
       return newData
     })
@@ -1156,13 +1253,13 @@ export default function CreateLudoEventForm({
   const getStepTitle = (step: number) => {
     switch (step) {
       case 1:
-        return "Details"
+        return "Basis"
       case 2:
-        return "Termin & Ort"
+        return "Details"
       case 3:
-        return "Welche Spiele werden zum Event gespielt?"
+        return "Spiele"
       case 4:
-        return "Einstellungen & Veröffentlichung"
+        return "Häufigkeit"
       default:
         return ""
     }
@@ -1267,27 +1364,35 @@ export default function CreateLudoEventForm({
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
         {/* Progress Bar */}
         <div className="mb-6 border-b border-gray-200 pb-4">
-          <div className="flex items-center justify-between mb-2">
-            {[1, 2, 3, 4].map((step) => (
-              <div key={step} className="flex items-center flex-1">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                    currentStep >= step ? "bg-teal-600 text-white" : "bg-gray-200 text-gray-500"
+          <div className="flex items-start justify-between">
+            {[
+              { step: 1, label: "Basis" },
+              { step: 2, label: "Details" },
+              { step: 3, label: "Spiele" },
+              { step: 4, label: "Häufigkeit" },
+            ].map(({ step, label }, index) => (
+              <div key={step} className="flex flex-col items-center flex-1">
+                <div className="flex items-center w-full">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
+                      currentStep >= step ? "bg-teal-600 text-white" : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    {step}
+                  </div>
+                  {step < 4 && (
+                    <div className={`flex-1 h-1 mx-2 ${currentStep > step ? "bg-teal-600" : "bg-gray-200"}`} />
+                  )}
+                </div>
+                <span
+                  className={`text-sm mt-2 text-center ${
+                    currentStep === step ? "font-semibold text-teal-600" : "text-gray-600"
                   }`}
                 >
-                  {step}
-                </div>
-                {step < 4 && (
-                  <div className={`flex-1 h-1 mx-2 ${currentStep > step ? "bg-teal-600" : "bg-gray-200"}`} />
-                )}
+                  {label}
+                </span>
               </div>
             ))}
-          </div>
-          <div className="flex justify-between text-sm text-gray-600 mt-2">
-            <span className={currentStep === 1 ? "font-semibold text-teal-600" : ""}>Basis</span>
-            <span className={currentStep === 2 ? "font-semibold text-teal-600" : ""}>Details</span>
-            <span className={currentStep === 3 ? "font-semibold text-teal-600" : ""}>Spiele</span>
-            <span className={currentStep === 4 ? "font-semibold text-teal-600" : ""}>Häufigkeit</span>
           </div>
         </div>
 
@@ -1298,74 +1403,102 @@ export default function CreateLudoEventForm({
         {/* Step 1: Ludo Event Details */}
         {currentStep === 1 && (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <Label className="text-sm font-medium text-gray-700 mb-2 block">Event-Bilder</Label>
-              <p className="text-xs text-gray-600 mb-4">
-                Lade bis zu 5 Bilder hoch, um dein Event attraktiver zu gestalten (optional)
-              </p>
+            {/* Basic Information Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b">
+                <Gamepad2 className="w-5 h-5 text-teal-600" />
+                <h3 className="font-semibold text-lg">Grundinformationen</h3>
+              </div>
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">Event-Bilder</Label>
+                <p className="text-xs text-gray-600 mb-4">
+                  Lade bis zu 5 Bilder hoch, um dein Event attraktiver zu gestalten (optional)
+                </p>
 
-              {selectedImages.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-                  {selectedImages.map((url, index) => (
-                    <div key={index} className="relative rounded-lg overflow-hidden border-2 border-gray-300">
-                      <img
-                        src={url || "/placeholder.svg"}
-                        alt={`Event image ${index + 1}`}
-                        className="w-full h-32 object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveImage(index)}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                      {index === 0 && (
-                        <Badge className="absolute bottom-2 left-2 text-[8px] bg-teal-500 text-white">Hauptbild</Badge>
-                      )}
+                {selectedImages.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {selectedImages.map((img, index) => (
+                        <div
+                          key={index}
+                          className="relative aspect-square rounded-lg overflow-hidden border border-gray-200"
+                        >
+                          <img
+                            src={img || "/placeholder.svg"}
+                            alt={`Event ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                          {index === 0 && (
+                            <Badge className="absolute bottom-2 left-2 text-[8px] bg-teal-500 text-white">
+                              Hauptbild
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div
-                  onClick={handleImageUpload}
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition-all"
-                >
-                  <div className="flex flex-col items-center space-y-3">
-                    {isUploadingImage ? (
-                      <Loader2 className="h-10 w-10 text-gray-900 animate-spin" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                        <Upload className="h-6 w-6 text-gray-700" />
+                    <Button
+                      type="button"
+                      onClick={handleImageUpload}
+                      disabled={isUploadingImage}
+                      variant="outline"
+                      className="w-full border-2 border-dashed border-gray-300 hover:border-teal-500 hover:bg-teal-50 bg-transparent"
+                    >
+                      {isUploadingImage ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4 mr-2" />
+                      )}
+                      {isUploadingImage ? "Bilder werden verarbeitet..." : "Weitere Bilder hinzufügen"}
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={handleImageUpload}
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition-all"
+                  >
+                    <div className="flex flex-col items-center space-y-3">
+                      {isUploadingImage ? (
+                        <Loader2 className="h-10 w-10 text-gray-900 animate-spin" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                          <Upload className="h-6 w-6 text-gray-700" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-gray-700 font-medium text-base">
+                          {isUploadingImage ? "Bilder werden verarbeitet..." : "Klicken zum Hochladen"}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          JPG, PNG oder WebP (max. 5MB pro Bild, bis zu 5 Bilder)
+                        </p>
                       </div>
-                    )}
-                    <div>
-                      <p className="text-gray-700 font-medium text-base">
-                        {isUploadingImage ? "Bilder werden verarbeitet..." : "Klicken zum Hochladen"}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        JPG, PNG oder WebP (max. 5MB pro Bild, bis zu 5 Bilder)
-                      </p>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                multiple
-                onChange={handleFileChange}
-                className="hidden"
-              />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
 
-              {imageError && (
-                <p className="text-red-500 text-sm mt-3 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {imageError}
-                </p>
-              )}
+                {imageError && (
+                  <p className="text-red-500 text-sm mt-3 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    {imageError}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="bg-white rounded-lg p-6 border border-gray-200">
@@ -1373,7 +1506,6 @@ export default function CreateLudoEventForm({
                 <Label htmlFor="title" className="text-sm font-medium text-gray-700">
                   Event-Titel <span className="text-red-500">*</span>
                 </Label>
-                {/* </CHANGE> */}
                 <span className="text-xs text-gray-500">{formData.title.length}/60</span>
               </div>
               <Input
@@ -1849,7 +1981,7 @@ export default function CreateLudoEventForm({
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {formData.frequency === "einmalig" ? (
                     <div className="flex justify-between items-center bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                      <span className="font-medium text-gray-800">
+                      <span className="font-medium text-gray-800 text-xs">
                         {parseLocalDate(formData.eventDate).toLocaleDateString("de-DE", {
                           weekday: "long",
                           year: "numeric",
@@ -1857,7 +1989,7 @@ export default function CreateLudoEventForm({
                           day: "numeric",
                         })}
                       </span>
-                      <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
+                      <span className="font-medium bg-gray-100 px-3 py-1 rounded-full text-xs">
                         {formData.startTime} - {formData.endTime}
                       </span>
                     </div>

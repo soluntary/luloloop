@@ -267,13 +267,6 @@ export default function Game2048Page() {
                       </ul>
                     </div>
 
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <p className="text-gray-600 text-xs italic">
-                        <strong>Tipp:</strong> Versuche, die größten Zahlen in einer Ecke zu sammeln und baue
-                        systematisch von dort aus auf!
-                      </p>
-                    </div>
-
                     <div className="flex justify-center pt-4 gap-5">
                       <Button
                         onClick={() => setShowIntro(false)}
