@@ -237,11 +237,11 @@ export default function MastermindPage() {
                       <div className="mt-4 space-y-2 bg-gray-50 p-4 rounded-lg text-xs">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-black rounded-full"></div>
-                          <span className="text-gray-600">= Richtige Farbe an richtiger Position</span>
+                          <span className="text-gray-600">Richtige Farbe an richtiger Position</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-white border-2 border-black rounded-full"></div>
-                          <span className="text-gray-600">= Richtige Farbe an falscher Position</span>
+                          <span className="text-gray-600">Richtige Farbe an falscher Position</span>
                         </div>
                       </div>
                     </div>

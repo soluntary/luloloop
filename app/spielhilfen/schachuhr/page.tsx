@@ -93,8 +93,16 @@ export default function SchachuhrPage() {
   }
 
   useEffect(() => {
-    if (gameState === "playing") {
-      intervalRef.current = setInterval(() => {
+    let animationFrameId: number
+    let lastUpdateTime = Date.now()
+
+    const updateTimer = () => {
+      const now = Date.now()
+      const elapsed = now - lastUpdateTime
+
+      if (elapsed >= 1000) {
+        lastUpdateTime = now
+
         if (activePlayer === 1) {
           setPlayer1Time((prev) => {
             if (prev <= 1) {
@@ -112,17 +120,18 @@ export default function SchachuhrPage() {
             return prev - 1
           })
         }
-      }, 1000)
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
+      }
+
+      if (gameState === "playing") {
+        animationFrameId = requestAnimationFrame(updateTimer)
       }
     }
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-      }
+
+    if (gameState === "playing") {
+      animationFrameId = requestAnimationFrame(updateTimer)
     }
+
+    return () => cancelAnimationFrame(animationFrameId)
   }, [gameState, activePlayer])
 
   const getPlayerButtonClass = (player: Player) => {

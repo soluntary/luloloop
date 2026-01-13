@@ -408,7 +408,9 @@ export default function WuerfelPage() {
             <h1 className="font-handwritten text-2xl md:text-4xl text-gray-800 transform rotate-1">Würfel</h1>
           </div>
           <p className="text-center text-gray-600 text-sm">
-            Virtuelle Würfel mit 3D-Animation für alle Würfeltypen (D4, D6, D8, D10, D12, D20, D100)
+            <span className="no-underline" style={{ textDecoration: "none" }}>
+              Virtuelle Würfel mit 3D-Animation für alle Würfeltypen (D4, D6, D8, D10, D12, D20, D100)
+            </span>
           </p>
         </div>
 

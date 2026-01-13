@@ -73,6 +73,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Edit, Trash2, Settings, UserPlus, MessageCircle } from "lucide-react"
+import { CreateLudoEventFormDialog } from "@/components/forms/create-ludo-event-form-dialog"
 
 interface LudoEvent {
   id: string
@@ -2792,6 +2793,17 @@ export default function LudoEventsPage() {
             setProfileModalUserId(null)
           }}
         />
+
+        {isCreateDialogOpen && (
+          <CreateLudoEventFormDialog
+            onClose={() => setIsCreateDialogOpen(false)}
+            onSuccess={() => {
+              setIsCreateDialogOpen(false)
+              loadEvents() // Renamed fetchEvents to loadEvents
+              toast.success("Event erfolgreich erstellt!")
+            }}
+          />
+        )}
         {/* </CHANGE> */}
       </div>
     </div>

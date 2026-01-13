@@ -42,16 +42,42 @@ export default function TimerPage() {
   }
 
   useEffect(() => {
-    let interval: NodeJS.Timeout
+    let animationFrameId: number
+    let lastUpdateTime = Date.now()
+
+    const updateTimer = () => {
+      const now = Date.now()
+      const elapsed = now - lastUpdateTime
+
+      if (elapsed >= 1000) {
+        lastUpdateTime = now
+        setTimeLeft((t) => {
+          if (t <= 1) {
+            setIsRunning(false)
+            if (audioRef.current) {
+              audioRef.current.play()
+            }
+            return 0
+          }
+          return t - 1
+        })
+      }
+
+      if (isRunning) {
+        animationFrameId = requestAnimationFrame(updateTimer)
+      }
+    }
+
     if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft((t) => t - 1), 1000)
+      animationFrameId = requestAnimationFrame(updateTimer)
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false)
       if (audioRef.current) {
         audioRef.current.play()
       }
     }
-    return () => clearInterval(interval)
+
+    return () => cancelAnimationFrame(animationFrameId)
   }, [isRunning, timeLeft])
 
   const formatTime = (seconds: number) => {
