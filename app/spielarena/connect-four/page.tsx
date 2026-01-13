@@ -620,7 +620,7 @@ export default function ConnectFourPage() {
             <Card className="relative border-4 border-red-400 shadow-2xl bg-white max-w-fit mx-auto">
               <CardContent className="p-4 sm:p-6 md:p-8">
                 {/* Current Player Indicator */}
-                <div className="flex items-center justify-center gap-3 mb-6">
+                <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6 mb-6">
                   <motion.div
                     animate={{ scale: currentPlayer === "red" && !winner ? [1, 1.1, 1] : 1 }}
                     transition={{
@@ -823,34 +823,29 @@ export default function ConnectFourPage() {
                 className="pointer-events-auto w-full max-w-md"
               >
                 <Card className="p-4 sm:p-8 text-center border-4 border-blue-500 shadow-2xl bg-white">
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+                  <div className="flex flex-row items-center justify-center gap-3 sm:gap-6">
                     <motion.div
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: "spring", damping: 8, stiffness: 200 }}
-                    >
-                      <motion.div
-                        animate={{
-                          y: [0, -15, 0],
-                          rotate: [0, 5, -5, 0],
-                        }}
-                        transition={{
-                          duration: 1.2,
-                          repeat: Number.POSITIVE_INFINITY,
-                          ease: "easeInOut",
-                        }}
-                        className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-2xl ${
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1, rotate: [0, 360] }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 260,
+                        damping: 20,
+                        delay: 0.1,
+                      }}
+                      className="w-12 h-12 sm:w-20 sm:h-20 rounded-full shadow-lg flex-shrink-0"
+                      style={{
+                        background:
                           winner === "red"
-                            ? "bg-gradient-to-br from-red-400 via-red-500 to-red-700"
-                            : "bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600"
-                        }`}
-                      />
-                    </motion.div>
+                            ? "radial-gradient(circle at 30% 30%, #fca5a5, #ef4444, #991b1b)"
+                            : "radial-gradient(circle at 30% 30%, #fde047, #eab308, #a16207)",
+                      }}
+                    />
                     <motion.h2
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.3 }}
-                      className="text-3xl sm:text-5xl font-handwritten text-gray-800"
+                      className="text-2xl sm:text-5xl font-handwritten text-gray-800"
                     >
                       gewinnt! Gratuliere!
                     </motion.h2>

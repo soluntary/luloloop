@@ -27,13 +27,12 @@ const games = [
     linkText: "Spielen",
   },
   {
-    id: "tic-tac-toe",
-    title: "Tic-Tac-Toe",
-    description:
-      "Das beliebte Zweipersonen-Strategiespiel. Wer schafft als Erster drei seiner Zeichen in einer Reihe, Spalte oder Diagonalen? Spielt dabei gegen den Computer oder gegeneinander.",
-    icon: GiTicTacToe,
-    color: "green",
-    rotation: "-rotate-1",
+    id: "pattern-match",
+    title: "Pattern Match",
+    description: "Erkenne und reproduziere das Muster! Trainiere dein visuelles Gedächtnis.",
+    icon: IoGrid,
+    color: "violet",
+    rotation: "rotate-1",
     linkText: "Spielen",
   },
   {
@@ -94,12 +93,13 @@ const games = [
     linkText: "Spielen",
   },
   {
-    id: "pattern-match",
-    title: "Pattern Match",
-    description: "Erkenne und reproduziere das Muster! Trainiere dein visuelles Gedächtnis.",
-    icon: IoGrid,
-    color: "violet",
-    rotation: "rotate-1",
+    id: "tic-tac-toe",
+    title: "Tic-Tac-Toe",
+    description:
+      "Das beliebte Zweipersonen-Strategiespiel. Wer schafft als Erster drei seiner Zeichen in einer Reihe, Spalte oder Diagonalen? Spielt dabei gegen den Computer oder gegeneinander.",
+    icon: GiTicTacToe,
+    color: "green",
+    rotation: "-rotate-1",
     linkText: "Spielen",
   },
   {
