@@ -116,15 +116,20 @@ export default function SimonSaysPage() {
     setGameState("showing")
     shouldInterruptRef.current = false
 
+    const baseDelay = 500
+    const minDelay = 150
+    const delayReduction = 25 // Reduce 25ms per level
+    const currentDelay = Math.max(minDelay, baseDelay - level * delayReduction)
+
     for (const colorId of seq) {
       if (shouldInterruptRef.current) return // Stop if interrupted
 
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, currentDelay))
       if (shouldInterruptRef.current) return // Check again after delay
 
       setActiveButton(colorId)
       playSound(colorArray[colorId].sound)
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, currentDelay))
       if (shouldInterruptRef.current) return // Check again after delay
 
       setActiveButton(null)

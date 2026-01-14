@@ -29,7 +29,7 @@ const games = [
   {
     id: "pattern-match",
     title: "Pattern Match",
-    description: "Schau dir eine Farbkombination für wenige Sekunden an und bilde die nach.",
+    description: "Schau dir eine Farbkombination für wenige Sekunden an und wiederhole die exakt.",
     icon: IoGrid,
     color: "violet",
     rotation: "rotate-1",
@@ -38,7 +38,7 @@ const games = [
   {
     id: "simon-says",
     title: "Sound Memory",
-    description: "Ein spannendes Memory-Spiel mit Licht und Ton. Kannst du dir die Abfolge merken und die richtige Reihenfolge abspielen?",
+    description: "Teste dein Gedächtnis auf spielerische Weise und trainiere deine Merkfähigkeit! Beobachte aufleuchtende Farben und merke dir die Abfolge genau. Schaffst du es, sie fehlerfrei wiederzugeben?",
     icon: GiSoundOn,
     color: "red",
     rotation: "-rotate-1",
