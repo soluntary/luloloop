@@ -1695,7 +1695,7 @@ export default function LudoGruppenPage() {
                       Alle
                     </SelectItem>
                     <SelectItem value="automatic" className="text-xs">
-                      Sofortiger Beitritt
+                      Offener Beitritt
                     </SelectItem>
                     <SelectItem value="manual" className="text-xs">
                       Beitritt erst nach Genehmigung
@@ -2127,7 +2127,7 @@ export default function LudoGruppenPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="automatic">Sofortiger Beitritt</SelectItem>
+                        <SelectItem value="automatic">Offener Beitritt</SelectItem>
                         <SelectItem value="manual">Beitritt erst nach Genehmigung</SelectItem>
                       </SelectContent>
                     </Select>
@@ -2139,10 +2139,9 @@ export default function LudoGruppenPage() {
                         <div className="flex items-start gap-2">
                           <FaCheckCircle className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="text-xs font-semibold text-gray-900 mb-1">Sofortiger Beitritt</p>
+                            <p className="text-xs font-semibold text-gray-900 mb-1">Offener Beitritt</p>
                             <p className="text-xs text-gray-600">
-                              Interessenten können der Spielgruppe sofort beitreten, ohne auf eine Genehmigung warten zu
-                              müssen.
+                              Jeder ist willkommen, der Spielgruppe beizutreten
                             </p>
                           </div>
                         </div>

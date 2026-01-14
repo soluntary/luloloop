@@ -15,6 +15,7 @@ import { createLudoEvent } from "@/app/actions/ludo-events"
 import { useAuth } from "@/contexts/auth-context"
 import { useGames } from "@/contexts/games-context"
 import { useFriends } from "@/contexts/friends-context"
+import { SlPicture } from "react-icons/sl"
 import { toast } from "react-hot-toast"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
@@ -1410,7 +1411,7 @@ export default function CreateLudoEventForm({
                 <h3 className="font-semibold text-lg">Grundinformationen</h3>
               </div>
               <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">Event-Bilder</Label>
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">Bilder</Label>
                 <p className="text-xs text-gray-600 mb-4">
                   Lade bis zu 5 Bilder hoch, um dein Event attraktiver zu gestalten (optional)
                 </p>
@@ -1468,7 +1469,7 @@ export default function CreateLudoEventForm({
                         <Loader2 className="h-10 w-10 text-gray-900 animate-spin" />
                       ) : (
                         <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                          <Upload className="h-6 w-6 text-gray-700" />
+                          <SlPicture className="h-6 w-6 text-gray-700" />
                         </div>
                       )}
                       <div>
@@ -1504,7 +1505,7 @@ export default function CreateLudoEventForm({
             <div className="bg-white rounded-lg p-6 border border-gray-200">
               <div className="flex items-center justify-between mb-2">
                 <Label htmlFor="title" className="text-sm font-medium text-gray-700">
-                  Event-Titel <span className="text-red-500">*</span>
+                  Titel <span className="text-red-500">*</span>
                 </Label>
                 <span className="text-xs text-gray-500">{formData.title.length}/60</span>
               </div>
@@ -1878,7 +1879,7 @@ export default function CreateLudoEventForm({
             <div className="bg-white rounded-lg p-6 border border-gray-200">
               <Label htmlFor="eventDate" className="text-sm font-medium text-gray-700 mb-3 block">
                 {formData.frequency === "einmalig"
-                  ? "Event-Datum *"
+                  ? "Datum *"
                   : formData.seriesMode === "series"
                     ? "Start-Datum *"
                     : "Datum *"}
@@ -2202,7 +2203,7 @@ export default function CreateLudoEventForm({
 
             <div className="bg-white rounded-lg p-6 border border-gray-200">
               <Label htmlFor="location" className="text-sm font-medium text-gray-700 mb-3 block">
-                Ort *
+                Treffpunkt *
               </Label>
               <div className="space-y-4">
                 <Select
@@ -2490,7 +2491,7 @@ export default function CreateLudoEventForm({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="automatic">
-                      Direkte Teilnahme (Mitglieder können sich direkt für das Event anmelden)
+                      Offene Teilnahme (Jeder kann teilnehmen)
                     </SelectItem>
                     <SelectItem value="manual">
                       Teilnahme erst nach Genehmigung (Du genehmigst jede Teilnahme-Anfrage)

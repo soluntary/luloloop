@@ -34,6 +34,15 @@ const games = [
     color: "violet",
     rotation: "rotate-1",
     linkText: "Spielen",
+  },  
+  {
+    id: "minesweeper",
+    title: "Minesweeper",
+    description: "Das klassische Logikspiel! Decke alle Felder auf, hinter welchen keine Minen verborgen sind.",
+    icon: FaBomb,
+    color: "gray",
+    rotation: "-rotate-1",
+    linkText: "Spielen",
   },
   {
     id: "simon-says",
@@ -61,15 +70,6 @@ const games = [
     icon: IoExtensionPuzzle,
     color: "teal",
     rotation: "rotate-1",
-    linkText: "Spielen",
-  },
-  {
-    id: "minesweeper",
-    title: "Minesweeper",
-    description: "Das klassische Logikspiel! Decke alle Felder auf, hinter welchen keine Minen verborgen sind.",
-    icon: FaBomb,
-    color: "gray",
-    rotation: "-rotate-1",
     linkText: "Spielen",
   },
   {
