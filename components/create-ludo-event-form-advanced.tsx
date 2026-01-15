@@ -1,10 +1,15 @@
 "use client"
 
 import type React from "react"
-import { useEffect } from "react"
-import { Search, Gamepad2, X, Library, Upload, AlertCircle, Loader2, Plus, Trash2, Dice6, Users } from "lucide-react"
+import { useEffect, useState, useRef } from "react"
+import { Search, Gamepad2, X, Library, AlertCircle, Loader2, Plus, Trash2, Users } from "lucide-react"
+import { FaCheckCircle, FaClock, FaUserPlus } from "react-icons/fa"
+import { SlPicture } from "react-icons/sl"
+import { toast } from "react-hot-toast"
+import { motion } from "framer-motion" // Import motion
+import { useRouter } from "next/navigation" // Import useRouter
+import { UserProfileModal } from "@/components/user-profile-modal" // Import UserProfileModal component
 
-import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,11 +20,11 @@ import { createLudoEvent } from "@/app/actions/ludo-events"
 import { useAuth } from "@/contexts/auth-context"
 import { useGames } from "@/contexts/games-context"
 import { useFriends } from "@/contexts/friends-context"
-import { SlPicture } from "react-icons/sl"
-import { toast } from "react-hot-toast"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
-import { Badge } from "@/components/ui/badge" // Import Badge
+import { Badge } from "@/components/ui/badge"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar" // Import Avatar components
 
 // Assume supabase client is imported and initialized elsewhere if needed for direct DB calls
 // import { supabase } from "@/lib/supabaseClient"; // Example import
@@ -44,6 +49,7 @@ interface Friend {
   avatar?: string
   email?: string
   bio?: string
+  username?: string // Added username
 }
 
 interface CreateLudoEventFormProps {
@@ -52,6 +58,7 @@ interface CreateLudoEventFormProps {
   initialData?: any
   onEventCreated?: (newEvent: any) => void // Added for Supabase integration callback
   onClose: () => void // Added for Supabase integration callback
+  event?: any // Added for possible initial data loading from an existing event
 }
 
 interface TimeSlot {
@@ -396,10 +403,15 @@ export default function CreateLudoEventForm({
   console.log("[v0] InitialData games:", initialData?.games)
   console.log("[v0] InitialData selected_games:", initialData?.selected_games)
 
+  const router = useRouter() // Initialize useRouter
+
+  const [profileModalOpen, setProfileModalOpen] = useState(false)
+  const [selectedProfileUserId, setSelectedProfileUserId] = useState<string | null>(null)
+
   const { user: authUser } = useAuth() // Renamed to avoid conflict with Supabase user
   const { games: userGames } = useGames()
   const { friends } = useFriends()
-  const [currentStep, setCurrentStep] = useState(1)
+  // const [currentStep, setCurrentStep] = useState(1) // Removed: replaced by accordion
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [imageError, setImageError] = useState<string | null>(null)
@@ -465,7 +477,7 @@ export default function CreateLudoEventForm({
   const [formData, setFormData] = useState({
     title: initialData?.title || "",
     description: initialData?.description || "",
-    maxPlayers: initialData?.max_participants?.toString() || "4",
+    maxPlayers: initialData?.max_participants?.toString() || "", // Changed maxPlayers default from "4" to empty string
     frequency: (initialData?.frequency || "einmalig") as
       | "einmalig"
       | "täglich"
@@ -494,7 +506,7 @@ export default function CreateLudoEventForm({
     onlinePlatform: initialData?.online_platform || "",
     visibility: (initialData?.visibility || "public") as "public" | "friends_only",
     requiresApproval: initialData?.requires_approval || false,
-    organizerOnly: initialData?.organizer_only || false,
+    organizerOnly: initialData?.organizer_only || false, // Moved from Step 2 to Step 1
     prizeInfo: initialData?.prize_info || "",
     rules: initialData?.rules || "",
     additionalInfo: initialData?.additional_info || "",
@@ -632,6 +644,8 @@ export default function CreateLudoEventForm({
       if (initialData.approval_required !== undefined)
         handleInputChange("approvalRequired", initialData.approval_required)
       if (initialData.notes) handleInputChange("notes", initialData.notes)
+      // Mapped organizerOnly from initialData to formData
+      if (initialData.organizer_only !== undefined) handleInputChange("organizerOnly", initialData.organizer_only)
     }
 
     // Initialize location type
@@ -844,93 +858,11 @@ export default function CreateLudoEventForm({
   }
 
   const validateCurrentStep = () => {
-    console.log("[v0] Validating step:", currentStep)
-    console.log("[v0] Current form data:", formData)
-
-    const stepErrors: { [key: string]: string } = {}
-    let isValid = true
-
-    if (currentStep === 1) {
-      // Step 1: Only validate title - user can proceed once title is filled
-      if (!formData.title.trim()) {
-        stepErrors.title = "Bitte gib einen Titel für das Event ein."
-        isValid = false
-      }
-    }
-
-    if (currentStep === 2) {
-      // Step 2: Validate date, time, location, and interval settings
-      if (!formData.eventDate) {
-        stepErrors.eventDate = "Bitte wähle ein Datum für das Event."
-        isValid = false
-      }
-      if (!formData.startTime) {
-        stepErrors.startTime = "Bitte wähle eine Startzeit."
-        isValid = false
-      }
-      if (!formData.endTime) {
-        stepErrors.endTime = "Bitte wähle eine Endzeit."
-        isValid = false
-      }
-      if (!formData.location.trim() && !formData.isOnline) {
-        stepErrors.location = "Bitte gib einen Ort an oder wähle Online-Event."
-        isValid = false
-      }
-      if (formData.isOnline && !formData.onlinePlatform.trim()) {
-        stepErrors.onlinePlatform = "Bitte gib eine Online-Plattform an."
-        isValid = false
-      }
-      // Allow empty field for unlimited participants
-      if (formData.maxPlayers !== "" && Number.parseInt(formData.maxPlayers) < 2) {
-        stepErrors.maxPlayers =
-          "Bitte gib eine gültige Spielerzahl an (mindestens 2) oder lasse das Feld leer für unbegrenzte Teilnehmerzahl."
-        isValid = false
-      }
-
-      if (formData.frequency === "andere" && formData.seriesMode === "series") {
-        if (!formData.customIntervalNumber || Number.parseInt(formData.customIntervalNumber) <= 1) {
-          stepErrors.customIntervalNumber = "Das Intervall muss größer als 1 sein."
-          isValid = false
-        }
-      }
-
-      if (
-        ["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) &&
-        formData.seriesMode === "manual" &&
-        formData.additionalDates.length === 0
-      ) {
-        stepErrors.additionalDates =
-          "Bitte füge mindestens einen weiteren Termin hinzu oder wähle 'Serientermine erstellen'."
-        isValid = false
-      }
-    }
-
-    if (currentStep === 3) {
-      // Step 3: Validate game selection
-      if (selectedGames.length === 0 && customGames.length === 0) {
-        stepErrors.games = "Bitte wähle mindestens ein Spiel aus oder füge ein eigenes hinzu."
-        isValid = false
-      }
-    }
-
-    if (currentStep === 4) {
-      // Step 4: Validate frequency and final settings
-      if (!formData.frequency) {
-        stepErrors.frequency = "Bitte wähle eine Häufigkeit aus."
-        isValid = false
-      }
-    }
-
-    console.log("[v0] Validation errors:", stepErrors)
-    console.log("[v0] Is valid:", isValid)
-
-    if (!isValid) {
-      setErrors(stepErrors)
-    } else {
-      setErrors({}) // Clear errors when validation passes
-    }
-
-    return isValid
+    // This function is no longer directly used for step navigation,
+    // but the logic is incorporated into handleSubmit.
+    // We can keep it for potential future use or remove it.
+    // For now, we'll keep it but won't rely on it for step progression.
+    return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1155,7 +1087,7 @@ export default function CreateLudoEventForm({
         setFormData({
           title: "",
           description: "",
-          maxPlayers: "4",
+          maxPlayers: "", // Reset maxPlayers to empty string
           frequency: "einmalig" as "einmalig" | "täglich" | "wöchentlich" | "monatlich" | "jährlich" | "andere",
           seriesMode: "manual" as "manual" | "series",
           customIntervalNumber: "",
@@ -1178,7 +1110,7 @@ export default function CreateLudoEventForm({
           onlinePlatform: "",
           visibility: "public" as "public" | "friends_only",
           requiresApproval: false,
-          organizerOnly: false,
+          organizerOnly: false, // Reset organizerOnly
           prizeInfo: "",
           rules: "",
           additionalInfo: "",
@@ -1206,7 +1138,7 @@ export default function CreateLudoEventForm({
         setTimeSlots([])
         setUseTimeSlots(false)
         setLocationType("local")
-        setCurrentStep(1)
+        // Removed: setCurrentStep(1)
         setIsSubmitting(false)
       } else {
         console.error("[v0] Event creation failed:", result.error)
@@ -1230,37 +1162,19 @@ export default function CreateLudoEventForm({
     }
   }
 
-  const nextStep = () => {
-    console.log("[v0] Next step clicked, current step:", currentStep)
-
-    if (validateCurrentStep()) {
-      console.log("[v0] Validation passed, moving to next step")
-      if (currentStep < 4) {
-        const newStep = currentStep + 1
-        console.log("[v0] Setting current step to:", newStep)
-        setCurrentStep(newStep)
-      }
-    } else {
-      console.log("[v0] Validation failed, staying on current step")
-    }
-  }
-
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
-  }
+  // Removed: nextStep function
+  // Removed: prevStep function
 
   const getStepTitle = (step: number) => {
     switch (step) {
       case 1:
-        return "Basis"
+        return "Grundinformationen" // Changed from "Basis" to "Grundinformationen"
       case 2:
-        return "Details"
+        return "Zeit, Frequenz und Treffpunkt" // Changed from "Details" to "Zeit, Frequenz und Treffpunkt"
       case 3:
-        return "Spiele"
+        return "Was wird gespielt?" // Changed from "Spiele" to "Was wird gespielt?"
       case 4:
-        return "Häufigkeit"
+        return "Sichtbarkeit & Teilnahmemodus" // Changed from "Häufigkeit" to "Sichtbarkeit & Teilnahmemodus"
       default:
         return ""
     }
@@ -1363,318 +1277,299 @@ export default function CreateLudoEventForm({
   return (
     <div className="flex flex-col h-full">
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
-        {/* Progress Bar */}
-        <div className="mb-6 border-b border-gray-200 pb-4">
-          <div className="flex items-start justify-between">
-            {[
-              { step: 1, label: "Basis" },
-              { step: 2, label: "Details" },
-              { step: 3, label: "Spiele" },
-              { step: 4, label: "Häufigkeit" },
-            ].map(({ step, label }, index) => (
-              <div key={step} className="flex flex-col items-center flex-1">
-                <div className="flex items-center w-full">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                      currentStep >= step ? "bg-teal-600 text-white" : "bg-gray-200 text-gray-500"
-                    }`}
-                  >
-                    {step}
-                  </div>
-                  {step < 4 && (
-                    <div className={`flex-1 h-1 mx-2 ${currentStep > step ? "bg-teal-600" : "bg-gray-200"}`} />
-                  )}
+        <Accordion type="multiple" defaultValue={["item-1"]} className="w-full space-y-4">
+          {/* Section 1: Grundinformationen */}
+          <AccordionItem value="item-1" className="bg-white rounded-lg shadow-sm border">
+            <AccordionTrigger className="px-6 py-4 hover:no-underline">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="rounded-full bg-teal-600 text-white flex items-center justify-center font-semibold flex-shrink-0 w-8 h-8">
+                  1
                 </div>
-                <span
-                  className={`text-sm mt-2 text-center ${
-                    currentStep === step ? "font-semibold text-teal-600" : "text-gray-600"
-                  }`}
-                >
-                  {label}
-                </span>
+                <span className="font-semibold text-gray-900 text-sm">Grundinformationen</span>
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">{getStepTitle(currentStep)}</h3>
-        </div>
-
-        {/* Step 1: Ludo Event Details */}
-        {currentStep === 1 && (
-          <div className="space-y-6">
-            {/* Basic Information Section */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b">
-                <Gamepad2 className="w-5 h-5 text-teal-600" />
-                <h3 className="font-semibold text-lg">Grundinformationen</h3>
-              </div>
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">Bilder</Label>
-                <p className="text-xs text-gray-600 mb-4">
-                  Lade bis zu 5 Bilder hoch, um dein Event attraktiver zu gestalten (optional)
-                </p>
-
-                {selectedImages.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {selectedImages.map((img, index) => (
-                        <div
-                          key={index}
-                          className="relative aspect-square rounded-lg overflow-hidden border border-gray-200"
-                        >
-                          <img
-                            src={img || "/placeholder.svg"}
-                            alt={`Event ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveImage(index)}
-                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                          {index === 0 && (
-                            <Badge className="absolute bottom-2 left-2 text-[8px] bg-teal-500 text-white">
-                              Hauptbild
-                            </Badge>
-                          )}
-                        </div>
-                      ))}
+            </AccordionTrigger>
+            <AccordionContent className="px-6 pb-6">
+              {/* Step 1 content - existing fields */}
+              <div className="space-y-6">
+                {/* Basic Information Section */}
+                <div className="space-y-4">
+                  {/* Titel moved to first position */}
+                  <div className="bg-white rounded-lg p-6 border border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label htmlFor="title" className="text-sm font-medium text-gray-700">
+                        Titel <span className="text-red-500">*</span>
+                      </Label>
+                      <span className="text-xs text-gray-500">{formData.title.length}/60</span>
                     </div>
-                    <Button
-                      type="button"
-                      onClick={handleImageUpload}
-                      disabled={isUploadingImage}
-                      variant="outline"
-                      className="w-full border-2 border-dashed border-gray-300 hover:border-teal-500 hover:bg-teal-50 bg-transparent"
-                    >
-                      {isUploadingImage ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Plus className="h-4 w-4 mr-2" />
-                      )}
-                      {isUploadingImage ? "Bilder werden verarbeitet..." : "Weitere Bilder hinzufügen"}
-                    </Button>
+                    <Input
+                      id="title"
+                      placeholder="z.B. Gemütlicher CATAN Abend..."
+                      value={formData.title}
+                      onChange={(e) => handleInputChange("title", e.target.value)}
+                      className="text-sm h-11 border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                      maxLength={60}
+                    />
+                    {fieldErrors.title && (
+                      <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        {fieldErrors.title}
+                      </p>
+                    )}
+                    {errors.title && (
+                      <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.title}
+                      </p>
+                    )}
                   </div>
-                ) : (
-                  <div
-                    onClick={handleImageUpload}
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition-all"
-                  >
-                    <div className="flex flex-col items-center space-y-3">
-                      {isUploadingImage ? (
-                        <Loader2 className="h-10 w-10 text-gray-900 animate-spin" />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                          <SlPicture className="h-6 w-6 text-gray-700" />
+
+                  {/* Beschreibung moved to second position */}
+                  <div className="bg-white rounded-lg p-6 border border-gray-200">
+                    <Label htmlFor="description" className="text-sm font-medium text-gray-700 mb-2 block">
+                      Beschreibung
+                    </Label>
+                    <RichTextEditor
+                      value={formData.description}
+                      onChange={(value) => handleInputChange("description", value)}
+                      placeholder="Beschreibe dein Event: was möchtest du veranstalten?"
+                      className="mt-1 text-sm"
+                      rows={5}
+                      maxLength={5000}
+                    />
+                  </div>
+
+                  {/* Bilder moved to third position */}
+                  <div className="bg-white rounded-lg p-6 border border-gray-200">
+                    <Label className="text-sm font-medium text-gray-700 mb-2 block">Bilder</Label>
+                    <p className="text-xs text-gray-600 mb-4">
+                      Lade bis zu 5 Bilder hoch, um dein Event attraktiver zu gestalten (optional)
+                    </p>
+
+                    {selectedImages.length > 0 ? (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {selectedImages.map((img, index) => (
+                            <div
+                              key={index}
+                              className="relative aspect-square rounded-lg overflow-hidden border border-gray-200"
+                            >
+                              <img
+                                src={img || "/placeholder.svg"}
+                                alt={`Event ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveImage(index)}
+                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                              {index === 0 && (
+                                <Badge className="absolute bottom-2 left-2 text-[8px] bg-teal-500 text-white">
+                                  Hauptbild
+                                </Badge>
+                              )}
+                            </div>
+                          ))}
                         </div>
-                      )}
-                      <div>
-                        <p className="text-gray-700 font-medium text-base">
-                          {isUploadingImage ? "Bilder werden verarbeitet..." : "Klicken zum Hochladen"}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          JPG, PNG oder WebP (max. 5MB pro Bild, bis zu 5 Bilder)
+                        <Button
+                          type="button"
+                          onClick={handleImageUpload}
+                          disabled={isUploadingImage}
+                          variant="outline"
+                          className="w-full border-2 border-dashed border-gray-300 hover:border-teal-500 hover:bg-teal-50 bg-transparent"
+                        >
+                          {isUploadingImage ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Plus className="h-4 w-4 mr-2" />
+                          )}
+                          {isUploadingImage ? "Bilder werden verarbeitet..." : "Weitere Bilder hinzufügen"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={handleImageUpload}
+                        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition-all"
+                      >
+                        <div className="flex flex-col items-center space-y-3">
+                          {isUploadingImage ? (
+                            <Loader2 className="h-10 w-10 text-gray-900 animate-spin" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                              <SlPicture className="h-6 w-6 text-gray-700" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-gray-700 font-medium text-base">
+                              {isUploadingImage ? "Bilder werden verarbeitet..." : "Klicken zum Hochladen"}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              JPG, PNG oder WebP (max. 5MB pro Bild, bis zu 5 Bilder)
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      multiple
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+
+                    {imageError && (
+                      <p className="text-red-500 text-sm mt-3 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        {imageError}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Maximale Teilnehmeranzahl moved to fourth position with Veranstalter checkbox inside */}
+                <div className="bg-white rounded-lg p-6 border border-gray-200">
+                  <Label htmlFor="maxPlayers" className="text-sm font-medium text-gray-700 mb-3 block">
+                    Maximale Teilnehmeranzahl *
+                  </Label>
+                  <Input
+                    id="maxPlayers"
+                    type="number"
+                    min="2"
+                    placeholder="Leer lassen für unbegrenzte Teilnehmerzahl"
+                    value={formData.maxPlayers || ""}
+                    onChange={(e) => {
+                      handleInputChange("maxPlayers", e.target.value)
+                      handleInputChange("maxParticipants", e.target.value)
+                    }}
+                    className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                  />
+
+                  {/* Veranstalter checkbox moved inside Maximale Teilnehmeranzahl section */}
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-start space-x-3">
+                      <input
+                        id="organizerOnly"
+                        type="checkbox"
+                        checked={formData.organizerOnly}
+                        onChange={(e) => handleInputChange("organizerOnly", e.target.checked)}
+                        className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500 mt-0"
+                      />
+                      <div className="flex-1">
+                        <Label
+                          htmlFor="organizerOnly"
+                          className="text-xs font-medium text-gray-700 cursor-pointer block mb-1"
+                        >
+                          Veranstalter (Ich werde nicht als Teilnehmer gezählt)
+                        </Label>
+                        <p className="text-xs text-gray-600">
+                          Aktiviere diese Option, wenn du das Event nur organisierst, aber nicht selbst teilnimmst.
                         </p>
                       </div>
                     </div>
                   </div>
-                )}
 
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  multiple
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-
-                {imageError && (
-                  <p className="text-red-500 text-sm mt-3 flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4" />
-                    {imageError}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="title" className="text-sm font-medium text-gray-700">
-                  Titel <span className="text-red-500">*</span>
-                </Label>
-                <span className="text-xs text-gray-500">{formData.title.length}/60</span>
-              </div>
-              <Input
-                id="title"
-                placeholder="z.B. Gemütlicher CATAN Abend..."
-                value={formData.title}
-                onChange={(e) => handleInputChange("title", e.target.value)}
-                className="text-sm h-11 border-gray-300 focus:border-teal-500 focus:ring-teal-500"
-                maxLength={60}
-              />
-              {fieldErrors.title && (
-                <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {fieldErrors.title}
-                </p>
-              )}
-              {errors.title && (
-                <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.title}
-                </p>
-              )}
-            </div>
-
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <Label htmlFor="description" className="text-sm font-medium text-gray-700 mb-2 block">
-                Beschreibung
-              </Label>
-              <RichTextEditor
-                value={formData.description}
-                onChange={(value) => handleInputChange("description", value)}
-                placeholder="Beschreibe dein Event: was möchtest du veranstalten?"
-                className="mt-1 text-sm"
-                rows={5}
-                maxLength={5000}
-              />
-            </div>
-          </div>
-        )}
-        {/* Step 2: Date & Location */}
-        {currentStep === 2 && (
-          <div className="space-y-6">
-            <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-              <div className="flex items-start space-x-3">
-                <input
-                  id="organizerOnly"
-                  type="checkbox"
-                  checked={formData.organizerOnly}
-                  onChange={(e) => handleInputChange("organizerOnly", e.target.checked)}
-                  className="w-4 h-4 mt-1 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                />
-                <div className="flex-1">
-                  <Label
-                    htmlFor="organizerOnly"
-                    className="text-sm font-medium text-gray-700 cursor-pointer block mb-1"
-                  >
-                    Veranstalter (Ich werde nicht als Teilnehmer gezählt)
-                  </Label>
-                  <p className="text-xs text-gray-600">
-                    Aktiviere diese Option, wenn du das Event nur organisierst, aber nicht selbst teilnimmst.
-                  </p>
+                  {fieldErrors.maxPlayers && (
+                    <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      {fieldErrors.maxPlayers}
+                    </p>
+                  )}
+                  {errors.maxPlayers && (
+                    <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      {errors.maxPlayers}
+                    </p>
+                  )}
                 </div>
               </div>
-            </div>
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <Label htmlFor="maxPlayers" className="text-sm font-medium text-gray-700 mb-2 block">
-                Maximale Teilnehmeranzahl *
-              </Label>
-              <Input
-                id="maxPlayers"
-                type="number"
-                min="2"
-                placeholder="z.B. 6"
-                value={formData.maxPlayers || ""}
-                onChange={(e) => {
-                  handleInputChange("maxPlayers", e.target.value)
-                  handleInputChange("maxParticipants", e.target.value)
-                }}
-                className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
-              />
-              <p className="text-xs text-gray-500 mt-2">Leer lassen für unbegrenzte Teilnehmerzahl</p>
-              {fieldErrors.maxPlayers && (
-                <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {fieldErrors.maxPlayers}
-                </p>
-              )}
-              {errors.maxPlayers && (
-                <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.maxPlayers}
-                </p>
-              )}
-            </div>
-            <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-              <Label htmlFor="frequency" className="text-sm font-medium text-gray-700 mb-3 block">
-                Häufigkeit *
-              </Label>
-              <Select
-                value={formData.frequency}
-                onValueChange={(value) => {
-                  handleInputChange("frequency", value)
-                  if (value !== formData.frequency) {
-                    handleInputChange("eventDate", "")
-                    handleInputChange("additionalDates", [])
-                    handleInputChange("seriesMode", "manual")
-                    handleInputChange("customIntervalNumber", "")
-                  }
-                }}
-              >
-                <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500 bg-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="einmalig">Einmalig</SelectItem>
-                  <SelectItem value="täglich">Täglich</SelectItem>
-                  <SelectItem value="wöchentlich">Wöchentlich</SelectItem>
-                  <SelectItem value="monatlich">Monatlich</SelectItem>
-                  <SelectItem value="jährlich">Jährlich</SelectItem>
-                  <SelectItem value="andere">Andere</SelectItem>
-                </SelectContent>
-              </Select>
+            </AccordionContent>
+          </AccordionItem>
 
-              {formData.frequency === "andere" && (
-                <div className="mt-5 space-y-4 bg-white rounded-lg p-5 border border-gray-300">
-                  <Label className="text-sm font-medium text-gray-700 block">Rythmus</Label>
-                  <div className="flex gap-3 items-center">
-                    <span className="text-gray-700 font-medium">Alle</span>
-                    <Input
-                      type="number"
-                      min="2"
-                      placeholder="2"
-                      value={formData.customIntervalNumber}
-                      onChange={(e) => handleInputChange("customIntervalNumber", e.target.value)}
-                      className={`w-24 h-11 text-sm ${errors.customIntervalNumber ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-teal-500"}`}
-                    />
+          {/* Section 2: Zeit, Frequenz und Treffpunkt */}
+          <AccordionItem value="item-2" className="bg-white rounded-lg shadow-sm border">
+            <AccordionTrigger className="px-6 py-4 hover:no-underline">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="rounded-full bg-teal-600 text-white flex items-center justify-center font-semibold flex-shrink-0 w-8 h-8">
+                  2
+                </div>
+                <span className="font-semibold text-gray-900 text-sm">Zeit, Frequenz und Treffpunkt</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-6 pb-6">
+              {/* Step 2 content */}
+              <div className="space-y-6">
+                <div className="bg-white rounded-lg p-6 border border-gray-200">
+                  <Label htmlFor="location" className="text-sm font-medium text-gray-700 mb-3 block">
+                    Treffpunkt *
+                  </Label>
+                  <div className="space-y-4">
                     <Select
-                      value={formData.customIntervalUnit}
-                      onValueChange={(value) => handleInputChange("customIntervalUnit", value)}
+                      value={locationType}
+                      onValueChange={(value: "local" | "virtual") => {
+                        setLocationType(value)
+                        handleInputChange("isOnline", value === "virtual")
+                      }}
                     >
-                      <SelectTrigger className="w-40 h-11 border-gray-300 focus:border-teal-500">
+                      <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="tage">Tage</SelectItem>
-                        <SelectItem value="wochen">Wochen</SelectItem>
-                        <SelectItem value="monate">Monate</SelectItem>
-                        <SelectItem value="jahre">Jahre</SelectItem>
+                        <SelectItem value="local">Local (vor Ort)</SelectItem>
+                        <SelectItem value="virtual">Virtuell (online)</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                  <p className="text-xs text-gray-600">
-                    Beispiel: "Alle 3 Wochen" bedeutet, dass sich das Event alle 3 Wochen stattfindet.
-                  </p>
-                  {errors.customIntervalNumber && <p className="text-red-600 text-sm">{errors.customIntervalNumber}</p>}
-                </div>
-              )}
 
-              {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) && (
-                <div className="mt-5">
-                  <Label className="text-sm font-medium text-gray-700 mb-3 block">Terminplanung *</Label>
+                    {locationType === "local" && (
+                      <div>
+                        <AddressAutocomplete
+                          label=""
+                          placeholder="Location, Adresse, PLZ oder Ort eingeben..."
+                          value={formData.location}
+                          onChange={(value) => handleInputChange("location", value)}
+                          className="h-11 text-sm border-gray-300 focus:border-teal-500"
+                          error={fieldErrors.location || errors.location}
+                        />
+                      </div>
+                    )}
+
+                    {locationType === "virtual" && (
+                      <Input
+                        placeholder="Einladungslink (Discord, Zoom, etc.)"
+                        value={formData.onlinePlatform}
+                        onChange={(e) => handleInputChange("onlinePlatform", e.target.value)}
+                        className="h-11 text-sm border-gray-300 focus:border-teal-500"
+                      />
+                    )}
+                    {errors.onlinePlatform && (
+                      <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.onlinePlatform}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* organizerOnly checkbox removed from here as it's now in Step 1 */}
+                {/* maxPlayers section removed from here as it's now in Step 1 */}
+                <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                  <Label htmlFor="frequency" className="text-sm font-medium text-gray-700 mb-3 block">
+                    Frequenz *
+                  </Label>
+
                   <Select
-                    value={formData.seriesMode}
+                    value={formData.frequency}
                     onValueChange={(value) => {
-                      handleInputChange("seriesMode", value)
-                      if (value !== formData.seriesMode) {
+                      handleInputChange("frequency", value)
+                      if (value !== formData.frequency) {
                         handleInputChange("eventDate", "")
                         handleInputChange("additionalDates", [])
+                        handleInputChange("seriesMode", "manual")
+                        handleInputChange("customIntervalNumber", "")
                       }
                     }}
                   >
@@ -1682,323 +1577,372 @@ export default function CreateLudoEventForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="manual">Termin(e) manuell eingeben</SelectItem>
-                      <SelectItem value="series">Serientermine erstellen</SelectItem>
+                      <SelectItem value="einmalig">Einmalig</SelectItem>
+                      <SelectItem value="täglich">Täglich</SelectItem>
+                      <SelectItem value="wöchentlich">Wöchentlich</SelectItem>
+                      <SelectItem value="monatlich">Monatlich</SelectItem>
+                      <SelectItem value="jährlich">Jährlich</SelectItem>
+                      <SelectItem value="andere">Andere</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-              )}
 
-              {formData.frequency === "wöchentlich" && formData.seriesMode === "series" && (
-                <div className="mt-5 bg-white rounded-lg p-5 border border-gray-300">
-                  <Label className="text-sm font-medium text-gray-700 mb-4 block">Wochentage auswählen</Label>
-                  <div className="grid grid-cols-7 gap-3">
-                    {["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"].map((day) => (
-                      <div key={day} className="flex flex-col items-center">
-                        <Checkbox
-                          id={day}
-                          checked={formData.weeklyDays.includes(day)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              handleInputChange("weeklyDays", [...formData.weeklyDays, day])
-                            } else {
-                              handleInputChange(
-                                "weeklyDays",
-                                formData.weeklyDays.filter((d) => d !== day),
-                              )
-                            }
-                          }}
-                          className="w-5 h-5 text-teal-600 focus:ring-teal-600"
+                  {formData.frequency === "andere" && (
+                    <div className="mt-5 space-y-4 bg-white rounded-lg p-5 border border-gray-300">
+                      <Label className="text-sm font-medium text-gray-700 block">Rythmus</Label>
+                      <div className="flex gap-3 items-center">
+                        <span className="text-gray-700 font-medium">Alle</span>
+                        <Input
+                          type="number"
+                          min="2"
+                          placeholder="2"
+                          value={formData.customIntervalNumber}
+                          onChange={(e) => handleInputChange("customIntervalNumber", e.target.value)}
+                          className={`w-24 h-11 text-sm ${errors.customIntervalNumber ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-teal-500"}`}
                         />
-                        <Label htmlFor={day} className="text-xs cursor-pointer mt-2 font-medium">
-                          {day.slice(0, 2)}
-                        </Label>
+                        <Select
+                          value={formData.customIntervalUnit}
+                          onValueChange={(value) => handleInputChange("customIntervalUnit", value)}
+                        >
+                          <SelectTrigger className="w-40 h-11 border-gray-300 focus:border-teal-500">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="tage">Tage</SelectItem>
+                            <SelectItem value="wochen">Wochen</SelectItem>
+                            <SelectItem value="monate">Monate</SelectItem>
+                            <SelectItem value="jahre">Jahre</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-600 mt-4">
-                    Wähle die Wochentage aus, an denen das Event stattfinden soll
-                  </p>
-                </div>
-              )}
-
-              {formData.frequency === "monatlich" && formData.seriesMode === "series" && (
-                <div className="mt-5 bg-white rounded-lg p-5 border border-gray-300 space-y-5">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 mb-3 block">Monatliches Muster</Label>
-                    <Select
-                      value={formData.monthlyType}
-                      onValueChange={(value) => handleInputChange("monthlyType", value)}
-                    >
-                      <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="day">An einem bestimmten Tag im Monats</SelectItem>
-                        <SelectItem value="weekday">An einem bestimmten Wochentag</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {formData.monthlyType === "day" && (
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-3 block">Tag des Monats</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="31"
-                        placeholder="z.B. 7 für jeden 7. des Monats"
-                        value={formData.monthlyDay}
-                        onChange={(e) => handleInputChange("monthlyDay", e.target.value)}
-                        className="h-11 text-sm border-gray-300 focus:border-teal-500"
-                      />
+                      <p className="text-xs text-gray-600">
+                        Beispiel: "Alle 3 Wochen" bedeutet, dass sich das Event alle 3 Wochen stattfindet.
+                      </p>
+                      {errors.customIntervalNumber && (
+                        <p className="text-red-600 text-xs">{errors.customIntervalNumber}</p>
+                      )}
                     </div>
                   )}
 
-                  {formData.monthlyType === "weekday" && (
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700 mb-3 block">Wochentag auswählen</Label>
-                      <div className="flex gap-3">
-                        <Select
-                          value={formData.monthlyWeekdayPosition}
-                          onValueChange={(value) => handleInputChange("monthlyWeekdayPosition", value)}
-                        >
-                          <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="first">Ersten</SelectItem>
-                            <SelectItem value="second">Zweiten</SelectItem>
-                            <SelectItem value="third">Dritten</SelectItem>
-                            <SelectItem value="fourth">Vierten</SelectItem>
-                            <SelectItem value="last">Letzten</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Select
-                          value={formData.monthlyWeekday}
-                          onValueChange={(value) => handleInputChange("monthlyWeekday", value)}
-                        >
-                          <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="montag">Montag</SelectItem>
-                            <SelectItem value="dienstag">Dienstag</SelectItem>
-                            <SelectItem value="mittwoch">Mittwoch</SelectItem>
-                            <SelectItem value="donnerstag">Donnerstag</SelectItem>
-                            <SelectItem value="freitag">Freitag</SelectItem>
-                            <SelectItem value="samstag">Samstag</SelectItem>
-                            <SelectItem value="sonntag">Sonntag</SelectItem>
-                          </SelectContent>
-                        </Select>
+                  {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) && (
+                    <div className="mt-5">
+                      <Label className="text-sm font-medium text-gray-700 mb-3 block">Terminplanung *</Label>
+                      <Select
+                        value={formData.seriesMode}
+                        onValueChange={(value) => {
+                          handleInputChange("seriesMode", value)
+                          if (value !== formData.seriesMode) {
+                            handleInputChange("eventDate", "")
+                            handleInputChange("additionalDates", [])
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500 bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="manual">Termin(e) manuell eingeben</SelectItem>
+                          <SelectItem value="series">Serientermine erstellen</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {formData.frequency === "wöchentlich" && formData.seriesMode === "series" && (
+                    <div className="mt-5 bg-white rounded-lg p-5 border border-gray-300">
+                      <Label className="text-sm font-medium text-gray-700 mb-4 block">Wochentage auswählen</Label>
+                      <div className="grid grid-cols-7 gap-3">
+                        {["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"].map(
+                          (day) => (
+                            <div key={day} className="flex flex-col items-center">
+                              <Checkbox
+                                id={day}
+                                checked={formData.weeklyDays.includes(day)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    handleInputChange("weeklyDays", [...formData.weeklyDays, day])
+                                  } else {
+                                    handleInputChange(
+                                      "weeklyDays",
+                                      formData.weeklyDays.filter((d) => d !== day),
+                                    )
+                                  }
+                                }}
+                                className="w-5 h-5 text-teal-600 focus:ring-teal-600"
+                              />
+                              <Label htmlFor={day} className="text-xs cursor-pointer mt-2 font-medium">
+                                {day.slice(0, 2)}
+                              </Label>
+                            </div>
+                          ),
+                        )}
                       </div>
-                      <p className="text-xs text-gray-600 mt-3">
-                        z.B. "Ersten Freitag" = jeden ersten Freitag im Monat
+                      <p className="text-xs text-gray-600 mt-4">
+                        Wähle die Wochentage aus, an denen das Event stattfinden soll
                       </p>
                     </div>
                   )}
+
+                  {formData.frequency === "monatlich" && formData.seriesMode === "series" && (
+                    <div className="mt-5 bg-white rounded-lg p-5 border border-gray-300 space-y-5">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-3 block">Monatliches Muster</Label>
+                        <Select
+                          value={formData.monthlyType}
+                          onValueChange={(value) => handleInputChange("monthlyType", value)}
+                        >
+                          <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="day">An einem bestimmten Tag im Monats</SelectItem>
+                            <SelectItem value="weekday">An einem bestimmten Wochentag</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {formData.monthlyType === "day" && (
+                        <div>
+                          <Label className="text-sm font-medium text-gray-700 mb-3 block">Tag des Monats</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="31"
+                            placeholder="z.B. 7 für jeden 7. des Monats"
+                            value={formData.monthlyDay}
+                            onChange={(e) => handleInputChange("monthlyDay", e.target.value)}
+                            className="h-11 text-sm border-gray-300 focus:border-teal-500"
+                          />
+                        </div>
+                      )}
+
+                      {formData.monthlyType === "weekday" && (
+                        <div>
+                          <Label className="text-sm font-medium text-gray-700 mb-3 block">Wochentag auswählen</Label>
+                          <div className="flex gap-3">
+                            <Select
+                              value={formData.monthlyWeekdayPosition}
+                              onValueChange={(value) => handleInputChange("monthlyWeekdayPosition", value)}
+                            >
+                              <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="first">Ersten</SelectItem>
+                                <SelectItem value="second">Zweiten</SelectItem>
+                                <SelectItem value="third">Dritten</SelectItem>
+                                <SelectItem value="fourth">Vierten</SelectItem>
+                                <SelectItem value="last">Letzten</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Select
+                              value={formData.monthlyWeekday}
+                              onValueChange={(value) => handleInputChange("monthlyWeekday", value)}
+                            >
+                              <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="montag">Montag</SelectItem>
+                                <SelectItem value="dienstag">Dienstag</SelectItem>
+                                <SelectItem value="mittwoch">Mittwoch</SelectItem>
+                                <SelectItem value="donnerstag">Donnerstag</SelectItem>
+                                <SelectItem value="freitag">Freitag</SelectItem>
+                                <SelectItem value="samstag">Samstag</SelectItem>
+                                <SelectItem value="sonntag">Sonntag</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-3">
+                            z.B. "Ersten Freitag" = jeden ersten Freitag im Monat
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) &&
+                    formData.seriesMode === "series" && (
+                      <div className="mt-5 bg-white rounded-lg p-5 border border-gray-300 space-y-5">
+                        <Label className="text-sm font-medium text-gray-700 block">Wann soll die Serie enden?</Label>
+
+                        <div className="space-y-4">
+                          <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-teal-500 transition-colors text-xs">
+                            <input
+                              type="radio"
+                              id="endByCount"
+                              name="seriesEndType"
+                              value="count"
+                              checked={formData.seriesEndType === "count"}
+                              onChange={(e) => {
+                                handleInputChange("seriesEndType", e.target.value)
+                                if (e.target.checked) {
+                                  handleInputChange("seriesEndDate", "")
+                                }
+                              }}
+                              className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+                            />
+                            <Label htmlFor="endByCount" className="text-sm font-medium text-gray-700 flex-shrink-0">
+                              Endet nach
+                            </Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder="5"
+                              value={formData.seriesEndCount}
+                              onChange={(e) => {
+                                handleInputChange("seriesEndCount", e.target.value)
+                                if (e.target.value) {
+                                  handleInputChange("seriesEndType", "count")
+                                }
+                              }}
+                              className={`w-24 h-11 text-sm ${formData.seriesEndType !== "count" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-teal-500"}`}
+                              disabled={formData.seriesEndType !== "count"}
+                            />
+                            <Label className="text-sm font-medium text-gray-700">Terminen</Label>
+                          </div>
+
+                          <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-teal-500 transition-colors">
+                            <input
+                              type="radio"
+                              id="endByDate"
+                              name="seriesEndType"
+                              value="date"
+                              checked={formData.seriesEndType === "date"}
+                              onChange={(e) => {
+                                handleInputChange("seriesEndType", e.target.value)
+                                if (e.target.checked) {
+                                  handleInputChange("seriesEndCount", "")
+                                }
+                              }}
+                              className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+                            />
+                            <Label htmlFor="endByDate" className="text-sm font-medium text-gray-700 flex-shrink-0">
+                              Endet am
+                            </Label>
+                            <Input
+                              type="date"
+                              value={formData.seriesEndDate}
+                              onChange={(e) => {
+                                handleInputChange("seriesEndDate", e.target.value)
+                                if (e.target.value) {
+                                  handleInputChange("seriesEndType", "date")
+                                }
+                              }}
+                              className={`h-11 ${formData.seriesEndType !== "date" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-teal-500"}`}
+                              disabled={formData.seriesEndType !== "date"}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                 </div>
-              )}
+                <div className="bg-white rounded-lg p-6 border border-gray-200">
+                  <Label htmlFor="eventDate" className="text-sm font-medium text-gray-700 mb-3 block">
+                    {formData.frequency === "einmalig"
+                      ? "Datum *"
+                      : formData.seriesMode === "series"
+                        ? "Start-Datum *"
+                        : "Datum *"}
+                  </Label>
+                  <Input
+                    id="eventDate"
+                    type="date"
+                    className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                    value={formData.eventDate}
+                    onChange={(e) => {
+                      handleInputChange("eventDate", e.target.value)
+                      handleInputChange("date", e.target.value)
+                    }}
+                    required
+                  />
+                  {fieldErrors.eventDate ? (
+                    <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      {fieldErrors.eventDate}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-600 mt-2">Das Datum muss in der Zukunft liegen</p>
+                  )}
+                  {errors.eventDate && (
+                    <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      {errors.eventDate}
+                    </p>
+                  )}
+                </div>
 
-              {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) &&
-                formData.seriesMode === "series" && (
-                  <div className="mt-5 bg-white rounded-lg p-5 border border-gray-300 space-y-5">
-                    <Label className="text-sm font-medium text-gray-700 block">Wann soll die Serie enden?</Label>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-teal-500 transition-colors text-xs">
-                        <input
-                          type="radio"
-                          id="endByCount"
-                          name="seriesEndType"
-                          value="count"
-                          checked={formData.seriesEndType === "count"}
-                          onChange={(e) => {
-                            handleInputChange("seriesEndType", e.target.value)
-                            if (e.target.checked) {
-                              handleInputChange("seriesEndDate", "")
-                            }
-                          }}
-                          className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
-                        />
-                        <Label htmlFor="endByCount" className="text-sm font-medium text-gray-700 flex-shrink-0">
-                          Endet nach
-                        </Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          placeholder="5"
-                          value={formData.seriesEndCount}
-                          onChange={(e) => {
-                            handleInputChange("seriesEndCount", e.target.value)
-                            if (e.target.value) {
-                              handleInputChange("seriesEndType", "count")
-                            }
-                          }}
-                          className={`w-24 h-11 text-sm ${formData.seriesEndType !== "count" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-teal-500"}`}
-                          disabled={formData.seriesEndType !== "count"}
-                        />
-                        <Label className="text-sm font-medium text-gray-700">Terminen</Label>
-                      </div>
-
-                      <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-teal-500 transition-colors">
-                        <input
-                          type="radio"
-                          id="endByDate"
-                          name="seriesEndType"
-                          value="date"
-                          checked={formData.seriesEndType === "date"}
-                          onChange={(e) => {
-                            handleInputChange("seriesEndType", e.target.value)
-                            if (e.target.checked) {
-                              handleInputChange("seriesEndCount", "")
-                            }
-                          }}
-                          className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
-                        />
-                        <Label htmlFor="endByDate" className="text-sm font-medium text-gray-700 flex-shrink-0">
-                          Endet am
-                        </Label>
-                        <Input
-                          type="date"
-                          value={formData.seriesEndDate}
-                          onChange={(e) => {
-                            handleInputChange("seriesEndDate", e.target.value)
-                            if (e.target.value) {
-                              handleInputChange("seriesEndType", "date")
-                            }
-                          }}
-                          className={`h-11 ${formData.seriesEndType !== "date" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-teal-500"}`}
-                          disabled={formData.seriesEndType !== "date"}
-                        />
-                      </div>
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="startTime" className="text-sm font-medium text-gray-700 mb-3 block">
+                      Startzeit *
+                    </Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                      value={formData.startTime}
+                      onChange={(e) => handleInputChange("startTime", e.target.value)}
+                      required
+                    />
+                    {fieldErrors.startTime && (
+                      <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        {fieldErrors.startTime}
+                      </p>
+                    )}
+                    {errors.startTime && (
+                      <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.startTime}
+                      </p>
+                    )}
                   </div>
-                )}
-            </div>
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <Label htmlFor="eventDate" className="text-sm font-medium text-gray-700 mb-3 block">
-                {formData.frequency === "einmalig"
-                  ? "Datum *"
-                  : formData.seriesMode === "series"
-                    ? "Start-Datum *"
-                    : "Datum *"}
-              </Label>
-              <Input
-                id="eventDate"
-                type="date"
-                className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
-                value={formData.eventDate}
-                onChange={(e) => {
-                  handleInputChange("eventDate", e.target.value)
-                  handleInputChange("date", e.target.value)
-                }}
-                required
-              />
-              {fieldErrors.eventDate ? (
-                <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {fieldErrors.eventDate}
-                </p>
-              ) : (
-                <p className="text-xs text-gray-600 mt-2">Das Datum muss in der Zukunft liegen</p>
-              )}
-              {errors.eventDate && (
-                <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.eventDate}
-                </p>
-              )}
-            </div>
+                  <div>
+                    <Label htmlFor="endTime" className="text-sm font-medium text-gray-700 mb-3 block">
+                      Endzeit *
+                    </Label>
+                    <Input
+                      id="endTime"
+                      type="time"
+                      className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                      value={formData.endTime}
+                      onChange={(e) => handleInputChange("endTime", e.target.value)}
+                      required
+                    />
+                    {fieldErrors.endTime && (
+                      <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        {fieldErrors.endTime}
+                      </p>
+                    )}
+                    {errors.endTime && (
+                      <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.endTime}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="startTime" className="text-sm font-medium text-gray-700 mb-3 block">
-                  Startzeit *
-                </Label>
-                <Input
-                  id="startTime"
-                  type="time"
-                  className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
-                  value={formData.startTime}
-                  onChange={(e) => handleInputChange("startTime", e.target.value)}
-                  required
-                />
-                {fieldErrors.startTime && (
-                  <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4" />
-                    {fieldErrors.startTime}
-                  </p>
-                )}
-                {errors.startTime && (
-                  <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.startTime}
-                  </p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="endTime" className="text-sm font-medium text-gray-700 mb-3 block">
-                  Endzeit *
-                </Label>
-                <Input
-                  id="endTime"
-                  type="time"
-                  className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
-                  value={formData.endTime}
-                  onChange={(e) => handleInputChange("endTime", e.target.value)}
-                  required
-                />
-                {fieldErrors.endTime && (
-                  <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4" />
-                    {fieldErrors.endTime}
-                  </p>
-                )}
-                {errors.endTime && (
-                  <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.endTime}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {((formData.frequency === "einmalig" && formData.eventDate && formData.startTime && formData.endTime) ||
-              (formData.frequency !== "einmalig" &&
-                formData.seriesMode === "manual" &&
-                formData.additionalDates.some((date) => date)) ||
-              (formData.frequency !== "einmalig" &&
-                formData.seriesMode === "series" &&
-                formData.eventDate &&
-                formData.startTime &&
-                formData.endTime &&
-                (formData.seriesEndType === "count" ? formData.seriesEndCount : formData.seriesEndDate))) && (
-              <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-6">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
-                  <span className="text-lg">📅</span>
-                  Terminvorschau
-                </h3>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {formData.frequency === "einmalig" ? (
-                    <div className="flex justify-between items-center bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                      <span className="font-medium text-gray-800 text-xs">
-                        {parseLocalDate(formData.eventDate).toLocaleDateString("de-DE", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </span>
-                      <span className="font-medium bg-gray-100 px-3 py-1 rounded-full text-xs">
-                        {formData.startTime} - {formData.endTime}
-                      </span>
-                    </div>
-                  ) : formData.seriesMode === "manual" ? (
-                    <>
-                      {formData.eventDate && (
+                {((formData.frequency === "einmalig" && formData.eventDate && formData.startTime && formData.endTime) ||
+                  (formData.frequency !== "einmalig" &&
+                    formData.seriesMode === "manual" &&
+                    formData.additionalDates.some((date) => date)) ||
+                  (formData.frequency !== "einmalig" &&
+                    formData.seriesMode === "series" &&
+                    formData.eventDate &&
+                    formData.startTime &&
+                    formData.endTime &&
+                    (formData.seriesEndType === "count" ? formData.seriesEndCount : formData.seriesEndDate))) && (
+                  <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-6">
+                    <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
+                      <span className="text-lg">📅</span>
+                      Terminvorschau
+                    </h3>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {formData.frequency === "einmalig" ? (
                         <div className="flex justify-between items-center bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                          <span className="font-medium text-gray-800">
+                          <span className="font-medium text-gray-800 text-xs">
                             {parseLocalDate(formData.eventDate).toLocaleDateString("de-DE", {
                               weekday: "long",
                               year: "numeric",
@@ -2006,80 +1950,53 @@ export default function CreateLudoEventForm({
                               day: "numeric",
                             })}
                           </span>
-                          <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
+                          <span className="font-medium bg-gray-100 px-3 py-1 rounded-full text-xs">
                             {formData.startTime} - {formData.endTime}
                           </span>
                         </div>
-                      )}
-                      {formData.additionalDates.map((date, index) => {
-                        if (!date) return null
-                        return (
-                          <div
-                            key={index}
-                            className="flex justify-between items-center bg-white rounded-lg p-4 border border-gray-200 shadow-sm"
-                          >
-                            <span className="font-medium text-gray-800">
-                              {parseLocalDate(date).toLocaleDateString("de-DE", {
-                                weekday: "long",
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                            </span>
-                            <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
-                              {formData.additionalStartTimes?.[index] || formData.startTime} -{" "}
-                              {formData.additionalEndTimes?.[index] || formData.endTime}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </>
-                  ) : (
-                    (() => {
-                      const seriesDates = generateSeriesDates(
-                        formData.eventDate,
-                        formData.frequency,
-                        formData.customIntervalNumber,
-                        formData.customIntervalUnit,
-                        formData.weeklyDays,
-                        formData.monthlyType,
-                        formData.monthlyDay,
-                        formData.monthlyWeekday,
-                        formData.monthlyWeekdayPosition,
-                        formData.seriesEndType,
-                        formData.seriesEndDate,
-                        formData.seriesEndCount,
-                      )
-
-                      return seriesDates.map((date, index) => (
-                        <div
-                          key={index}
-                          className="flex justify-between items-center bg-white rounded-lg p-4 border border-gray-200 shadow-sm"
-                        >
-                          <span className="font-medium text-gray-800 text-xs">
-                            {parseLocalDate(date).toLocaleDateString("de-DE", {
-                              weekday: "long",
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                          </span>
-                          <span className="font-medium text-gray-800 text-xs">
-                            {formData.startTime} - {formData.endTime}
-                          </span>
-                        </div>
-                      ))
-                    })()
-                  )}
-                </div>
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-gray-800 font-semibold text-xs">
-                    {" "}
-                    {formData.frequency === "einmalig"
-                      ? 1
-                      : formData.seriesMode === "manual"
-                        ? (formData.eventDate ? 1 : 0) + formData.additionalDates.filter((date) => date).length
-                        : generateSeriesDates(
+                      ) : formData.seriesMode === "manual" ? (
+                        <>
+                          {formData.eventDate && (
+                            <div className="flex justify-between items-center bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                              <span className="font-medium text-gray-800">
+                                {parseLocalDate(formData.eventDate).toLocaleDateString("de-DE", {
+                                  weekday: "long",
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })}
+                              </span>
+                              <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
+                                {formData.startTime} - {formData.endTime}
+                              </span>
+                            </div>
+                          )}
+                          {formData.additionalDates.map((date, index) => {
+                            if (!date) return null
+                            return (
+                              <div
+                                key={index}
+                                className="flex justify-between items-center bg-white rounded-lg p-4 border border-gray-200 shadow-sm"
+                              >
+                                <span className="font-medium text-gray-800">
+                                  {parseLocalDate(date).toLocaleDateString("de-DE", {
+                                    weekday: "long",
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                  })}
+                                </span>
+                                <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
+                                  {formData.additionalStartTimes?.[index] || formData.startTime} -{" "}
+                                  {formData.additionalEndTimes?.[index] || formData.endTime}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </>
+                      ) : (
+                        (() => {
+                          const seriesDates = generateSeriesDates(
                             formData.eventDate,
                             formData.frequency,
                             formData.customIntervalNumber,
@@ -2092,429 +2009,483 @@ export default function CreateLudoEventForm({
                             formData.seriesEndType,
                             formData.seriesEndDate,
                             formData.seriesEndCount,
-                          ).length}{" "}
-                    Termin(e) insgesamt
-                  </p>
-                </div>
-              </div>
-            )}
+                          )
 
-            {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) &&
-              formData.seriesMode === "manual" && (
-                <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 mb-3 block">Weitere Termine *</Label>
-                    <p className="text-xs text-gray-600 mb-4">
-                      Füge alle Termine hinzu, an denen das Event stattfinden soll. Jeder Termin muss in der Zukunft und
-                      nach dem vorherigen Termin liegen.
-                    </p>
-                    {errors.additionalDates && <p className="text-red-600 text-xs mb-3">{errors.additionalDates}</p>}
-                    <div className="space-y-3 mt-3">
-                      {formData.additionalDates.map((date, index) => {
-                        const previousDate = index === 0 ? formData.eventDate : formData.additionalDates[index - 1]
-                        const isDateValid = !date || !previousDate || new Date(date) > new Date(previousDate)
-                        const isFutureDate = !date || new Date(date) > new Date()
-
-                        return (
-                          <div key={index} className="space-y-2">
-                            <div className="flex gap-2 items-center">
-                              <div className="flex-1">
-                                <Input
-                                  type="date"
-                                  className={`h-11 text-sm ${!isDateValid || !isFutureDate ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-teal-500"}`}
-                                  value={date}
-                                  onChange={(e) => {
-                                    const newDates = [...formData.additionalDates]
-                                    newDates[index] = e.target.value
-                                    handleInputChange("additionalDates", newDates)
-                                  }}
-                                />
-                                {date && !isFutureDate && (
-                                  <p className="text-red-500 text-xs mt-1">Datum muss in der Zukunft liegen</p>
-                                )}
-                                {date && isFutureDate && !isDateValid && (
-                                  <p className="text-red-500 text-xs mt-1">
-                                    Datum muss nach dem {index === 0 ? "Start-Event" : "vorherigen Termin"} liegen
-                                  </p>
-                                )}
-                              </div>
-                              {date && (
-                                <>
-                                  <Input
-                                    type="time"
-                                    className="h-11 text-sm border-gray-300 focus:border-teal-500 w-32"
-                                    placeholder="Startzeit"
-                                    value={formData.additionalStartTimes?.[index] || formData.startTime}
-                                    onChange={(e) => {
-                                      const newTimes = [...(formData.additionalStartTimes || [])]
-                                      newTimes[index] = e.target.value
-                                      handleInputChange("additionalStartTimes", newTimes)
-                                    }}
-                                  />
-                                  <Input
-                                    type="time"
-                                    className="h-11 text-sm border-gray-300 focus:border-teal-500 w-32"
-                                    placeholder="Endzeit"
-                                    value={formData.additionalEndTimes?.[index] || formData.endTime}
-                                    onChange={(e) => {
-                                      const newTimes = [...(formData.additionalEndTimes || [])]
-                                      newTimes[index] = e.target.value
-                                      handleInputChange("additionalEndTimes", newTimes)
-                                    }}
-                                  />
-                                </>
-                              )}
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                onClick={() => {
-                                  const newDates = formData.additionalDates.filter((_, i) => i !== index)
-                                  const newStartTimes = (formData.additionalStartTimes || []).filter(
-                                    (_, i) => i !== index,
-                                  )
-                                  const newEndTimes = (formData.additionalEndTimes || []).filter((_, i) => i !== index)
-                                  handleInputChange("additionalDates", newDates)
-                                  handleInputChange("additionalStartTimes", newStartTimes)
-                                  handleInputChange("additionalEndTimes", newEndTimes)
-                                }}
-                                className="bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800 border-none"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                          return seriesDates.map((date, index) => (
+                            <div
+                              key={index}
+                              className="flex justify-between items-center bg-white rounded-lg p-4 border border-gray-200 shadow-sm"
+                            >
+                              <span className="font-medium text-gray-800 text-xs">
+                                {parseLocalDate(date).toLocaleDateString("de-DE", {
+                                  weekday: "long",
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })}
+                              </span>
+                              <span className="font-medium text-gray-800 text-xs">
+                                {formData.startTime} - {formData.endTime}
+                              </span>
                             </div>
-                          </div>
-                        )
-                      })}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          handleInputChange("additionalDates", [...formData.additionalDates, ""])
-                        }}
-                        className="h-11 px-5 text-sm border-2 border-dashed border-yellow-500 text-yellow-700 hover:bg-yellow-50"
-                      >
-                        + Weiteren Termin hinzufügen
-                      </Button>
+                          ))
+                        })()
+                      )}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <p className="text-gray-800 font-semibold text-xs">
+                        {" "}
+                        {formData.frequency === "einmalig"
+                          ? 1
+                          : formData.seriesMode === "manual"
+                            ? (formData.eventDate ? 1 : 0) + formData.additionalDates.filter((date) => date).length
+                            : generateSeriesDates(
+                                formData.eventDate,
+                                formData.frequency,
+                                formData.customIntervalNumber,
+                                formData.customIntervalUnit,
+                                formData.weeklyDays,
+                                formData.monthlyType,
+                                formData.monthlyDay,
+                                formData.monthlyWeekday,
+                                formData.monthlyWeekdayPosition,
+                                formData.seriesEndType,
+                                formData.seriesEndDate,
+                                formData.seriesEndCount,
+                              ).length}{" "}
+                        Termin(e) insgesamt
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {formData.frequency !== "einmalig" && formData.seriesMode === "manual" && (
+                  <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-3 block">Weitere Termine *</Label>
+                      <p className="text-xs text-gray-600 mb-4">
+                        Füge alle Termine hinzu, an denen das Event stattfinden soll. Jeder Termin muss in der Zukunft
+                        und nach dem vorherigen Termin liegen.
+                      </p>
+                      {errors.additionalDates && <p className="text-red-600 text-xs mb-3">{errors.additionalDates}</p>}
+                      <div className="space-y-3 mt-3">
+                        {formData.additionalDates.map((date, index) => {
+                          const previousDate = index === 0 ? formData.eventDate : formData.additionalDates[index - 1]
+                          const isDateValid = !date || !previousDate || new Date(date) > new Date(previousDate)
+                          const isFutureDate = !date || new Date(date) > new Date()
+
+                          return (
+                            <div key={index} className="space-y-2">
+                              <div className="flex gap-2 items-center">
+                                <div className="flex-1">
+                                  <Input
+                                    type="date"
+                                    className={`h-11 text-sm ${!isDateValid || !isFutureDate ? "border-red-300 focus:border-red-400" : "border-gray-300 focus:border-teal-500"}`}
+                                    value={date}
+                                    onChange={(e) => {
+                                      const newDates = [...formData.additionalDates]
+                                      newDates[index] = e.target.value
+                                      handleInputChange("additionalDates", newDates)
+                                    }}
+                                  />
+                                  {date && !isFutureDate && (
+                                    <p className="text-red-500 text-xs mt-1">Datum muss in der Zukunft liegen</p>
+                                  )}
+                                  {date && isFutureDate && !isDateValid && (
+                                    <p className="text-red-500 text-xs mt-1">
+                                      Datum muss nach dem {index === 0 ? "Start-Event" : "vorherigen Termin"} liegen
+                                    </p>
+                                  )}
+                                </div>
+                                {date && (
+                                  <>
+                                    <Input
+                                      type="time"
+                                      className="h-11 text-sm border-gray-300 focus:border-teal-500 w-32"
+                                      placeholder="Startzeit"
+                                      value={formData.additionalStartTimes?.[index] || formData.startTime}
+                                      onChange={(e) => {
+                                        const newTimes = [...(formData.additionalStartTimes || [])]
+                                        newTimes[index] = e.target.value
+                                        handleInputChange("additionalStartTimes", newTimes)
+                                      }}
+                                    />
+                                    <Input
+                                      type="time"
+                                      className="h-11 text-sm border-gray-300 focus:border-teal-500 w-32"
+                                      placeholder="Endzeit"
+                                      value={formData.additionalEndTimes?.[index] || formData.endTime}
+                                      onChange={(e) => {
+                                        const newTimes = [...(formData.additionalEndTimes || [])]
+                                        newTimes[index] = e.target.value
+                                        handleInputChange("additionalEndTimes", newTimes)
+                                      }}
+                                    />
+                                  </>
+                                )}
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  onClick={() => {
+                                    const newDates = formData.additionalDates.filter((_, i) => i !== index)
+                                    const newStartTimes = (formData.additionalStartTimes || []).filter(
+                                      (_, i) => i !== index,
+                                    )
+                                    const newEndTimes = (formData.additionalEndTimes || []).filter(
+                                      (_, i) => i !== index,
+                                    )
+                                    handleInputChange("additionalDates", newDates)
+                                    handleInputChange("additionalStartTimes", newStartTimes)
+                                    handleInputChange("additionalEndTimes", newEndTimes)
+                                  }}
+                                  className="bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800 border-none"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            handleInputChange("additionalDates", [...formData.additionalDates, ""])
+                          }}
+                          className="h-11 px-5 text-sm border-2 border-dashed border-yellow-500 text-yellow-700 hover:bg-yellow-50"
+                        >
+                          + Weiteren Termin hinzufügen
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Section 3: Was wird gespielt? */}
+          <AccordionItem value="item-3" className="bg-white rounded-lg shadow-sm border">
+            <AccordionTrigger className="px-6 py-4 hover:no-underline">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="rounded-full bg-teal-600 text-white flex items-center justify-center font-semibold flex-shrink-0 h-8 w-8">
+                  3
+                </div>
+                <span className="font-semibold text-gray-900 text-sm">Was wird gespielt?</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-6 pb-6">
+              {/* Step 3 content */}
+              <div className="space-y-6">
+                <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                  <p className="text-gray-700 mb-6 text-sm">
+                    Wähle Spiele aus deinem Spieleregal oder suche gerne andere aus der Datenbank
+                  </p>
+
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-lg p-6 border border-gray-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-base font-semibold text-gray-900">Dein Spieleregal</h4>
+                        <Button
+                          type="button"
+                          onClick={() => setShowGameShelfModal(true)}
+                          className="bg-teal-600 text-white hover:bg-teal-700"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Aus Spielregal auswählen
+                        </Button>
+                      </div>
+
+                      {selectedGames.filter((game) => !game.isBggGame).length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          <Library className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p className="text-xs">Klicke auf "Aus Spielregal auswählen", um Spiele hinzuzufügen</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-white rounded-lg p-6 border border-gray-200">
+                      <h4 className="font-semibold text-gray-900 mb-4 text-sm">Aus der Datenbank suchen</h4>
+                      <div className="relative mb-5">
+                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                          type="text"
+                          placeholder="Beliebiges Spiel suchen ..."
+                          value={bggSearchTerm}
+                          onChange={(e) => {
+                            setBggSearchTerm(e.target.value)
+                            searchBoardGameGeek(e.target.value)
+                          }}
+                          className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-xs"
+                        />
+                      </div>
+
+                      {bggSearchLoading && (
+                        <div className="text-center py-12">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-teal-500 mx-auto"></div>
+                          <p className="text-gray-600 mt-4 font-medium">Durchsuche Datenbank...</p>
+                        </div>
+                      )}
+
+                      {bggSearchResults.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {bggSearchResults.map((game) => {
+                            const isSelected = selectedGames.some((g) => g.id === game.id)
+                            return (
+                              <div
+                                key={game.id}
+                                className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                                  isSelected
+                                    ? "border-teal-500 bg-teal-50 shadow-md"
+                                    : "border-gray-200 hover:border-teal-400"
+                                }`}
+                                onClick={() => handleGameShelfSelection(game)}
+                              >
+                                <div className="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
+                                  <img
+                                    src={game.image || "/placeholder.svg"}
+                                    alt={game.title}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      ;(e.target as HTMLImageElement).src = "/placeholder.svg"
+                                    }}
+                                  />
+                                </div>
+                                <h4 className="font-semibold text-gray-900 line-clamp-2 mb-1 text-xs">{game.title}</h4>
+                                {game.year && <p className="text-xs text-gray-500">({game.year})</p>}
+                                {game.publisher && <p className="text-xs text-gray-600 truncate">{game.publisher}</p>}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+
+                      {bggSearchTerm && !bggSearchLoading && bggSearchResults.length === 0 && (
+                        <div className="text-center py-12 text-gray-500">
+                          <Search className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                          <p className="font-medium">Keine Spiele gefunden für "{bggSearchTerm}"</p>
+                          <p className="text-xs mt-2">Versuche einen anderen Suchbegriff</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              )}
 
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <Label htmlFor="location" className="text-sm font-medium text-gray-700 mb-3 block">
-                Treffpunkt *
-              </Label>
-              <div className="space-y-4">
-                <Select
-                  value={locationType}
-                  onValueChange={(value: "local" | "virtual") => {
-                    setLocationType(value)
-                    handleInputChange("isOnline", value === "virtual")
-                  }}
-                >
-                  <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="local">Local (vor Ort)</SelectItem>
-                    <SelectItem value="virtual">Virtuell (online)</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {locationType === "local" && (
-                  <div>
-                    <AddressAutocomplete
-                      label=""
-                      placeholder="Location, Adresse, PLZ oder Ort eingeben..."
-                      value={formData.location}
-                      onChange={(value) => handleInputChange("location", value)}
-                      className="h-11 text-sm border-gray-300 focus:border-teal-500"
-                      error={fieldErrors.location || errors.location}
-                    />
+                {selectedGames.length > 0 && (
+                  <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                    <h4 className="text-base font-semibold text-gray-900 mb-5 flex items-center gap-2">
+                      Ausgewählte Spiele für das Event: {selectedGames.length}
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {selectedGames.map((game) => (
+                        <div
+                          key={game.id}
+                          className="bg-white border border-gray-200 rounded-lg p-4 relative shadow-sm"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGame(game.id)}
+                            className="absolute -top-2.5 -right-2.5 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg font-bold text-xs"
+                          >
+                            ×
+                          </button>
+                          <div className="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
+                            <img
+                              src={game.image || "/placeholder.svg"}
+                              alt={game.title}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <h4 className="font-semibold text-gray-900 line-clamp-2 text-xs">{game.title}</h4>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
-
-                {locationType === "virtual" && (
-                  <Input
-                    placeholder="Einladungslink (Discord, Zoom, etc.)"
-                    value={formData.onlinePlatform}
-                    onChange={(e) => handleInputChange("onlinePlatform", e.target.value)}
-                    className="h-11 text-sm border-gray-300 focus:border-teal-500"
-                  />
-                )}
-                {errors.onlinePlatform && (
-                  <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.onlinePlatform}
-                  </p>
-                )}
               </div>
-            </div>
-          </div>
-        )}
-        {/* Step 3: Games & Participants */}
-        {currentStep === 3 && (
-          <div className="space-y-6">
-            <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-              <p className="text-gray-700 mb-6 text-sm">
-                Wähle Spiele aus deinem Spieleregal oder suche gerne andere aus der Datenbank
-              </p>
+            </AccordionContent>
+          </AccordionItem>
 
+          {/* Section 4: Sichtbarkeit & Teilnahmemodus */}
+          <AccordionItem value="item-4" className="bg-white rounded-lg shadow-sm border">
+            <AccordionTrigger className="px-6 py-4 hover:no-underline">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="rounded-full bg-teal-600 text-white flex items-center justify-center font-semibold flex-shrink-0 h-8 w-8">
+                  4
+                </div>
+                <span className="font-semibold text-gray-900 text-sm">Sichtbarkeit & Teilnahmemodus</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-6 pb-6">
+              {/* Step 4 content */}
               <div className="space-y-6">
                 <div className="bg-white rounded-lg p-6 border border-gray-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-base font-semibold text-gray-900">Dein Spieleregal</h4>
-                    <Button
-                      type="button"
-                      onClick={() => setShowGameShelfModal(true)}
-                      className="bg-teal-600 text-white hover:bg-teal-700"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Aus Spielregal auswählen
-                    </Button>
-                  </div>
-
-                  {selectedGames.filter((game) => !game.isBggGame).length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      <Library className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p className="text-xs">Klicke auf "Aus Spielregal auswählen", um Spiele hinzuzufügen</p>
-                    </div>
-                  )}
+                  <Label htmlFor="visibility" className="text-sm font-medium text-gray-700 mb-3 block">
+                    Sichtbarkeit *
+                  </Label>
+                  <Select value={formData.visibility} onValueChange={(value) => handleInputChange("visibility", value)}>
+                    <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="public">
+                        Für alle sichtbar (Jeder kann das Event sehen und sich hierfür anmelden)
+                      </SelectItem>
+                      <SelectItem value="friends_only">
+                        Mit Einladung (Nur ausgewählte Freunde können das Event sehen)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                {formData.visibility === "friends_only" && (
+                  <div className="bg-white rounded-lg p-6 border border-gray-200">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-3 block">Freunde einladen</Label>
+                      <p className="text-xs text-gray-600 mb-4">
+                        Wähle Freunde aus, die du zu diesem Event einladen möchtest.
+                      </p>
+                      <div className="mt-2 space-y-4">
+                        <Button
+                          type="button"
+                          onClick={() => setShowFriendDialog(true)}
+                          variant="outline"
+                          className="h-11 w-full px-6 text-sm border-2 border-dashed border-gray-300 text-gray-700 hover:bg-gray-50"
+                        >
+                          <Users className="w-5 h-5 mr-2" />
+                          Freunde auswählen ({selectedFriends.length} ausgewählt)
+                        </Button>
+
+                        {selectedFriends.length > 0 && (
+                          <div className="space-y-4 pt-4 border-t border-gray-200">
+                            <p className="text-xs font-medium text-gray-800">Ausgewählte Freunde:</p>
+                            <div className="flex flex-wrap gap-3">
+                              {selectedFriends.map((friend) => (
+                                <div
+                                  key={friend.id}
+                                  className="flex items-center gap-2 bg-gray-100 text-gray-800 px-4 py-2 rounded-full text-sm font-medium shadow-sm"
+                                >
+                                  <div className="w-8 h-8 bg-gradient-to-r from-gray-400 to-gray-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                    {friend.name[0].toUpperCase()}
+                                  </div>
+                                  <span>{friend.name}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveSelectedFriend(friend.id)}
+                                    className="text-gray-600 hover:text-gray-800 ml-1 p-0.5 rounded-full hover:bg-gray-200 transition-colors"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Friend game requests section */}
+                            <div className="mt-4 space-y-3 pt-4 border-t border-gray-200">
+                              <p className="text-xs font-medium text-gray-800">Spiele von Freunden anfragen:</p>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {selectedFriends.map((friend) => (
+                                  <Button
+                                    key={friend.id}
+                                    type="button"
+                                    onClick={() =>
+                                      setShowFriendGameDialog({ friendId: friend.id, friendName: friend.name })
+                                    }
+                                    variant="outline"
+                                    className="h-14 justify-start text-left text-sm border-2 border-gray-300 hover:bg-gray-50"
+                                  >
+                                    <span className="truncate font-medium text-gray-800">
+                                      {friend.name}
+                                      {friendGameRequests[friend.id]?.length > 0 && (
+                                        <span className="ml-2 text-xs bg-teal-100 text-teal-800 px-1.5 py-0.5 rounded-full">
+                                          {friendGameRequests[friend.id].length}
+                                        </span>
+                                      )}
+                                    </span>
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Changed section: Teilnahmemodus */}
+                {formData.visibility !== "friends_only" && (
+                  <div className="bg-white rounded-lg p-6 border border-gray-200">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h3 className="text-sm font-regular text-gray-700">Teilnahmemodus</h3>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <Select
+                          value={formData.requiresApproval ? "manual" : "automatic"}
+                          onValueChange={(value) => handleInputChange("requiresApproval", value === "manual")}
+                        >
+                          <SelectTrigger className="h-11 text-xs border-gray-300 focus:border-teal-500 focus:ring-teal-500">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="automatic">Offene Teilnahme</SelectItem>
+                            <SelectItem value="manual">Teilnahme erst nach Genehmigung</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
+                        {!formData.requiresApproval ? (
+                          <div className="space-y-2">
+                            <div className="flex items-start gap-2">
+                              <FaCheckCircle className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-xs font-semibold text-gray-900 mb-1">Offene Teilnahme</p>
+                                <p className="text-xs text-gray-600">Jeder ist willkommen, am Event teilzunehmen</p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex items-start gap-2">
+                              <FaClock className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-xs font-semibold text-gray-900 mb-1">
+                                  Teilnahme erst nach Genehmigung
+                                </p>
+                                <p className="text-xs text-gray-600">
+                                  Du erhältst eine Benachrichtigung für jede Teilnahme-Anfrage und kannst entscheiden,
+                                  wer teilnehmen darf
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-white rounded-lg p-6 border border-gray-200">
-                  <h4 className="font-semibold text-gray-900 mb-4 text-sm">Aus der Datenbank suchen</h4>
-                  <div className="relative mb-5">
-                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      placeholder="Beliebiges Spiel suchen ..."
-                      value={bggSearchTerm}
-                      onChange={(e) => {
-                        setBggSearchTerm(e.target.value)
-                        searchBoardGameGeek(e.target.value)
-                      }}
-                      className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-xs"
-                    />
-                  </div>
-
-                  {bggSearchLoading && (
-                    <div className="text-center py-12">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-teal-500 mx-auto"></div>
-                      <p className="text-gray-600 mt-4 font-medium">Durchsuche Datenbank...</p>
-                    </div>
-                  )}
-
-                  {bggSearchResults.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {bggSearchResults.map((game) => {
-                        const isSelected = selectedGames.some((g) => g.id === game.id)
-                        return (
-                          <div
-                            key={game.id}
-                            className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                              isSelected
-                                ? "border-teal-500 bg-teal-50 shadow-md"
-                                : "border-gray-200 hover:border-teal-400"
-                            }`}
-                            onClick={() => handleGameShelfSelection(game)}
-                          >
-                            <div className="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
-                              <img
-                                src={game.image || "/placeholder.svg"}
-                                alt={game.title}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  ;(e.target as HTMLImageElement).src = "/placeholder.svg"
-                                }}
-                              />
-                            </div>
-                            <h4 className="font-semibold text-gray-900 line-clamp-2 mb-1 text-xs">{game.title}</h4>
-                            {game.year && <p className="text-xs text-gray-500">({game.year})</p>}
-                            {game.publisher && <p className="text-xs text-gray-600 truncate">{game.publisher}</p>}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  {bggSearchTerm && !bggSearchLoading && bggSearchResults.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                      <Search className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                      <p className="font-medium">Keine Spiele gefunden für "{bggSearchTerm}"</p>
-                      <p className="text-xs mt-2">Versuche einen anderen Suchbegriff</p>
-                    </div>
-                  )}
+                  <Label htmlFor="rules" className="text-sm font-medium text-gray-700 mb-3 block">
+                    Zusatzinfos
+                  </Label>
+                  <RichTextEditor
+                    value={formData.rules}
+                    onChange={(value) => handleInputChange("rules", value)}
+                    placeholder="z.B. Spezielle Hausregeln, Hinweise ..."
+                    rows={4}
+                    className="text-sm"
+                  />
                 </div>
               </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
-              {selectedGames.length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                  <h4 className="text-base font-semibold text-gray-900 mb-5 flex items-center gap-2">
-                    Ausgewählte Spiele für das Event: {selectedGames.length}
-                  </h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {selectedGames.map((game) => (
-                      <div key={game.id} className="bg-white border border-gray-200 rounded-lg p-4 relative shadow-sm">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveGame(game.id)}
-                          className="absolute -top-2.5 -right-2.5 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg font-bold text-xs"
-                        >
-                          ×
-                        </button>
-                        <div className="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
-                          <img
-                            src={game.image || "/placeholder.svg"}
-                            alt={game.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <h4 className="font-semibold text-gray-900 line-clamp-2 text-xs">{game.title}</h4>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        {/* Step 4: Settings & Publication */}
-        {currentStep === 4 && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <Label htmlFor="visibility" className="text-sm font-medium text-gray-700 mb-3 block">
-                Sichtbarkeit *
-              </Label>
-              <Select value={formData.visibility} onValueChange={(value) => handleInputChange("visibility", value)}>
-                <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public">
-                    Für alle sichtbar (Jeder kann das Event sehen und sich hierfür anmelden)
-                  </SelectItem>
-                  <SelectItem value="friends_only">
-                    Mit Einladung (Nur ausgewählte Freunde können das Event sehen)
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {formData.visibility === "friends_only" && (
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-3 block">Freunde einladen</Label>
-                  <p className="text-xs text-gray-600 mb-4">
-                    Wähle Freunde aus, die du zu diesem Event einladen möchtest.
-                  </p>
-                  <div className="mt-2 space-y-4">
-                    <Button
-                      type="button"
-                      onClick={() => setShowFriendDialog(true)}
-                      variant="outline"
-                      className="h-11 w-full px-6 text-sm border-2 border-dashed border-gray-300 text-gray-700 hover:bg-gray-50"
-                    >
-                      <Users className="w-5 h-5 mr-2" />
-                      Freunde auswählen ({selectedFriends.length} ausgewählt)
-                    </Button>
-
-                    {selectedFriends.length > 0 && (
-                      <div className="space-y-4 pt-4 border-t border-gray-200">
-                        <p className="text-xs font-medium text-gray-800">Ausgewählte Freunde:</p>
-                        <div className="flex flex-wrap gap-3">
-                          {selectedFriends.map((friend) => (
-                            <div
-                              key={friend.id}
-                              className="flex items-center gap-2 bg-gray-100 text-gray-800 px-4 py-2 rounded-full text-sm font-medium shadow-sm"
-                            >
-                              <div className="w-8 h-8 bg-gradient-to-r from-gray-400 to-gray-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                {friend.name[0].toUpperCase()}
-                              </div>
-                              <span>{friend.name}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveSelectedFriend(friend.id)}
-                                className="text-gray-600 hover:text-gray-800 ml-1 p-0.5 rounded-full hover:bg-gray-200 transition-colors"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Friend game requests section */}
-                        <div className="mt-4 space-y-3 pt-4 border-t border-gray-200">
-                          <p className="text-xs font-medium text-gray-800">Spiele von Freunden anfragen:</p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {selectedFriends.map((friend) => (
-                              <Button
-                                key={friend.id}
-                                type="button"
-                                onClick={() =>
-                                  setShowFriendGameDialog({ friendId: friend.id, friendName: friend.name })
-                                }
-                                variant="outline"
-                                className="h-14 justify-start text-left text-sm border-2 border-gray-300 hover:bg-gray-50"
-                              >
-                                <span className="truncate font-medium text-gray-800">
-                                  {friend.name}
-                                  {friendGameRequests[friend.id]?.length > 0 && (
-                                    <span className="ml-2 text-xs bg-teal-100 text-teal-800 px-1.5 py-0.5 rounded-full">
-                                      {friendGameRequests[friend.id].length}
-                                    </span>
-                                  )}
-                                </span>
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {formData.visibility !== "friends_only" && (
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <Label htmlFor="requiresApproval" className="text-sm font-medium text-gray-700 mb-3 block">
-                  Teilnahmemodus *
-                </Label>
-                <Select
-                  value={formData.requiresApproval ? "manual" : "automatic"}
-                  onValueChange={(value) => handleInputChange("requiresApproval", value === "manual")}
-                >
-                  <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="automatic">
-                      Offene Teilnahme (Jeder kann teilnehmen)
-                    </SelectItem>
-                    <SelectItem value="manual">
-                      Teilnahme erst nach Genehmigung (Du genehmigst jede Teilnahme-Anfrage)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <Label htmlFor="rules" className="text-sm font-medium text-gray-700 mb-3 block">
-                Zusatzinfos
-              </Label>
-              <RichTextEditor
-                value={formData.rules}
-                onChange={(value) => handleInputChange("rules", value)}
-                placeholder="z.B. Spezielle Hausregeln, Hinweise ..."
-                rows={4}
-                className="text-sm"
-              />
-            </div>
-          </div>
-        )}
         {submitError && (
           <div className="bg-red-50 border-2 border-red-300 rounded-lg p-5 flex items-start space-x-4">
             <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
@@ -2526,145 +2497,133 @@ export default function CreateLudoEventForm({
             </div>
           </div>
         )}
-        <div className="flex items-center justify-between pt-6 border-t border-gray-200 mt-6">
-          <div>
-            {currentStep > 1 && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={prevStep}
-                className="h-11 px-6 text-sm border-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
-                disabled={isSubmitting}
-              >
-                ← Zurück
-              </Button>
-            )}
-          </div>
-
-          <div className="flex space-x-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              className="h-11 px-6 text-sm border-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
-              disabled={isSubmitting}
-            >
-              Abbrechen
-            </Button>
-
-            {currentStep < 4 ? (
-              <Button
-                type="button"
-                onClick={nextStep}
-                className="h-11 px-8 text-sm bg-teal-600 text-white font-medium shadow-sm hover:bg-teal-700"
-                disabled={isSubmitting}
-              >
-                Weiter →
-              </Button>
+        <div className="mt-8 flex justify-end gap-4 pt-4 border-t">
+          <Button type="button" onClick={onCancel} variant="outline">
+            Abbrechen
+          </Button>
+          <Button type="submit" disabled={isSubmitting} className="bg-teal-600 hover:bg-teal-700">
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Wird erstellt...
+              </>
             ) : (
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="h-11 px-8 text-sm bg-teal-600 text-white font-medium shadow-sm hover:bg-teal-700"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                    Erstelle Event...
-                  </div>
-                ) : (
-                  <>
-                    <Dice6 className="w-5 h-5 mr-2" />
-                    Event erstellen
-                  </>
-                )}
-              </Button>
+              "Event erstellen"
             )}
-          </div>
+          </Button>
         </div>
       </form>
 
-      {/* Friend Selection Dialog */}
+      {/* Friend Selection Dialog - Updated */}
       <Dialog open={showFriendDialog} onOpenChange={setShowFriendDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Freunde auswählen</DialogTitle>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader className="pb-4 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <motion.div
+                className="h-14 w-14 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-lg"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", duration: 0.6 }}
+              >
+                <FaUserPlus className="h-7 w-7 text-white" />
+              </motion.div>
+              <DialogTitle className="text-2xl font-semibold text-gray-900">Freunde auswählen</DialogTitle>
+            </div>
           </DialogHeader>
 
-          {/* Search Field */}
-          <div className="px-1 pb-4">
+          {/* Search */}
+          <div className="relative mt-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Freunde suchen..."
+              placeholder="Freunde durchsuchen..."
               value={friendSearchTerm}
               onChange={(e) => setFriendSearchTerm(e.target.value)}
-              className="border-2 border-gray-300 focus:border-teal-500 h-11 text-sm"
+              className="pl-9 border-gray-300"
             />
           </div>
 
-          <div className="overflow-y-auto max-h-96 px-1">
-            {friends.length > 0 ? (
-              filteredFriends.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3">
-                  {filteredFriends.map((friend) => (
-                    <div
-                      key={friend.id}
-                      className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => handleFriendToggle(friend)}
-                    >
-                      <Checkbox
-                        checked={selectedFriends.some((f) => f.id === friend.id)}
-                        onChange={() => handleFriendToggle(friend)}
-                        className="w-5 h-5 text-teal-600 focus:ring-teal-500"
-                      />
-                      <div className="w-10 h-10 bg-gradient-to-r from-teal-400 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                        {friend.name[0].toUpperCase()}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{friend.name}</h4>
-                        {friend.email && <p className="text-xs text-gray-500">{friend.email}</p>}
-                      </div>
-                    </div>
-                  ))}
+          {/* Friends count banner */}
+          <div className="bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-lg px-4 py-2.5 mt-3">
+            <p className="text-sm font-medium text-teal-800">
+              {filteredFriends.length} {filteredFriends.length === 1 ? "Freund" : "Freunde"} verfügbar
+            </p>
+          </div>
+
+          {/* Friends list */}
+          <div className="space-y-2 mt-4">
+            {friends.length === 0 ? (
+              <div className="text-center py-8 px-4">
+                <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                  <FaUserPlus className="h-6 w-6 text-gray-400" />
                 </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <Users className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                  <p className="font-medium">Keine Freunde gefunden für "{friendSearchTerm}"</p>
-                  <p className="text-xs mt-2">Versuche einen anderen Suchbegriff</p>
-                </div>
-              )
-            ) : (
-              <div className="text-center py-12 text-gray-500">
-                <Users className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                <p className="font-medium">Du hast noch keine Freunde hinzugefügt</p>
-                <p className="text-xs mt-2">Füge zuerst Freunde hinzu, um sie einladen zu können</p>
+                <p className="text-xs font-medium text-gray-700 mb-1">Keine Freunde zum Auswählen</p>
+                <p className="text-xs text-gray-500">Füge Freunde hinzu</p>
               </div>
+            ) : (
+              filteredFriends.map((friend) => (
+                <div
+                  key={friend.id}
+                  className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <Checkbox
+                    checked={selectedFriends.some((f) => f.id === friend.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedFriends([...selectedFriends, friend])
+                      } else {
+                        setSelectedFriends(selectedFriends.filter((f) => f.id !== friend.id))
+                      }
+                    }}
+                  />
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={friend.avatar || "/placeholder.svg"} alt={friend.name} />
+                    <AvatarFallback>{friend.name.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedProfileUserId(friend.id)
+                      setProfileModalOpen(true)
+                    }}
+                    className="text-sm font-medium text-gray-900 hover:text-teal-600 transition-colors text-left"
+                  >
+                    {friend.name}
+                  </button>
+                </div>
+              ))
             )}
           </div>
 
-          <div className="flex justify-end gap-3 pt-5">
+          {/* Action buttons */}
+          <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
             <Button
-              onClick={() => {
-                setShowFriendDialog(false)
-                setFriendSearchTerm("") // Reset search when closing
-              }}
+              type="button"
               variant="outline"
-              className="h-11 px-6 text-sm border-2 border-gray-300 text-gray-700 hover:bg-gray-50"
-            >
-              Abbrechen
-            </Button>
-            <Button
               onClick={() => {
                 setShowFriendDialog(false)
                 setFriendSearchTerm("")
               }}
-              className="h-11 px-8 text-sm bg-teal-600 text-white font-medium shadow-sm hover:bg-teal-700"
+              className="flex-1"
             >
-              Fertig ({selectedFriends.length} ausgewählt)
+              Abbrechen
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setShowFriendDialog(false)
+                setFriendSearchTerm("")
+              }}
+              className="flex-1 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white"
+            >
+              <FaUserPlus className="mr-2 h-4 w-4" />
+              Auswählen ({selectedFriends.length})
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Friend game selection dialog (kept for functionality) */}
       <Dialog open={!!showFriendGameDialog} onOpenChange={() => setShowFriendGameDialog(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -2752,6 +2711,7 @@ export default function CreateLudoEventForm({
           </div>
         </DialogContent>
       </Dialog>
+
       {/* Game Shelf Selection Modal */}
       <Dialog open={showGameShelfModal} onOpenChange={setShowGameShelfModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -2860,6 +2820,15 @@ export default function CreateLudoEventForm({
           </div>
         </DialogContent>
       </Dialog>
+
+      <UserProfileModal
+        userId={selectedProfileUserId}
+        isOpen={profileModalOpen}
+        onClose={() => {
+          setProfileModalOpen(false)
+          setSelectedProfileUserId(null)
+        }}
+      />
     </div>
   )
 }
