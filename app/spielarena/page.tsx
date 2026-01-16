@@ -28,7 +28,7 @@ const games = [
   {
     id: "pattern-match",
     title: "Pattern Match",
-    description: "Schau dir eine Farbkombination für wenige Sekunden an und wiederhole die exakt.",
+    description: "Schau dir eine Farbkombination für wenige Sekunden an und bilde die genau nach.",
     icon: IoGrid,
     color: "violet",
     rotation: "rotate-1",

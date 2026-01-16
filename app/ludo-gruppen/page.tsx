@@ -1951,16 +1951,12 @@ export default function LudoGruppenPage() {
         {/* Dialog for creating a new group */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 -m-6 mb-6 z-10">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">
-                  Neue Spielgruppe erstellen
-                </DialogTitle>
-                <p className="text-xs text-gray-600">
-                  Erstelle eine Gruppe und verbinde dich mit anderen Spiel-Enthusiasten
-                </p>
-              </DialogHeader>
-            </div>
+            <DialogHeader className="pb-4 border-b border-gray-100">
+              <DialogTitle className="text-2xl font-semibold text-gray-900">Neue Spielgruppe erstellen</DialogTitle>
+              <DialogDescription className="text-sm text-gray-600">
+                Erstelle eine Gruppe und verbinde dich mit anderen Spiel-Enthusiasten
+              </DialogDescription>
+            </DialogHeader>
 
             <Accordion type="multiple" defaultValue={["grundinformationen"]} className="space-y-4">
               {/* Section 1: Grundinformationen */}
@@ -1977,7 +1973,7 @@ export default function LudoGruppenPage() {
                   <div className="space-y-5">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <Label htmlFor="group-name" className="text-xs font-medium text-gray-700">
+                        <Label htmlFor="group-name" className="text-sm font-medium text-gray-700">
                           Name der Spielgruppe <span className="text-red-500">*</span>
                         </Label>
                         <span className="text-gray-500 text-xs">{newGroup.name.length}/60</span>
@@ -1993,7 +1989,7 @@ export default function LudoGruppenPage() {
                     </div>
 
                     <div>
-                      <Label htmlFor="group-description" className="text-xs font-medium text-gray-700 mb-2 block">
+                      <Label htmlFor="group-description" className="text-sm font-medium text-gray-700 mb-2 block">
                         Beschreibung
                       </Label>
                       <RichTextEditor
@@ -2005,7 +2001,7 @@ export default function LudoGruppenPage() {
                     </div>
 
                     <div>
-                      <Label htmlFor="max-members" className="text-xs font-medium text-gray-700 mb-2 block">
+                      <Label htmlFor="max-members" className="text-sm font-medium text-gray-700 mb-2 block">
                         Maximale Mitgliederzahl
                       </Label>
                       <Input
@@ -2025,8 +2021,8 @@ export default function LudoGruppenPage() {
 
                     {/* Image upload section */}
                     <div>
-                      <Label htmlFor="group-image" className="text-xs font-medium text-gray-700 mb-3 block">
-                        Spielgruppenbilder (optional - bis zu 5 Bilder)
+                      <Label htmlFor="group-image" className="text-sm font-medium text-gray-700 mb-3 block">
+                        Bilder
                       </Label>
 
                       {imagePreviews.length === 0 ? (
@@ -2035,7 +2031,7 @@ export default function LudoGruppenPage() {
                           className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition-all duration-200 bg-gray-50"
                         >
                           <FaImage className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                          <p className="text-sm font-medium text-gray-700 mb-1">Klicken zum Hochladen</p>
+                          <p className="text-xs font-medium text-gray-700 mb-1">Klicken zum Hochladen</p>
                           <p className="text-xs text-gray-500">
                             JPG, PNG oder WebP (max. 5MB pro Bild, bis zu 5 Bilder)
                           </p>
@@ -2097,7 +2093,7 @@ export default function LudoGruppenPage() {
                     </div>
 
                     <div>
-                      <Label htmlFor="group-location" className="text-xs font-medium text-gray-700 mb-2 block">
+                      <Label htmlFor="group-location" className="text-sm font-medium text-gray-700 mb-2 block">
                         Standort
                       </Label>
                       <AddressAutocomplete
@@ -2125,7 +2121,7 @@ export default function LudoGruppenPage() {
                 <AccordionContent className="px-6 pb-6 pt-2">
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="approval-mode" className="text-xs font-medium text-gray-700 mb-2 block">
+                      <Label htmlFor="approval-mode" className="text-sm font-medium text-gray-700 mb-2 block">
                         Wie sollen neue Mitglieder beitreten können?
                       </Label>
                       <Select

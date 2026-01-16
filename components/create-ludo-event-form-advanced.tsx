@@ -1400,7 +1400,7 @@ export default function CreateLudoEventForm({
                             </div>
                           )}
                           <div>
-                            <p className="text-gray-700 font-medium text-base">
+                            <p className="text-gray-700 font-medium text-xs">
                               {isUploadingImage ? "Bilder werden verarbeitet..." : "Klicken zum Hochladen"}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
@@ -1495,7 +1495,7 @@ export default function CreateLudoEventForm({
                 <div className="rounded-full bg-teal-600 text-white flex items-center justify-center font-semibold flex-shrink-0 w-8 h-8">
                   2
                 </div>
-                <span className="font-semibold text-gray-900 text-sm">Zeit, Frequenz und Ort</span>
+                <span className="font-semibold text-gray-900 text-sm">Zeit, Frequenz und Standort</span>
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-6 pb-6">
@@ -1503,7 +1503,7 @@ export default function CreateLudoEventForm({
               <div className="space-y-6">
                 <div className="bg-white rounded-lg p-6 border border-gray-200">
                   <Label htmlFor="location" className="text-sm font-medium text-gray-700 mb-3 block">
-                    Ort <span className="text-red-500">*</span>
+                    Standort <span className="text-red-500">*</span>
                   </Label>
                   <div className="space-y-4">
                     <Select
