@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createLudoEvent } from "@/app/actions/ludo-events"
 import { useAuth } from "@/contexts/auth-context"
 import { useGames } from "@/contexts/games-context"
+import { FaImage } from "react-icons/fa"
 import { useFriends } from "@/contexts/friends-context"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
@@ -1165,16 +1166,16 @@ export default function CreateLudoEventForm({
   // Removed: nextStep function
   // Removed: prevStep function
 
-  const getStepTitle = (step: number) => {
-    switch (step) {
+  const getStepTitle = (stepNumber: number) => {
+    switch (stepNumber) {
       case 1:
-        return "Grundinformationen" // Changed from "Basis" to "Grundinformationen"
+        return "Grundinformationen"
       case 2:
-        return "Zeit, Frequenz und Treffpunkt" // Changed from "Details" to "Zeit, Frequenz und Treffpunkt"
+        return "Zeit, Frequenz und Ort"
       case 3:
-        return "Was wird gespielt?" // Changed from "Spiele" to "Was wird gespielt?"
+        return "Was wird gespielt?"
       case 4:
-        return "Sichtbarkeit & Teilnahmemodus" // Changed from "Häufigkeit" to "Sichtbarkeit & Teilnahmemodus"
+        return "Sichtbarkeit & Teilnahmemodus"
       default:
         return ""
     }
@@ -1341,9 +1342,6 @@ export default function CreateLudoEventForm({
                   {/* Bilder moved to third position */}
                   <div className="bg-white rounded-lg p-6 border border-gray-200">
                     <Label className="text-sm font-medium text-gray-700 mb-2 block">Bilder</Label>
-                    <p className="text-xs text-gray-600 mb-4">
-                      Lade bis zu 5 Bilder hoch, um dein Event attraktiver zu gestalten (optional)
-                    </p>
 
                     {selectedImages.length > 0 ? (
                       <div className="space-y-4">
@@ -1398,7 +1396,7 @@ export default function CreateLudoEventForm({
                             <Loader2 className="h-10 w-10 text-gray-900 animate-spin" />
                           ) : (
                             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                              <SlPicture className="h-6 w-6 text-gray-700" />
+                              <FaImage className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                             </div>
                           )}
                           <div>
@@ -1434,7 +1432,7 @@ export default function CreateLudoEventForm({
                 {/* Maximale Teilnehmeranzahl moved to fourth position with Veranstalter checkbox inside */}
                 <div className="bg-white rounded-lg p-6 border border-gray-200">
                   <Label htmlFor="maxPlayers" className="text-sm font-medium text-gray-700 mb-3 block">
-                    Maximale Teilnehmeranzahl *
+                    Maximale Teilnehmeranzahl <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="maxPlayers"
@@ -1490,14 +1488,14 @@ export default function CreateLudoEventForm({
             </AccordionContent>
           </AccordionItem>
 
-          {/* Section 2: Zeit, Frequenz und Treffpunkt */}
+          {/* Section 2: Zeit, Frequenz und Ort */}
           <AccordionItem value="item-2" className="bg-white rounded-lg shadow-sm border">
             <AccordionTrigger className="px-6 py-4 hover:no-underline">
               <div className="flex items-center gap-4 flex-1">
                 <div className="rounded-full bg-teal-600 text-white flex items-center justify-center font-semibold flex-shrink-0 w-8 h-8">
                   2
                 </div>
-                <span className="font-semibold text-gray-900 text-sm">Zeit, Frequenz und Treffpunkt</span>
+                <span className="font-semibold text-gray-900 text-sm">Zeit, Frequenz und Ort</span>
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-6 pb-6">
@@ -1505,7 +1503,7 @@ export default function CreateLudoEventForm({
               <div className="space-y-6">
                 <div className="bg-white rounded-lg p-6 border border-gray-200">
                   <Label htmlFor="location" className="text-sm font-medium text-gray-700 mb-3 block">
-                    Treffpunkt *
+                    Ort <span className="text-red-500">*</span>
                   </Label>
                   <div className="space-y-4">
                     <Select
@@ -1556,9 +1554,9 @@ export default function CreateLudoEventForm({
 
                 {/* organizerOnly checkbox removed from here as it's now in Step 1 */}
                 {/* maxPlayers section removed from here as it's now in Step 1 */}
-                <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                <div className="rounded-lg p-5 border border-gray-200 bg-white">
                   <Label htmlFor="frequency" className="text-sm font-medium text-gray-700 mb-3 block">
-                    Frequenz *
+                    Frequenz <span className="text-red-500">*</span>
                   </Label>
 
                   <Select
@@ -1625,7 +1623,9 @@ export default function CreateLudoEventForm({
 
                   {["täglich", "wöchentlich", "monatlich", "jährlich", "andere"].includes(formData.frequency) && (
                     <div className="mt-5">
-                      <Label className="text-sm font-medium text-gray-700 mb-3 block">Terminplanung *</Label>
+                      <Label className="text-sm font-medium text-gray-700 mb-3 block">
+                        Terminplanung <span className="text-red-500">*</span>
+                      </Label>
                       <Select
                         value={formData.seriesMode}
                         onValueChange={(value) => {
@@ -1640,7 +1640,7 @@ export default function CreateLudoEventForm({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="manual">Termin(e) manuell eingeben</SelectItem>
+                          <SelectItem value="manual">Termine manuell eingeben</SelectItem>
                           <SelectItem value="series">Serientermine erstellen</SelectItem>
                         </SelectContent>
                       </Select>
@@ -1869,58 +1869,58 @@ export default function CreateLudoEventForm({
                       {errors.eventDate}
                     </p>
                   )}
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="startTime" className="text-sm font-medium text-gray-700 mb-3 block">
-                      Startzeit *
-                    </Label>
-                    <Input
-                      id="startTime"
-                      type="time"
-                      className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
-                      value={formData.startTime}
-                      onChange={(e) => handleInputChange("startTime", e.target.value)}
-                      required
-                    />
-                    {fieldErrors.startTime && (
-                      <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4" />
-                        {fieldErrors.startTime}
-                      </p>
-                    )}
-                    {errors.startTime && (
-                      <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4" />
-                        {errors.startTime}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="endTime" className="text-sm font-medium text-gray-700 mb-3 block">
-                      Endzeit *
-                    </Label>
-                    <Input
-                      id="endTime"
-                      type="time"
-                      className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
-                      value={formData.endTime}
-                      onChange={(e) => handleInputChange("endTime", e.target.value)}
-                      required
-                    />
-                    {fieldErrors.endTime && (
-                      <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4" />
-                        {fieldErrors.endTime}
-                      </p>
-                    )}
-                    {errors.endTime && (
-                      <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4" />
-                        {errors.endTime}
-                      </p>
-                    )}
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <Label htmlFor="startTime" className="text-sm font-medium text-gray-700 mb-2 block">
+                        Startzeit *
+                      </Label>
+                      <Input
+                        id="startTime"
+                        type="time"
+                        className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                        value={formData.startTime}
+                        onChange={(e) => handleInputChange("startTime", e.target.value)}
+                        required
+                      />
+                      {fieldErrors.startTime && (
+                        <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4" />
+                          {fieldErrors.startTime}
+                        </p>
+                      )}
+                      {errors.startTime && (
+                        <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.startTime}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="endTime" className="text-sm font-medium text-gray-700 mb-2 block">
+                        Endzeit *
+                      </Label>
+                      <Input
+                        id="endTime"
+                        type="time"
+                        className="h-11 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                        value={formData.endTime}
+                        onChange={(e) => handleInputChange("endTime", e.target.value)}
+                        required
+                      />
+                      {fieldErrors.endTime && (
+                        <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4" />
+                          {fieldErrors.endTime}
+                        </p>
+                      )}
+                      {errors.endTime && (
+                        <p className="text-red-600 text-sm mt-2 flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.endTime}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -2176,128 +2176,117 @@ export default function CreateLudoEventForm({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-6 pb-6">
-              {/* Step 3 content */}
               <div className="space-y-6">
-                <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                  <p className="text-gray-700 mb-6 text-sm">
-                    Wähle Spiele aus deinem Spieleregal oder suche gerne andere aus der Datenbank
-                  </p>
+                {/* Button: Aus Spielregal auswählen */}
+                <Button
+                  type="button"
+                  onClick={() => setShowGameShelfModal(true)}
+                  className="w-full bg-teal-600 text-white hover:bg-teal-700 py-3"
+                >
+                  <Library className="w-5 h-5 mr-2" />
+                  Spiele aus deinem Spielregal auswählen
+                </Button>
 
-                  <div className="space-y-6">
-                    <div className="bg-white rounded-lg p-6 border border-gray-200">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-base font-semibold text-gray-900">Dein Spieleregal</h4>
-                        <Button
-                          type="button"
-                          onClick={() => setShowGameShelfModal(true)}
-                          className="bg-teal-600 text-white hover:bg-teal-700"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Aus Spielregal auswählen
-                        </Button>
-                      </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 h-px bg-gray-300"></div>
+                  <span className="text-gray-500 text-sm font-medium">oder</span>
+                  <div className="flex-1 h-px bg-gray-300"></div>
+                </div>
 
-                      {selectedGames.filter((game) => !game.isBggGame).length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
-                          <Library className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                          <p className="text-xs">Klicke auf "Aus Spielregal auswählen", um Spiele hinzuzufügen</p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="bg-white rounded-lg p-6 border border-gray-200">
-                      <h4 className="font-semibold text-gray-900 mb-4 text-sm">Aus der Datenbank suchen</h4>
-                      <div className="relative mb-5">
-                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                          type="text"
-                          placeholder="Beliebiges Spiel suchen ..."
-                          value={bggSearchTerm}
-                          onChange={(e) => {
-                            setBggSearchTerm(e.target.value)
-                            searchBoardGameGeek(e.target.value)
-                          }}
-                          className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-xs"
-                        />
-                      </div>
-
-                      {bggSearchLoading && (
-                        <div className="text-center py-12">
-                          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-teal-500 mx-auto"></div>
-                          <p className="text-gray-600 mt-4 font-medium">Durchsuche Datenbank...</p>
-                        </div>
-                      )}
-
-                      {bggSearchResults.length > 0 && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                          {bggSearchResults.map((game) => {
-                            const isSelected = selectedGames.some((g) => g.id === game.id)
-                            return (
-                              <div
-                                key={game.id}
-                                className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                                  isSelected
-                                    ? "border-teal-500 bg-teal-50 shadow-md"
-                                    : "border-gray-200 hover:border-teal-400"
-                                }`}
-                                onClick={() => handleGameShelfSelection(game)}
-                              >
-                                <div className="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
-                                  <img
-                                    src={game.image || "/placeholder.svg"}
-                                    alt={game.title}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      ;(e.target as HTMLImageElement).src = "/placeholder.svg"
-                                    }}
-                                  />
-                                </div>
-                                <h4 className="font-semibold text-gray-900 line-clamp-2 mb-1 text-xs">{game.title}</h4>
-                                {game.year && <p className="text-xs text-gray-500">({game.year})</p>}
-                                {game.publisher && <p className="text-xs text-gray-600 truncate">{game.publisher}</p>}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-
-                      {bggSearchTerm && !bggSearchLoading && bggSearchResults.length === 0 && (
-                        <div className="text-center py-12 text-gray-500">
-                          <Search className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                          <p className="font-medium">Keine Spiele gefunden für "{bggSearchTerm}"</p>
-                          <p className="text-xs mt-2">Versuche einen anderen Suchbegriff</p>
-                        </div>
-                      )}
-                    </div>
+                {/* Eingabefeld: Aus der Datenbank suchen */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Aus der Datenbank suchen</Label>
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      placeholder="Beliebiges Spiel suchen ..."
+                      value={bggSearchTerm}
+                      onChange={(e) => {
+                        setBggSearchTerm(e.target.value)
+                        searchBoardGameGeek(e.target.value)
+                      }}
+                      className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+                    />
                   </div>
                 </div>
 
+                {/* Search loading */}
+                {bggSearchLoading && (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-teal-500 mx-auto"></div>
+                    <p className="text-gray-600 mt-3 text-sm">Durchsuche Datenbank...</p>
+                  </div>
+                )}
+
+                {/* Search results */}
+                {bggSearchResults.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {bggSearchResults.map((game) => {
+                      const isSelected = selectedGames.some((g) => g.id === game.id)
+                      return (
+                        <div
+                          key={game.id}
+                          className={`border-2 rounded-lg p-3 cursor-pointer transition-all ${
+                            isSelected
+                              ? "border-teal-500 bg-teal-50 shadow-md"
+                              : "border-gray-200 hover:border-teal-400"
+                          }`}
+                          onClick={() => handleGameShelfSelection(game)}
+                        >
+                          <div className="aspect-square bg-gray-100 rounded-lg mb-2 overflow-hidden">
+                            <img
+                              src={game.image || "/placeholder.svg"}
+                              alt={game.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                ;(e.target as HTMLImageElement).src = "/placeholder.svg"
+                              }}
+                            />
+                          </div>
+                          <h4 className="font-semibold text-gray-900 line-clamp-2 text-xs">{game.title}</h4>
+                          {game.year && <p className="text-xs text-gray-500">({game.year})</p>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* No results */}
+                {bggSearchTerm && !bggSearchLoading && bggSearchResults.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">Keine Spiele gefunden für "{bggSearchTerm}"</p>
+                  </div>
+                )}
+
+                {/* Selected games */}
                 {selectedGames.length > 0 && (
-                  <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                    <h4 className="text-base font-semibold text-gray-900 mb-5 flex items-center gap-2">
-                      Ausgewählte Spiele für das Event: {selectedGames.length}
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <h4 className="font-semibold text-gray-900 mb-4 text-sm">
+                      Ausgewählte Spiele: {selectedGames.length}
                     </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                       {selectedGames.map((game) => (
                         <div
                           key={game.id}
-                          className="bg-white border border-gray-200 rounded-lg p-4 relative shadow-sm"
+                          className="bg-white border border-gray-200 rounded-lg p-3 relative shadow-sm"
                         >
                           <button
                             type="button"
                             onClick={() => handleRemoveGame(game.id)}
-                            className="absolute -top-2.5 -right-2.5 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg font-bold text-xs"
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg text-xs"
                           >
                             ×
                           </button>
-                          <div className="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
+                          <div className="aspect-square bg-gray-100 rounded-lg mb-2 overflow-hidden">
                             <img
                               src={game.image || "/placeholder.svg"}
                               alt={game.title}
                               className="w-full h-full object-cover"
                             />
                           </div>
-                          <h4 className="font-semibold text-gray-900 line-clamp-2 text-xs">{game.title}</h4>
+                          <h4 className="text-gray-900 line-clamp-2 text-sm font-normalal">{game.title}</h4>
                         </div>
                       ))}
                     </div>
@@ -2358,9 +2347,9 @@ export default function CreateLudoEventForm({
                         </Button>
 
                         {selectedFriends.length > 0 && (
-                          <div className="space-y-4 pt-4 border-t border-gray-200">
-                            <p className="text-xs font-medium text-gray-800">Ausgewählte Freunde:</p>
-                            <div className="flex flex-wrap gap-3">
+                          <div className="mt-4 space-y-3">
+                            <p className="text-xs font-medium text-gray-700">Ausgewählte Freunde:</p>
+                            <div className="flex flex-wrap gap-2">
                               {selectedFriends.map((friend) => (
                                 <div
                                   key={friend.id}
@@ -2379,33 +2368,6 @@ export default function CreateLudoEventForm({
                                   </button>
                                 </div>
                               ))}
-                            </div>
-
-                            {/* Friend game requests section */}
-                            <div className="mt-4 space-y-3 pt-4 border-t border-gray-200">
-                              <p className="text-xs font-medium text-gray-800">Spiele von Freunden anfragen:</p>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {selectedFriends.map((friend) => (
-                                  <Button
-                                    key={friend.id}
-                                    type="button"
-                                    onClick={() =>
-                                      setShowFriendGameDialog({ friendId: friend.id, friendName: friend.name })
-                                    }
-                                    variant="outline"
-                                    className="h-14 justify-start text-left text-sm border-2 border-gray-300 hover:bg-gray-50"
-                                  >
-                                    <span className="truncate font-medium text-gray-800">
-                                      {friend.name}
-                                      {friendGameRequests[friend.id]?.length > 0 && (
-                                        <span className="ml-2 text-xs bg-teal-100 text-teal-800 px-1.5 py-0.5 rounded-full">
-                                          {friendGameRequests[friend.id].length}
-                                        </span>
-                                      )}
-                                    </span>
-                                  </Button>
-                                ))}
-                              </div>
                             </div>
                           </div>
                         )}
@@ -2716,7 +2678,7 @@ export default function CreateLudoEventForm({
       <Dialog open={showGameShelfModal} onOpenChange={setShowGameShelfModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Spiele aus deinem Spielregal auswählen</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Spiele aus deinem Spieleregal auswählen</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-5 pt-4">

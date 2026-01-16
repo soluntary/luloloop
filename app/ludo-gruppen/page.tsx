@@ -74,6 +74,8 @@ import {
 import { Settings, Edit, UserPlus, Trash2, MessageCircle } from "lucide-react"
 import { createPollWithOptions } from "@/app/actions/create-poll"
 
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+
 interface LudoGroup {
   id: string
   name: string
@@ -1960,249 +1962,258 @@ export default function LudoGruppenPage() {
               </DialogHeader>
             </div>
 
-            <div className="space-y-6 mt-6">
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center">
-                    <FaUsers className="h-4 w-4 text-teal-600" />
+            <Accordion type="multiple" defaultValue={["grundinformationen"]} className="space-y-4">
+              {/* Section 1: Grundinformationen */}
+              <AccordionItem value="grundinformationen" className="border border-gray-200 rounded-lg overflow-hidden">
+                <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-gray-50 [&[data-state=open]]:bg-gray-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-teal-500 text-white flex items-center justify-center text-sm font-bold">
+                      1
+                    </div>
+                    <span className="text-base font-semibold text-gray-900">Grundinformationen</span>
                   </div>
-                  <h3 className="text-sm font-semibold text-gray-900">Grundinformationen</h3>
-                </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-6 pt-2">
+                  <div className="space-y-5">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label htmlFor="group-name" className="text-xs font-medium text-gray-700">
+                          Name der Spielgruppe <span className="text-red-500">*</span>
+                        </Label>
+                        <span className="text-gray-500 text-xs">{newGroup.name.length}/60</span>
+                      </div>
+                      <Input
+                        id="group-name"
+                        value={newGroup.name}
+                        onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
+                        placeholder="z.B. CATAN-Freunde Zürich"
+                        className="h-11 text-xs border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                        maxLength={60}
+                      />
+                    </div>
 
-                <div className="space-y-5">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Label htmlFor="group-name" className="text-xs font-medium text-gray-700">
-                        Name der Spielgruppe *
+                    <div>
+                      <Label htmlFor="group-description" className="text-xs font-medium text-gray-700 mb-2 block">
+                        Beschreibung
                       </Label>
-                      <span className="text-gray-500 text-xs">{newGroup.name.length}/60</span>
+                      <RichTextEditor
+                        value={newGroup.description}
+                        onChange={(value) => setNewGroup({ ...newGroup, description: value })}
+                        placeholder="Beschreibe deine Spielgruppe..."
+                        maxLength={5000}
+                      />
                     </div>
-                    <Input
-                      id="group-name"
-                      value={newGroup.name}
-                      onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
-                      placeholder="z.B. CATAN-Freunde Zürich"
-                      className="h-11 text-xs border-gray-300 focus:border-teal-500 focus:ring-teal-500"
-                      maxLength={60}
-                    />
+
+                    <div>
+                      <Label htmlFor="max-members" className="text-xs font-medium text-gray-700 mb-2 block">
+                        Maximale Mitgliederzahl
+                      </Label>
+                      <Input
+                        id="max-members"
+                        type="number"
+                        value={newGroup.max_members || ""}
+                        onChange={(e) =>
+                          setNewGroup({
+                            ...newGroup,
+                            max_members: e.target.value ? Number.parseInt(e.target.value) : null,
+                          })
+                        }
+                        placeholder="Leer lassen für unbegrenzt"
+                        className="h-11 text-xs border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    {/* Image upload section */}
+                    <div>
+                      <Label htmlFor="group-image" className="text-xs font-medium text-gray-700 mb-3 block">
+                        Spielgruppenbilder (optional - bis zu 5 Bilder)
+                      </Label>
+
+                      {imagePreviews.length === 0 ? (
+                        <div
+                          onClick={() => document.getElementById("group-image")?.click()}
+                          className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition-all duration-200 bg-gray-50"
+                        >
+                          <FaImage className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                          <p className="text-sm font-medium text-gray-700 mb-1">Klicken zum Hochladen</p>
+                          <p className="text-xs text-gray-500">
+                            JPG, PNG oder WebP (max. 5MB pro Bild, bis zu 5 Bilder)
+                          </p>
+                          <Input
+                            id="group-image"
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {imagePreviews.map((preview, index) => (
+                              <div key={index} className="relative rounded-xl overflow-hidden border-2 border-gray-300">
+                                <img
+                                  src={preview || "/placeholder.svg"}
+                                  alt={`Preview ${index + 1}`}
+                                  className="w-full h-32 object-cover"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveImage(index)}
+                                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg z-10"
+                                >
+                                  <FaTimes className="h-3 w-3" />
+                                </button>
+                                {index === 0 && (
+                                  <div className="absolute bottom-2 left-2 bg-teal-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg z-10">
+                                    Hauptbild
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          {imagePreviews.length < 5 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => document.getElementById("group-image")?.click()}
+                              className="w-full text-xs"
+                            >
+                              <FaPlus className="h-3 w-3 mr-2" />
+                              Weitere Bilder hinzufügen ({imagePreviews.length}/5)
+                            </Button>
+                          )}
+                          <Input
+                            id="group-image"
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="group-location" className="text-xs font-medium text-gray-700 mb-2 block">
+                        Standort
+                      </Label>
+                      <AddressAutocomplete
+                        label=""
+                        placeholder="Location, Adresse, PLZ oder Ort eingeben..."
+                        value={newGroup.location}
+                        onChange={(value) => setNewGroup({ ...newGroup, location: value })}
+                        className="h-11 text-xs border-gray-300 focus:border-teal-500"
+                      />
+                    </div>
                   </div>
+                </AccordionContent>
+              </AccordionItem>
 
-                  <div>
-                    <Label htmlFor="group-description" className="text-xs font-medium text-gray-700 mb-2 block">
-                      Beschreibung
-                    </Label>
-                    <RichTextEditor
-                      value={newGroup.description}
-                      onChange={(value) => setNewGroup({ ...newGroup, description: value })}
-                      placeholder="Beschreibe deine Spielgruppe..."
-                      maxLength={5000}
-                    />
+              {/* Section 2: Beitrittsmodus */}
+              <AccordionItem value="beitrittsmodus" className="border border-gray-200 rounded-lg overflow-hidden">
+                <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-gray-50 [&[data-state=open]]:bg-gray-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-teal-500 text-white flex items-center justify-center text-sm font-bold">
+                      2
+                    </div>
+                    <span className="text-base font-semibold text-gray-900">Beitrittsmodus</span>
                   </div>
-
-                  <div>
-                    <Label htmlFor="max-members" className="text-xs font-medium text-gray-700 mb-2 block">
-                      Maximale Mitgliederzahl
-                    </Label>
-                    <Input
-                      id="max-members"
-                      type="number"
-                      value={newGroup.max_members || ""}
-                      onChange={(e) =>
-                        setNewGroup({
-                          ...newGroup,
-                          max_members: e.target.value ? Number.parseInt(e.target.value) : null,
-                        })
-                      }
-                      placeholder="Leer lassen für unbegrenzt"
-                      className="h-11 text-xs border-gray-300 focus:border-teal-500 focus:ring-teal-500"
-                    />
-                  </div>
-
-                  {/* Updated UI to show multiple image upload */}
-                  <div>
-                    <Label htmlFor="group-image" className="text-xs font-medium text-gray-700 mb-3 block">
-                      Spielgruppenbilder (optional - bis zu 5 Bilder)
-                    </Label>
-
-                    {imagePreviews.length === 0 ? (
-                      <div
-                        onClick={() => document.getElementById("group-image")?.click()}
-                        className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition-all duration-200 bg-gray-50"
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-6 pt-2">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="approval-mode" className="text-xs font-medium text-gray-700 mb-2 block">
+                        Wie sollen neue Mitglieder beitreten können?
+                      </Label>
+                      <Select
+                        value={newGroup.approval_mode}
+                        onValueChange={(value: "automatic" | "manual") =>
+                          setNewGroup({ ...newGroup, approval_mode: value })
+                        }
                       >
-                        <FaImage className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                        <p className="text-xs font-medium text-gray-700 mb-1">Klicken zum Hochladen</p>
-                        <p className="text-xs text-gray-500">JPG, PNG oder WebP (max. 5MB pro Bild)</p>
-                        <Input
-                          id="group-image"
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleImageUpload}
-                          className="hidden"
-                        />
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {imagePreviews.map((preview, index) => (
-                            <div key={index} className="relative rounded-xl overflow-hidden border-2 border-gray-300">
-                              <img
-                                src={preview || "/placeholder.svg"}
-                                alt={`Preview ${index + 1}`}
-                                className="w-full h-32 object-cover"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveImage(index)}
-                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg z-10"
-                              >
-                                <FaTimes className="h-3 w-3" />
-                              </button>
-                              {index === 0 && (
-                                <div className="absolute bottom-2 left-2 bg-teal-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg z-10">
-                                  Hauptbild
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        {imagePreviews.length < 5 && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => document.getElementById("group-image")?.click()}
-                            className="w-full text-xs"
-                          >
-                            <FaPlus className="h-3 w-3 mr-2" />
-                            Weitere Bilder hinzufügen ({imagePreviews.length}/5)
-                          </Button>
-                        )}
-                        <Input
-                          id="group-image"
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleImageUpload}
-                          className="hidden"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="group-location" className="text-xs font-medium text-gray-700 mb-2 block">
-                      Standort
-                    </Label>
-                    <AddressAutocomplete
-                      label=""
-                      placeholder="Location, Adresse, PLZ oder Ort eingeben..."
-                      value={newGroup.location}
-                      onChange={(value) => setNewGroup({ ...newGroup, location: value })}
-                      className="h-11 text-xs border-gray-300 focus:border-teal-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center">
-                    <FaUserCog className="h-4 w-4 text-teal-600" />
-                  </div>
-                  <h3 className="text-sm font-semibold text-gray-700">Beitrittsmodus</h3>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="approval-mode" className="text-xs font-medium text-gray-700 mb-2 block">
-                      Wie sollen neue Mitglieder beitreten können?
-                    </Label>
-                    <Select
-                      value={newGroup.approval_mode}
-                      onValueChange={(value: "automatic" | "manual") =>
-                        setNewGroup({ ...newGroup, approval_mode: value })
-                      }
-                    >
-                      <SelectTrigger className="h-11 text-xs border-gray-300 focus:border-teal-500 focus:ring-teal-500">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="automatic">Offener Beitritt</SelectItem>
-                        <SelectItem value="manual">Beitritt erst nach Genehmigung</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
-                    {newGroup.approval_mode === "automatic" ? (
-                      <div className="space-y-2">
-                        <div className="flex items-start gap-2">
-                          <FaCheckCircle className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs font-semibold text-gray-900 mb-1">Offener Beitritt</p>
-                            <p className="text-xs text-gray-600">
-                              Jeder ist willkommen, der Spielgruppe beizutreten
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="flex items-start gap-2">
-                          <FaClock className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs font-semibold text-gray-900 mb-1">Beitritt erst nach Genehmigung</p>
-                            <p className="text-xs text-gray-600">
-                              Du erhältst eine Benachrichtigung für jede Beitrittsanfrage und kannst entscheiden, wer
-                              Mitglied wird.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-4 pt-6 border-t border-gray-200">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsCreateDialogOpen(false)
-                    setNewGroup({
-                      name: "",
-                      description: "",
-                      location: "",
-                      max_members: null,
-                      type: "casual",
-                      approval_mode: "automatic",
-                    })
-                    // Clear all uploaded images
-                    setImageFiles([])
-                    setImagePreviews([])
-                  }}
-                  className="flex-1 h-11 text-sm border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-medium bg-transparent"
-                >
-                  Abbrechen
-                </Button>
-                <Button
-                  onClick={createLudoGroup}
-                  disabled={!newGroup.name.trim() || isUploading}
-                  className="flex-1 h-11 text-xs bg-teal-600 hover:bg-teal-700 text-white font-medium shadow-sm disabled:bg-gray-400"
-                >
-                  {isUploading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                      Wird erstellt...
+                        <SelectTrigger className="h-11 text-xs border-gray-300 focus:border-teal-500 focus:ring-teal-500">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="automatic">Offener Beitritt</SelectItem>
+                          <SelectItem value="manual">Beitritt erst nach Genehmigung</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  ) : (
-                    <>
-                      <FaPlus className="h-5 w-5 mr-2" />
-                      Spielgruppe erstellen
-                    </>
-                  )}
-                </Button>
-              </div>
+
+                    <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
+                      {newGroup.approval_mode === "automatic" ? (
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2">
+                            <FaCheckCircle className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs font-semibold text-gray-900 mb-1">Offener Beitritt</p>
+                              <p className="text-xs text-gray-600">Jeder ist willkommen, der Spielgruppe beizutreten</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2">
+                            <FaClock className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs font-semibold text-gray-900 mb-1">Beitritt erst nach Genehmigung</p>
+                              <p className="text-xs text-gray-600">
+                                Du erhältst eine Benachrichtigung für jede Beitrittsanfrage und kannst entscheiden, wer
+                                Mitglied wird.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4 pt-6 border-t border-gray-200 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsCreateDialogOpen(false)
+                  setNewGroup({
+                    name: "",
+                    description: "",
+                    location: "",
+                    max_members: null,
+                    type: "casual",
+                    approval_mode: "automatic",
+                  })
+                  // Clear all uploaded images
+                  setImageFiles([])
+                  setImagePreviews([])
+                }}
+                className="flex-1 h-11 text-sm border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-medium bg-transparent"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                onClick={createLudoGroup}
+                disabled={!newGroup.name.trim() || isUploading}
+                className="flex-1 h-11 text-xs bg-teal-600 hover:bg-teal-700 text-white font-medium shadow-sm disabled:bg-gray-400"
+              >
+                {isUploading ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                    Wird erstellt...
+                  </div>
+                ) : (
+                  <>
+                    <FaPlus className="h-5 w-5 mr-2" />
+                    Spielgruppe erstellen
+                  </>
+                )}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -2225,8 +2236,8 @@ export default function LudoGruppenPage() {
         >
           <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader className="px-4 pt-4 pb-3 border-b">
-              {selectedGroup && selectedGroup.creator_id === user?.id && (
-                <div className="flex justify-end mb-3">
+              <div className="flex justify-end mb-3">
+                {selectedGroup && selectedGroup.creator_id === user?.id && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button size="sm" variant="outline" className="h-9 px-3 bg-transparent">
@@ -2290,8 +2301,8 @@ export default function LudoGruppenPage() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </div>
-              )}
+                )}
+              </div>
               <DialogTitle className="font-handwritten text-lg text-gray-800">{selectedGroup?.name}</DialogTitle>
               <DialogDescription>Spielgruppe Details und Informationen</DialogDescription>
             </DialogHeader>

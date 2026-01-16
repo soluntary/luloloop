@@ -19,8 +19,7 @@ const games = [
   {
     id: "memory",
     title: "Memory",
-    description:
-      "Finde möglichst schnell alle Bildpaare und fordere dein Gedächtnis auf spielerische Weise heraus.",
+    description: "Finde möglichst schnell alle Bildpaare und fordere dein Gedächtnis auf spielerische Weise heraus.",
     icon: GiBrain,
     color: "blue",
     rotation: "rotate-1",
@@ -34,7 +33,7 @@ const games = [
     color: "violet",
     rotation: "rotate-1",
     linkText: "Spielen",
-  },  
+  },
   {
     id: "minesweeper",
     title: "Minesweeper",
@@ -47,7 +46,8 @@ const games = [
   {
     id: "simon-says",
     title: "Sound Memory",
-    description: "Teste dein Gedächtnis auf spielerische Weise und trainiere deine Merkfähigkeit! Beobachte aufleuchtende Farben und merke dir die Abfolge genau. Schaffst du es, sie fehlerfrei wiederzugeben?",
+    description:
+      "Teste dein Gedächtnis auf spielerische Weise und trainiere deine Merkfähigkeit! Beobachte aufleuchtende Farben und merke dir die Abfolge genau. Schaffst du es, sie fehlerfrei wiederzugeben?",
     icon: GiSoundOn,
     color: "red",
     rotation: "-rotate-1",
@@ -66,7 +66,8 @@ const games = [
   {
     id: "sliding-puzzle",
     title: "Schiebepuzzle",
-    description: "Ordne die Zahlen richtig an und bringe das Puzzle wieder in die geordnete Ausgangsstellung! Verschiedene Schwierigkeitsgrade verfügbar.",
+    description:
+      "Ordne die Zahlen richtig an und bringe das Puzzle wieder in die geordnete Ausgangsstellung! Verschiedene Schwierigkeitsgrade verfügbar.",
     icon: IoExtensionPuzzle,
     color: "teal",
     rotation: "rotate-1",
@@ -114,7 +115,8 @@ const games = [
   {
     id: "mastermind",
     title: "Mastermind",
-    description: "Das klassische Mastermind-Spiel. Schaffst du es in möglichst wenigen Versuchen die richtige Farbreihenfolge zu entschlüsseln?",
+    description:
+      "Das klassische Mastermind-Spiel. Schaffst du es in möglichst wenigen Versuchen die richtige Farbreihenfolge zu entschlüsseln?",
     icon: TbMoodPuzzled,
     color: "violet",
     rotation: "-rotate-1",
