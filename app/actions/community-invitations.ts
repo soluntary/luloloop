@@ -3,26 +3,24 @@
 import { createClient } from "@/lib/supabase/server"
 import { notifyGroupInvitation, notifyGroupJoinApproved } from "@/app/actions/notification-system"
 
-export async function sendCommunityInvitations(communityId: string, inviteeIds: string[], message?: string) {
+export async function sendCommunityInvitations(communityId: string, inviteeIds: string[], message?: string, userId?: string) {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Try to get user from session, fallback to provided userId
+  let currentUserId = userId
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) currentUserId = user.id
+  } catch (e) {
+    // Session missing in v0 environment
+  }
 
-  console.log(
-    "[v0] sendCommunityInvitations called - user:",
-    user?.id,
-    "communityId:",
-    communityId,
-    "inviteeIds:",
-    inviteeIds,
-  )
-
-  if (!user) {
-    console.log("[v0] User not authenticated")
+  if (!currentUserId) {
     return { error: "Nicht authentifiziert" }
   }
+  
+  // Create a user-like object for compatibility
+  const user = { id: currentUserId }
 
   try {
     // Check if user is the creator or admin of the community

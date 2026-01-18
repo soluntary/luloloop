@@ -1648,10 +1648,56 @@ export default function LudoEventsPage() {
                         </div>
                       )}
 
-                      {event.image_url && (
+                      {/* Multiple images with carousel */}
+                      {event.images && event.images.length > 1 ? (
+                        <div className="relative aspect-[16/9] w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                          <Carousel className="w-full h-full">
+                            <CarouselContent className="h-full">
+                              {event.images.map((image: string, index: number) => (
+                                <CarouselItem key={index} className="h-full">
+                                  <img
+                                    src={image || "/placeholder.svg"}
+                                    alt={`${event.title} - Bild ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                    onClick={() => showEventDetails(event)}
+                                  />
+                                </CarouselItem>
+                              ))}
+                            </CarouselContent>
+                            <CarouselPrevious className="left-2 h-8 w-8" />
+                            <CarouselNext className="right-2 h-8 w-8" />
+                          </Carousel>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                          {isRecurring && (
+                            <div className="absolute top-2 right-2 z-10">
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200 shadow-sm">
+                                <MdEventRepeat className="h-3 w-3" />
+                                <span>Serientermine</span>
+                              </div>
+                            </div>
+                          )}
+                          <div className="absolute top-2 left-2 z-10">
+                            {event.approval_mode === "automatic" ? (
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 backdrop-blur-sm text-xs font-medium text-teal-600 rounded-full border border-teal-200 shadow-sm">
+                                <FaUserCheck className="h-3 w-3" />
+                                <span>Direkte Teilnahme</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-100 backdrop-blur-sm text-xs font-medium text-amber-800 rounded-full border border-amber-200 shadow-sm">
+                                <FaClock className="h-3 w-3" />
+                                <span>Genehmigung erforderlich</span>
+                              </div>
+                            )}
+                          </div>
+                          {/* Image counter */}
+                          <div className="absolute bottom-2 right-2 z-10 px-2 py-1 bg-black/50 backdrop-blur-sm text-xs text-white rounded-full">
+                            {event.images.length} Bilder
+                          </div>
+                        </div>
+                      ) : (event.image_url || (event.images && event.images.length === 1)) && (
                         <div className="relative aspect-[16/9] w-full overflow-hidden">
                           <img
-                            src={event.image_url || "/placeholder.svg"}
+                            src={(event.images && event.images.length === 1 ? event.images[0] : event.image_url) || "/placeholder.svg"}
                             alt={event.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />

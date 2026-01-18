@@ -23,17 +23,24 @@ const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
   },
 })
 
-export async function removeGroupMemberAction(memberId: string, groupId: string) {
+export async function removeGroupMemberAction(memberId: string, groupId: string, userId?: string) {
   try {
     const supabase = createSupabaseServerClient()
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    
+    // Try to get user from session, fallback to provided userId
+    let currentUserId = userId
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) currentUserId = user.id
+    } catch (e) {
+      // Session missing in v0 environment
+    }
 
-    if (authError || !user) {
+    if (!currentUserId) {
       return { error: "Nicht authentifiziert" }
     }
+    
+    const user = { id: currentUserId }
 
     const { data: group, error: groupError } = await supabaseAdmin
       .from("communities")

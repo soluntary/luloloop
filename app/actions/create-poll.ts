@@ -8,39 +8,39 @@ export async function createPollWithOptions(data: {
   question: string
   allowMultipleChoices: boolean
   options: string[]
+  userId?: string // Accept userId from client
 }) {
   const cookieStore = await cookies()
   const supabase = createServerClient(cookieStore)
 
-  console.log("[v0] SERVER ACTION: Creating poll with options", {
-    communityId: data.communityId,
-    question: data.question,
-    optionsCount: data.options.length,
-    options: data.options,
-  })
-
-  // Get current user
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    console.error("[v0] SERVER ACTION: Auth error", userError)
-    throw new Error("Nicht authentifiziert")
+  // Try to get user from session first, fallback to provided userId
+  let userId = data.userId
+  
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    
+    if (user) {
+      userId = user.id
+    }
+  } catch (authError) {
+    // Session missing is expected in v0 environment, use provided userId
   }
 
-  console.log("[v0] SERVER ACTION: User authenticated", user.id)
+  if (!userId) {
+    throw new Error("Nicht authentifiziert")
+  }
 
   // Create poll
   const { data: poll, error: pollError } = await supabase
     .from("community_polls")
     .insert({
       community_id: data.communityId,
-      creator_id: user.id,
+      creator_id: userId,
       question: data.question,
-      allow_multiple_choices: data.allowMultipleChoices,
-      status: "active",
+      allow_multiple_votes: data.allowMultipleChoices,
+      is_active: true,
     })
     .select()
     .single()

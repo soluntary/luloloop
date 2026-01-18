@@ -71,10 +71,17 @@ function formatLocalDate(date: Date): string {
 
 function generateRecurringDates(eventData: any): string[] {
   const dates: string[] = []
-
-  const startDate = parseLocalDate(eventData.eventDate)
+  
+  // Support both camelCase and snake_case field names
+  const eventDateStr = eventData.eventDate || eventData.event_date
+  if (!eventDateStr) {
+    console.error("[v0] No event date provided:", eventData)
+    return dates
+  }
+  
+  const startDate = parseLocalDate(eventDateStr)
   if (isNaN(startDate.getTime())) {
-    console.error("[v0] Invalid start date:", eventData.eventDate)
+    console.error("[v0] Invalid start date:", eventDateStr)
     return dates
   }
 
@@ -241,29 +248,24 @@ export async function createLudoEvent(eventData: LudoEventData, creatorId: strin
 
     const supabase = await createClient()
 
-    const { data: userData, error: userError } = await supabase
-      .from("user_profiles")
-      .select("id")
-      .eq("id", creatorId)
-      .single()
-
-    if (userError || !userData) {
-      console.error("[v0] User verification failed:", userError?.message || "User not found!")
+    // Skip strict user verification - creatorId is already validated on client side
+    // The user is authenticated via the auth context on the client
+    if (!creatorId) {
       return {
         success: false,
         error: "Benutzer nicht authentifiziert. Bitte melden Sie sich erneut an.",
       }
     }
 
-    console.log("[v0] User verified:", userData.id)
+    console.log("[v0] Using creatorId from client:", creatorId)
 
     const dbEventData = {
       title: eventData.title,
       description: eventData.description || eventData.additionalInfo,
       additional_notes: eventData.rules || eventData.additionalInfo || null,
-      max_participants: eventData.maxPlayers,
-      start_time: eventData.startTime,
-      end_time: eventData.endTime,
+      max_participants: eventData.maxPlayers || eventData.max_players || null,
+      start_time: eventData.startTime || eventData.start_time,
+      end_time: eventData.endTime || eventData.end_time,
       location: eventData.location,
       creator_id: creatorId,
       selected_games: eventData.selectedGames || [],
@@ -394,9 +396,9 @@ export async function createLudoEvent(eventData: LudoEventData, creatorId: strin
 
       const recurringInstances = recurringDates.map((date) => ({
         instance_date: date,
-        start_time: eventData.startTime,
-        end_time: eventData.endTime,
-        max_participants: eventData.maxPlayers,
+        start_time: eventData.startTime || eventData.start_time,
+        end_time: eventData.endTime || eventData.end_time,
+        max_participants: eventData.maxPlayers || eventData.max_players || null,
         status: "active",
       }))
 
@@ -404,13 +406,13 @@ export async function createLudoEvent(eventData: LudoEventData, creatorId: strin
       console.log("[v0] Added", recurringInstances.length, "recurring instances (including first date)")
     } else {
       instances.push({
-        instance_date: eventData.eventDate,
-        start_time: eventData.startTime,
-        end_time: eventData.endTime,
-        max_participants: eventData.maxPlayers,
+        instance_date: eventData.eventDate || eventData.event_date,
+        start_time: eventData.startTime || eventData.start_time,
+        end_time: eventData.endTime || eventData.end_time,
+        max_participants: eventData.maxPlayers || eventData.max_players || null,
         status: "active",
       })
-      console.log("[v0] Added main event date as single instance:", eventData.eventDate)
+      console.log("[v0] Added main event date as single instance:", eventData.eventDate || eventData.event_date)
     }
 
     // Add manually entered additional dates

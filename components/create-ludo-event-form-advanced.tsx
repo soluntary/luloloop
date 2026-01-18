@@ -58,7 +58,7 @@ interface CreateLudoEventFormProps {
   onCancel: () => void
   initialData?: any
   onEventCreated?: (newEvent: any) => void // Added for Supabase integration callback
-  onClose: () => void // Added for Supabase integration callback
+  onClose?: () => void // Made optional for Supabase integration callback
   event?: any // Added for possible initial data loading from an existing event
 }
 
@@ -937,8 +937,8 @@ export default function CreateLudoEventForm({
         }
       }
 
-      // Allow empty field for unlimited participants
-      if (!formData.maxPlayers || (formData.maxPlayers !== "" && Number.parseInt(formData.maxPlayers) < 2)) {
+      // Allow empty field for unlimited participants - only validate if a value is entered
+      if (formData.maxPlayers && formData.maxPlayers !== "" && Number.parseInt(formData.maxPlayers) < 2) {
         newFieldErrors.maxPlayers =
           "Bitte gib eine gültige Spielerzahl an (mindestens 2) oder lasse das Feld leer für unbegrenzte Teilnehmerzahl."
         hasErrors = true
@@ -1082,7 +1082,7 @@ export default function CreateLudoEventForm({
         if (onEventCreated) {
           onEventCreated(result.data)
         }
-        onClose() // Close the dialog/modal
+        onClose?.() // Close the dialog/modal if provided
 
         // Reset form
         setFormData({
@@ -1636,7 +1636,7 @@ export default function CreateLudoEventForm({
                           }
                         }}
                       >
-                        <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500 bg-white">
+                        <SelectTrigger className="h-11 text-xs border-gray-300 focus:border-teal-500 bg-white">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1781,7 +1781,7 @@ export default function CreateLudoEventForm({
                               }}
                               className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
                             />
-                            <Label htmlFor="endByCount" className="text-sm font-medium text-gray-700 flex-shrink-0">
+                            <Label htmlFor="endByCount" className="text-xs font-medium text-gray-700 flex-shrink-0">
                               Endet nach
                             </Label>
                             <Input
@@ -1798,7 +1798,7 @@ export default function CreateLudoEventForm({
                               className={`w-24 h-11 text-sm ${formData.seriesEndType !== "count" ? "opacity-50 cursor-not-allowed" : "border-gray-300 focus:border-teal-500"}`}
                               disabled={formData.seriesEndType !== "count"}
                             />
-                            <Label className="text-sm font-medium text-gray-700">Terminen</Label>
+                            <Label className="text-xs font-medium text-gray-700">Terminen</Label>
                           </div>
 
                           <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-teal-500 transition-colors">
@@ -1816,7 +1816,7 @@ export default function CreateLudoEventForm({
                               }}
                               className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
                             />
-                            <Label htmlFor="endByDate" className="text-sm font-medium text-gray-700 flex-shrink-0">
+                            <Label htmlFor="endByDate" className="text-xs font-medium text-gray-700 flex-shrink-0">
                               Endet am
                             </Label>
                             <Input
@@ -1936,7 +1936,6 @@ export default function CreateLudoEventForm({
                     (formData.seriesEndType === "count" ? formData.seriesEndCount : formData.seriesEndDate))) && (
                   <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-6">
                     <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
-                      <span className="text-lg">📅</span>
                       Terminvorschau
                     </h3>
                     <div className="space-y-3 max-h-96 overflow-y-auto">

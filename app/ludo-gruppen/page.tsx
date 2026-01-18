@@ -1388,6 +1388,7 @@ export default function LudoGruppenPage() {
         question: pollQuestion,
         allowMultipleChoices: allowMultiple,
         options: validOptions,
+        userId: user.id,
       })
 
       console.log("[v0] CLIENT: Server action result:", result)

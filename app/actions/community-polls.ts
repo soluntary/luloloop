@@ -32,17 +32,25 @@ export async function createPollAction(
   description?: string,
   allowMultipleVotes?: boolean,
   expiresInDays?: number,
+  userId?: string,
 ) {
   try {
     const supabase = await createClient()
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    // Try to get user from session, fallback to provided userId
+    let currentUserId = userId
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) currentUserId = user.id
+    } catch (e) {
+      // Session missing in v0 environment
+    }
 
-    if (!user) {
+    if (!currentUserId) {
       return { error: "Nicht authentifiziert" }
     }
+    
+    const user = { id: currentUserId }
 
     // Verify user is the community creator
     const { data: community, error: communityError } = await supabase

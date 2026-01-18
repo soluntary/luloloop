@@ -385,7 +385,7 @@ export default function HomePage() {
       <Navigation currentPage="home" />
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 text-center relative">
+      <section className="container mx-auto px-4 py-16 text-center relative my-0">
         <div className="max-w-4xl mx-auto">
           <motion.h2
             initial={{ opacity: 0, y: 30, rotate: -1 }}
@@ -393,16 +393,9 @@ export default function HomePage() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="font-bold text-gray-800 mb-6 transform -rotate-1 font-handwritten text-4xl"
           >
-            Bring deine Spiele ins Spiel
+            <span className="block">Entdecke und geniesse Brettspiele</span>
+            <span className="block text-teal-600">wie nie zuvor</span>
           </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 30, rotate: 1 }}
-            animate={{ opacity: 1, y: 0, rotate: 1 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            className="text-gray-600 mb-8 transform rotate-1 font-body text-base"
-          >
-            Entdecke und geniesse Brettspiele wie nie zuvor
-          </motion.p>
         </div>
       </section>
 
@@ -496,7 +489,7 @@ export default function HomePage() {
             },
             {
               icon: FaCalendarAlt,
-              title: "Events & Spielrunden",
+              title: "Events & Spieltreffs",
               description:
                 "Organisiere deine nächste Spielrunde im Handumdrehen und finde Gleichgesinnte für spontane oder regelmässige Spielrunden.",
               link: "/ludo-events",

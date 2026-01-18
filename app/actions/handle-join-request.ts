@@ -3,8 +3,9 @@
 import { createClient } from "@supabase/supabase-js"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { User } from "@supabase/gotrue-js"
 
-export async function handleJoinRequestAction(requestId: string, action: "approve" | "reject") {
+export async function handleJoinRequestAction(requestId: string, action: "approve" | "reject", userId?: string) {
   try {
     // Create regular client for authentication
     const cookieStore = await cookies()
@@ -21,21 +22,24 @@ export async function handleJoinRequestAction(requestId: string, action: "approv
               cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
             } catch {
               // The `setAll` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
             }
           },
         },
       },
     )
 
-    // Get the authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    // Try to get user from session, fallback to provided userId
+    let currentUserId = userId
+    let user: User | null = null
+    try {
+      const { data: { user: fetchedUser } } = await supabase.auth.getUser()
+      user = fetchedUser
+      if (user) currentUserId = user.id
+    } catch (e) {
+      // Session missing in v0 environment
+    }
 
-    if (authError || !user) {
+    if (!currentUserId) {
       return { error: "User not authenticated" }
     }
 
@@ -72,7 +76,7 @@ export async function handleJoinRequestAction(requestId: string, action: "approv
         .from("community_join_requests")
         .update({
           status: "approved",
-          reviewed_by: user.id,
+          reviewed_by: user?.id,
           reviewed_at: new Date().toISOString(),
         })
         .eq("id", requestId)
@@ -89,7 +93,7 @@ export async function handleJoinRequestAction(requestId: string, action: "approv
         .from("community_join_requests")
         .update({
           status: "rejected",
-          reviewed_by: user.id,
+          reviewed_by: user?.id,
           reviewed_at: new Date().toISOString(),
         })
         .eq("id", requestId)

@@ -513,21 +513,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
+    let isMounted = true
+
     const initializeAuth = async () => {
       let attempts = 0
       const maxAttempts = 3
 
-      while (attempts < maxAttempts) {
+      while (attempts < maxAttempts && isMounted) {
         try {
           const {
             data: { session },
             error,
           } = await supabase.auth.getSession()
 
+          if (!isMounted) return
+
           if (error) {
+            // Ignore abort errors - they're expected during unmount
+            if (error.message?.includes("aborted") || error.message?.includes("signal")) {
+              return
+            }
             if (isNetworkError(error) && attempts < maxAttempts - 1) {
               attempts++
-              console.log(`[v0] Auth initialization failed, retrying... (${attempts}/${maxAttempts})`)
               await delay(1000 * attempts)
               continue
             }
@@ -541,11 +548,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (session?.user) {
             await loadUserProfile(session.user)
           } else {
-            setUser(null)
-            setLoading(false)
+            if (isMounted) {
+              setUser(null)
+              setLoading(false)
+            }
           }
           return
-        } catch (error) {
+        } catch (error: any) {
+          // Ignore abort errors - they're expected during unmount
+          if (error?.message?.includes("aborted") || error?.message?.includes("signal")) {
+            return
+          }
           attempts++
           console.error(`Auth initialization error (attempt ${attempts}):`, error)
 
@@ -555,9 +568,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             continue
           }
 
-          setUser(null)
-          setLoading(false)
-          setNetworkError(true)
+          if (isMounted) {
+            setUser(null)
+            setLoading(false)
+            setNetworkError(true)
+          }
           return
         }
       }
@@ -566,6 +581,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth()
 
     return () => {
+      isMounted = false
       subscription.unsubscribe()
     }
   }, [loadUserProfile, user])
