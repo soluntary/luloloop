@@ -1171,7 +1171,7 @@ export default function CreateLudoEventForm({
       case 1:
         return "Grundinformationen"
       case 2:
-        return "Zeit, Frequenz und Ort"
+        return "Zeit, Frequenz und Standort"
       case 3:
         return "Was wird gespielt?"
       case 4:
@@ -1438,7 +1438,7 @@ export default function CreateLudoEventForm({
                     id="maxPlayers"
                     type="number"
                     min="2"
-                    placeholder="Leer lassen für unbegrenzte Teilnehmerzahl"
+                    placeholder="Leer lassen für unbegrenzt"
                     value={formData.maxPlayers || ""}
                     onChange={(e) => {
                       handleInputChange("maxPlayers", e.target.value)
@@ -1513,7 +1513,7 @@ export default function CreateLudoEventForm({
                         handleInputChange("isOnline", value === "virtual")
                       }}
                     >
-                      <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500">
+                      <SelectTrigger className="h-11 text-xs border-gray-300 focus:border-teal-500">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1571,7 +1571,7 @@ export default function CreateLudoEventForm({
                       }
                     }}
                   >
-                    <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500 bg-white">
+                    <SelectTrigger className="h-11 text-xs border-gray-300 focus:border-teal-500 bg-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1837,7 +1837,7 @@ export default function CreateLudoEventForm({
                     )}
                 </div>
                 <div className="bg-white rounded-lg p-6 border border-gray-200">
-                  <Label htmlFor="eventDate" className="text-sm font-medium text-gray-700 mb-3 block">
+                  <Label htmlFor="eventDate" className="text-xs font-medium text-gray-700 mb-3 block">
                     {formData.frequency === "einmalig"
                       ? "Datum *"
                       : formData.seriesMode === "series"
@@ -2286,7 +2286,7 @@ export default function CreateLudoEventForm({
                               className="w-full h-full object-cover"
                             />
                           </div>
-                          <h4 className="text-gray-900 line-clamp-2 text-sm font-normalal">{game.title}</h4>
+                          <h4 className="text-gray-900 line-clamp-2 font-normalal text-xs">{game.title}</h4>
                         </div>
                       ))}
                     </div>
@@ -2314,7 +2314,7 @@ export default function CreateLudoEventForm({
                     Sichtbarkeit *
                   </Label>
                   <Select value={formData.visibility} onValueChange={(value) => handleInputChange("visibility", value)}>
-                    <SelectTrigger className="h-11 text-sm border-gray-300 focus:border-teal-500">
+                    <SelectTrigger className="h-11 text-xs border-gray-300 focus:border-teal-500">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -2403,7 +2403,7 @@ export default function CreateLudoEventForm({
                         {!formData.requiresApproval ? (
                           <div className="space-y-2">
                             <div className="flex items-start gap-2">
-                              <FaCheckCircle className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
+                              <FaCheckCircle className="h-4 w-4 text-teal-600 flex-shrink-0 mt-0" />
                               <div>
                                 <p className="text-xs font-semibold text-gray-900 mb-1">Offene Teilnahme</p>
                                 <p className="text-xs text-gray-600">Jeder ist willkommen, am Event teilzunehmen</p>
@@ -2413,7 +2413,7 @@ export default function CreateLudoEventForm({
                         ) : (
                           <div className="space-y-2">
                             <div className="flex items-start gap-2">
-                              <FaClock className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                              <FaClock className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0" />
                               <div>
                                 <p className="text-xs font-semibold text-gray-900 mb-1">
                                   Teilnahme erst nach Genehmigung

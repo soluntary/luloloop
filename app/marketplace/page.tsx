@@ -704,7 +704,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
     }
 
     // For non-lending offers, return the price as is
-    return <span className="text-foreground text-xs font-bold my-[px]x">{priceString}</span>
+    return <span className="text-xs my-[px]x font-normal text-slate-500">{priceString}</span>
   }
 
   useEffect(() => {
@@ -1611,7 +1611,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               {/* Price and Condition */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
-                  <p className="text-slate-500 mb-2 text-sm">
+                  <p className="mb-2 text-sm text-slate-950">
                     {selectedOfferDetails.type === "lend"
                       ? "Mietgebühr"
                       : selectedOfferDetails.type === "sell"
@@ -1627,8 +1627,8 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                   </div>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
-                  <p className="text-slate-500 mb-2 text-sm">Zustand</p>
-                  <p className="font-bold text-slate-900 text-xs">
+                  <p className="mb-2 text-sm text-slate-950">Zustand</p>
+                  <p className="text-xs font-normal text-slate-500">
                     {selectedOfferDetails.condition || "Nicht angegeben"}
                   </p>
                 </div>
@@ -1639,44 +1639,44 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 <h2 className="font-bold mb-6 text-sm">Spieldetails</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   <div className="text-center p-4 rounded-xl bg-slate-50">
-                    <p className="mb-2 font-normal text-xs text-slate-500">Verlag</p>
-                    <p className="font-semibold text-black text-xs">
+                    <p className="mb-2 font-normal text-xs text-slate-950">Verlag</p>
+                    <p className="text-xs font-thin text-slate-500 bg-slate-50">
                       {selectedOfferDetails.publisher || "Nicht angegeben"}
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-2">Sprache</p>
-                    <p className="font-semibold text-slate-900 text-xs">
+                    <p className="text-xs mb-2 text-slate-950">Sprache</p>
+                    <p className="text-xs font-thin text-slate-500">
                       {selectedOfferDetails.language || "Nicht angegeben"}
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-2">Spieleranzahl</p>
-                    <p className="font-semibold text-slate-900 text-xs">
+                    <p className="text-xs mb-2 text-slate-950">Spieleranzahl</p>
+                    <p className="text-xs text-slate-500 font-normal">
                       {selectedOfferDetails.players || "Nicht angegeben"}
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-2">Spieldauer</p>
-                    <p className="font-semibold text-slate-900 text-xs">
+                    <p className="text-xs mb-2 text-slate-950">Spieldauer</p>
+                    <p className="text-xs font-thin text-slate-500">
                       {selectedOfferDetails.duration || "Nicht angegeben"}
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-2">Altersempfehlung</p>
-                    <p className="font-semibold text-slate-900 text-xs">
+                    <p className="text-xs mb-2 text-slate-950">Altersempfehlung</p>
+                    <p className="text-xs font-extralight text-slate-500">
                       {selectedOfferDetails.age || "Nicht angegeben"}
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-2">Kategorie</p>
-                    <p className="font-semibold text-slate-900 text-xs">
+                    <p className="text-xs mb-2 text-gray-950">Kategorie</p>
+                    <p className="text-xs font-thin text-slate-500">
                       {selectedOfferDetails.category || "Nicht angegeben"}
                     </p>
                   </div>
                   <div className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-2">Typus</p>
-                    <p className="font-semibold text-slate-900 text-xs">
+                    <p className="text-xs mb-2 text-slate-950">Typus</p>
+                    <p className="text-xs text-slate-500 font-normal">
                       {selectedOfferDetails.game_types || selectedOfferDetails.style || "Nicht angegeben"}
                     </p>
                   </div>
@@ -1722,7 +1722,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                       </span>
                     </div>
                   </div>
-                  <div className="flex-1 font-normal font-normal font-normal font-normal text-xs">
+                  <div className="flex-1 font-normal font-normal font-normal font-normal text-xs text-slate-500">
                     <UserLink
                       userId={selectedOfferDetails.user_id}
                       className="text-slate-900 text-xs block hover:text-teal-600"
@@ -1750,10 +1750,10 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                       <div className="bg-slate-50 p-4 rounded-xl">
                         <div className="flex items-center gap-2 mb-2 text-xs">
                           <FaLocationDot className="w-4 h-4 text-slate-700" />
-                          <span className="text-slate-900 font-normal text-xs">Abholung</span>
+                          <span className="font-normal text-xs text-slate-950">Abholung</span>
                         </div>
                         {selectedOfferDetails.pickup_address && (
-                          <p className="text-slate-600 font-normal text-xs">
+                          <p className="font-normal text-xs text-slate-500">
                             In:{" "}
                             {selectedOfferDetails.show_full_address
                               ? selectedOfferDetails.pickup_address

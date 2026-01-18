@@ -111,7 +111,7 @@ function Navigation({ currentPage }: NavigationProps) {
         items: [
           { href: "/ludo-gruppen", label: "Spielgruppen", icon: FaUsers, key: "ludo-gruppen" },
           { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
-          { href: "/ludo-events", label: "Events", icon: FaCalendarAlt, key: "ludo-events" },
+          { href: "/ludo-events", label: "Events & Spieletreffs", icon: FaCalendarAlt, key: "ludo-events" },
           { href: "/ludo-forum", label: "Forum", icon: MdForum, key: "ludo-forum" },
         ],
       },

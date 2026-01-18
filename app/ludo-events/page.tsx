@@ -1828,7 +1828,7 @@ export default function LudoEventsPage() {
                             onClick={(e) => {
                               e.stopPropagation()
                               if (!user) {
-                                toast.info("Bitte melde dich an, um an Events teilzunehmen")
+                                toast.info("Bitte melde dich an, um an Events und Spieletreffs teilzunehmen")
                                 window.location.href = "/login"
                                 return
                               }

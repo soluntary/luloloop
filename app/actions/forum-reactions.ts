@@ -8,7 +8,11 @@ export async function addPostReaction(postId: string, emoji: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  
+  console.log("[v0] addPostReaction - user:", user?.id, "postId:", postId, "emoji:", emoji)
+  
   if (!user) {
+    console.log("[v0] addPostReaction - Not authenticated")
     return { error: "Not authenticated" }
   }
 
@@ -22,7 +26,10 @@ export async function addPostReaction(postId: string, emoji: string) {
     .select()
     .single()
 
+  console.log("[v0] addPostReaction - result:", { data, error })
+
   if (error) {
+    console.log("[v0] addPostReaction - error:", error.message, error.code, error.details)
     return { error: error.message }
   }
 

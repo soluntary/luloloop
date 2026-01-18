@@ -17,6 +17,7 @@ import {
 } from "react-icons/fa"
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
+import { Badge } from "@/components/ui/badge"
 
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<any[]>([])
@@ -232,6 +233,55 @@ export function NotificationBell() {
     return date.toLocaleDateString("de-DE")
   }
 
+  const getNotificationTypeLabel = (type: string) => {
+    switch (type) {
+      case "event_join_request":
+      case "event_participation_request":
+        return { label: "Teilnahmeanfrage", color: "bg-blue-100 text-blue-800" }
+      case "event_join_approved":
+      case "event_participation_approved":
+        return { label: "Teilnahme bestätigt", color: "bg-green-100 text-green-800" }
+      case "event_join_rejected":
+      case "event_participation_rejected":
+        return { label: "Teilnahme abgelehnt", color: "bg-red-100 text-red-800" }
+      case "event_invitation":
+        return { label: "Event-Einladung", color: "bg-purple-100 text-purple-800" }
+      case "group_join_request":
+      case "group_membership_request":
+        return { label: "Beitrittsanfrage", color: "bg-teal-100 text-teal-800" }
+      case "group_join_approved":
+      case "group_membership_approved":
+        return { label: "Beitritt bestätigt", color: "bg-green-100 text-green-800" }
+      case "group_join_rejected":
+      case "group_membership_rejected":
+        return { label: "Beitritt abgelehnt", color: "bg-red-100 text-red-800" }
+      case "group_invitation":
+        return { label: "Gruppen-Einladung", color: "bg-indigo-100 text-indigo-800" }
+      case "friend_request":
+        return { label: "Freundschaftsanfrage", color: "bg-pink-100 text-pink-800" }
+      case "friend_accepted":
+        return { label: "Freundschaft bestätigt", color: "bg-green-100 text-green-800" }
+      case "trade_match":
+        return { label: "Tausch-Match", color: "bg-orange-100 text-orange-800" }
+      case "trade_match_accepted":
+        return { label: "Tausch bestätigt", color: "bg-green-100 text-green-800" }
+      case "message":
+      case "new_message":
+        return { label: "Neue Nachricht", color: "bg-purple-100 text-purple-800" }
+      case "forum_reply":
+      case "comment_reply":
+        return { label: "Antwort", color: "bg-teal-100 text-teal-800" }
+      case "game_shelf_request":
+        return { label: "Spielregal-Anfrage", color: "bg-orange-100 text-orange-800" }
+      case "poll_created":
+        return { label: "Neue Umfrage", color: "bg-indigo-100 text-indigo-800" }
+      case "ai_recommendation":
+        return { label: "Empfehlung", color: "bg-yellow-100 text-yellow-800" }
+      default:
+        return { label: "Benachrichtigung", color: "bg-gray-100 text-gray-800" }
+    }
+  }
+
   return (
     <div className="relative">
       <button onClick={() => setOpen(!open)} className="relative p-2">
@@ -244,7 +294,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-96 max-h-[500px] overflow-y-auto bg-white border rounded shadow">
+        <div className="absolute right-0 mt-2 w-96 max-h-[500px] overflow-y-auto bg-white border rounded shadow z-50">
           <div className="flex items-center justify-between p-3 border-b">
             <h3 className="font-semibold">Benachrichtigungen</h3>
             {unreadCount > 0 && (
@@ -266,25 +316,34 @@ export function NotificationBell() {
             </div>
           ) : (
             <>
-              {notifications.slice(0, 5).map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-4 cursor-pointer ${!notification.is_read ? "bg-blue-50" : ""}`}
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <div className="flex gap-3 w-full">
-                    <div className="flex-shrink-0 mt-1">{getNotificationIcon(notification.type)}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold mb-1 text-xs">{notification.title}</p>
-                      <p className="text-xs text-gray-600 line-clamp-2">{notification.message}</p>
-                      <p className="text-xs text-gray-400 mt-1">{formatTime(notification.created_at)}</p>
+              {notifications.slice(0, 5).map((notification) => {
+                const typeInfo = getNotificationTypeLabel(notification.type)
+
+                return (
+                  <div
+                    key={notification.id}
+                    className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${!notification.is_read ? "bg-blue-50" : ""}`}
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    <div className="flex gap-3 w-full">
+                      <div className="flex-shrink-0 mt-1">{getNotificationIcon(notification.type)}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge className={`${typeInfo.color} text-[10px] px-1.5 py-0 font-medium`}>
+                            {typeInfo.label}
+                          </Badge>
+                        </div>
+                        <p className="font-semibold text-xs text-gray-900">{notification.title}</p>
+                        <p className="text-xs text-gray-600 line-clamp-2 mt-0.5">{notification.message}</p>
+                        <p className="text-[10px] text-gray-400 mt-1">{formatTime(notification.created_at)}</p>
+                      </div>
+                      <button onClick={(e) => handleDelete(e, notification.id)} className="flex-shrink-0 h-8 w-8">
+                        <FaTrash className="w-3 h-3 text-gray-400 hover:text-red-500" />
+                      </button>
                     </div>
-                    <button onClick={(e) => handleDelete(e, notification.id)} className="flex-shrink-0 h-8 w-8">
-                      <FaTrash className="w-3 h-3 text-gray-400 hover:text-red-500" />
-                    </button>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </>
           )}
         </div>

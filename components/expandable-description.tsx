@@ -30,7 +30,7 @@ export function ExpandableDescription({ text, className = "" }: ExpandableDescri
     <div className={className}>
       <p
         ref={textRef}
-        className={`text-xs text-black ${!isExpanded && showButton ? "line-clamp-2" : ""}`}
+        className={`text-xs text-slate-950 ${!isExpanded && showButton ? "line-clamp-2" : ""}`}
         dangerouslySetInnerHTML={{ __html: htmlContent }}
       />
       {showButton && (

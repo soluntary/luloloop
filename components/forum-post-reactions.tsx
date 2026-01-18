@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { EmojiReactionPicker } from "@/components/emoji-reaction-picker"
-import { addPostReaction, removePostReaction, getPostReactions } from "@/app/actions/forum-reactions"
 import { useAuth } from "@/contexts/auth-context"
+import { createBrowserClient } from "@supabase/ssr"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -21,6 +21,12 @@ interface ForumPostReactionsProps {
   className?: string
 }
 
+// Create a singleton Supabase client for the browser
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
 export function ForumPostReactions({ postId, className }: ForumPostReactionsProps) {
   const { user } = useAuth()
   const [reactions, setReactions] = useState<Reaction[]>([])
@@ -31,9 +37,13 @@ export function ForumPostReactions({ postId, className }: ForumPostReactionsProp
   }, [postId])
 
   const loadReactions = async () => {
-    const result = await getPostReactions(postId)
-    if (result.data) {
-      setReactions(result.data)
+    const { data, error } = await supabase
+      .from("forum_post_reactions")
+      .select("*")
+      .eq("post_id", postId)
+    
+    if (data) {
+      setReactions(data)
     }
   }
 
@@ -48,22 +58,41 @@ export function ForumPostReactions({ postId, className }: ForumPostReactionsProp
     // Check if user already reacted with this emoji
     const existingReaction = reactions.find((r) => r.user_id === user.id && r.emoji === emoji)
 
-    if (existingReaction) {
-      // Remove reaction
-      const result = await removePostReaction(postId, emoji)
-      if (result.error) {
-        toast.error("Fehler beim Entfernen der Reaktion")
+    try {
+      if (existingReaction) {
+        // Remove reaction using client-side Supabase
+        const { error } = await supabase
+          .from("forum_post_reactions")
+          .delete()
+          .eq("post_id", postId)
+          .eq("user_id", user.id)
+          .eq("emoji", emoji)
+        
+        if (error) {
+          toast.error("Fehler beim Entfernen der Reaktion: " + error.message)
+        } else {
+          setReactions(reactions.filter((r) => r.id !== existingReaction.id))
+        }
       } else {
-        setReactions(reactions.filter((r) => r.id !== existingReaction.id))
+        // Add reaction using client-side Supabase
+        const { data, error } = await supabase
+          .from("forum_post_reactions")
+          .insert({
+            post_id: postId,
+            user_id: user.id,
+            emoji: emoji,
+          })
+          .select()
+          .single()
+        
+        if (error) {
+          toast.error("Fehler beim Hinzufügen der Reaktion: " + error.message)
+        } else if (data) {
+          setReactions([...reactions, data])
+        }
       }
-    } else {
-      // Add reaction
-      const result = await addPostReaction(postId, emoji)
-      if (result.error) {
-        toast.error("Fehler beim Hinzufügen der Reaktion")
-      } else if (result.data) {
-        setReactions([...reactions, result.data])
-      }
+    } catch (error: any) {
+      toast.error("Ein Fehler ist aufgetreten")
     }
 
     setLoading(false)

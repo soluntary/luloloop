@@ -49,6 +49,8 @@ export default function LudoForumPage() {
   const [newPost, setNewPost] = useState({
     title: "",
     content: "",
+    category: "",
+    duplicateChecked: false,
   })
   const router = useRouter()
 
@@ -156,7 +158,7 @@ export default function LudoForumPage() {
         <div className="text-center mb-8">
           <h1 className="font-handwritten text-3xl sm:text-4xl md:text-5xl text-gray-800 mb-4">Forum</h1>
           {user && (
-            <Button onClick={() => setShowCreateDialog(true)} className="bg-teal-500 hover:bg-teal-600 text-white">
+            <Button onClick={() => setShowCreateDialog(true)} className="font-handwritten bg-teal-500 hover:bg-teal-600 text-white">
               <Plus className="h-4 w-4 mr-2" />
               Neue Diskussion
             </Button>
@@ -285,6 +287,28 @@ export default function LudoForumPage() {
                                 </h3>
                               </div>
 
+                              {/* Kategorie Badge - extrahiert aus Content */}
+                              {(() => {
+                                const categoryMatch = post.content?.match(/^\[KATEGORIE:(.*?)\]/)
+                                const category = categoryMatch ? categoryMatch[1] : null
+                                if (!category) return null
+                                
+                                const badgeConfig: Record<string, { bg: string; text: string; label: string }> = {
+                                  spielempfehlungen: { bg: "bg-blue-100", text: "text-blue-700", label: "Spielempfehlungen" },
+                                  spielregeln: { bg: "bg-purple-100", text: "text-purple-700", label: "Spielregeln" },
+                                  strategien: { bg: "bg-green-100", text: "text-green-700", label: "Strategien & Tipps" },
+                                  sonstiges: { bg: "bg-gray-100", text: "text-gray-700", label: "Sonstiges" },
+                                }
+                                const config = badgeConfig[category]
+                                if (!config) return null
+                                
+                                return (
+                                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mb-2 ${config.bg} ${config.text}`}>
+                                    {config.label}
+                                  </span>
+                                )
+                              })()}
+
                               <div className="text-gray-600 text-xs line-clamp-2 mb-p3 my-2.5">
                                 <div className="flex items-center gap-2">
                                   <Avatar className="h-5 w-5">
@@ -306,7 +330,7 @@ export default function LudoForumPage() {
                                 </div>
                               </div>
 
-                              <p className="text-gray-500 text-xs line-clamp-2 mb-p3 my-2.5">{post.content}</p>
+                              <p className="text-gray-500 text-xs line-clamp-2 mb-p3 my-2.5">{post.content?.replace(/^\[KATEGORIE:.*?\]\n?/, "")}</p>
                             </div>
                           </div>
 
@@ -326,26 +350,25 @@ export default function LudoForumPage() {
                               </div>
                             </div>
 
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="bg-transparent hover:bg-teal-50 hover:border-teal-300"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                if (!user) {
-                                  toast.info("Bitte melde dich an, um zu antworten")
-                                  window.location.href = "/login"
-                                  return
-                                }
-                                handlePostClick(post.id)
-                              }}
-                            >
-                              Antworten
-                            </Button>
-                          </div>
-
-                          <div className="mt-3 pt-3 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
-                            <ForumPostReactions postId={post.id} />
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <ForumPostReactions postId={post.id} />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-transparent hover:bg-teal-50 hover:border-teal-300"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (!user) {
+                                    toast.info("Bitte melde dich an, um zu antworten")
+                                    window.location.href = "/login"
+                                    return
+                                  }
+                                  handlePostClick(post.id)
+                                }}
+                              >
+                                Antworten
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -366,77 +389,148 @@ export default function LudoForumPage() {
         {/* Create Discussion Dialog */}
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="font-handwritten text-gray-800">Neue Diskussion erstellen</DialogTitle>
+            <DialogHeader className="pb-4 border-b border-gray-100">
+              <DialogTitle className="text-2xl font-semibold text-gray-800">Neue Diskussion erstellen</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-5 pt-4">
+              {/* Kategorie */}
               <div>
-                <Label htmlFor="post-title">Titel</Label>
+                <Label htmlFor="post-category" className="text-sm font-medium text-gray-700">
+                  Kategorie <span className="text-red-500">*</span>
+                </Label>
+                <select
+                  id="post-category"
+                  value={newPost.category || ""}
+                  onChange={(e) => setNewPost({ ...newPost, category: e.target.value })}
+                  className="w-full mt-1.5 p-2.5 border border-gray-200 rounded-lg bg-white focus:border-teal-400 focus:ring-1 focus:ring-teal-400 text-xs"
+                >
+                  <option value="">Kategorie auswählen...</option>
+                  <option value="spielempfehlungen">Spielempfehlungen</option>
+                  <option value="spielregeln">Spielregeln</option>
+                  <option value="strategien">Strategien & Tipps</option>
+                  <option value="sonstiges">Sonstiges</option>
+                </select>
+              </div>
+
+              {/* Titel */}
+              <div>
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="post-title" className="text-sm font-medium text-gray-700">
+                    Titel der Diskussion <span className="text-red-500">*</span>
+                  </Label>
+                  <span className={`text-xs ${newPost.title.length > 60 ? "text-red-500" : "text-gray-400"}`}>
+                    {newPost.title.length}/60
+                  </span>
+                </div>
                 <Input
                   id="post-title"
                   value={newPost.title}
-                  onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 60) {
+                      setNewPost({ ...newPost, title: e.target.value })
+                    }
+                  }}
+                  maxLength={60}
                   placeholder="Gib deiner Diskussion einen aussagekräftigen Titel..."
-                  className="mt-1"
+                  className="mt-1.5 border-gray-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400"
                 />
               </div>
+
+              {/* Beschreibung */}
               <div>
-                <Label htmlFor="post-content">Inhalt</Label>
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="post-content" className="text-sm font-medium text-gray-700">
+                    Beschreibung
+                  </Label>
+                  <span className={`text-xs ${newPost.content.length > 5000 ? "text-red-500" : "text-gray-400"}`}>
+                    {newPost.content.length}/5000
+                  </span>
+                </div>
                 <textarea
                   id="post-content"
                   value={newPost.content}
-                  onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-                  className="w-full h-64 p-3 border rounded-lg resize-none mt-1"
+                  onChange={(e) => {
+                    if (e.target.value.length <= 5000) {
+                      setNewPost({ ...newPost, content: e.target.value })
+                    }
+                  }}
+                  maxLength={5000}
+                  className="w-full mt-1.5 h-40 p-3 border border-gray-200 rounded-lg resize-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 text-xs"
                   placeholder="Beschreibe dein Anliegen oder stelle deine Frage..."
                 />
               </div>
-              <div className="flex gap-2 justify-end pt-4">
+
+              {/* Checkbox */}
+              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <input
+                  type="checkbox"
+                  id="duplicate-check"
+                  checked={newPost.duplicateChecked || false}
+                  onChange={(e) => setNewPost({ ...newPost, duplicateChecked: e.target.checked })}
+                  className="mt-0.5 h-4 w-4 text-teal-500 border-gray-300 rounded focus:ring-teal-400"
+                />
+                <Label htmlFor="duplicate-check" className="text-sm text-gray-600 cursor-pointer">
+                  Ich habe geprüft, ob es bereits eine ähnliche Diskussion gibt. <span className="text-red-500">*</span>
+                </Label>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-4 border-t border-gray-100">
                 <Button
                   variant="outline"
                   onClick={() => {
                     setShowCreateDialog(false)
-                    setNewPost({ title: "", content: "" })
+                    setNewPost({ title: "", content: "", category: "", duplicateChecked: false })
                   }}
+                  className="border-gray-200"
                 >
                   Abbrechen
                 </Button>
                 <Button
                   onClick={async () => {
-                    console.log("[v0] Creating forum post...")
                     if (!user) {
                       toast.error("Du musst angemeldet sein")
                       return
                     }
-                    if (!newPost.title.trim() || !newPost.content.trim()) {
-                      toast.error("Bitte fülle alle Felder aus")
+                    if (!newPost.category) {
+                      toast.error("Bitte wähle eine Kategorie aus")
+                      return
+                    }
+                    if (!newPost.title.trim()) {
+                      toast.error("Bitte gib einen Titel ein")
+                      return
+                    }
+                    if (!newPost.duplicateChecked) {
+                      toast.error("Bitte bestätige, dass du nach ähnlichen Diskussionen gesucht hast")
                       return
                     }
 
                     try {
-                      const { error } = await supabase.from("forum_posts").insert({
+                      // Kategorie als Prefix im Content speichern, da post_type einen CHECK constraint hat
+                      const categoryPrefix = `[KATEGORIE:${newPost.category}]\n`
+                      
+                      const { data, error } = await supabase.from("forum_posts").insert({
                         title: newPost.title.trim(),
-                        content: newPost.content.trim(),
+                        content: categoryPrefix + newPost.content.trim(),
                         author_id: user.id,
-                        post_type: "discussion", // Required field in database
-                      })
+                        post_type: "discussion",
+                      }).select()
 
                       if (error) {
-                        console.error("[v0] Error creating post:", error)
+                        console.error("[v0] Error creating post:", error.message, error.details, error.hint)
                         throw error
                       }
 
-                      console.log("[v0] Post created successfully")
                       toast.success("Diskussion wurde erstellt!")
-                      setNewPost({ title: "", content: "" })
+                      setNewPost({ title: "", content: "", category: "", duplicateChecked: false })
                       setShowCreateDialog(false)
                       loadForumData()
                     } catch (error) {
-                      console.error("[v0] Error:", error)
+                      console.error("Error:", error)
                       toast.error("Fehler beim Erstellen der Diskussion")
                     }
                   }}
-                  disabled={!newPost.title.trim() || !newPost.content.trim()}
-                  className="bg-teal-500 hover:bg-teal-600"
+                  disabled={!newPost.category || !newPost.title.trim() || !newPost.duplicateChecked}
+                  className="bg-teal-500 hover:bg-teal-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   Erstellen
                 </Button>

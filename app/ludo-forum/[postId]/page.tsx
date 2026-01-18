@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, MessageSquare, Heart, Eye, Pin, Lock, Reply } from "lucide-react"
+import { ForumPostReactions } from "@/components/forum-post-reactions"
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
@@ -453,11 +454,42 @@ export default function ForumThreadPage() {
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-1">
                   {post.is_pinned && <Pin className="h-4 w-4 text-orange-500" />}
                   {post.is_locked && <Lock className="h-4 w-4 text-gray-500" />}
                   <CardTitle className="font-handwritten text-xs text-gray-800">{post.title}</CardTitle>
                 </div>
+                
+                {/* Kategorie Badge - nach dem Titel */}
+                {(() => {
+                  const categoryMatch = post.content?.match(/^\[KATEGORIE:(.*?)\]/)
+                  const category = categoryMatch ? categoryMatch[1] : null
+                  if (!category) return post.category?.name ? (
+                    <Badge
+                      variant="outline"
+                      className="text-xs mb-2"
+                      style={{ borderColor: post.category?.color, color: post.category?.color }}
+                    >
+                      {post.category?.name}
+                    </Badge>
+                  ) : null
+                  
+                  const badgeConfig: Record<string, { bg: string; text: string; label: string }> = {
+                    spielempfehlungen: { bg: "bg-blue-100", text: "text-blue-700", label: "Spielempfehlungen" },
+                    spielregeln: { bg: "bg-purple-100", text: "text-purple-700", label: "Spielregeln" },
+                    strategien: { bg: "bg-green-100", text: "text-green-700", label: "Strategien & Tipps" },
+                    sonstiges: { bg: "bg-gray-100", text: "text-gray-700", label: "Sonstiges" },
+                  }
+                  const config = badgeConfig[category]
+                  if (!config) return null
+                  
+                  return (
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mb-2 ${config.bg} ${config.text}`}>
+                      {config.label}
+                    </span>
+                  )
+                })()}
+                
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Avatar className="h-5 w-5">
                     <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
@@ -473,20 +505,12 @@ export default function ForumThreadPage() {
                   </UserLink>
                   <span>•</span>
                   <span className="text-xs text-gray-500">{formatTimeAgo(post.created_at)}</span>
-
-                  <Badge
-                    variant="outline"
-                    className="text-xs"
-                    style={{ borderColor: post.category?.color, color: post.category?.color }}
-                  >
-                    {post.category?.name}
-                  </Badge>
                 </div>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-500 whitespace-pre-wrap text-xs mb-px">{post.content}</p>
+            <p className="text-gray-500 whitespace-pre-wrap text-xs mb-px">{post.content?.replace(/^\[KATEGORIE:.*?\]\n?/, "")}</p>
 
             <Separator className="my-4" />
 
@@ -512,29 +536,32 @@ export default function ForumThreadPage() {
                 </div>
               </div>
 
-              {!post.is_locked && (
-                <Button
-                  onClick={async () => {
-                    if (authLoading) {
-                      console.log("[v0] Auth still loading, please wait")
-                      return
-                    }
-                    if (!user) {
-                      console.log("[v0] No user found when trying to reply")
-                      toast.error("Du musst angemeldet sein, um zu antworten")
-                      return
-                    }
-                    console.log("[v0] User found, opening reply form:", user.id)
-                    setReplyingTo(null)
-                    setShowReplyForm(true)
-                  }}
-                  className="playful-button"
-                  size="sm"
-                >
-                  <Reply className="h-4 w-4 mr-2" />
-                  Antworten
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                <ForumPostReactions postId={post.id} />
+                {!post.is_locked && (
+                  <Button
+                    onClick={async () => {
+                      if (authLoading) {
+                        console.log("[v0] Auth still loading, please wait")
+                        return
+                      }
+                      if (!user) {
+                        console.log("[v0] No user found when trying to reply")
+                        toast.error("Du musst angemeldet sein, um zu antworten")
+                        return
+                      }
+                      console.log("[v0] User found, opening reply form:", user.id)
+                      setReplyingTo(null)
+                      setShowReplyForm(true)
+                    }}
+                    className="playful-button"
+                    size="sm"
+                  >
+                    <Reply className="h-4 w-4 mr-2" />
+                    Antworten
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

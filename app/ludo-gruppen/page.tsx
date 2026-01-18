@@ -156,6 +156,9 @@ export default function LudoGruppenPage() {
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
 
+  // Use controlled Accordion with value and onValueChange instead of defaultValue
+  const [openAccordionSections, setOpenAccordionSections] = useState<string[]>(["grundinformationen"])
+
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("all")
@@ -1591,14 +1594,11 @@ export default function LudoGruppenPage() {
         <div className="text-center mb-8">
           <h1 className="font-handwritten text-3xl sm:text-4xl md:text-5xl text-gray-800 mb-4">Spielgruppen</h1>
           {user && (
-            <Button
-              onClick={() => {
-                console.log("[v0] Spielgruppe erstellen button clicked")
-                console.log("[v0] User:", user)
-                console.log("[v0] Opening create dialog...")
-                setIsCreateDialogOpen(true)
-                console.log("[v0] isCreateDialogOpen state set to true")
-              }}
+<Button
+                  onClick={() => {
+                    setOpenAccordionSections(["grundinformationen"])
+                    setIsCreateDialogOpen(true)
+                  }}
               className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 font-handwritten"
             >
               <FaPlus className="h-4 w-4 mr-2" />
@@ -1773,13 +1773,16 @@ export default function LudoGruppenPage() {
                       : "Sei der Erste und erstelle eine neue Spielgruppe!"}
                   </p>
                   {!searchTerm && (
-                    <Button
-                      onClick={() => setIsCreateDialogOpen(true)}
-                      className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 font-handwritten"
-                    >
-                      <FaPlus className="h-4 w-4 mr-2" />
-                      Erste Spielgruppe erstellen
-                    </Button>
+<Button
+                          onClick={() => {
+                            setOpenAccordionSections(["grundinformationen"])
+                            setIsCreateDialogOpen(true)
+                          }}
+                          className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 font-handwritten"
+                        >
+                          <FaPlus className="h-4 w-4 mr-2" />
+                          Erste Spielgruppe erstellen
+                        </Button>
                   )}
                 </div>
               ) : (
@@ -1958,15 +1961,20 @@ export default function LudoGruppenPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <Accordion type="multiple" defaultValue={["grundinformationen"]} className="space-y-4">
+            <Accordion
+              type="multiple"
+              value={openAccordionSections}
+              onValueChange={setOpenAccordionSections}
+              className="space-y-4"
+            >
               {/* Section 1: Grundinformationen */}
               <AccordionItem value="grundinformationen" className="border border-gray-200 rounded-lg overflow-hidden">
                 <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-gray-50 [&[data-state=open]]:bg-gray-50">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-teal-500 text-white flex items-center justify-center text-sm font-bold">
+                    <div className="rounded-full bg-teal-600 text-white flex items-center justify-center font-semibold flex-shrink-0 w-8 h-8">
                       1
                     </div>
-                    <span className="text-base font-semibold text-gray-900">Grundinformationen</span>
+                    <span className="text-sm font-semibold text-gray-900">Grundinformationen</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-6 pb-6 pt-2">
@@ -2109,17 +2117,20 @@ export default function LudoGruppenPage() {
               </AccordionItem>
 
               {/* Section 2: Beitrittsmodus */}
-              <AccordionItem value="beitrittsmodus" className="border border-gray-200 rounded-lg overflow-hidden">
-                <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-gray-50 [&[data-state=open]]:bg-gray-50">
+              <AccordionItem
+                value="beitrittsmodus"
+                className="border border-gray-200 rounded-lg overflow-hidden [&]:last:border-b"
+              >
+                <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-gray-50 [&[data-state=open]]:bg-gray-50 [&[data-state=closed]]:rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-teal-500 text-white flex items-center justify-center text-sm font-bold">
+                    <div className="rounded-full bg-teal-600 text-white flex items-center justify-center font-semibold flex-shrink-0 w-8 h-8">
                       2
                     </div>
-                    <span className="text-base font-semibold text-gray-900">Beitrittsmodus</span>
+                    <span className="text-sm font-semibold text-gray-900">Beitrittsmodus</span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="px-6 pb-6 pt-2">
-                  <div className="space-y-4">
+                <AccordionContent className="px-6">
+                  <div className="pb-6 pt-2 space-y-4">
                     <div>
                       <Label htmlFor="approval-mode" className="text-sm font-medium text-gray-700 mb-2 block">
                         Wie sollen neue Mitglieder beitreten können?

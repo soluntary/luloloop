@@ -824,7 +824,7 @@ export function CreateMarketplaceOfferForm({
       <Card className="border-0 shadow-none bg-transparent">
         <CardContent className="space-y-6 p-0">
           <div className="mb-6">
-            <h3 className="font-semibold text-gray-900 mb-4 text-sm">{getStepTitle()}</h3>
+            <h3 className="font-semibold text-gray-900 mb-4 text-base">{getStepTitle()}</h3>
             {/* Update step indicator colors to teal */}
             <div className="flex items-center justify-center space-x-2">
               {[1, 2, 3].map((step) => (
@@ -1786,11 +1786,6 @@ export function CreateMarketplaceOfferForm({
                       >
                         <Trash2 className="w-4 h-4 text-gray-700" />
                       </Button>
-                      {selectedGame && !image && (
-                        <div className="absolute bottom-3 left-3 bg-green-100 text-green-800 px-2 py-1 rounded-lg text-xs font-medium">
-                          Spielbild
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <div className="text-center">
@@ -1835,7 +1830,7 @@ export function CreateMarketplaceOfferForm({
               <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-lg">
                 <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Angebots-Zusammenfassung</h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid md:grid-cols-2 gap-6">
                   {/* Game Information */}
                   <div className="bg-white rounded-xl p-4 border border-gray-200">
                     <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2 justify-start text-sm">
@@ -1894,7 +1889,7 @@ export function CreateMarketplaceOfferForm({
                     </div>
                   </div>
                   {offerType === "lend" && (
-                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                    <div className="bg-white rounded-xl p-4 border border-gray-200 md:col-span-2">
                       <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Mietkonditionen</h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
