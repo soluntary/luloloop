@@ -11,7 +11,32 @@ export function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link href="/marketplace" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
-                  Spielemarkt
+                  Spielehandel
+                </Link>
+              </li>
+              <li>
+                <Link href="/spielarena" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
+                  Spielarena
+                </Link>
+              </li>
+              <li>
+                <Link href="/ludo-events" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
+                  Events
+                </Link>
+              </li>
+              <li>
+                <Link href="/ludo-gruppen" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
+                  Spielgruppen
+                </Link>
+              </li>
+              <li>
+                <Link href="/spielhilfen" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
+                  Spielhilfen
+                </Link>
+              </li>
+              <li>
+                <Link href="/ludo-forum" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
+                  Forum
                 </Link>
               </li>
               <li>
@@ -19,22 +44,6 @@ export function Footer() {
                   Über uns
                 </Link>
               </li>
-              <li className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
-                <Link href="/ludo-events" className="text-gray-300 hover:text-teal-600 transition-colors">
-                  Events
-                </Link>
-              </li>
-              <li className="text-xs">
-                <Link href="/ludo-gruppen" className="text-gray-300 hover:text-teal-600 transition-colors">
-                  Spielgruppen
-                </Link>
-              </li>
-              <li className="text-xs">
-                <Link href="/ludo-forum" className="text-gray-300 hover:text-teal-600 transition-colors">
-                  Forum
-                </Link>
-              </li>
-              {/* </CHANGE> */}
             </ul>
           </div>
 

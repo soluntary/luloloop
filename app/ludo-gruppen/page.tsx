@@ -774,23 +774,22 @@ export default function LudoGruppenPage() {
   // Renaming leaveLudoGroup to leaveGroup
   const leaveGroup = async (group: LudoGroup) => {
     if (!user) {
-      console.log("[v0] No authenticated user - redirecting to login")
       toast.info("Bitte melde dich an, um eine Spielgruppe zu verlassen")
       window.location.href = "/login"
       return
     }
 
-    console.log("[v0] Attempting to leave group:", group.id, "for user:", user.id)
-
     try {
-      const result = await leaveGroupAction(group.id)
+      // Use client-side Supabase directly instead of server action
+      const { error } = await supabase
+        .from("community_members")
+        .delete()
+        .eq("community_id", group.id)
+        .eq("user_id", user.id)
 
-      if (result.error) {
-        console.error("[v0] Error leaving group:", result.error)
-        throw new Error(result.error)
+      if (error) {
+        throw new Error(error.message)
       }
-
-      console.log("[v0] Successfully left group")
       toast.success("Du hast die Spielgruppe verlassen")
       setUserMemberships((prev) => prev.filter((id) => id !== group.id))
 
@@ -1053,11 +1052,6 @@ export default function LudoGruppenPage() {
 
   // Renaming getJoinButtonProps to getGroupJoinButtonProps
   const getGroupJoinButtonProps = (group: LudoGroup) => {
-    console.log("[v0] getGroupJoinButtonProps called for group:", group.id)
-    console.log("[v0] User:", !!user, "User ID:", user?.id)
-    console.log("[v0] User memberships:", userMemberships)
-    console.log("[v0] Is user member of this group:", userMemberships.includes(group.id))
-
     if (!user) {
       return { text: "Beitreten", disabled: false, variant: "default" as const }
     }
@@ -1067,7 +1061,6 @@ export default function LudoGruppenPage() {
     }
 
     if (userMemberships.includes(group.id)) {
-      console.log("[v0] User is member - showing 'Verlassen' button")
       return { text: "Verlassen", disabled: false, variant: "outline" as const, action: "leave", icon: FaUserMinus }
     }
 
@@ -1146,6 +1139,14 @@ export default function LudoGruppenPage() {
         group.location?.toLowerCase().includes(searchTerm.toLowerCase()),
     )
 
+    // Hide groups the user is already a member of (they can manage these in their profile)
+    // Also hide groups the user created (they are automatically members)
+    if (user) {
+      filtered = filtered.filter(
+        (group) => !userMemberships.includes(group.id) && group.creator_id !== user.id
+      )
+    }
+
     if (groupTypeFilter !== "all") {
       filtered = filtered.filter((group) => group.type === groupTypeFilter)
     }
@@ -1218,22 +1219,21 @@ export default function LudoGruppenPage() {
   }
 
   const handleSendGroupMessage = async (group: LudoGroup) => {
+    console.log("[v0] handleSendGroupMessage called for group:", group.name)
     if (!user) {
+      console.log("[v0] No user, redirecting to login")
       window.location.href = "/login"
       return
     }
 
-    setMessageRecipient({
-      id: group.creator_id,
-      name: group.users?.username || "Unbekannt",
-      avatar: group.users?.avatar,
-      context: {
-        title: group.name,
-        image: group.image,
-        type: "group",
-      },
-    })
-    setIsMessageModalOpen(true)
+    // Navigate to messages page with the group creator as recipient
+    const recipientId = group.creator_id
+    const recipientName = group.users?.username || "Unbekannt"
+    const groupName = group.name
+    
+    console.log("[v0] Navigating to messages with:", { recipientId, recipientName, groupName })
+    // Redirect to messages page with query params to start a conversation
+    window.location.href = `/messages?recipientId=${recipientId}&recipientName=${encodeURIComponent(recipientName)}&context=${encodeURIComponent(groupName)}`
   }
 
   // New functions for invite, broadcast, poll, and member management dialogs

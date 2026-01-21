@@ -45,6 +45,7 @@ export default function LudoForumPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("recent")
+  const [categoryFilter, setCategoryFilter] = useState("all")
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [newPost, setNewPost] = useState({
     title: "",
@@ -99,6 +100,15 @@ export default function LudoForumPage() {
           post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           post.content.toLowerCase().includes(searchTerm.toLowerCase()),
       )
+    }
+
+    // Apply category filter
+    if (categoryFilter !== "all") {
+      filtered = filtered.filter((post) => {
+        const categoryMatch = post.content?.match(/^\[KATEGORIE:(.*?)\]/)
+        const postCategory = categoryMatch ? categoryMatch[1] : null
+        return postCategory === categoryFilter
+      })
     }
 
     // Apply sorting
@@ -178,7 +188,7 @@ export default function LudoForumPage() {
               />
             </div>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-              <span className="text-xs font-medium text-gray-500 whitespace-nowrap">Sortieren:</span>
+              <span className="text-xs font-medium text-gray-500 whitespace-nowrap">Sortieren nach</span>
               <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 <Button
                   variant={sortBy === "recent" ? "default" : "outline"}
@@ -221,6 +231,50 @@ export default function LudoForumPage() {
                 </Button>
               </div>
             </div>
+            
+            {/* Category Filter */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mt-3">
+              <span className="text-xs font-medium text-gray-500 whitespace-nowrap">Kategorie:</span>
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                <Button
+                  variant={categoryFilter === "all" ? "default" : "outline"}
+                  onClick={() => setCategoryFilter("all")}
+                  className={`h-8 text-xs px-2 sm:px-3 ${categoryFilter === "all" ? "bg-teal-500 hover:bg-teal-600 border-teal-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                >
+                  Alle
+                </Button>
+                <Button
+                  variant={categoryFilter === "spielempfehlungen" ? "default" : "outline"}
+                  onClick={() => setCategoryFilter("spielempfehlungen")}
+                  className={`h-8 text-xs px-2 sm:px-3 ${categoryFilter === "spielempfehlungen" ? "bg-blue-500 hover:bg-blue-600 border-blue-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                >
+                  <span className="hidden sm:inline">Spielempfehlungen</span>
+                  <span className="sm:hidden">Empfehlungen</span>
+                </Button>
+                <Button
+                  variant={categoryFilter === "spielregeln" ? "default" : "outline"}
+                  onClick={() => setCategoryFilter("spielregeln")}
+                  className={`h-8 text-xs px-2 sm:px-3 ${categoryFilter === "spielregeln" ? "bg-purple-500 hover:bg-purple-600 border-purple-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                >
+                  Spielregeln
+                </Button>
+                <Button
+                  variant={categoryFilter === "strategien" ? "default" : "outline"}
+                  onClick={() => setCategoryFilter("strategien")}
+                  className={`h-8 text-xs px-2 sm:px-3 ${categoryFilter === "strategien" ? "bg-green-500 hover:bg-green-600 border-green-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                >
+                  <span className="hidden sm:inline">Strategien & Tipps</span>
+                  <span className="sm:hidden">Strategien</span>
+                </Button>
+                <Button
+                  variant={categoryFilter === "sonstiges" ? "default" : "outline"}
+                  onClick={() => setCategoryFilter("sonstiges")}
+                  className={`h-8 text-xs px-2 sm:px-3 ${categoryFilter === "sonstiges" ? "bg-gray-500 hover:bg-gray-600 border-gray-500" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+                >
+                  Sonstiges
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -229,6 +283,7 @@ export default function LudoForumPage() {
           <p className="text-gray-600 text-sm">
             {loading ? "Lade Diskussionen..." : `${filteredPosts.length} Diskussionen gefunden`}
             {searchTerm && ` für "${searchTerm}"`}
+            {categoryFilter !== "all" && ` in Kategorie "${categoryFilter === "spielempfehlungen" ? "Spielempfehlungen" : categoryFilter === "spielregeln" ? "Spielregeln" : categoryFilter === "strategien" ? "Strategien & Tipps" : "Sonstiges"}"`}
           </p>
         </div>
 

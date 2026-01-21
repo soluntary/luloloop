@@ -598,24 +598,25 @@ export default function LudoEventsPage() {
 
       if (error) throw error
 
-      const instancesWithCounts = await Promise.all(
-        (data || []).map(async (instance) => {
-          const { count } = await supabase
-            .from("ludo_event_instance_participants")
-            .select("*", { count: "exact", head: true })
-            .eq("instance_id", instance.id)
-            .eq("status", "registered")
+      // Get total participant count for this event from ludo_event_participants
+      const { count: totalParticipants } = await supabase
+        .from("ludo_event_participants")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .in("status", ["approved", "registered"])
 
-          return {
-            event_date: instance.instance_date,
-            start_time: instance.start_time,
-            end_time: instance.end_time,
-            max_participants: instance.max_participants,
-            notes: instance.notes,
-            participant_count: count || 0,
-          }
-        }),
-      )
+      const instancesWithCounts = (data || []).map((instance) => {
+        return {
+          id: instance.id,
+          event_date: instance.instance_date,
+          start_time: instance.start_time,
+          end_time: instance.end_time,
+          max_participants: instance.max_participants,
+          notes: instance.notes,
+          // Use total event participants for now since participants join the whole event
+          participant_count: totalParticipants || 0,
+        }
+      })
 
       setAdditionalDates(instancesWithCounts)
     } catch (error) {
@@ -984,17 +985,13 @@ export default function LudoEventsPage() {
     if (e) {
       e.stopPropagation() // Prevent triggering showEventDetails
     }
-    setMessageRecipient({
-      id: event.creator_id,
-      name: event.creator.name || event.creator.username,
-      avatar: event.creator.avatar,
-    })
-    setMessageContext({
-      title: event.title,
-      image: event.image_url || undefined,
-      type: "event",
-    })
-    setIsMessageComposerOpen(true)
+    
+    // Navigate to messages page with the event creator as recipient
+    const recipientId = event.creator_id
+    const recipientName = event.creator?.name || event.creator?.username || "Event-Organisator"
+    const eventTitle = event.title
+    
+    window.location.href = `/messages?recipientId=${recipientId}&recipientName=${encodeURIComponent(recipientName)}&context=${encodeURIComponent(eventTitle)}`
   }
 
   const handleLocationSearch = async (address: string, radius: number) => {
@@ -1045,6 +1042,14 @@ export default function LudoEventsPage() {
     const sourceEvents = showLocationResults ? locationSearchResults : events
 
     let filtered = sourceEvents.filter((event) => {
+      // Hide events the user is already participating in or created (they can manage these in their profile)
+      if (user) {
+        // Hide if user is participant (approved status)
+        if (event.is_participant) return false
+        // Hide if user is the creator
+        if (event.creator_id === user.id) return false
+      }
+
       // Search term filtering
       const searchMatch =
         event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

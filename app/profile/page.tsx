@@ -24,37 +24,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog"
-import {
-  MapPin,
-  Edit2,
-  LogOut,
-  Shield,
-  Lock,
-  Globe,
-  X,
-  Upload,
-  RefreshCw,
-  AlertTriangle,
-  Users,
-  Store,
-  Check,
-  Trash2,
-  Pause,
-  Play,
-  Edit,
-  BarChart3,
-  Bell,
-  Settings,
-  Calendar,
-  MinusCircle as InfoCircle,
-  Trash,
-  CalendarDays,
-  CalendarDays as FaCalendarAlt,
-  LucideUsersRound as LiaUsersSolid,
-  CalendarHeart as FaMapMarkerAlt,
-  ChevronLeft as FaChevronLeft,
-  ChevronRight as FaChevronRight,
-} from "lucide-react"
+import { MapPin, Edit2, LogOut, Shield, Lock, Globe, X, Upload, RefreshCw, AlertTriangle, Users, Store, Check, Trash2, Pause, Play, Edit, BarChart3, Bell, Settings, Calendar, MinusCircle as InfoCircle, Trash, CalendarDays, CalendarDays as FaCalendarAlt, LucideUsersRound as LiaUsersSolid, CalendarHeart as FaMapMarkerAlt, ChevronLeft as FaChevronLeft, ChevronRight as FaChevronRight } from "lucide-react"
 import { FaUserPlus as FaUserPlusIcon } from "react-icons/fa6" // Renamed FaUserPlus to FaUserPlusIcon
 import { FaInstagram, FaXTwitter } from "react-icons/fa6"
 import { IoSearchCircle } from "react-icons/io5"
@@ -242,7 +212,10 @@ export default function ProfilePage() {
   const [managementEvent, setManagementEvent] = useState<any>(null)
   const [eventParticipants, setEventParticipants] = useState<any[]>([])
   const [loadingEventParticipants, setLoadingEventParticipants] = useState(false)
-  const [eventManagementTab, setEventManagementTab] = useState<"edit" | "participants" | "invite" | "polls">("edit")
+  const [eventManagementTab, setEventManagementTab] = useState<"edit" | "dates" | "participants" | "invite" | "polls">("edit")
+  const [eventInstances, setEventInstances] = useState<any[]>([])
+  const [editingInstance, setEditingInstance] = useState<any>(null)
+  const [isEditingInstance, setIsEditingInstance] = useState(false)
 
   const [isGroupManagementOpen, setIsGroupManagementOpen] = useState(false)
   const [managementGroup, setManagementGroup] = useState<any>(null)
@@ -587,6 +560,27 @@ export default function ProfilePage() {
     }
   }
 
+  const handleLeaveEvent = async (participationId: string) => {
+    if (confirm("Sind Sie sicher, dass Sie dieses Event verlassen möchten?")) {
+      try {
+        const { error } = await supabase.from("ludo_event_participants").delete().eq("id", participationId)
+        if (error) throw error
+        toast({
+          title: "Erfolg",
+          description: "Event erfolgreich verlassen.",
+        })
+        loadActivities() // Reload activities after leaving
+      } catch (error) {
+        console.error("Error leaving event:", error)
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Verlassen des Events.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
   const handleRemoveParticipant = async (participantId: string, type: "event" | "group") => {
     if (!user) return
 
@@ -687,15 +681,97 @@ export default function ProfilePage() {
     }
   }
 
-  const openEventManagement = async (event: any) => {
-    const eventWithCreatorId = {
-      ...event,
-      creator_id: event.creator_id || event.ludo_event?.creator_id,
-    }
+const loadEventInstances = async (eventId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("ludo_event_instances")
+        .select("*")
+        .eq("event_id", eventId)
+        .order("instance_date", { ascending: true })
 
-    setManagementEvent(eventWithCreatorId)
-    setIsEventManagementOpen(true)
-    setEventManagementTab("edit")
+      if (error) throw error
+      setEventInstances(data || [])
+    } catch (error) {
+      console.error("Error loading event instances:", error)
+      setEventInstances([])
+    }
+  }
+
+  const handleUpdateInstance = async () => {
+    if (!editingInstance) return
+
+    try {
+      const { error } = await supabase
+        .from("ludo_event_instances")
+        .update({
+          instance_date: editingInstance.instance_date,
+          start_time: editingInstance.start_time,
+          end_time: editingInstance.end_time,
+          max_participants: editingInstance.max_participants,
+          notes: editingInstance.notes,
+        })
+        .eq("id", editingInstance.id)
+
+      if (error) throw error
+
+      toast({
+        title: "Erfolg",
+        description: "Termin wurde aktualisiert.",
+      })
+
+      setIsEditingInstance(false)
+      setEditingInstance(null)
+      if (managementEvent?.id) {
+        loadEventInstances(managementEvent.id)
+      }
+    } catch (error) {
+      console.error("Error updating instance:", error)
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Aktualisieren des Termins.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteInstance = async (instanceId: string) => {
+    if (!confirm("Sind Sie sicher, dass Sie diesen Termin löschen möchten?")) return
+
+    try {
+      const { error } = await supabase.from("ludo_event_instances").delete().eq("id", instanceId)
+
+      if (error) throw error
+
+      toast({
+        title: "Erfolg",
+        description: "Termin wurde gelöscht.",
+      })
+
+      if (managementEvent?.id) {
+        loadEventInstances(managementEvent.id)
+      }
+    } catch (error) {
+      console.error("Error deleting instance:", error)
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Löschen des Termins.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const openEventManagement = async (event: any) => {
+  const eventWithCreatorId = {
+  ...event,
+  creator_id: event.creator_id || event.ludo_event?.creator_id,
+  }
+  
+  setManagementEvent(eventWithCreatorId)
+  setIsEventManagementOpen(true)
+  setEventManagementTab("edit")
+  
+  // Load event instances
+  loadEventInstances(event.id)
 
     // Load event data for editing
     setEditingEvent({
@@ -2843,6 +2919,18 @@ export default function ProfilePage() {
                                       Abgelaufen
                                     </Badge>
                                   )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="ml-2 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleLeaveEvent(participation.id)
+                                    }}
+                                    title="Event verlassen"
+                                  >
+                                    <LogOut className="h-3 w-3" />
+                                  </Button>
                                 </div>
                               )
                             })
@@ -3836,21 +3924,25 @@ export default function ProfilePage() {
           </DialogHeader>
 
           <Tabs value={eventManagementTab} onValueChange={(v) => setEventManagementTab(v as any)} className="w-full">
-            <TabsList className="grid grid-cols-4 w-full">
-              <TabsTrigger value="edit" className="flex items-center gap-2">
-                <Edit className="h-4 w-4" />
+            <TabsList className="grid grid-cols-5 w-full">
+              <TabsTrigger value="edit" className="flex items-center gap-1 text-xs">
+                <Edit className="h-3 w-3" />
                 Bearbeiten
               </TabsTrigger>
-              <TabsTrigger value="participants" className="flex items-center gap-2">
-                <FaUsers className="h-4 w-4" />
+              <TabsTrigger value="dates" className="flex items-center gap-1 text-xs">
+                <CalendarDays className="h-3 w-3" />
+                Termine
+              </TabsTrigger>
+              <TabsTrigger value="participants" className="flex items-center gap-1 text-xs">
+                <FaUsers className="h-3 w-3" />
                 Teilnehmer
               </TabsTrigger>
-              <TabsTrigger value="invite" className="flex items-center gap-2">
-                <FaUserPlusIcon className="h-4 w-4" /> {/* Use FaUserPlusIcon */}
-                Freunde einladen
+              <TabsTrigger value="invite" className="flex items-center gap-1 text-xs">
+                <FaUserPlusIcon className="h-3 w-3" />
+                Einladen
               </TabsTrigger>
-              <TabsTrigger value="polls" className="flex items-center gap-2">
-                <FaPoll className="h-4 w-4" />
+              <TabsTrigger value="polls" className="flex items-center gap-1 text-xs">
+                <FaPoll className="h-3 w-3" />
                 Abstimmungen
               </TabsTrigger>
             </TabsList>
@@ -4027,6 +4119,149 @@ export default function ProfilePage() {
                   </div>
                 </div>
               )}
+            </TabsContent>
+
+            {/* Termine Tab */}
+            <TabsContent value="dates" className="space-y-4 mt-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-gray-700">Event-Termine</h3>
+                  <span className="text-xs text-gray-500">{eventInstances.length} Termin(e)</span>
+                </div>
+                
+                {eventInstances.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <CalendarDays className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">Keine Termine vorhanden</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    {eventInstances.map((instance) => (
+                      <div
+                        key={instance.id}
+                        className={`p-3 rounded-lg border ${
+                          new Date(instance.instance_date) < new Date() 
+                            ? "bg-gray-50 border-gray-200 opacity-60" 
+                            : "bg-blue-50 border-blue-200"
+                        }`}
+                      >
+                        {editingInstance?.id === instance.id ? (
+                          // Edit Mode
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-3 gap-2">
+                              <div>
+                                <Label className="text-xs">Datum</Label>
+                                <Input
+                                  type="date"
+                                  value={editingInstance.instance_date || ""}
+                                  onChange={(e) => setEditingInstance({...editingInstance, instance_date: e.target.value})}
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Startzeit</Label>
+                                <Input
+                                  type="time"
+                                  value={editingInstance.start_time || ""}
+                                  onChange={(e) => setEditingInstance({...editingInstance, start_time: e.target.value})}
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Endzeit</Label>
+                                <Input
+                                  type="time"
+                                  value={editingInstance.end_time || ""}
+                                  onChange={(e) => setEditingInstance({...editingInstance, end_time: e.target.value})}
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <Label className="text-xs">Max. Teilnehmer</Label>
+                                <Input
+                                  type="number"
+                                  value={editingInstance.max_participants || ""}
+                                  onChange={(e) => setEditingInstance({...editingInstance, max_participants: e.target.value ? parseInt(e.target.value) : null})}
+                                  placeholder="Unbegrenzt"
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Notizen</Label>
+                                <Input
+                                  value={editingInstance.notes || ""}
+                                  onChange={(e) => setEditingInstance({...editingInstance, notes: e.target.value})}
+                                  placeholder="Optionale Notizen"
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={handleUpdateInstance} className="flex-1 h-7 text-xs bg-teal-500 hover:bg-teal-600">
+                                Speichern
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => {setEditingInstance(null); setIsEditingInstance(false)}} className="flex-1 h-7 text-xs bg-transparent">
+                                Abbrechen
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          // View Mode
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <CalendarDays className="h-4 w-4 text-blue-500" />
+                                <span className="text-sm font-medium">
+                                  {new Date(instance.instance_date).toLocaleDateString("de-DE", {
+                                    weekday: "short",
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  })}
+                                </span>
+                                {new Date(instance.instance_date) < new Date() && (
+                                  <Badge className="text-[8px] h-4 bg-gray-200 text-gray-600">Vergangen</Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {instance.start_time && `${instance.start_time.slice(0,5)}`}
+                                {instance.end_time && ` - ${instance.end_time.slice(0,5)}`}
+                                {instance.max_participants && ` • Max. ${instance.max_participants} Teilnehmer`}
+                                {instance.notes && ` • ${instance.notes}`}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                onClick={() => {
+                                  setEditingInstance(instance)
+                                  setIsEditingInstance(true)
+                                }}
+                              >
+                                <Edit className="h-3.5 w-3.5 text-blue-600" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                onClick={() => handleDeleteInstance(instance.id)}
+                                disabled={eventInstances.length <= 1}
+                                title={eventInstances.length <= 1 ? "Mindestens ein Termin erforderlich" : "Termin löschen"}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="participants" className="space-y-4">

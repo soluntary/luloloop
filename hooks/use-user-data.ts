@@ -3,7 +3,7 @@
 import useSWR from "swr"
 import { createClient } from "@/lib/supabase/client"
 import { useProfileSync } from "@/contexts/profile-sync-context"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 
 const supabase = createClient()
 
@@ -16,6 +16,7 @@ const fetchUser = async (userId: string) => {
 
 export function useUserData(userId: string | null) {
   const { subscribeToUserUpdates } = useProfileSync()
+  const subscribedRef = useRef(false)
 
   const {
     data: user,
@@ -28,17 +29,20 @@ export function useUserData(userId: string | null) {
     dedupingInterval: 30000, // 30 seconds
   })
 
-  // Subscribe to real-time updates for this user
+  // Subscribe to real-time updates for this user - only once per userId
   useEffect(() => {
-    if (!userId || !user) return
+    if (!userId || subscribedRef.current) return
 
+    subscribedRef.current = true
     const unsubscribe = subscribeToUserUpdates(userId, (updatedUser) => {
-      console.log("[v0] Received user update via subscription:", updatedUser)
       mutate(updatedUser, false) // Update without revalidation
     })
 
-    return unsubscribe
-  }, [userId, user, subscribeToUserUpdates, mutate])
+    return () => {
+      subscribedRef.current = false
+      unsubscribe?.()
+    }
+  }, [userId, subscribeToUserUpdates, mutate])
 
   return {
     user,
@@ -67,24 +71,17 @@ export function useUserAvatar(userId: string | null, email?: string) {
 export function useUserDisplayName(userId: string | null) {
   const { user, isLoading } = useUserData(userId)
 
-  console.log("[v0] useUserDisplayName - userId:", userId, "user:", user, "isLoading:", isLoading)
-
   if (!userId) {
-    console.log("[v0] useUserDisplayName - no userId, returning Unbekannter Nutzer")
     return "Unbekannter Nutzer"
   }
 
   if (isLoading) {
-    console.log("[v0] useUserDisplayName - loading, returning Lädt...")
     return "Lädt..."
   }
 
   if (!user) {
-    console.log("[v0] useUserDisplayName - no user found, returning Unbekannter Nutzer")
     return "Unbekannter Nutzer"
   }
 
-  const displayName = user.name || user.username || "Unbekannter Nutzer"
-  console.log("[v0] useUserDisplayName - returning displayName:", displayName)
-  return displayName
+  return user.name || user.username || "Unbekannter Nutzer"
 }
