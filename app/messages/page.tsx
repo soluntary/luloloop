@@ -66,8 +66,8 @@ export default function MessagesPage() {
           .from("messages")
           .select(`
             *,
-            from_user:users!messages_from_user_id_fkey(id, name, avatar, username),
-            to_user:users!messages_to_user_id_fkey(id, name, avatar, username)
+            from_user:from_user_id(id, name, avatar, username),
+            to_user:to_user_id(id, name, avatar, username)
           `)
           .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
           .order("created_at", { ascending: false })
@@ -123,6 +123,7 @@ export default function MessagesPage() {
   // Handle URL parameters to select specific conversation
   useEffect(() => {
     if (initialConversationSet) return
+    if (messagesLoading) return
     
     const conversationId = searchParams.get("conversation")
     const userId = searchParams.get("user")
@@ -140,14 +141,37 @@ export default function MessagesPage() {
         }
       }
       
-      // If no existing conversation or conversations not loaded yet, just select the user ID
-      // This allows opening a conversation even if it's new
-      if (userId && !messagesLoading) {
-        setSelectedConversation(userId)
-        setInitialConversationSet(true)
+      // If no existing conversation found, try to load user info and create new conversation
+      if (targetUserId) {
+        // Load user info for this target user to show in the conversation list
+        const loadTargetUser = async () => {
+          const { data: targetUser, error } = await supabase
+            .from("users")
+            .select("id, name, avatar, username")
+            .eq("id", targetUserId)
+            .single()
+          
+          if (targetUser && !error) {
+            // Add a temporary conversation for this user if not exists
+            const existingConv = conversations.find(c => c.odtnerId === targetUserId)
+            if (!existingConv) {
+              setConversations(prev => [{
+                odtnerId: targetUserId,
+                partnerName: targetUser.username || targetUser.name || "Unbekannt",
+                partnerAvatar: targetUser.avatar || "",
+                lastMessage: "Starte eine neue Unterhaltung...",
+                lastMessageTime: new Date().toISOString(),
+                unreadCount: 0,
+              }, ...prev])
+            }
+            setSelectedConversation(targetUserId)
+            setInitialConversationSet(true)
+          }
+        }
+        loadTargetUser()
       }
     }
-  }, [conversations, searchParams, initialConversationSet, messagesLoading])
+  }, [conversations, searchParams, initialConversationSet, messagesLoading, supabase])
 
   useEffect(() => {
     if (messagesContainerRef.current && selectedConversation) {
@@ -178,8 +202,8 @@ export default function MessagesPage() {
         })
         .select(`
           *,
-          from_user:users!messages_from_user_id_fkey(id, name, avatar, username),
-          to_user:users!messages_to_user_id_fkey(id, name, avatar, username)
+          from_user:from_user_id(id, name, avatar, username),
+          to_user:to_user_id(id, name, avatar, username)
         `)
         .single()
 
