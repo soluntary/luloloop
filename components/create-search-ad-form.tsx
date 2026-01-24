@@ -131,7 +131,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess, editMode = fals
     }
 
     if (!user) {
-      alert("Du musst angemeldet sein, um eine Suchanzeige zu erstellen.")
+      toast({ title: "Anmeldung erforderlich", description: "Du musst angemeldet sein, um eine Suchanzeige zu erstellen.", variant: "destructive" })
       return
     }
 

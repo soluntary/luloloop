@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Edit, X, Save } from "lucide-react"
 import { useGames } from "@/contexts/games-context"
+import { useToast } from "@/hooks/use-toast"
 
 interface MarketplaceOffer {
   id: string
@@ -49,6 +50,7 @@ export function EditMarketplaceOfferForm({ isOpen, onClose, onSuccess, offer }: 
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  const { toast } = useToast()
 
   useEffect(() => {
     if (offer) {
@@ -131,11 +133,12 @@ export function EditMarketplaceOfferForm({ isOpen, onClose, onSuccess, offer }: 
           formData.type === "lend" && formData.maxRentalDays ? Number.parseInt(formData.maxRentalDays) : null,
       })
 
+      toast({ title: "Angebot aktualisiert", description: "Deine Änderungen wurden erfolgreich gespeichert." })
       onSuccess()
       onClose()
     } catch (error) {
       console.error("Error updating marketplace offer:", error)
-      alert("Fehler beim Aktualisieren des Angebots. Bitte versuche es erneut.")
+      toast({ title: "Fehler", description: "Fehler beim Aktualisieren des Angebots. Bitte versuche es erneut.", variant: "destructive" })
     } finally {
       setIsSubmitting(false)
     }

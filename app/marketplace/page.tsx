@@ -222,7 +222,7 @@ export default function MarketplacePage() {
 
   const handleNearbySearch = async () => {
     if (!navigator.geolocation) {
-      alert("Geolocation wird von deinem Browser nicht unterstützt")
+      toast.error("Geolocation wird von deinem Browser nicht unterstützt")
       return
     }
 
@@ -240,15 +240,15 @@ export default function MarketplacePage() {
 
           setLocationSearchResults(results || [])
           setShowLocationResults(true)
-          alert(`${results?.length || 0} Angebote in deiner Nähe gefunden`)
+          toast.success(`${results?.length || 0} Angebote in deiner Nähe gefunden`)
         } catch (error) {
           console.error("[v0] Error searching nearby offers:", error)
-          alert("Fehler bei der Standortsuche")
+          toast.error("Fehler bei der Standortsuche")
         }
       },
       (error) => {
         console.error("[v0] Geolocation error:", error)
-        alert("Standort konnte nicht ermittelt werden")
+        toast.error("Standort konnte nicht ermittelt werden")
       },
     )
   }
@@ -464,7 +464,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
     const hasBothOptions = selectedOffer.pickup_available && selectedOffer.shipping_available
     if (hasBothOptions && !selectedDeliveryOption) {
-      alert("Bitte wähle eine Zustellungsoption aus.")
+      toast.warning("Bitte wähle eine Zustellungsoption aus.")
       return
     }
 
