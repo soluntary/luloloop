@@ -130,9 +130,11 @@ export default function MessagesPage() {
     
     const conversationId = searchParams.get("conversation")
     const userId = searchParams.get("user")
+    const recipientId = searchParams.get("recipientId") // Support for group messages
+    const context = searchParams.get("context") // Context info (e.g., group name)
     
-    if (conversationId || userId) {
-      const targetUserId = conversationId || userId
+    if (conversationId || userId || recipientId) {
+      const targetUserId = conversationId || userId || recipientId
       
       // If conversations are loaded, check if we have one with this user
       const existingConversation = conversations.find(c => c.odtnerId === targetUserId)
@@ -155,6 +157,10 @@ export default function MessagesPage() {
             
             if (targetUser && !error) {
               // Add a temporary conversation for this user if not exists
+              const contextMessage = context 
+                ? `Nachricht bezüglich: ${context}`
+                : "Starte eine neue Unterhaltung..."
+              
               setConversations(prev => {
                 const existingConv = prev.find(c => c.odtnerId === targetUserId)
                 if (existingConv) return prev
@@ -162,13 +168,18 @@ export default function MessagesPage() {
                   odtnerId: targetUserId,
                   partnerName: targetUser.username || targetUser.name || "Unbekannt",
                   partnerAvatar: targetUser.avatar || "",
-                  lastMessage: "Starte eine neue Unterhaltung...",
+                  lastMessage: contextMessage,
                   lastMessageTime: new Date().toISOString(),
                   unreadCount: 0,
                 }, ...prev]
               })
               setSelectedConversation(targetUserId)
               setInitialConversationSet(true)
+              
+              // Pre-fill message input with context if available
+              if (context) {
+                setNewMessage(`Hallo! Ich schreibe dir bezüglich "${context}". `)
+              }
             } else {
               // Even if user not found, mark as set to prevent infinite loop
               setInitialConversationSet(true)
