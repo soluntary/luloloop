@@ -124,6 +124,7 @@ export default function MessagesPage() {
   useEffect(() => {
     if (initialConversationSet) return
     if (messagesLoading) return
+    if (!user) return
     
     const conversationId = searchParams.get("conversation")
     const userId = searchParams.get("user")
@@ -132,46 +133,56 @@ export default function MessagesPage() {
       const targetUserId = conversationId || userId
       
       // If conversations are loaded, check if we have one with this user
-      if (conversations.length > 0) {
-        const existingConversation = conversations.find(c => c.odtnerId === targetUserId)
-        if (existingConversation) {
-          setSelectedConversation(targetUserId)
-          setInitialConversationSet(true)
-          return
-        }
+      const existingConversation = conversations.find(c => c.odtnerId === targetUserId)
+      if (existingConversation) {
+        setSelectedConversation(targetUserId)
+        setInitialConversationSet(true)
+        return
       }
       
       // If no existing conversation found, try to load user info and create new conversation
       if (targetUserId) {
         // Load user info for this target user to show in the conversation list
         const loadTargetUser = async () => {
-          const { data: targetUser, error } = await supabase
-            .from("users")
-            .select("id, name, avatar, username")
-            .eq("id", targetUserId)
-            .single()
-          
-          if (targetUser && !error) {
-            // Add a temporary conversation for this user if not exists
-            const existingConv = conversations.find(c => c.odtnerId === targetUserId)
-            if (!existingConv) {
-              setConversations(prev => [{
-                odtnerId: targetUserId,
-                partnerName: targetUser.username || targetUser.name || "Unbekannt",
-                partnerAvatar: targetUser.avatar || "",
-                lastMessage: "Starte eine neue Unterhaltung...",
-                lastMessageTime: new Date().toISOString(),
-                unreadCount: 0,
-              }, ...prev])
+          try {
+            const { data: targetUser, error } = await supabase
+              .from("users")
+              .select("id, name, avatar, username")
+              .eq("id", targetUserId)
+              .single()
+            
+            if (targetUser && !error) {
+              // Add a temporary conversation for this user if not exists
+              setConversations(prev => {
+                const existingConv = prev.find(c => c.odtnerId === targetUserId)
+                if (existingConv) return prev
+                return [{
+                  odtnerId: targetUserId,
+                  partnerName: targetUser.username || targetUser.name || "Unbekannt",
+                  partnerAvatar: targetUser.avatar || "",
+                  lastMessage: "Starte eine neue Unterhaltung...",
+                  lastMessageTime: new Date().toISOString(),
+                  unreadCount: 0,
+                }, ...prev]
+              })
+              setSelectedConversation(targetUserId)
+              setInitialConversationSet(true)
+            } else {
+              // Even if user not found, mark as set to prevent infinite loop
+              setInitialConversationSet(true)
             }
-            setSelectedConversation(targetUserId)
+          } catch (err) {
+            console.error("[v0] Error loading target user:", err)
             setInitialConversationSet(true)
           }
         }
         loadTargetUser()
       }
+    } else {
+      // No URL parameters, mark as set
+      setInitialConversationSet(true)
     }
-  }, [conversations, searchParams, initialConversationSet, messagesLoading, supabase])
+  }, [conversations, searchParams, initialConversationSet, messagesLoading, supabase, user])
 
   useEffect(() => {
     if (messagesContainerRef.current && selectedConversation) {
