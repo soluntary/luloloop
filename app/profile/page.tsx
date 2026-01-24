@@ -65,6 +65,7 @@ import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { FaPlus, FaTimes, FaImage, FaUserFriends, FaPoll } from "react-icons/fa"
 import { FileDown } from "lucide-react"
 import { jsPDF } from "jspdf"
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog"
 
 const AVATAR_STYLES = [
   {
@@ -187,6 +188,7 @@ export default function ProfilePage() {
   const supabase = createClient()
   const { updateAvatar } = useAvatar()
   const { toast } = useToast()
+  const { confirm } = useConfirmDialog()
 
   const [showAvatarCreator, setShowAvatarCreator] = useState(false)
   const [avatarStyle, setAvatarStyle] = useState("adventurer")
@@ -415,7 +417,15 @@ export default function ProfilePage() {
   }
 
   const handleDeleteOffer = async (offerId: string) => {
-    if (confirm("Sind Sie sicher, dass Sie dieses Angebot löschen möchten?")) {
+    const confirmed = await confirm({
+      title: "Angebot löschen",
+      description: "Bist du sicher, dass du dieses Angebot löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+      confirmText: "Löschen",
+      cancelText: "Abbrechen",
+      variant: "destructive",
+    })
+    
+    if (confirmed) {
       try {
         const { error } = await supabase.from("marketplace_offers").delete().eq("id", offerId)
         if (error) throw error
@@ -455,7 +465,15 @@ export default function ProfilePage() {
   }
 
   const handleDeleteAd = async (adId: string) => {
-    if (confirm("Sind Sie sicher, dass Sie diese Suchanzeige löschen möchten?")) {
+    const confirmed = await confirm({
+      title: "Suchanzeige löschen",
+      description: "Bist du sicher, dass du diese Suchanzeige löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+      confirmText: "Löschen",
+      cancelText: "Abbrechen",
+      variant: "destructive",
+    })
+    
+    if (confirmed) {
       try {
         const { error } = await supabase.from("search_ads").delete().eq("id", adId)
         if (error) throw error
@@ -476,7 +494,15 @@ export default function ProfilePage() {
   }
 
   const handleDeleteCommunity = async (communityId: string) => {
-    if (confirm("Sind Sie sicher, dass Sie diese Spielgruppe löschen möchten?")) {
+    const confirmed = await confirm({
+      title: "Spielgruppe löschen",
+      description: "Bist du sicher, dass du diese Spielgruppe löschen möchtest? Alle Mitglieder werden entfernt.",
+      confirmText: "Löschen",
+      cancelText: "Abbrechen",
+      variant: "destructive",
+    })
+    
+    if (confirmed) {
       try {
         const { error } = await supabase.from("communities").delete().eq("id", communityId)
         if (error) throw error
@@ -744,7 +770,15 @@ export default function ProfilePage() {
   }
 
   const handleDeleteEvent = async (eventId: string) => {
-    if (confirm("Sind Sie sicher, dass Sie dieses Event löschen möchten?")) {
+    const confirmed = await confirm({
+      title: "Event löschen",
+      description: "Bist du sicher, dass du dieses Event löschen möchtest? Alle Teilnehmer werden benachrichtigt.",
+      confirmText: "Löschen",
+      cancelText: "Abbrechen",
+      variant: "destructive",
+    })
+    
+    if (confirmed) {
       try {
         const { error } = await supabase.from("ludo_events").delete().eq("id", eventId)
         if (error) throw error
@@ -765,7 +799,15 @@ export default function ProfilePage() {
   }
 
   const handleLeaveCommunity = async (memberId: string) => {
-    if (confirm("Sind Sie sicher, dass Sie diese Spielgruppe verlassen möchten?")) {
+    const confirmed = await confirm({
+      title: "Spielgruppe verlassen",
+      description: "Bist du sicher, dass du diese Spielgruppe verlassen möchtest?",
+      confirmText: "Verlassen",
+      cancelText: "Abbrechen",
+      variant: "destructive",
+    })
+    
+    if (confirmed) {
       try {
         const { error } = await supabase.from("community_members").delete().eq("id", memberId)
         if (error) throw error
@@ -786,7 +828,15 @@ export default function ProfilePage() {
   }
 
   const handleLeaveEvent = async (participationId: string) => {
-    if (confirm("Sind Sie sicher, dass Sie dieses Event verlassen möchten?")) {
+    const confirmed = await confirm({
+      title: "Event verlassen",
+      description: "Bist du sicher, dass du dieses Event verlassen möchtest?",
+      confirmText: "Verlassen",
+      cancelText: "Abbrechen",
+      variant: "destructive",
+    })
+    
+    if (confirmed) {
       try {
         const { error } = await supabase.from("ludo_event_participants").delete().eq("id", participationId)
         if (error) throw error
