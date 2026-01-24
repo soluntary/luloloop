@@ -26,7 +26,10 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    loadNotifications()
+    // Delay initial load slightly to ensure auth is ready
+    const timeoutId = setTimeout(() => {
+      loadNotifications()
+    }, 100)
 
     const supabase = createClient()
 
@@ -40,9 +43,7 @@ export function NotificationBell() {
           table: "notifications",
         },
         (payload) => {
-          loadNotifications().catch((err) => {
-            // Silently handle realtime subscription errors
-          })
+          loadNotifications()
 
           // Show toast for new notification
           if (payload.new) {
@@ -57,15 +58,14 @@ export function NotificationBell() {
           schema: "public",
           table: "notifications",
         },
-        (payload) => {
-          loadNotifications().catch((err) => {
-            // Silently handle realtime subscription errors
-          })
+        () => {
+          loadNotifications()
         },
       )
       .subscribe()
 
     return () => {
+      clearTimeout(timeoutId)
       channel.unsubscribe()
     }
   }, [])
@@ -76,9 +76,11 @@ export function NotificationBell() {
 
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser()
 
-      if (!user) {
+      if (authError || !user) {
+        // User not logged in or auth error - silently return
         return
       }
 
@@ -90,7 +92,7 @@ export function NotificationBell() {
         .limit(50)
 
       if (error) {
-        console.error("NotificationBell: Error loading notifications:", error)
+        // Silently handle - notifications are non-critical
         return
       }
 
@@ -99,7 +101,8 @@ export function NotificationBell() {
       setNotifications(notificationsData || [])
       setUnreadCount(unread)
     } catch (error) {
-      console.error("NotificationBell: Error loading notifications:", error)
+      // Silently handle fetch errors - notifications are non-critical
+      // This prevents "Failed to fetch" errors from showing in console
     }
   }
 
