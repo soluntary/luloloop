@@ -219,8 +219,17 @@ export default function NotificationDropdown({ className }: NotificationDropdown
 
       setNotifications([])
       setUnreadCount(0)
+      toast({
+        title: "Benachrichtigungen",
+        description: "Alle Benachrichtigungen wurden als gelesen markiert.",
+      })
     } catch (error) {
       console.error("Error marking all notifications as read:", error)
+      toast({
+        title: "Fehler",
+        description: "Benachrichtigungen konnten nicht als gelesen markiert werden.",
+        variant: "destructive",
+      })
     }
   }
 

@@ -13,6 +13,7 @@ import { IoLibrary } from "react-icons/io5"
 import { useAuth } from "@/contexts/auth-context"
 import { useGames } from "@/contexts/games-context"
 import { createClient } from "@/lib/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { GameSearchDialog } from "@/components/game-search-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -36,6 +37,7 @@ interface CreateSearchAdFormProps {
 export function CreateSearchAdForm({ isOpen, onClose, onSuccess, editMode = false, editData = null }: CreateSearchAdFormProps) {
   const { user } = useAuth()
   const { games } = useGames()
+  const { toast } = useToast()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [type, setType] = useState("")
@@ -176,9 +178,21 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess, editMode = fals
 
       if (error) {
         console.error("Error saving search ad:", error)
-        alert(`Fehler beim ${editMode ? "Aktualisieren" : "Erstellen"} der Suchanzeige: ${error.message}`)
+        toast({
+          title: "Fehler",
+          description: `Fehler beim ${editMode ? "Aktualisieren" : "Erstellen"} der Suchanzeige: ${error.message}`,
+          variant: "destructive",
+        })
         return
       }
+
+      // Show success toast
+      toast({
+        title: editMode ? "Suchanzeige aktualisiert" : "Suchanzeige erstellt",
+        description: editMode 
+          ? "Deine Änderungen wurden erfolgreich gespeichert."
+          : "Deine Suchanzeige wurde erfolgreich erstellt.",
+      })
 
       setTitle("")
       setDescription("")
@@ -197,7 +211,11 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess, editMode = fals
       onClose()
     } catch (error) {
       console.error("Error creating search ad:", error)
-      alert("Fehler beim Erstellen der Suchanzeige. Bitte versuche es erneut.")
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Erstellen der Suchanzeige. Bitte versuche es erneut.",
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }

@@ -11,6 +11,7 @@ import { MessageCircle, Send, Search, ArrowLeft } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
+import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { de } from "date-fns/locale"
 
@@ -36,6 +37,7 @@ interface Conversation {
 
 export default function MessagesPage() {
   const { user, loading: authLoading } = useAuth()
+  const { toast } = useToast()
   const [messagesLoading, setMessagesLoading] = useState(true)
   const [messages, setMessages] = useState<Message[]>([])
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -226,9 +228,20 @@ export default function MessagesPage() {
             messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
           }
         }, 0)
+      } else if (error) {
+        toast({
+          title: "Fehler",
+          description: "Nachricht konnte nicht gesendet werden.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Error sending message:", error)
+      toast({
+        title: "Fehler",
+        description: "Nachricht konnte nicht gesendet werden.",
+        variant: "destructive",
+      })
     } finally {
       setSending(false)
     }

@@ -18,6 +18,7 @@ import { AiFillPicture } from "react-icons/ai"
 import { ImageIcon, AlertCircle, Check, Plus, Info, Trash2, ArrowRight } from "lucide-react"
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
+import { useToast } from "@/hooks/use-toast"
 
 import { GameSearchDialog } from "./game-search-dialog"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
@@ -156,6 +157,7 @@ export function CreateMarketplaceOfferForm({
 }: CreateMarketplaceOfferFormProps) {
   const { games, addMarketplaceOffer, addGame } = useGames()
   const { user } = useAuth()
+  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentStep, setCurrentStep] = useState(initialStep)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -829,10 +831,18 @@ export function CreateMarketplaceOfferForm({
           throw new Error(`Fehler beim Aktualisieren: ${updateError.message}`)
         }
         console.log("[v0] Marketplace offer updated successfully")
+        toast({
+          title: "Angebot aktualisiert",
+          description: "Deine Änderungen wurden erfolgreich gespeichert.",
+        })
       } else {
         // Create new offer
         await addMarketplaceOffer(offerData)
         console.log("[v0] Marketplace offer created successfully")
+        toast({
+          title: "Angebot erstellt",
+          description: "Dein Angebot wurde erfolgreich im Marktplatz erstellt.",
+        })
       }
 
       resetForm()
@@ -847,7 +857,13 @@ export function CreateMarketplaceOfferForm({
         name: error instanceof Error ? error.name : undefined,
       })
 
-      setError(error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten")
+      const errorMessage = error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten"
+      setError(errorMessage)
+      toast({
+        title: "Fehler",
+        description: errorMessage,
+        variant: "destructive",
+      })
     } finally {
       console.log("[v0] Form submission finally block - setting isSubmitting to false")
       setIsSubmitting(false)
