@@ -84,15 +84,16 @@ export function EditSearchAdForm({ isOpen, onClose, onSuccess, searchAd }: EditS
 
       if (error) {
         console.error("Error updating search ad:", error)
-        alert("Fehler beim Aktualisieren der Suchanzeige. Bitte versuche es erneut.")
+        toast({ title: "Fehler", description: "Fehler beim Aktualisieren der Suchanzeige.", variant: "destructive" })
         return
       }
 
+      toast({ title: "Suchanzeige aktualisiert", description: "Deine Änderungen wurden gespeichert." })
       onSuccess()
       onClose()
     } catch (error) {
       console.error("Error updating search ad:", error)
-      alert("Fehler beim Aktualisieren der Suchanzeige. Bitte versuche es erneut.")
+      toast({ title: "Fehler", description: "Fehler beim Aktualisieren der Suchanzeige.", variant: "destructive" })
     } finally {
       setIsSubmitting(false)
     }
