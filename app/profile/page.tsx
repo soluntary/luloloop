@@ -24,7 +24,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { MapPin, Edit2, LogOut, Shield, Lock, Globe, X, Upload, RefreshCw, AlertTriangle, Users, Store, Check, Trash2, Pause, Play, Edit, BarChart3, Bell, Settings, Calendar, MinusCircle as InfoCircle, Trash, CalendarDays, CalendarDays as FaCalendarAlt, LucideUsersRound as LiaUsersSolid, CalendarHeart as FaMapMarkerAlt, ChevronLeft as FaChevronLeft, ChevronRight as FaChevronRight } from "lucide-react"
+import { MapPin, Edit2, LogOut, Shield, Lock, Globe, X, Upload, RefreshCw, AlertTriangle, Users, Store, Check, Trash2, Pause, Play, Edit, BarChart3, Bell, Settings, Calendar, MinusCircle as InfoCircle, Trash, CalendarDays, CalendarDays as FaCalendarAlt, LucideUsersRound as LiaUsersSolid, CalendarHeart as FaMapMarkerAlt, ChevronLeft as FaChevronLeft, ChevronRight as FaChevronRight, CheckCircle, Star, Tag, ImageIcon, Search } from "lucide-react"
 import { FaUserPlus as FaUserPlusIcon } from "react-icons/fa6" // Renamed FaUserPlus to FaUserPlusIcon
 import { FaInstagram, FaXTwitter } from "react-icons/fa6"
 import { IoSearchCircle } from "react-icons/io5"
@@ -57,10 +57,14 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { FaCheckCircle, FaClock, FaTimesCircle } from "react-icons/fa" // Added imports for new icons
 import Link from "next/link" // Import Link
 import { FaBullhorn, FaUserMinus } from "react-icons/fa6" // Imported new icons
+import { CreateMarketplaceOfferForm } from "@/components/create-marketplace-offer-form"
+import { CreateSearchAdForm } from "@/components/create-search-ad-form"
 
 import { RichTextEditor } from "@/components/rich-text-editor"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { FaPlus, FaTimes, FaImage, FaUserFriends, FaPoll } from "react-icons/fa"
+import { FileDown } from "lucide-react"
+import { jsPDF } from "jspdf"
 
 const AVATAR_STYLES = [
   {
@@ -245,6 +249,21 @@ export default function ProfilePage() {
   })
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [profileModalUserId, setProfileModalUserId] = useState<string | null>(null)
+
+  // Membership Polls Dialog (for groups user is member of but not creator)
+  const [isMembershipPollsOpen, setIsMembershipPollsOpen] = useState(false)
+  const [membershipPollsCommunity, setMembershipPollsCommunity] = useState<any>(null)
+  const [membershipPolls, setMembershipPolls] = useState<any[]>([])
+  const [membershipUserVotes, setMembershipUserVotes] = useState<Record<string, string[]>>({})
+  const [membershipPollTab, setMembershipPollTab] = useState<"active" | "completed">("active")
+
+  // Offer Management Dialog
+  const [isOfferManagementOpen, setIsOfferManagementOpen] = useState(false)
+  const [managementOffer, setManagementOffer] = useState<any>(null)
+
+  // Search Ad Management Dialog
+  const [isSearchAdManagementOpen, setIsSearchAdManagementOpen] = useState(false)
+  const [managementSearchAd, setManagementSearchAd] = useState<any>(null)
 
   const [myEvents, setMyEvents] = useState<any[]>([])
   const [eventsAsMember, setEventsAsMember] = useState<any[]>([])
@@ -516,6 +535,212 @@ export default function ProfilePage() {
         variant: "destructive",
       })
     }
+  }
+
+  // PDF Export Funktionen
+  const generateEventParticipantsPDF = async (event: any) => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    
+    // Header
+    doc.setFontSize(18)
+    doc.setFont("helvetica", "bold")
+    doc.text("Teilnehmerliste", pageWidth / 2, 20, { align: "center" })
+    
+    // Event Info
+    doc.setFontSize(14)
+    doc.setFont("helvetica", "bold")
+    doc.text(event.title || "Event", pageWidth / 2, 32, { align: "center" })
+    
+    doc.setFontSize(10)
+    doc.setFont("helvetica", "normal")
+    
+    // Event Details
+    let yPos = 45
+    doc.text(`Ort: ${event.location || "-"}`, 20, yPos)
+    yPos += 7
+    
+    if (event.first_instance_date) {
+      const date = new Date(event.first_instance_date).toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+      doc.text(`Datum: ${date}`, 20, yPos)
+      yPos += 7
+    }
+    
+    doc.text(`Max. Teilnehmer: ${event.max_participants || "-"}`, 20, yPos)
+    yPos += 7
+    
+    const participants = event.ludo_event_participants || []
+    doc.text(`Aktuelle Teilnehmer: ${participants.length}`, 20, yPos)
+    yPos += 15
+    
+    // Separator line
+    doc.setDrawColor(200, 200, 200)
+    doc.line(20, yPos, pageWidth - 20, yPos)
+    yPos += 10
+    
+    // Table header
+    doc.setFont("helvetica", "bold")
+    doc.text("Nr.", 20, yPos)
+    doc.text("Name", 40, yPos)
+    doc.text("E-Mail", 100, yPos)
+    doc.text("Angemeldet am", 155, yPos)
+    yPos += 3
+    
+    // Header underline
+    doc.line(20, yPos, pageWidth - 20, yPos)
+    yPos += 7
+    
+    // Participants list
+    doc.setFont("helvetica", "normal")
+    
+    if (participants.length === 0) {
+      doc.setTextColor(128, 128, 128)
+      doc.text("Keine Teilnehmer angemeldet", pageWidth / 2, yPos, { align: "center" })
+    } else {
+      participants.forEach((p: any, index: number) => {
+        if (yPos > 270) {
+          doc.addPage()
+          yPos = 20
+        }
+        
+        const profile = p.profiles || {}
+        const name = profile.name || profile.username || "Unbekannt"
+        const email = profile.email || "-"
+        const joinedDate = p.joined_at 
+          ? new Date(p.joined_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })
+          : "-"
+        
+        doc.text(`${index + 1}.`, 20, yPos)
+        doc.text(name.substring(0, 30), 40, yPos)
+        doc.text(email.substring(0, 30), 100, yPos)
+        doc.text(joinedDate, 155, yPos)
+        yPos += 7
+      })
+    }
+    
+    // Footer
+    const today = new Date().toLocaleDateString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    doc.setFontSize(8)
+    doc.setTextColor(128, 128, 128)
+    doc.text(`Erstellt am ${today} via LudoLoop`, pageWidth / 2, 290, { align: "center" })
+    
+    // Download
+    doc.save(`Teilnehmerliste_${event.title?.replace(/[^a-zA-Z0-9]/g, "_") || "Event"}.pdf`)
+    
+    toast({
+      title: "PDF heruntergeladen",
+      description: "Die Teilnehmerliste wurde als PDF gespeichert.",
+    })
+  }
+  
+  const generateGroupMembersPDF = async (community: any) => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    
+    // Header
+    doc.setFontSize(18)
+    doc.setFont("helvetica", "bold")
+    doc.text("Mitgliederliste", pageWidth / 2, 20, { align: "center" })
+    
+    // Group Info
+    doc.setFontSize(14)
+    doc.setFont("helvetica", "bold")
+    doc.text(community.name || "Spielgruppe", pageWidth / 2, 32, { align: "center" })
+    
+    doc.setFontSize(10)
+    doc.setFont("helvetica", "normal")
+    
+    // Group Details
+    let yPos = 45
+    doc.text(`Ort: ${community.location || "-"}`, 20, yPos)
+    yPos += 7
+    
+    const createdDate = new Date(community.created_at).toLocaleDateString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+    doc.text(`Erstellt am: ${createdDate}`, 20, yPos)
+    yPos += 7
+    
+    const members = community.community_members || []
+    doc.text(`Anzahl Mitglieder: ${members.length}`, 20, yPos)
+    yPos += 15
+    
+    // Separator line
+    doc.setDrawColor(200, 200, 200)
+    doc.line(20, yPos, pageWidth - 20, yPos)
+    yPos += 10
+    
+    // Table header
+    doc.setFont("helvetica", "bold")
+    doc.text("Nr.", 20, yPos)
+    doc.text("Name", 40, yPos)
+    doc.text("E-Mail", 100, yPos)
+    doc.text("Beigetreten am", 155, yPos)
+    yPos += 3
+    
+    // Header underline
+    doc.line(20, yPos, pageWidth - 20, yPos)
+    yPos += 7
+    
+    // Members list
+    doc.setFont("helvetica", "normal")
+    
+    if (members.length === 0) {
+      doc.setTextColor(128, 128, 128)
+      doc.text("Keine Mitglieder", pageWidth / 2, yPos, { align: "center" })
+    } else {
+      members.forEach((m: any, index: number) => {
+        if (yPos > 270) {
+          doc.addPage()
+          yPos = 20
+        }
+        
+        const profile = m.profiles || {}
+        const name = profile.name || profile.username || "Unbekannt"
+        const email = profile.email || "-"
+        const joinedDate = m.joined_at 
+          ? new Date(m.joined_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })
+          : "-"
+        
+        doc.text(`${index + 1}.`, 20, yPos)
+        doc.text(name.substring(0, 30), 40, yPos)
+        doc.text(email.substring(0, 30), 100, yPos)
+        doc.text(joinedDate, 155, yPos)
+        yPos += 7
+      })
+    }
+    
+    // Footer
+    const today = new Date().toLocaleDateString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    doc.setFontSize(8)
+    doc.setTextColor(128, 128, 128)
+    doc.text(`Erstellt am ${today} via LudoLoop`, pageWidth / 2, 290, { align: "center" })
+    
+    // Download
+    doc.save(`Mitgliederliste_${community.name?.replace(/[^a-zA-Z0-9]/g, "_") || "Gruppe"}.pdf`)
+    
+    toast({
+      title: "PDF heruntergeladen",
+      description: "Die Mitgliederliste wurde als PDF gespeichert.",
+    })
   }
 
   const handleDeleteEvent = async (eventId: string) => {
@@ -834,6 +1059,18 @@ const loadEventInstances = async (eventId: string) => {
     await loadCommunityPolls(groupWithCreatorId.id)
   }
 
+  // Offer Management Functions
+  const openOfferManagement = (offer: any) => {
+    setManagementOffer(offer)
+    setIsOfferManagementOpen(true)
+  }
+
+  // Search Ad Management Functions
+  const openSearchAdManagement = (ad: any) => {
+    setManagementSearchAd(ad)
+    setIsSearchAdManagementOpen(true)
+  }
+
   const handleEventImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
     if (!files || !user) return
@@ -956,7 +1193,7 @@ const loadEventInstances = async (eventId: string) => {
 
       if (error) throw error
 
-      toast({ description: "Event erfolgreich aktualisiert!" })
+      toast({ title: "Erfolg", description: "Änderungen wurden übernommen." })
       setIsEventManagementOpen(false)
       loadActivities() // Reload activities
     } catch (error) {
@@ -1016,7 +1253,7 @@ const loadEventInstances = async (eventId: string) => {
 
       if (error) throw error
 
-      toast({ description: "Spielgruppe erfolgreich aktualisiert!" })
+      toast({ title: "Erfolg", description: "Änderungen wurden übernommen." })
       setIsGroupManagementOpen(false)
       loadActivities() // Reload activities
     } catch (error) {
@@ -1434,6 +1671,117 @@ const loadEventInstances = async (eventId: string) => {
     }
   }
 
+  // Load polls for membership (groups user is member of but not creator)
+  const loadMembershipPolls = async (communityId: string) => {
+    if (!user) return
+
+    try {
+      const { data: polls, error: pollsError } = await supabase
+        .from("community_polls")
+        .select(`
+          *,
+          options:community_poll_options(*),
+          votes:community_poll_votes(*)
+        `)
+        .eq("community_id", communityId)
+        .order("created_at", { ascending: false })
+
+      if (pollsError) throw pollsError
+
+      setMembershipPolls(polls || [])
+
+      // Load user votes
+      const { data: votes, error: votesError } = await supabase
+        .from("community_poll_votes")
+        .select("poll_id, option_id")
+        .eq("user_id", user.id)
+
+      if (votesError) throw votesError
+
+      const votesMap: Record<string, string[]> = {}
+      votes?.forEach((vote) => {
+        if (!votesMap[vote.poll_id]) {
+          votesMap[vote.poll_id] = []
+        }
+        votesMap[vote.poll_id].push(vote.option_id)
+      })
+
+      setMembershipUserVotes(votesMap)
+    } catch (error) {
+      console.error("Error loading membership polls:", error)
+    }
+  }
+
+  // Handle vote for membership polls
+  const handleMembershipVote = async (pollId: string, optionId: string) => {
+    if (!user) {
+      toast({ description: "Bitte melde dich an um abzustimmen", variant: "destructive" })
+      return
+    }
+
+    try {
+      const poll = membershipPolls.find((p) => p.id === pollId)
+
+      const userHasVoted = membershipUserVotes[pollId] && membershipUserVotes[pollId].length > 0
+      const userVotedForThisOption = membershipUserVotes[pollId]?.includes(optionId)
+
+      if (userVotedForThisOption) {
+        // Remove vote if already voted for this option
+        const { error } = await supabase
+          .from("community_poll_votes")
+          .delete()
+          .eq("poll_id", pollId)
+          .eq("option_id", optionId)
+          .eq("user_id", user.id)
+
+        if (error) throw error
+
+        toast({ description: "Stimme entfernt" })
+      } else {
+        // If not allowing multiple votes and user has already voted, remove previous vote
+        if (!poll?.allow_multiple_votes && userHasVoted) {
+          const { error: deleteError } = await supabase
+            .from("community_poll_votes")
+            .delete()
+            .eq("poll_id", pollId)
+            .eq("user_id", user.id)
+
+          if (deleteError) throw deleteError
+        }
+
+        // Add new vote
+        const { error: insertError } = await supabase.from("community_poll_votes").insert({
+          poll_id: pollId,
+          option_id: optionId,
+          user_id: user.id,
+        })
+
+        if (insertError) throw insertError
+
+        toast({ description: "Stimme abgegeben" })
+      }
+
+      // Reload polls to reflect changes
+      if (membershipPollsCommunity) {
+        loadMembershipPolls(membershipPollsCommunity.id)
+      }
+    } catch (error: any) {
+      console.error("[v0] Error voting:", error)
+      toast({
+        description: error.message || "Fehler beim Abstimmen",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Open membership polls dialog
+  const openMembershipPolls = async (community: any) => {
+    setMembershipPollsCommunity(community)
+    setIsMembershipPollsOpen(true)
+    setMembershipPollTab("active")
+    await loadMembershipPolls(community.id)
+  }
+
   const handleVote = async (pollId: string, optionId: string) => {
     if (!user) {
       toast({ description: "Bitte melde dich an um abzustimmen", variant: "destructive" })
@@ -1610,8 +1958,8 @@ const loadEventInstances = async (eventId: string) => {
         .eq("status", "pending")
         .order("created_at", { ascending: false })
 
-      // Load event join requests (for events user created + requests user sent)
-      const { data: eventJoinRequests } = await supabase
+      // Load event join requests sent by the user
+      const { data: sentEventJoinRequests } = await supabase
         .from("ludo_event_join_requests")
         .select(`
           id,
@@ -1622,9 +1970,42 @@ const loadEventInstances = async (eventId: string) => {
           event:ludo_events(id, title, creator_id),
           user:users!ludo_event_join_requests_user_id_fkey(id, name, username, avatar)
         `)
-        .or(`user_id.eq.${user.id},event.creator_id.eq.${user.id}`)
+        .eq("user_id", user.id)
         .eq("status", "pending")
         .order("created_at", { ascending: false })
+
+      // Load event join requests for events user created (get events first, then requests)
+      const { data: userCreatedEvents } = await supabase
+        .from("ludo_events")
+        .select("id")
+        .eq("creator_id", user.id)
+
+      const userEventIds = userCreatedEvents?.map(e => e.id) || []
+      
+      let receivedEventJoinRequests: typeof sentEventJoinRequests = []
+      if (userEventIds.length > 0) {
+        const { data } = await supabase
+          .from("ludo_event_join_requests")
+          .select(`
+            id,
+            status,
+            message,
+            created_at,
+            user_id,
+            event:ludo_events(id, title, creator_id),
+            user:users!ludo_event_join_requests_user_id_fkey(id, name, username, avatar)
+          `)
+          .in("event_id", userEventIds)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+        receivedEventJoinRequests = data || []
+      }
+
+      // Combine and deduplicate event join requests
+      const allEventJoinRequests = [...(sentEventJoinRequests || []), ...receivedEventJoinRequests]
+      const eventJoinRequests = allEventJoinRequests.filter((request, index, self) =>
+        index === self.findIndex(r => r.id === request.id)
+      )
 
       const { data: memberCommunities } = await supabase
         .from("community_members")
@@ -1657,7 +2038,7 @@ const loadEventInstances = async (eventId: string) => {
         .eq("creator_id", user.id)
         .order("created_at", { ascending: false })
 
-      // Load marketplace offers with trade_game_title if it exists
+      // Load marketplace offers with all fields needed for editing
       const { data: marketplaceOffers } = await supabase
         .from("marketplace_offers")
         .select(`
@@ -1668,12 +2049,25 @@ const loadEventInstances = async (eventId: string) => {
           active,
           image,
           created_at,
-          description
+          description,
+          condition,
+          location,
+          pickup_available,
+          shipping_available,
+          pickup_address,
+          daily_rate_1_day,
+          daily_rate_2_to_6_days,
+          daily_rate_7_to_30_days,
+          daily_rate_over_30_days,
+          deposit_amount,
+          min_rental_days,
+          max_rental_days,
+          open_to_suggestions
         `)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
 
-      // Load search ads with trade_game_title and rental_duration
+      // Load search ads with all fields needed for editing
       const { data: searchAds } = await supabase
         .from("search_ads")
         .select(`
@@ -1684,18 +2078,34 @@ const loadEventInstances = async (eventId: string) => {
           max_price,
           created_at,
           trade_game_title,
-          rental_duration
+          rental_duration,
+          description
         `)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
 
+      // Filter out deleted events (where event is null) and mark past events
+      const filteredEventParticipations = (eventParticipations || [])
+        .filter((p) => p.event !== null) // Remove deleted events
+        .map((p) => {
+          // Check if event is in the past
+          const eventDate = p.event?.first_instance_date
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          const isPast = eventDate ? new Date(eventDate) < today : false
+          return { ...p, isPast }
+        })
+
+      // Filter out deleted communities (where community is null)
+      const filteredMemberCommunities = (memberCommunities || [])
+        .filter((m) => m.community !== null && m.community?.creator_id !== user.id)
+
       setActivityData({
         createdEvents: createdEvents || [],
-        eventParticipations: eventParticipations || [],
+        eventParticipations: filteredEventParticipations,
         friendRequests: friendRequests || [],
         eventJoinRequests: eventJoinRequests || [],
-        // Filter out communities where the user is the creator for memberCommunities
-        memberCommunities: memberCommunities?.filter((m) => m.community?.creator_id !== user.id) || [],
+        memberCommunities: filteredMemberCommunities,
         createdCommunities: createdCommunities || [],
         marketplaceOffers: marketplaceOffers || [],
         searchAds: searchAds || [],
@@ -2134,32 +2544,32 @@ const loadEventInstances = async (eventId: string) => {
 
           {/* Profile Tabs */}
           <Tabs defaultValue={activeTab} onValueChange={(value) => setActiveTab(value)} className="space-y-4">
-            <TabsList className="grid grid-cols-4 gap-1 bg-gray-50">
-              <TabsTrigger value="profile" className="data-[state=active]:bg-teal-100 text-xs">
+            <TabsList className="grid grid-cols-3 md:grid-cols-6 gap-1 bg-gray-50 h-auto p-1">
+              <TabsTrigger value="profile" className="data-[state=active]:bg-teal-100 text-xs py-2">
                 <CgProfile className="w-3 h-3 mr-1" />
                 Profil
               </TabsTrigger>
-              <TabsTrigger value="activities" className="data-[state=active]:bg-teal-100 text-xs">
+              <TabsTrigger value="activities" className="data-[state=active]:bg-teal-100 text-xs py-2">
                 <RxActivityLog className="w-3 h-3 mr-1" />
-                Meine Aktivitäten
+                Aktivitäten
               </TabsTrigger>
-              <TabsTrigger value="calendar" className="data-[state=active]:bg-teal-100 text-xs">
+              <TabsTrigger value="calendar" className="data-[state=active]:bg-teal-100 text-xs py-2">
                 <CalendarDays className="w-3 h-3 mr-1" />
                 Kalender
               </TabsTrigger>
               <TabsTrigger
                 value="notifications"
-                className="data-[state=active]:bg-teal-100 text-xs"
+                className="data-[state=active]:bg-teal-100 text-xs py-2"
                 onClick={loadNotificationPrefs}
               >
                 <FaBell className="w-3 h-3 mr-1" />
                 Benachrichtigungen
               </TabsTrigger>
-              <TabsTrigger value="privacy" className="data-[state=active]:bg-teal-100 text-xs">
+              <TabsTrigger value="privacy" className="data-[state=active]:bg-teal-100 text-xs py-2">
                 <Shield className="w-3 h-3 mr-1" />
                 Privatsphäre
               </TabsTrigger>
-              <TabsTrigger value="security" className="data-[state=active]:bg-teal-100 text-xs">
+              <TabsTrigger value="security" className="data-[state=active]:bg-teal-100 text-xs py-2">
                 <Lock className="w-3 h-3 mr-1" />
                 Sicherheit
               </TabsTrigger>
@@ -2800,7 +3210,7 @@ const loadEventInstances = async (eventId: string) => {
                     <TabsList className="grid grid-cols-4 w-full gap-1 bg-gray-50">
                       <TabsTrigger value="events-member" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
                         <PiUserCircleCheck className="w-3 h-3 mr-1" />
-                        Events (Mitglied)
+                        Events (Teilnehmer)
                       </TabsTrigger>
                       <TabsTrigger value="my-events" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
                         <PiUserCircleGear className="w-3 h-3 mr-1" />
@@ -2887,11 +3297,15 @@ const loadEventInstances = async (eventId: string) => {
                               return (
                                 <div
                                   key={participation.id}
-                                  className="flex items-center justify-between p-2 bg-blue-50 rounded-lg border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors"
-                                  onClick={() => router.push(`/ludo-events?view=${participation.event_id}`)}
+                                  className={`flex items-center justify-between p-2 rounded-lg border transition-colors ${
+                                    isInactive 
+                                      ? "bg-gray-100 border-gray-200 opacity-60 cursor-default" 
+                                      : "bg-blue-50 border-blue-100 cursor-pointer hover:bg-blue-100"
+                                  }`}
+                                  onClick={() => !isInactive && router.push(`/ludo-events?view=${participation.event_id}`)}
                                 >
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium text-gray-900 truncate">
+                                    <p className={`text-xs font-medium truncate ${isInactive ? "text-gray-500" : "text-gray-900"}`}>
                                       {event?.title || "Unbekanntes Event"}
                                     </p>
                                     <p className="text-[10px] text-gray-500">
@@ -2899,38 +3313,44 @@ const loadEventInstances = async (eventId: string) => {
                                       {gameTitle && ` • ${gameTitle}`}
                                     </p>
                                   </div>
-                                  <Badge
-                                    className={`text-[9px] h-4 ${
-                                      participation.status === "confirmed"
-                                        ? "bg-green-100 text-green-700"
-                                        : participation.status === "pending"
-                                          ? "bg-yellow-100 text-yellow-700"
-                                          : "bg-gray-100 text-gray-700"
-                                    }`}
-                                  >
-                                    {participation.status === "confirmed"
-                                      ? "Bestätigt"
-                                      : participation.status === "pending"
-                                        ? "Ausstehend"
-                                        : participation.status}
-                                  </Badge>
+                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    {!isInactive && (
+                                      <Badge
+                                        className={`text-[9px] h-4 mr-1 ${
+                                          participation.status === "confirmed"
+                                            ? "bg-green-100 text-green-700"
+                                            : participation.status === "pending"
+                                              ? "bg-yellow-100 text-yellow-700"
+                                              : "bg-gray-100 text-gray-700"
+                                        }`}
+                                      >
+                                        {participation.status === "confirmed"
+                                          ? "Bestätigt"
+                                          : participation.status === "pending"
+                                            ? "Ausstehend"
+                                            : participation.status}
+                                      </Badge>
+                                    )}
+                                    {!isInactive && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleLeaveEvent(participation.id)
+                                        }}
+                                        title="Event verlassen"
+                                      >
+                                        <LogOut className="w-3 h-3 text-red-600" />
+                                      </Button>
+                                    )}
+                                  </div>
                                   {isInactive && (
                                     <Badge className="ml-1 h-4 px-1 text-[8px] bg-gray-100 text-gray-600">
                                       Abgelaufen
                                     </Badge>
                                   )}
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="ml-2 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleLeaveEvent(participation.id)
-                                    }}
-                                    title="Event verlassen"
-                                  >
-                                    <LogOut className="h-3 w-3" />
-                                  </Button>
                                 </div>
                               )
                             })
@@ -3095,7 +3515,7 @@ const loadEventInstances = async (eventId: string) => {
                                       className="h-6 w-6 p-0"
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        router.push(`/ludo-gruppen?view=${community.id}&polls=true`)
+                                        openMembershipPolls(community)
                                       }}
                                       title="Abstimmungen"
                                     >
@@ -3378,7 +3798,7 @@ const loadEventInstances = async (eventId: string) => {
                               return (
                                 <div
                                   key={offer.id}
-                                  className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:bg-orange-100 transition-colors p-2 rounded-lg"
+                                  className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer bg-orange-50/50 hover:bg-orange-100 transition-colors p-2 rounded-lg border border-orange-200"
                                   onClick={() => router.push(`/marketplace?view=${offer.id}`)}
                                 >
                                   <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -3418,15 +3838,16 @@ const loadEventInstances = async (eventId: string) => {
                                       )}
                                     </Button>
                                     <Button
-                                      onClick={() => {
-                                        router.push(`/marketplace?edit=${offer.id}&step=2`)
-                                      }}
-                                      variant="outline"
+                                      variant="ghost"
                                       size="sm"
-                                      className="flex items-center gap-1.5 text-xs bg-transparent"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        openOfferManagement(offer)
+                                      }}
+                                      title="Bearbeiten"
                                     >
-                                      <Edit2 className="w-3 h-3" />
-                                      Bearbeiten
+                                      <Edit className="w-3 h-3 text-orange-600" />
                                     </Button>
                                     <Button
                                       variant="ghost"
@@ -3485,7 +3906,7 @@ const loadEventInstances = async (eventId: string) => {
                               return (
                                 <div
                                   key={ad.id}
-                                  className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:bg-purple-100 transition-colors p-2 rounded-lg"
+                                  className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer bg-purple-50/50 hover:bg-purple-100 transition-colors p-2 rounded-lg border border-purple-200"
                                   onClick={() => router.push(`/marketplace?viewAd=${ad.id}`)}
                                 >
                                   <div className="flex-1 min-w-0">
@@ -3520,7 +3941,7 @@ const loadEventInstances = async (eventId: string) => {
                                       className="h-6 w-6 p-0"
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        router.push(`/edit/suchanzeige/${ad.id}`)
+                                        openSearchAdManagement(ad)
                                       }}
                                       title="Bearbeiten"
                                     >
@@ -3861,7 +4282,7 @@ const loadEventInstances = async (eventId: string) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-xs">Passwort ändern</p>
-                      <p className="text-[10px] text-gray-500">Aktualisiere dein Passwort regelmäßig</p>
+                      <p className="text-[10px] text-gray-500">Aktualisiere dein Passwort regelmässig</p>
                     </div>
                     <Button
                       variant="outline"
@@ -3879,7 +4300,7 @@ const loadEventInstances = async (eventId: string) => {
                     </div>
                     <Switch />
                   </div>
-                  <div className="border-t-2 border-red-200 pt-4 mt-4 bg-red-50 -mx-6 px-6 pb-4 -mb-4 rounded-b-lg">
+                  <div className="border-red-200 pt-4 mt-4 bg-red-50 -mx-6 px-6 pb-4 -mb-4 rounded-b-lg rounded-sm border-l-2 border-t-2 border-b-2 border-r-2">
                     <div className="flex items-center gap-2 mb-2">
                       <AlertTriangle className="w-4 h-4 text-red-600" />
                       <p className="text-red-600 text-xs font-bold">Gefahrenzone</p>
@@ -3956,7 +4377,7 @@ const loadEventInstances = async (eventId: string) => {
                     </Label>
                     <Input
                       id="event-title"
-                      value={editingEvent.title}
+                      value={editingEvent.title || ""}
                       onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
                       placeholder="z.B. CATAN Spielabend"
                       className="h-11 text-xs"
@@ -3968,7 +4389,7 @@ const loadEventInstances = async (eventId: string) => {
                       Beschreibung
                     </Label>
                     <RichTextEditor
-                      value={editingEvent.description}
+                      value={editingEvent.description || ""}
                       onChange={(value) => setEditingEvent({ ...editingEvent, description: value })}
                       placeholder="Beschreibe dein Event..."
                       maxLength={5000}
@@ -3983,8 +4404,8 @@ const loadEventInstances = async (eventId: string) => {
                       <Input
                         id="event-date"
                         type="date"
-                        value={editingEvent.first_instance_date} // Changed from event_date
-                        onChange={(e) => setEditingEvent({ ...editingEvent, first_instance_date: e.target.value })} // Changed from event_date
+                        value={editingEvent.first_instance_date || ""}
+                        onChange={(e) => setEditingEvent({ ...editingEvent, first_instance_date: e.target.value })}
                         className="h-11 text-xs"
                       />
                     </div>
@@ -3996,8 +4417,8 @@ const loadEventInstances = async (eventId: string) => {
                       <Input
                         id="event-time"
                         type="time"
-                        value={editingEvent.start_time} // Changed from event_time
-                        onChange={(e) => setEditingEvent({ ...editingEvent, start_time: e.target.value })} // Changed from event_time
+                        value={editingEvent.start_time || ""}
+                        onChange={(e) => setEditingEvent({ ...editingEvent, start_time: e.target.value })}
                         className="h-11 text-xs"
                       />
                     </div>
@@ -4010,7 +4431,7 @@ const loadEventInstances = async (eventId: string) => {
                     <AddressAutocomplete
                       label=""
                       placeholder="Location, Adresse, PLZ oder Ort eingeben..."
-                      value={editingEvent.location}
+                      value={editingEvent.location || ""}
                       onChange={(value) => setEditingEvent({ ...editingEvent, location: value })}
                       className="h-11 text-xs"
                     />
@@ -4265,7 +4686,7 @@ const loadEventInstances = async (eventId: string) => {
             </TabsContent>
 
             <TabsContent value="participants" className="space-y-4">
-              <div className="px-4 py-3">
+              <div className="px-4 py-3 flex gap-2">
                 <Button
                   size="sm"
                   variant="outline"
@@ -4274,10 +4695,20 @@ const loadEventInstances = async (eventId: string) => {
                       description: "Nachrichtenfunktion wird bald verfügbar sein",
                     })
                   }
-                  className="w-full h-9 text-xs border-2 border-cyan-500 text-cyan-700 hover:bg-cyan-50 font-medium"
+                  className="flex-1 h-9 text-xs border-2 border-cyan-500 text-cyan-700 hover:bg-cyan-50 font-medium"
                 >
                   <FaBullhorn className="h-3.5 w-3.5 mr-1.5" />
                   Nachricht an alle Teilnehmer senden
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => generateEventParticipantsPDF(managementEvent)}
+                  className="h-9 text-xs border-2 border-blue-500 text-blue-700 hover:bg-blue-50 font-medium"
+                  title="Teilnehmerliste als PDF herunterladen"
+                >
+                  <FileDown className="h-3.5 w-3.5 mr-1.5" />
+                  PDF
                 </Button>
               </div>
 
@@ -4728,7 +5159,7 @@ const loadEventInstances = async (eventId: string) => {
                     <div>
                       <Label className="text-xs font-bold">Frage *</Label>
                       <Input
-                        value={newPoll.question}
+                        value={newPoll.question || ""}
                         onChange={(e) => setNewPoll({ ...newPoll, question: e.target.value })}
                         placeholder="z.B. Welches Spiel sollen wir spielen?"
                         className="h-11 text-xs mt-2"
@@ -4740,7 +5171,7 @@ const loadEventInstances = async (eventId: string) => {
                       {newPoll.options.map((option, index) => (
                         <div key={index} className="flex gap-2 mt-2">
                           <Input
-                            value={option}
+                            value={option || ""}
                             onChange={(e) => {
                               const newOptions = [...newPoll.options]
                               newOptions[index] = e.target.value
@@ -4795,7 +5226,7 @@ const loadEventInstances = async (eventId: string) => {
                       <Label className="text-xs font-bold">Läuft ab am (optional)</Label>
                       <Input
                         type="datetime-local"
-                        value={newPoll.expires_at}
+                        value={newPoll.expires_at || ""}
                         onChange={(e) => setNewPoll({ ...newPoll, expires_at: e.target.value })}
                         className="h-11 text-xs mt-2"
                       />
@@ -4862,7 +5293,7 @@ const loadEventInstances = async (eventId: string) => {
                     </Label>
                     <Input
                       id="group-name"
-                      value={editingGroup.name}
+                      value={editingGroup.name || ""}
                       onChange={(e) => setEditingGroup({ ...editingGroup, name: e.target.value })}
                       placeholder="z.B. CATAN-Freunde Zürich"
                       className="h-11 text-xs"
@@ -4875,7 +5306,7 @@ const loadEventInstances = async (eventId: string) => {
                       Beschreibung
                     </Label>
                     <RichTextEditor
-                      value={editingGroup.description}
+                      value={editingGroup.description || ""}
                       onChange={(value) => setEditingGroup({ ...editingGroup, description: value })}
                       placeholder="Beschreibe deine Spielgruppe..."
                       maxLength={5000}
@@ -4889,7 +5320,7 @@ const loadEventInstances = async (eventId: string) => {
                     <AddressAutocomplete
                       label=""
                       placeholder="Location, Adresse, PLZ oder Ort eingeben..."
-                      value={editingGroup.location}
+                      value={editingGroup.location || ""}
                       onChange={(value) => setEditingGroup({ ...editingGroup, location: value })}
                       className="h-11 text-xs"
                     />
@@ -5051,7 +5482,7 @@ const loadEventInstances = async (eventId: string) => {
             </TabsContent>
 
             <TabsContent value="members" className="space-y-4">
-              <div className="px-4 py-3">
+              <div className="px-4 py-3 flex gap-2">
                 <Button
                   size="sm"
                   variant="outline"
@@ -5060,10 +5491,20 @@ const loadEventInstances = async (eventId: string) => {
                       description: "Nachrichtenfunktion wird bald verfügbar sein",
                     })
                   }
-                  className="w-full h-9 text-xs border-2 border-cyan-500 text-cyan-700 hover:bg-cyan-50 font-medium"
+                  className="flex-1 h-9 text-xs border-2 border-cyan-500 text-cyan-700 hover:bg-cyan-50 font-medium"
                 >
                   <FaBullhorn className="h-3.5 w-3.5 mr-1.5" />
                   Nachricht an alle Mitglieder senden
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => generateGroupMembersPDF(managementGroup)}
+                  className="h-9 text-xs border-2 border-teal-500 text-teal-700 hover:bg-teal-50 font-medium"
+                  title="Mitgliederliste als PDF herunterladen"
+                >
+                  <FileDown className="h-3.5 w-3.5 mr-1.5" />
+                  PDF
                 </Button>
               </div>
 
@@ -5514,7 +5955,7 @@ const loadEventInstances = async (eventId: string) => {
                     <div>
                       <Label className="text-xs font-bold">Frage *</Label>
                       <Input
-                        value={newPoll.question}
+                        value={newPoll.question || ""}
                         onChange={(e) => setNewPoll({ ...newPoll, question: e.target.value })}
                         placeholder="z.B. Welches Spiel sollen wir spielen?"
                         className="h-11 text-xs mt-2"
@@ -5526,7 +5967,7 @@ const loadEventInstances = async (eventId: string) => {
                       {newPoll.options.map((option, index) => (
                         <div key={index} className="flex gap-2 mt-2">
                           <Input
-                            value={option}
+                            value={option || ""}
                             onChange={(e) => {
                               const newOptions = [...newPoll.options]
                               newOptions[index] = e.target.value
@@ -5581,7 +6022,7 @@ const loadEventInstances = async (eventId: string) => {
                       <Label className="text-xs font-bold">Läuft ab am (optional)</Label>
                       <Input
                         type="datetime-local"
-                        value={newPoll.expires_at}
+                        value={newPoll.expires_at || ""}
                         onChange={(e) => setNewPoll({ ...newPoll, expires_at: e.target.value })}
                         className="h-11 text-xs mt-2"
                       />
@@ -5600,6 +6041,271 @@ const loadEventInstances = async (eventId: string) => {
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      {/* Membership Polls Dialog - für Spielgruppen wo User nur Mitglied ist */}
+      <Dialog open={isMembershipPollsOpen} onOpenChange={setIsMembershipPollsOpen}>
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-teal-600" />
+              Abstimmungen - {membershipPollsCommunity?.name}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-gray-500">
+              Stimme bei laufenden Abstimmungen ab
+            </DialogDescription>
+          </DialogHeader>
+
+          <Tabs value={membershipPollTab} onValueChange={(v) => setMembershipPollTab(v as any)} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-100/80 p-0.5 rounded-lg">
+              <TabsTrigger
+                value="active"
+                className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs font-medium py-1.5"
+              >
+                Laufend
+              </TabsTrigger>
+              <TabsTrigger
+                value="completed"
+                className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs font-medium py-1.5"
+              >
+                Abgeschlossen
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="active" className="space-y-3 mt-3">
+              {membershipPolls.filter(
+                (poll) => poll.is_active && (!poll.expires_at || new Date(poll.expires_at) > new Date()),
+              ).length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                    <BarChart3 className="h-6 w-6 text-gray-400" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-600">Keine laufenden Abstimmungen</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Warte auf neue Abstimmungen vom Gruppenleiter</p>
+                </div>
+              ) : (
+                membershipPolls
+                  .filter((poll) => poll.is_active && (!poll.expires_at || new Date(poll.expires_at) > new Date()))
+                  .map((poll) => {
+                    const totalVotes = poll.votes?.length || 0
+                    const userHasVoted = membershipUserVotes[poll.id]?.length > 0
+
+                    return (
+                      <Card key={poll.id} className="border-2 hover:border-teal-200 transition-colors">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-sm text-gray-900 leading-tight">{poll.question}</h4>
+                              <div className="flex flex-col gap-1 mt-1.5">
+                                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                  <span>
+                                    {totalVotes} {totalVotes === 1 ? "Stimme" : "Stimmen"}
+                                  </span>
+                                </div>
+                                {poll.expires_at && (
+                                  <div className="text-xs text-orange-600 font-medium">
+                                    Läuft ab am:{" "}
+                                    {new Date(poll.expires_at).toLocaleDateString("de-DE", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            {userHasVoted && (
+                              <Badge variant="default" className="bg-teal-500 text-white text-xs px-1.5 h-5">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Abgestimmt
+                              </Badge>
+                            )}
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-1.5 pt-0">
+                          {poll.options?.map((option: any) => {
+                            const optionVotes =
+                              poll.votes?.filter((v: any) => v.option_id === option.id).length || 0
+                            const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0
+                            const userVoted = membershipUserVotes[poll.id]?.includes(option.id)
+
+                            return (
+                              <button
+                                key={option.id}
+                                onClick={() => handleMembershipVote(poll.id, option.id)}
+                                className={`w-full group relative rounded-lg border-2 transition-all duration-150 overflow-hidden ${
+                                  userVoted
+                                    ? "border-teal-500 bg-teal-50"
+                                    : "border-gray-200 bg-white hover:border-teal-300"
+                                }`}
+                              >
+                                <div
+                                  className={`absolute inset-0 transition-all duration-300 ${
+                                    userVoted ? "bg-teal-100" : "bg-gray-50"
+                                  }`}
+                                  style={{ width: `${percentage}%` }}
+                                />
+
+                                <div className="relative flex items-center justify-between px-3 py-2">
+                                  <div className="flex items-center gap-2">
+                                    {userVoted && (
+                                      <CheckCircle className="h-3.5 w-3.5 text-teal-600 flex-shrink-0" />
+                                    )}
+                                    <span
+                                      className={`text-xs font-medium text-left ${
+                                        userVoted ? "text-teal-900" : "text-gray-700"
+                                      }`}
+                                    >
+                                      {option.option_text}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`text-xs font-semibold ${
+                                        userVoted ? "text-teal-700" : "text-gray-600"
+                                      }`}
+                                    >
+                                      {percentage.toFixed(0)}%
+                                    </span>
+                                    <span className="text-xs text-gray-500 min-w-[3rem] text-right">
+                                      {optionVotes} {optionVotes === 1 ? "Stimme" : "Stimmen"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </CardContent>
+                      </Card>
+                    )
+                  })
+              )}
+            </TabsContent>
+
+            <TabsContent value="completed" className="space-y-3 mt-3">
+              {membershipPolls.filter(
+                (poll) => !poll.is_active || (poll.expires_at && new Date(poll.expires_at) <= new Date()),
+              ).length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                    <BarChart3 className="h-6 w-6 text-gray-400" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-600">Keine abgeschlossenen Abstimmungen</p>
+                </div>
+              ) : (
+                membershipPolls
+                  .filter((poll) => !poll.is_active || (poll.expires_at && new Date(poll.expires_at) <= new Date()))
+                  .map((poll) => {
+                    const totalVotes = poll.votes?.length || 0
+
+                    return (
+                      <Card key={poll.id} className="border-2 border-gray-200 bg-gray-50/50">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-sm text-gray-700 leading-tight">{poll.question}</h4>
+                              <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
+                                <span>
+                                  {totalVotes} {totalVotes === 1 ? "Stimme" : "Stimmen"} insgesamt
+                                </span>
+                              </div>
+                            </div>
+                            <Badge variant="secondary" className="text-xs px-1.5 h-5">
+                              Beendet
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-1.5 pt-0">
+                          {poll.options?.map((option: any) => {
+                            const optionVotes =
+                              poll.votes?.filter((v: any) => v.option_id === option.id).length || 0
+                            const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0
+                            const maxVotes = Math.max(
+                              ...poll.options.map(
+                                (o: any) => poll.votes?.filter((v: any) => v.option_id === o.id).length || 0,
+                              ),
+                            )
+                            const isWinner = optionVotes === maxVotes && optionVotes > 0
+
+                            return (
+                              <div
+                                key={option.id}
+                                className={`relative rounded-lg border-2 overflow-hidden ${
+                                  isWinner ? "border-yellow-500" : "border-gray-200"
+                                }`}
+                              >
+                                <div
+                                  className={`absolute inset-0 transition-all duration-300 ${
+                                    isWinner ? "bg-gradient-to-r from-yellow-100 to-yellow-200" : "bg-gray-100"
+                                  }`}
+                                  style={{ width: `${percentage}%` }}
+                                />
+
+                                <div className="relative flex items-center justify-between px-3 py-2">
+                                  <div className="flex items-center gap-2">
+                                    {isWinner && <Star className="h-3.5 w-3.5 text-yellow-600 flex-shrink-0" />}
+                                    <span
+                                      className={`text-xs font-medium ${isWinner ? "text-yellow-900" : "text-gray-700"}`}
+                                    >
+                                      {option.option_text}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`text-xs font-semibold ${isWinner ? "text-yellow-800" : "text-gray-600"}`}
+                                    >
+                                      {percentage.toFixed(0)}%
+                                    </span>
+                                    <span
+                                      className={`text-xs min-w-[3rem] text-right ${isWinner ? "text-yellow-700" : "text-gray-500"}`}
+                                    >
+                                      {optionVotes} {optionVotes === 1 ? "Stimme" : "Stimmen"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </CardContent>
+                      </Card>
+                    )
+                  })
+              )}
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Offer Management Form (uses same component as create) */}
+      <CreateMarketplaceOfferForm
+        isOpen={isOfferManagementOpen}
+        onClose={() => {
+          setIsOfferManagementOpen(false)
+          setManagementOffer(null)
+        }}
+        onSuccess={() => {
+          loadActivities()
+          toast({ title: "Angebot aktualisiert", description: "Deine Änderungen wurden gespeichert." })
+        }}
+        editMode={true}
+        editData={managementOffer}
+      />
+
+      {/* Search Ad Management Form (uses same component as create) */}
+      <CreateSearchAdForm
+        isOpen={isSearchAdManagementOpen}
+        onClose={() => {
+          setIsSearchAdManagementOpen(false)
+          setManagementSearchAd(null)
+        }}
+        onSuccess={() => {
+          loadActivities()
+          toast({ title: "Suchanzeige aktualisiert", description: "Deine Änderungen wurden gespeichert." })
+        }}
+        editMode={true}
+        editData={managementSearchAd}
+      />
     </div>
   )
 }

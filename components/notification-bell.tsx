@@ -126,7 +126,18 @@ export function NotificationBell() {
         break
       case "message":
       case "new_message":
-        window.location.href = "/messages"
+      case "message_group":
+      case "message_event":
+      case "message_search_ad":
+      case "message_offer":
+        // Navigate to messages with specific conversation if available
+        if (notification.data?.conversation_id) {
+          window.location.href = `/messages?conversation=${notification.data.conversation_id}`
+        } else if (notification.data?.sender_id) {
+          window.location.href = `/messages?user=${notification.data.sender_id}`
+        } else {
+          window.location.href = "/messages"
+        }
         break
       case "friend_request":
       case "friend_accepted":

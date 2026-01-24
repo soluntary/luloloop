@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { MessageCircle, Send, Search, ArrowLeft } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { format } from "date-fns"
 import { de } from "date-fns/locale"
@@ -43,7 +43,9 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [sending, setSending] = useState(false)
+  const [initialConversationSet, setInitialConversationSet] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -117,6 +119,35 @@ export default function MessagesPage() {
       loadMessages()
     }
   }, [user, authLoading])
+
+  // Handle URL parameters to select specific conversation
+  useEffect(() => {
+    if (initialConversationSet) return
+    
+    const conversationId = searchParams.get("conversation")
+    const userId = searchParams.get("user")
+    
+    if (conversationId || userId) {
+      const targetUserId = conversationId || userId
+      
+      // If conversations are loaded, check if we have one with this user
+      if (conversations.length > 0) {
+        const existingConversation = conversations.find(c => c.odtnerId === targetUserId)
+        if (existingConversation) {
+          setSelectedConversation(targetUserId)
+          setInitialConversationSet(true)
+          return
+        }
+      }
+      
+      // If no existing conversation or conversations not loaded yet, just select the user ID
+      // This allows opening a conversation even if it's new
+      if (userId && !messagesLoading) {
+        setSelectedConversation(userId)
+        setInitialConversationSet(true)
+      }
+    }
+  }, [conversations, searchParams, initialConversationSet, messagesLoading])
 
   useEffect(() => {
     if (messagesContainerRef.current && selectedConversation) {
@@ -315,7 +346,7 @@ export default function MessagesPage() {
                           "/placeholder.svg" ||
                           "/placeholder.svg" ||
                           "/placeholder.svg"
-                        }
+                         || "/placeholder.svg"}
                       />
                       <AvatarFallback className="bg-teal-100 text-teal-700 font-handwritten">
                         {conversations

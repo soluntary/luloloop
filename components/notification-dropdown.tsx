@@ -264,7 +264,14 @@ export default function NotificationDropdown({ className }: NotificationDropdown
         window.location.href = "/library"
         break
       case "message":
-        window.location.href = "/messages"
+        // Navigate to messages with specific conversation if available
+        if (notification.data?.conversation_id) {
+          window.location.href = `/messages?conversation=${notification.data.conversation_id}`
+        } else if (notification.data?.sender_id) {
+          window.location.href = `/messages?user=${notification.data.sender_id}`
+        } else {
+          window.location.href = "/messages"
+        }
         break
       case "event_invitation":
         setHighlightedEventId(notification.data?.event_id || null)

@@ -1073,11 +1073,11 @@ export default function LudoGruppenPage() {
     if (joinRequest) {
       switch (joinRequest.status) {
         case "pending":
-          return { text: "Warte auf Genehmigung", disabled: true, variant: "outline" as const, icon: FaClock }
+          return { text: "Warte auf Genehmigung", disabled: true, variant: "outline" as const, icon: FaClock, className: "border-orange-400 text-orange-600 bg-orange-50" }
         case "approved":
-          return { text: "Genehmigt", disabled: true, variant: "default" as const, icon: FaCheckCircle }
+          return { text: "Genehmigt", disabled: true, variant: "outline" as const, icon: FaCheckCircle, className: "border-green-400 text-green-600 bg-green-50" }
         case "rejected":
-          return { text: "Abgelehnt", disabled: true, variant: "destructive" as const, icon: FaUserTimes }
+          return { text: "Abgelehnt", disabled: true, variant: "outline" as const, icon: FaUserTimes, className: "border-red-400 text-red-600 bg-red-50" }
       }
     }
 
@@ -1141,9 +1141,17 @@ export default function LudoGruppenPage() {
 
     // Hide groups the user is already a member of (they can manage these in their profile)
     // Also hide groups the user created (they are automatically members)
+    // Also hide groups where user has an approved join request
     if (user) {
+      const approvedGroupIds = joinRequests
+        .filter((jr) => jr.status === "approved")
+        .map((jr) => jr.community_id)
+      
       filtered = filtered.filter(
-        (group) => !userMemberships.includes(group.id) && group.creator_id !== user.id
+        (group) => 
+          !userMemberships.includes(group.id) && 
+          group.creator_id !== user.id &&
+          !approvedGroupIds.includes(group.id)
       )
     }
 
@@ -1905,9 +1913,11 @@ export default function LudoGruppenPage() {
                             disabled={buttonProps.disabled}
                             variant={buttonProps.variant}
                             className={`flex-1 font-handwritten ${
-                              buttonProps.action === "leave"
-                                ? "bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white border-red-500"
-                                : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:from-gray-400"
+                              buttonProps.className
+                                ? buttonProps.className
+                                : buttonProps.action === "leave"
+                                  ? "bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white border-red-500"
+                                  : "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white disabled:from-gray-400 disabled:from-gray-400"
                             }`}
                           >
                             {IconComponent ? (
