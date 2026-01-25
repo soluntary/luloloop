@@ -222,70 +222,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       try {
         console.log("[v0] Calling supabase.auth.signUp...")
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { name: name },
-          },
+        
+        let response
+        try {
+          response = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: { name: name },
+            },
+          })
+        } catch (networkErr: any) {
+          console.error("[v0] Network error during signup:", networkErr)
+          throw new Error("Netzwerkfehler bei der Registrierung. Bitte überprüfen Sie Ihre Internetverbindung.")
+        }
+
+        const { data, error } = response
+        
+        console.log("[v0] Signup response received:", {
+          hasData: !!data,
+          hasUser: !!data?.user,
+          userId: data?.user?.id,
+          userEmail: data?.user?.email,
+          hasSession: !!data?.session,
+          identitiesCount: data?.user?.identities?.length,
         })
 
-        console.log("[v0] Signup raw response:", { 
-          hasData: !!data, 
-          hasUser: !!data?.user, 
-          userId: data?.user?.id,
-          hasSession: !!data?.session,
-          errorMessage: error?.message,
-          errorCode: error?.code,
-          errorStatus: error?.status,
-          errorName: error?.name
-        })
+        // Check if user already exists (identities array is empty)
+        if (data?.user && data?.user?.identities?.length === 0) {
+          console.log("[v0] User already exists (empty identities)")
+          throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits. Bitte melden Sie sich an.")
+        }
 
         if (error) {
-          console.error("[v0] Signup error full object:", JSON.stringify(error, Object.getOwnPropertyNames(error)))
-          console.error("[v0] Error message:", error.message)
-          console.error("[v0] Error code:", error.code)
-          console.error("[v0] Error status:", error.status)
-          console.error("[v0] Error __isAuthError:", error.__isAuthError)
-
-          const errMsg = error.message || ""
+          console.error("[v0] Signup error:", error)
+          const errMsg = (error.message || "").toLowerCase()
           const errCode = error.code || ""
 
-          // Handle email sending error specifically - SMTP not configured
-          if (errMsg.includes("sending confirmation email") || errMsg.includes("Error sending") || errMsg.includes("email") && errMsg.includes("error")) {
-            console.log("[v0] Email service error detected - SMTP may not be configured")
-            throw new Error(
-              "E-Mail-Versand ist nicht konfiguriert. Bitte deaktivieren Sie die E-Mail-Bestätigung in Supabase (Authentication > Providers > Email > Confirm email) oder konfigurieren Sie SMTP.",
-            )
+          if (errMsg.includes("sending") || errMsg.includes("smtp") || errMsg.includes("confirmation email")) {
+            throw new Error("E-Mail-Bestätigung konnte nicht gesendet werden. Bitte kontaktieren Sie den Support.")
           }
 
           if (error.status === 429 || errCode === "over_email_send_rate_limit") {
-            throw new Error(
-              "Diese E-Mail-Adresse hat das Limit für Registrierungsversuche erreicht. Bitte versuchen Sie es mit einer anderen E-Mail-Adresse oder warten Sie einige Minuten.",
-            )
+            throw new Error("Zu viele Versuche. Bitte warten Sie einige Minuten.")
           }
 
-          if (errMsg.includes("User already registered") || errMsg.includes("already been registered")) {
+          if (errMsg.includes("already registered") || errMsg.includes("already been registered")) {
             throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits.")
           }
 
-          if (errMsg.toLowerCase().includes("invalid email")) {
+          if (errMsg.includes("invalid email")) {
             throw new Error("Ungültige E-Mail-Adresse.")
           }
 
-          if (errMsg.toLowerCase().includes("password")) {
-            throw new Error("Das Passwort entspricht nicht den Anforderungen (mindestens 6 Zeichen).")
+          if (errMsg.includes("password")) {
+            throw new Error("Das Passwort muss mindestens 6 Zeichen lang sein.")
           }
 
-          // For any other error, show the actual message for debugging
-          let errorDisplay = "Unbekannter Fehler"
-          if (errMsg) errorDisplay = errMsg
-          else if (errCode) errorDisplay = errCode
-          else if (error.name) errorDisplay = error.name
-          else if (error.status) errorDisplay = `Status: ${error.status}`
-          else if (typeof error === "object") errorDisplay = JSON.stringify(error)
-          
-          throw new Error(`Registrierung fehlgeschlagen: ${errorDisplay}`)
+          throw new Error(error.message || "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.")
         }
 
         // No error case
