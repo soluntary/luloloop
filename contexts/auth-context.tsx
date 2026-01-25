@@ -564,6 +564,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loadUserProfile, user])
 
+  // Debug logging for loading state
+  console.log("[v0] AuthProvider state - loading:", loading, "user:", user?.email, "networkError:", networkError)
+
   const value = {
     user,
     loading,
