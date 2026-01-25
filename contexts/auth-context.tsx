@@ -224,51 +224,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email,
           password,
           options: {
-            data: { name: name, username: username },
-            emailRedirectTo: undefined, // Remove email redirect
+            data: { name: name },
           },
         })
 
-        console.log("[v0] Signup response:", JSON.stringify({ data, error }))
+        console.log("[v0] Signup response - user:", data?.user?.id, "session:", !!data?.session, "error:", error?.message, "code:", error?.code, "status:", error?.status)
 
         if (error) {
-          console.error("[v0] Signup error:", error.message)
+          console.error("[v0] Signup error details:", JSON.stringify(error, null, 2))
 
           if (error.status === 429 && error.code === "over_email_send_rate_limit") {
             throw new Error(
               "Diese E-Mail-Adresse hat das Limit für Registrierungsversuche erreicht. Bitte versuchen Sie es mit einer anderen E-Mail-Adresse oder warten Sie einige Minuten.",
             )
-          }
-
-          if (error.status === 500 && error.code === "unexpected_failure") {
-            console.log("[v0] Retrying signup without email confirmation...")
-            const { data: retryData, error: retryError } = await supabase.auth.signUp({
-              email,
-              password,
-              options: {
-                data: { name: name, username: username },
-              },
-            })
-
-            if (retryError) {
-              console.error("[v0] Retry signup also failed:", retryError.message)
-              throw new Error("Registrierung fehlgeschlagen. Bitte versuchen Sie es später erneut.")
-            }
-
-            console.log("[v0] Retry signup successful:", retryData.user?.id)
-
-            if (retryData.user) {
-              console.log("[v0] User created successfully, attempting auto sign-in...")
-              try {
-                await signIn(email, password)
-                console.log("[v0] Auto sign-in successful after registration")
-                return
-              } catch (signInError) {
-                console.log("[v0] Auto sign-in failed, but registration was successful:", signInError)
-                throw new Error("Registrierung erfolgreich! Bitte versuchen Sie sich jetzt anzumelden.")
-              }
-            }
-            return
           }
 
           if (error.message?.includes("User already registered")) {
@@ -283,27 +251,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             throw new Error("Das Passwort entspricht nicht den Anforderungen.")
           }
 
-          throw new Error("Registrierung fehlgeschlagen. Bitte versuchen Sie es später erneut.")
+          throw new Error(`Registrierung fehlgeschlagen: ${error.message}`)
         }
 
         console.log("[v0] Signup successful, user created:", data.user?.id)
 
-        if (data.user) {
-          console.log("[v0] User created successfully, attempting auto sign-in...")
+        // Check if user was created but email confirmation is required
+        if (data.user && !data.session) {
+          console.log("[v0] User created but no session - email confirmation may be required")
+          // Try to sign in immediately (works if email confirmation is disabled)
           try {
             await signIn(email, password)
             console.log("[v0] Auto sign-in successful after registration")
-          } catch (signInError) {
-            console.log("[v0] Auto sign-in failed, but registration was successful:", signInError)
-            throw new Error("Registrierung erfolgreich! Bitte versuchen Sie sich jetzt anzumelden.")
+            return
+          } catch (signInError: any) {
+            console.log("[v0] Auto sign-in failed:", signInError.message)
+            // If sign-in fails because email not confirmed, that's expected
+            if (signInError.message?.includes("Email not confirmed")) {
+              throw new Error("Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail-Adresse.")
+            }
+            throw new Error("Registrierung erfolgreich! Bitte versuchen Sie sich anzumelden.")
           }
+        }
+
+        // If we have both user and session, we're good
+        if (data.user && data.session) {
+          console.log("[v0] User created with session, loading profile...")
+          setLoading(true)
+          await loadUserProfile(data.user)
         }
       } catch (error: any) {
         console.error("[v0] Signup process failed:", error.message)
         throw error
       }
     },
-    [signIn],
+    [signIn, loadUserProfile],
   )
 
   const signOut = useCallback(async () => {
