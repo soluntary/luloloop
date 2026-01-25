@@ -408,19 +408,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    if (initializedRef.current) return
+    console.log("[v0] useEffect starting, initializedRef:", initializedRef.current)
+    
+    if (initializedRef.current) {
+      console.log("[v0] Already initialized, returning early")
+      return
+    }
     initializedRef.current = true
+
+    console.log("[v0] Setting up auth initialization...")
 
     // Safety timeout - ensure loading state doesn't stay forever
     const safetyTimeout = setTimeout(() => {
-      if (loading) {
-        console.log("[v0] Safety timeout reached, setting loading to false")
-        setLoading(false)
-      }
-    }, 5000)
+      console.log("[v0] Safety timeout reached, forcing loading to false")
+      setLoading(false)
+    }, 3000) // Reduced to 3 seconds
 
+    let supabase: ReturnType<typeof createClient>
     try {
-      supabaseRef.current = createClient()
+      console.log("[v0] Creating Supabase client...")
+      supabase = createClient()
+      supabaseRef.current = supabase
+      console.log("[v0] Supabase client created successfully")
     } catch (error) {
       console.error("[v0] Failed to create Supabase client:", error)
       setLoading(false)
@@ -428,8 +437,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(safetyTimeout)
       return
     }
-
-    const supabase = supabaseRef.current
 
     const {
       data: { subscription },
