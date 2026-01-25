@@ -242,37 +242,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
 
         if (error) {
-          console.error("[v0] Signup error full object:", error)
+          console.error("[v0] Signup error full object:", JSON.stringify(error, Object.getOwnPropertyNames(error)))
+          console.error("[v0] Error message:", error.message)
+          console.error("[v0] Error code:", error.code)
+          console.error("[v0] Error status:", error.status)
+          console.error("[v0] Error __isAuthError:", error.__isAuthError)
+
+          const errMsg = error.message || ""
+          const errCode = error.code || ""
 
           // Handle email sending error specifically - SMTP not configured
-          if (error.message?.includes("sending confirmation email") || error.message?.includes("Error sending")) {
+          if (errMsg.includes("sending confirmation email") || errMsg.includes("Error sending") || errMsg.includes("email") && errMsg.includes("error")) {
             console.log("[v0] Email service error detected - SMTP may not be configured")
             throw new Error(
               "E-Mail-Versand ist nicht konfiguriert. Bitte deaktivieren Sie die E-Mail-Bestätigung in Supabase (Authentication > Providers > Email > Confirm email) oder konfigurieren Sie SMTP.",
             )
           }
 
-          if (error.status === 429 || error.code === "over_email_send_rate_limit") {
+          if (error.status === 429 || errCode === "over_email_send_rate_limit") {
             throw new Error(
               "Diese E-Mail-Adresse hat das Limit für Registrierungsversuche erreicht. Bitte versuchen Sie es mit einer anderen E-Mail-Adresse oder warten Sie einige Minuten.",
             )
           }
 
-          if (error.message?.includes("User already registered") || error.message?.includes("already been registered")) {
+          if (errMsg.includes("User already registered") || errMsg.includes("already been registered")) {
             throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits.")
           }
 
-          if (error.message?.includes("Invalid email") || error.message?.includes("invalid email")) {
+          if (errMsg.toLowerCase().includes("invalid email")) {
             throw new Error("Ungültige E-Mail-Adresse.")
           }
 
-          if (error.message?.includes("Password") || error.message?.includes("password")) {
+          if (errMsg.toLowerCase().includes("password")) {
             throw new Error("Das Passwort entspricht nicht den Anforderungen (mindestens 6 Zeichen).")
           }
 
           // For any other error, show the actual message for debugging
-          const errorMsg = error.message || error.code || "Unknown error"
-          throw new Error(`Registrierung fehlgeschlagen: ${errorMsg}`)
+          const errorDisplay = errMsg || errCode || error.name || `Status: ${error.status}` || "Unbekannter Fehler"
+          throw new Error(`Registrierung fehlgeschlagen: ${errorDisplay}`)
         }
 
         // No error case
