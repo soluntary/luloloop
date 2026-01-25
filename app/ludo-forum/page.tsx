@@ -317,7 +317,16 @@ export default function LudoForumPage() {
                       : "Sei der Erste und starte eine neue Diskussion!"}
                   </p>
                   {!searchTerm && (
-                    <Button onClick={() => setShowCreateDialog(true)} className="playful-button">
+                    <Button 
+                      onClick={() => {
+                        if (!user) {
+                          window.location.href = "/login?redirect=/ludo-forum"
+                          return
+                        }
+                        setShowCreateDialog(true)
+                      }} 
+                      className="playful-button"
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Erste Diskussion starten
                     </Button>

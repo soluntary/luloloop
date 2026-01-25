@@ -37,7 +37,7 @@ export default function RegisterPage() {
   const passwordRequirements = [
     { label: "Mindestens 8 Zeichen lang", test: (pw: string) => pw.length >= 8 },
     { label: "Kleinbuchstaben (a-z)", test: (pw: string) => /[a-z]/.test(pw) },
-    { label: "Großbuchstaben (A-Z)", test: (pw: string) => /[A-Z]/.test(pw) },
+    { label: "Grossbuchstaben (A-Z)", test: (pw: string) => /[A-Z]/.test(pw) },
     { label: "Zahlen (0-9)", test: (pw: string) => /[0-9]/.test(pw) },
   ]
 

@@ -365,7 +365,14 @@ function LibraryContent() {
     databaseConnected,
     toggleGameAvailability,
   } = useGames()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      window.location.href = "/login?redirect=/library"
+    }
+  }, [user, authLoading])
   const [selectedGame, setSelectedGame] = useState<(typeof games)[0] | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
 

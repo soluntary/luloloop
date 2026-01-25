@@ -1591,10 +1591,16 @@ export default function LudoEventsPage() {
                   </p>
                   {!searchTerm && (
                     <Button
-                      onClick={() => setIsCreateDialogOpen(true)}
+                      onClick={() => {
+                        if (!user) {
+                          window.location.href = "/login?redirect=/ludo-events"
+                          return
+                        }
+                        setIsCreateDialogOpen(true)
+                      }}
                       className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 font-handwritten"
                     >
-                      <FaPlus className="h-4 w-4 mr-2" /> {/* Changed to FaPlus */}
+                      <FaPlus className="h-4 w-4 mr-2" />
                       Erstes Event erstellen
                     </Button>
                   )}
