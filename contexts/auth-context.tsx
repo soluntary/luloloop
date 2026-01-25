@@ -278,7 +278,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           // For any other error, show the actual message for debugging
-          const errorDisplay = errMsg || errCode || error.name || `Status: ${error.status}` || "Unbekannter Fehler"
+          let errorDisplay = "Unbekannter Fehler"
+          if (errMsg) errorDisplay = errMsg
+          else if (errCode) errorDisplay = errCode
+          else if (error.name) errorDisplay = error.name
+          else if (error.status) errorDisplay = `Status: ${error.status}`
+          else if (typeof error === "object") errorDisplay = JSON.stringify(error)
+          
           throw new Error(`Registrierung fehlgeschlagen: ${errorDisplay}`)
         }
 
