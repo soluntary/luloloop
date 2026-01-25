@@ -355,7 +355,21 @@ function AnimatedSection({ children, className = "" }: { children: React.ReactNo
 
 export default function HomePage() {
   const [showConfetti, setShowConfetti] = useState(false)
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+
+  console.log("[v0] HomePage render - loading:", loading, "user:", user?.email)
+
+  // Show loading spinner while auth is initializing
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-body">Lade Anwendung...</p>
+        </div>
+      </div>
+    )
+  }
 
   const floatingElements = useMemo(
     () => (

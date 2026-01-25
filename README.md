@@ -25,7 +25,7 @@ This project uses a monorepo structure with multiple applications and shared pac
 
 ### Installation
 
-```bash
+\`\`\`bash
 # Clone the repository
 git clone <repository-url>
 cd ludoloop-monorepo
@@ -42,7 +42,7 @@ pnpm db:migrate
 
 # Start development servers
 pnpm dev
-```
+\`\`\`
 
 This will start:
 - Admin dashboard: http://localhost:3001
@@ -65,7 +65,7 @@ This will start:
 The project uses PostgreSQL with Drizzle ORM for type-safe database operations.
 
 ### Schema Management
-```bash
+\`\`\`bash
 # Generate migrations
 pnpm db:generate
 
@@ -74,7 +74,7 @@ pnpm db:migrate
 
 # Open Drizzle Studio
 pnpm db:studio
-```
+\`\`\`
 
 ### Key Tables
 - `users` - User accounts and profiles
@@ -100,7 +100,7 @@ The design system is built with:
 - **Lucide React** - Icon library
 
 ### Using Components
-```tsx
+\`\`\`tsx
 import { Button, Card } from '@ludoloop/ui';
 
 export function MyComponent() {
@@ -110,13 +110,13 @@ export function MyComponent() {
     </Card>
   );
 }
-```
+\`\`\`
 
 ## 📱 Mobile Development
 
 The mobile app is built with Expo and React Native:
 
-```bash
+\`\`\`bash
 # Start Expo development server
 cd apps/mobile
 pnpm start
@@ -126,23 +126,23 @@ pnpm ios
 
 # Run on Android emulator
 pnpm android
-```
+\`\`\`
 
 ## 🐳 Docker Deployment
 
 ### Development
-```bash
+\`\`\`bash
 docker-compose up -d
-```
+\`\`\`
 
 ### Production
-```bash
+\`\`\`bash
 # Build production image
 docker build -t ludoloop-web .
 
 # Run with environment variables
 docker run -p 3000:3000 --env-file .env ludoloop-web
-```
+\`\`\`
 
 ## 🚀 Deployment
 
@@ -152,18 +152,18 @@ docker run -p 3000:3000 --env-file .env ludoloop-web
 3. Deploy automatically on push to main branch
 
 ### Manual Deployment
-```bash
+\`\`\`bash
 # Build for production
 pnpm build
 
 # Start production server
 pnpm start
-```
+\`\`\`
 
 ## 🧪 Testing
 
 ### Unit Tests
-```bash
+\`\`\`bash
 # Run all tests
 pnpm test
 
@@ -172,16 +172,16 @@ pnpm test:watch
 
 # Run tests with coverage
 pnpm test:coverage
-```
+\`\`\`
 
 ### E2E Tests
-```bash
+\`\`\`bash
 # Run Playwright tests
 pnpm test:e2e
 
 # Run tests in UI mode
 pnpm test:e2e:ui
-```
+\`\`\`
 
 ## 📊 Monitoring & Analytics
 

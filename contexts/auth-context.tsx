@@ -9,14 +9,6 @@ interface AuthUser {
   id: string
   email: string
   name: string
-  username?: string
-  anzeigename?: string
-  birthDate?: string
-  phone?: string
-  address?: string
-  location?: string
-  favoriteGames?: string[]
-  preferredGameTypes?: string[]
   avatar?: string
   bio?: string
   website?: string
@@ -25,10 +17,16 @@ interface AuthUser {
   settings?: any
 }
 
+interface SignUpResult {
+  success: boolean
+  needsEmailConfirmation?: boolean
+  message?: string
+}
+
 interface AuthContextType {
   user: AuthUser | null
   loading: boolean
-  signUp: (email: string, password: string, name: string, username?: string) => Promise<void>
+  signUp: (email: string, password: string, name: string, username?: string) => Promise<SignUpResult>
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
@@ -80,7 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: authUser.id,
         email: authUser.email || "",
         name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-        username: authUser.user_metadata?.username,
       }
       setUser(fallbackProfile)
       setLoading(false)
@@ -110,15 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: authUser.id,
             email: authUser.email || "",
             name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-            username: authUser.user_metadata?.username,
-            anzeigename: null,
-            birthDate: null,
-            phone: null,
-            address: null,
-            location: null,
-            favoriteGames: [],
-            preferredGameTypes: [],
-            avatar: authUser.user_metadata?.avatar_url,
+            avatar: authUser.user_metadata?.avatar_url || null,
             bio: null,
             website: null,
             twitter: null,
@@ -167,7 +156,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: authUser.id,
           email: authUser.email || "",
           name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-          username: authUser.user_metadata?.username,
         }
 
         setUser(fallbackProfile)
@@ -231,97 +219,96 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const signUp = useCallback(
-    async (email: string, password: string, name: string, username?: string) => {
+    async (email: string, password: string, name: string, username?: string): Promise<SignUpResult> => {
       const supabase = supabaseRef.current
       if (!supabase) throw new Error("Supabase client not available")
 
       console.log("[v0] Starting signup process for:", email)
 
+      let response
       try {
-        const { data, error } = await supabase.auth.signUp({
+        response = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { name: name, username: username },
-            emailRedirectTo: undefined, // Remove email redirect
+            data: { name: name },
           },
         })
-
-        console.log("[v0] Signup response:", JSON.stringify({ data, error }))
-
-        if (error) {
-          console.error("[v0] Signup error:", error.message)
-
-          if (error.status === 429 && error.code === "over_email_send_rate_limit") {
-            throw new Error(
-              "Diese E-Mail-Adresse hat das Limit für Registrierungsversuche erreicht. Bitte versuchen Sie es mit einer anderen E-Mail-Adresse oder warten Sie einige Minuten.",
-            )
-          }
-
-          if (error.status === 500 && error.code === "unexpected_failure") {
-            console.log("[v0] Retrying signup without email confirmation...")
-            const { data: retryData, error: retryError } = await supabase.auth.signUp({
-              email,
-              password,
-              options: {
-                data: { name: name, username: username },
-              },
-            })
-
-            if (retryError) {
-              console.error("[v0] Retry signup also failed:", retryError.message)
-              throw new Error("Registrierung fehlgeschlagen. Bitte versuchen Sie es später erneut.")
-            }
-
-            console.log("[v0] Retry signup successful:", retryData.user?.id)
-
-            if (retryData.user) {
-              console.log("[v0] User created successfully, attempting auto sign-in...")
-              try {
-                await signIn(email, password)
-                console.log("[v0] Auto sign-in successful after registration")
-                return
-              } catch (signInError) {
-                console.log("[v0] Auto sign-in failed, but registration was successful:", signInError)
-                throw new Error("Registrierung erfolgreich! Bitte versuchen Sie sich jetzt anzumelden.")
-              }
-            }
-            return
-          }
-
-          if (error.message?.includes("User already registered")) {
-            throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits.")
-          }
-
-          if (error.message?.includes("Invalid email")) {
-            throw new Error("Ungültige E-Mail-Adresse.")
-          }
-
-          if (error.message?.includes("Password")) {
-            throw new Error("Das Passwort entspricht nicht den Anforderungen.")
-          }
-
-          throw new Error("Registrierung fehlgeschlagen. Bitte versuchen Sie es später erneut.")
-        }
-
-        console.log("[v0] Signup successful, user created:", data.user?.id)
-
-        if (data.user) {
-          console.log("[v0] User created successfully, attempting auto sign-in...")
-          try {
-            await signIn(email, password)
-            console.log("[v0] Auto sign-in successful after registration")
-          } catch (signInError) {
-            console.log("[v0] Auto sign-in failed, but registration was successful:", signInError)
-            throw new Error("Registrierung erfolgreich! Bitte versuchen Sie sich jetzt anzumelden.")
-          }
-        }
-      } catch (error: any) {
-        console.error("[v0] Signup process failed:", error.message)
-        throw error
+      } catch (networkErr: any) {
+        console.error("[v0] Network error during signup:", networkErr)
+        throw new Error("Netzwerkfehler bei der Registrierung. Bitte überprüfen Sie Ihre Internetverbindung.")
       }
+
+      const { data, error } = response
+
+      // Check if user already exists (identities array is empty)
+      if (data?.user && data?.user?.identities?.length === 0) {
+        throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits. Bitte melden Sie sich an.")
+      }
+
+      if (error) {
+        console.error("[v0] Signup error:", error.message)
+        const errMsg = (error.message || "").toLowerCase()
+
+        if (errMsg.includes("sending") || errMsg.includes("smtp") || errMsg.includes("confirmation email")) {
+          throw new Error("E-Mail-Bestätigung konnte nicht gesendet werden. Bitte kontaktieren Sie den Support.")
+        }
+
+        if (error.status === 429 || error.code === "over_email_send_rate_limit") {
+          throw new Error("Zu viele Versuche. Bitte warten Sie einige Minuten.")
+        }
+
+        if (errMsg.includes("already registered") || errMsg.includes("already been registered")) {
+          throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits.")
+        }
+
+        if (errMsg.includes("invalid email")) {
+          throw new Error("Ungültige E-Mail-Adresse.")
+        }
+
+        if (errMsg.includes("password")) {
+          throw new Error("Das Passwort muss mindestens 6 Zeichen lang sein.")
+        }
+
+        throw new Error(error.message || "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.")
+      }
+
+      if (!data.user) {
+        throw new Error("Registrierung fehlgeschlagen: Kein Benutzer erstellt")
+      }
+
+      console.log("[v0] Signup successful, user created:", data.user.id)
+
+      // Check if user was created but email confirmation is required
+      if (data.user && !data.session) {
+        console.log("[v0] User created but no session - email confirmation required")
+        // Try to sign in immediately (works if email confirmation is disabled in Supabase)
+        try {
+          await signIn(email, password)
+          console.log("[v0] Auto sign-in successful after registration")
+          return { success: true }
+        } catch (signInError: any) {
+          console.log("[v0] Auto sign-in failed:", signInError.message)
+          // Registration was successful, but email confirmation is needed
+          return { 
+            success: true, 
+            needsEmailConfirmation: true,
+            message: "Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail-Adresse."
+          }
+        }
+      }
+
+      // If we have both user and session, we're good
+      if (data.user && data.session) {
+        console.log("[v0] User created with session, loading profile...")
+        setLoading(true)
+        await loadUserProfile(data.user)
+        return { success: true }
+      }
+
+      return { success: true }
     },
-    [signIn],
+    [signIn, loadUserProfile],
   )
 
   const signOut = useCallback(async () => {
@@ -381,16 +368,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await withRateLimit(async () => {
           const updateData = {
             name: data.name !== undefined ? data.name : user.name,
-            username: data.username !== undefined ? data.username : user.username,
-            anzeigename: data.anzeigename !== undefined ? data.anzeigename : user.anzeigename,
             email: data.email !== undefined ? data.email : user.email,
-            birth_date: data.birthDate !== undefined ? data.birthDate || null : user.birthDate || null,
-            phone: data.phone !== undefined ? data.phone : user.phone,
-            address: data.address !== undefined ? data.address : user.address,
-            location: data.location !== undefined ? data.location : user.location,
-            favorite_games: data.favoriteGames !== undefined ? data.favoriteGames : user.favoriteGames,
-            preferred_game_types:
-              data.preferredGameTypes !== undefined ? data.preferredGameTypes : user.preferredGameTypes,
             avatar: data.avatar !== undefined ? data.avatar : user.avatar,
             bio: data.bio !== undefined ? data.bio : user.bio,
             website: data.website !== undefined ? data.website : user.website,
@@ -585,6 +563,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe()
     }
   }, [loadUserProfile, user])
+
+  // Debug logging for loading state
+  console.log("[v0] AuthProvider state - loading:", loading, "user:", user?.email, "networkError:", networkError)
 
   const value = {
     user,
