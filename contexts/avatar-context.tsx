@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef, type ReactNode } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -17,6 +17,12 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
   const [avatarCache, setAvatarCache] = useState<Map<string, string>>(new Map())
   const { user } = useAuth()
   const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
+  const avatarCacheRef = useRef<Map<string, string>>(avatarCache)
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    avatarCacheRef.current = avatarCache
+  }, [avatarCache])
 
   useEffect(() => {
     try {
@@ -29,10 +35,6 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user?.id && user?.avatar) {
-      console.log("[v0] AvatarContext: Initializing cache with user avatar:", {
-        userId: user.id,
-        avatar: user.avatar,
-      })
       setAvatarCache((prev) => {
         const newCache = new Map(prev)
         newCache.set(user.id, user.avatar!)
@@ -55,7 +57,6 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
           filter: `avatar=not.is.null`,
         },
         (payload) => {
-          console.log("[v0] Avatar update received:", payload)
           const { id, avatar } = payload.new as { id: string; avatar: string }
           if (avatar) {
             setAvatarCache((prev) => new Map(prev.set(id, avatar)))
@@ -69,28 +70,21 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
     }
   }, [user, supabase])
 
-  const updateAvatar = (userId: string, avatarUrl: string) => {
-    console.log("[v0] AvatarContext: Updating avatar in cache:", { userId, avatarUrl })
+  const updateAvatar = useCallback((userId: string, avatarUrl: string) => {
     setAvatarCache((prev) => new Map(prev.set(userId, avatarUrl)))
-  }
+  }, [])
 
-  const getAvatar = (userId: string, fallbackEmail?: string) => {
-    const cachedAvatar = avatarCache.get(userId)
-    console.log("[v0] AvatarContext: Getting avatar:", {
-      userId,
-      cachedAvatar,
-      cacheSize: avatarCache.size,
-      cacheKeys: Array.from(avatarCache.keys()),
-    })
-
+  const getAvatar = useCallback((userId: string, fallbackEmail?: string) => {
+    // Use ref to avoid re-renders while still getting current cache
+    const cachedAvatar = avatarCacheRef.current.get(userId)
     if (cachedAvatar) return cachedAvatar
 
     // Generate fallback avatar
     const seed = fallbackEmail || userId
     return `https://api.dicebear.com/7.x/croodles/svg?seed=${encodeURIComponent(seed)}`
-  }
+  }, [])
 
-  const preloadAvatars = async (userIds: string[]) => {
+  const preloadAvatars = useCallback(async (userIds: string[]) => {
     if (!supabase || userIds.length === 0) return
 
     try {
@@ -115,14 +109,14 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("[v0] Error preloading avatars:", error)
     }
-  }
+  }, [supabase])
 
-  const value = {
+  const value = useMemo(() => ({
     avatarCache,
     updateAvatar,
     getAvatar,
     preloadAvatars,
-  }
+  }), [avatarCache, updateAvatar, getAvatar, preloadAvatars])
 
   return <AvatarContext.Provider value={value}>{children}</AvatarContext.Provider>
 }
