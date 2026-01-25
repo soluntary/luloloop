@@ -244,6 +244,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) {
           console.error("[v0] Signup error full object:", error)
 
+          // Handle email sending error - user might still be created
+          if (error.message?.includes("sending confirmation email") || error.message?.includes("email")) {
+            console.log("[v0] Email confirmation error - user may have been created, trying to sign in...")
+            // The user might have been created despite the email error
+            // Try to sign in directly
+            try {
+              await signIn(email, password)
+              console.log("[v0] Sign-in successful despite email error")
+              return
+            } catch (signInErr: any) {
+              console.log("[v0] Sign-in after email error failed:", signInErr.message)
+              // If sign-in fails with "Email not confirmed", the user exists but needs confirmation
+              if (signInErr.message?.includes("Email not confirmed")) {
+                throw new Error("Registrierung erfolgreich! E-Mail-Bestätigung ist erforderlich, aber der E-Mail-Versand ist momentan nicht verfügbar. Bitte kontaktieren Sie den Support.")
+              }
+              // If it's an invalid credentials error, try to create the profile manually
+              if (signInErr.message?.includes("Invalid login credentials")) {
+                throw new Error("Registrierung fehlgeschlagen. Bitte versuchen Sie es mit einer anderen E-Mail-Adresse.")
+              }
+            }
+          }
+
           if (error.status === 429 || error.code === "over_email_send_rate_limit") {
             throw new Error(
               "Diese E-Mail-Adresse hat das Limit für Registrierungsversuche erreicht. Bitte versuchen Sie es mit einer anderen E-Mail-Adresse oder warten Sie einige Minuten.",
