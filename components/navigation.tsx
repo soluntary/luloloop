@@ -32,7 +32,6 @@ import { GiGamepad } from "react-icons/gi"
 import { useAuth } from "@/contexts/auth-context"
 import { useAvatar } from "@/contexts/avatar-context"
 import { NotificationBell } from "@/components/notification-bell"
-import { GlobalSearch } from "@/components/global-search"
 
 interface NavigationProps {
   currentPage?: string
@@ -254,7 +253,6 @@ function Navigation({ currentPage }: NavigationProps) {
 
           {/* User Menu / Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <GlobalSearch />
             {user && <NotificationBell />}
 
             {user ? (
