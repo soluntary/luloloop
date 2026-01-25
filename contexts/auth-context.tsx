@@ -134,6 +134,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }, newUserProfile)
         } else {
           userProfile = existingUser
+          
+          // Check if name or username are missing and we have them in user_metadata
+          const metadataName = authUser.user_metadata?.name
+          const metadataUsername = authUser.user_metadata?.username
+          const needsUpdate = (!existingUser.name && metadataName) || (!existingUser.username && metadataUsername)
+          
+          if (needsUpdate) {
+            console.log("[v0] Updating user profile with missing name/username from metadata...")
+            const updateData: any = {}
+            if (!existingUser.name && metadataName) {
+              updateData.name = metadataName
+            }
+            if (!existingUser.username && metadataUsername) {
+              updateData.username = metadataUsername
+            }
+            
+            try {
+              const { data: updatedUser, error: updateError } = await supabase
+                .from("users")
+                .update(updateData)
+                .eq("id", authUser.id)
+                .select()
+                .single()
+              
+              if (!updateError && updatedUser) {
+                userProfile = updatedUser
+                console.log("[v0] User profile updated with name/username from metadata")
+              }
+            } catch (updateErr) {
+              console.error("[v0] Failed to update user profile with metadata:", updateErr)
+            }
+          }
         }
 
         console.log("[v0] User profile loaded successfully:", userProfile.name)
