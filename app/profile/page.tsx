@@ -1278,10 +1278,28 @@ const loadEventInstances = async (eventId: string) => {
 
         if (error) throw error
 
-        setProfile(data)
-        setEditedProfile(data || {})
+        // Use user from auth context as fallback for name and username
+        const profileData = {
+          ...data,
+          name: data?.name || user.name || "",
+          username: data?.username || user.username || "",
+        }
+
+        setProfile(profileData)
+        setEditedProfile(profileData || {})
       } catch (error) {
         console.error("Error loading profile:", error)
+        // Even on error, try to show user data from auth context
+        if (user) {
+          const fallbackProfile = {
+            id: user.id,
+            email: user.email,
+            name: user.name || "",
+            username: user.username || "",
+          }
+          setProfile(fallbackProfile)
+          setEditedProfile(fallbackProfile)
+        }
       } finally {
         setProfileLoading(false)
       }
