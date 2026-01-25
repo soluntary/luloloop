@@ -74,14 +74,10 @@ export default function LudoMitgliederPage() {
 
   useEffect(() => {
     loadLudoMembers()
-  }, [])
+  }, [user?.id])
 
   const loadLudoMembers = async () => {
     try {
-      console.log("[v0] Loading Ludo members, user object:", user)
-      console.log("[v0] User ID:", user?.id)
-      console.log("[v0] User ID type:", typeof user?.id)
-
       let query = supabase
         .from("users")
         .select(`
@@ -94,18 +90,15 @@ export default function LudoMitgliederPage() {
         `)
         .order("created_at", { ascending: false })
 
-      if (user && user.id && user.id.trim() !== "") {
-        console.log("[v0] Excluding current user:", user.id)
+      // Exclude current user from the list
+      if (user?.id) {
         query = query.neq("id", user.id)
-      } else {
-        console.log("[v0] No authenticated user or invalid user ID, showing all members")
       }
 
       const { data, error } = await query
 
       if (error) throw error
 
-      console.log("[v0] Loaded members:", data?.length || 0)
       setLudoMembers(data || [])
     } catch (error) {
       console.error("Error loading Ludo members:", error)
@@ -116,13 +109,10 @@ export default function LudoMitgliederPage() {
   }
 
   const handleSendFriendRequest = async (memberId: string) => {
-    console.log("[v0] MEMBERS: Button clicked for member:", memberId)
     setRequestStates((prev) => ({ ...prev, [memberId]: "sending" }))
 
     try {
-      console.log("[v0] MEMBERS: Calling sendFriendRequest for:", memberId)
       const result = await sendFriendRequest(memberId)
-      console.log("[v0] MEMBERS: sendFriendRequest result:", result)
 
       setRequestStates((prev) => {
         const newState = { ...prev }
@@ -136,7 +126,6 @@ export default function LudoMitgliederPage() {
         toast.success("Freundschaftsanfrage gesendet!")
       }
     } catch (error) {
-      console.error("[v0] MEMBERS: Error in handleSendFriendRequest:", error)
       setRequestStates((prev) => {
         const newState = { ...prev }
         delete newState[memberId]
@@ -152,18 +141,15 @@ export default function LudoMitgliederPage() {
   }
 
   const handleAcceptFriendRequest = async (memberId: string) => {
-    console.log("[v0] MEMBERS: Accept button clicked for member:", memberId)
     setRequestStates((prev) => ({ ...prev, [memberId]: "accepting" }))
 
     try {
       const request = pendingRequests?.find((req) => req.from_user_id === memberId)
-      console.log("[v0] MEMBERS: Found request for accept:", request)
 
       if (!request) {
         throw new Error("Keine ausstehende Freundschaftsanfrage gefunden")
       }
 
-      console.log("[v0] MEMBERS: Calling acceptFriendRequest for:", request.id)
       await acceptFriendRequest(request.id)
 
       setRequestStates((prev) => {
@@ -174,7 +160,6 @@ export default function LudoMitgliederPage() {
 
       toast.success("Freundschaftsanfrage angenommen!")
     } catch (error) {
-      console.error("[v0] MEMBERS: Error in handleAcceptFriendRequest:", error)
       setRequestStates((prev) => {
         const newState = { ...prev }
         delete newState[memberId]
@@ -190,18 +175,15 @@ export default function LudoMitgliederPage() {
   }
 
   const handleDeclineFriendRequest = async (memberId: string) => {
-    console.log("[v0] MEMBERS: Decline button clicked for member:", memberId)
     setRequestStates((prev) => ({ ...prev, [memberId]: "declining" }))
 
     try {
       const request = pendingRequests?.find((req) => req.from_user_id === memberId)
-      console.log("[v0] MEMBERS: Found request for decline:", request)
 
       if (!request) {
         throw new Error("Keine ausstehende Freundschaftsanfrage gefunden")
       }
 
-      console.log("[v0] MEMBERS: Calling declineFriendRequest for:", request.id)
       await declineFriendRequest(request.id)
 
       setRequestStates((prev) => {
@@ -212,7 +194,6 @@ export default function LudoMitgliederPage() {
 
       toast.success("Freundschaftsanfrage abgelehnt")
     } catch (error) {
-      console.error("[v0] MEMBERS: Error in handleDeclineFriendRequest:", error)
       setRequestStates((prev) => {
         const newState = { ...prev }
         delete newState[memberId]
@@ -260,17 +241,12 @@ export default function LudoMitgliederPage() {
       )
     }
 
-    console.log("[v0] Active filter:", filterTab)
-    console.log("[v0] Total members before filtering:", filtered.length)
-
     switch (filterTab) {
       case "sent":
         filtered = filtered.filter((member) => {
           const status = getFriendshipStatus(member.id)
-          console.log("[v0] Member", member.username, "status:", status)
           return status === "pending"
         })
-        console.log("[v0] Members after sent filter:", filtered.length)
         break
       case "requests":
         filtered = filtered.filter((member) => getFriendshipStatus(member.id) === "received")
@@ -290,22 +266,6 @@ export default function LudoMitgliederPage() {
   const renderFriendButton = (member: LudoMember) => {
     const status = getFriendshipStatus(member.id)
     const localState = requestStates[member.id]
-
-    console.log(`[v0] MEMBERS: Rendering button for ${member.username || member.name} (${member.id}):`, {
-      status,
-      localState,
-      sentRequestsCount: sentRequests?.length || 0,
-      hasSentRequest: sentRequests?.some((r) => r.to_user_id === member.id),
-      userAuthenticated: !!user?.id,
-      friendsCount: friends?.length || 0,
-      friendsLoading,
-      isFriend: friends?.some((friend) => friend.id === member.id),
-      friendsList: friends?.map((f) => ({ id: f.id, name: f.name })) || [],
-    })
-
-    if (status === "friends") {
-      console.log(`[v0] MEMBERS: Showing "befreundet" badge for ${member.username || member.name}`)
-    }
 
     if (!user?.id || friendsLoading) {
       return (
