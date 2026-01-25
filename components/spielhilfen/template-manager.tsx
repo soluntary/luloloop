@@ -226,7 +226,7 @@ export function TemplateManager({
         <Link href="/login">
           <Button variant="outline" size="sm" className="h-7 text-xs gap-1 bg-transparent">
             <LogIn className="w-3 h-3" />
-            Anmelden für Vorlagen
+            Anmelden, um eigene Vorlagen zu erstellen
           </Button>
         </Link>
       </div>
