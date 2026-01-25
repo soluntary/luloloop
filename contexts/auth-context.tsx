@@ -17,10 +17,16 @@ interface AuthUser {
   settings?: any
 }
 
+interface SignUpResult {
+  success: boolean
+  needsEmailConfirmation?: boolean
+  message?: string
+}
+
 interface AuthContextType {
   user: AuthUser | null
   loading: boolean
-  signUp: (email: string, password: string, name: string, username?: string) => Promise<void>
+  signUp: (email: string, password: string, name: string, username?: string) => Promise<SignUpResult>
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
@@ -213,114 +219,94 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const signUp = useCallback(
-    async (email: string, password: string, name: string, username?: string) => {
+    async (email: string, password: string, name: string, username?: string): Promise<SignUpResult> => {
       const supabase = supabaseRef.current
       if (!supabase) throw new Error("Supabase client not available")
 
       console.log("[v0] Starting signup process for:", email)
-      console.log("[v0] Supabase URL configured:", !!process.env.NEXT_PUBLIC_SUPABASE_URL)
 
+      let response
       try {
-        console.log("[v0] Calling supabase.auth.signUp...")
-        
-        let response
-        try {
-          response = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              data: { name: name },
-            },
-          })
-        } catch (networkErr: any) {
-          console.error("[v0] Network error during signup:", networkErr)
-          throw new Error("Netzwerkfehler bei der Registrierung. Bitte überprüfen Sie Ihre Internetverbindung.")
-        }
-
-        const { data, error } = response
-        
-        console.log("[v0] Signup response received:", {
-          hasData: !!data,
-          hasUser: !!data?.user,
-          userId: data?.user?.id,
-          userEmail: data?.user?.email,
-          hasSession: !!data?.session,
-          identitiesCount: data?.user?.identities?.length,
+        response = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { name: name },
+          },
         })
-
-        // Check if user already exists (identities array is empty)
-        if (data?.user && data?.user?.identities?.length === 0) {
-          console.log("[v0] User already exists (empty identities)")
-          throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits. Bitte melden Sie sich an.")
-        }
-
-        if (error) {
-          console.error("[v0] Signup error:", error)
-          const errMsg = (error.message || "").toLowerCase()
-          const errCode = error.code || ""
-
-          if (errMsg.includes("sending") || errMsg.includes("smtp") || errMsg.includes("confirmation email")) {
-            throw new Error("E-Mail-Bestätigung konnte nicht gesendet werden. Bitte kontaktieren Sie den Support.")
-          }
-
-          if (error.status === 429 || errCode === "over_email_send_rate_limit") {
-            throw new Error("Zu viele Versuche. Bitte warten Sie einige Minuten.")
-          }
-
-          if (errMsg.includes("already registered") || errMsg.includes("already been registered")) {
-            throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits.")
-          }
-
-          if (errMsg.includes("invalid email")) {
-            throw new Error("Ungültige E-Mail-Adresse.")
-          }
-
-          if (errMsg.includes("password")) {
-            throw new Error("Das Passwort muss mindestens 6 Zeichen lang sein.")
-          }
-
-          throw new Error(error.message || "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.")
-        }
-
-        // No error case
-        if (!data.user) {
-          console.log("[v0] No user returned from signup despite no error")
-          throw new Error("Registrierung fehlgeschlagen: Kein Benutzer erstellt")
-        }
-
-        console.log("[v0] Signup successful, user created:", data.user.id)
-
-        // Check if user was created but email confirmation is required
-        if (data.user && !data.session) {
-          console.log("[v0] User created but no session - email confirmation may be required")
-          // Try to sign in immediately (works if email confirmation is disabled)
-          try {
-            await signIn(email, password)
-            console.log("[v0] Auto sign-in successful after registration")
-            return
-          } catch (signInError: any) {
-            console.log("[v0] Auto sign-in failed:", signInError.message)
-            // If sign-in fails because email not confirmed, that's expected
-            if (signInError.message?.includes("Email not confirmed")) {
-              throw new Error("Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail-Adresse.")
-            }
-            // Registration was successful, user just needs to sign in
-            throw new Error("Registrierung erfolgreich! Bitte melden Sie sich jetzt an.")
-          }
-        }
-
-        // If we have both user and session, we're good
-        if (data.user && data.session) {
-          console.log("[v0] User created with session, loading profile...")
-          setLoading(true)
-          await loadUserProfile(data.user)
-        }
-      } catch (error: any) {
-        console.error("[v0] Signup process failed:", error)
-        console.error("[v0] Error type:", typeof error)
-        console.error("[v0] Error constructor:", error?.constructor?.name)
-        throw error
+      } catch (networkErr: any) {
+        console.error("[v0] Network error during signup:", networkErr)
+        throw new Error("Netzwerkfehler bei der Registrierung. Bitte überprüfen Sie Ihre Internetverbindung.")
       }
+
+      const { data, error } = response
+
+      // Check if user already exists (identities array is empty)
+      if (data?.user && data?.user?.identities?.length === 0) {
+        throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits. Bitte melden Sie sich an.")
+      }
+
+      if (error) {
+        console.error("[v0] Signup error:", error.message)
+        const errMsg = (error.message || "").toLowerCase()
+
+        if (errMsg.includes("sending") || errMsg.includes("smtp") || errMsg.includes("confirmation email")) {
+          throw new Error("E-Mail-Bestätigung konnte nicht gesendet werden. Bitte kontaktieren Sie den Support.")
+        }
+
+        if (error.status === 429 || error.code === "over_email_send_rate_limit") {
+          throw new Error("Zu viele Versuche. Bitte warten Sie einige Minuten.")
+        }
+
+        if (errMsg.includes("already registered") || errMsg.includes("already been registered")) {
+          throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits.")
+        }
+
+        if (errMsg.includes("invalid email")) {
+          throw new Error("Ungültige E-Mail-Adresse.")
+        }
+
+        if (errMsg.includes("password")) {
+          throw new Error("Das Passwort muss mindestens 6 Zeichen lang sein.")
+        }
+
+        throw new Error(error.message || "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.")
+      }
+
+      if (!data.user) {
+        throw new Error("Registrierung fehlgeschlagen: Kein Benutzer erstellt")
+      }
+
+      console.log("[v0] Signup successful, user created:", data.user.id)
+
+      // Check if user was created but email confirmation is required
+      if (data.user && !data.session) {
+        console.log("[v0] User created but no session - email confirmation required")
+        // Try to sign in immediately (works if email confirmation is disabled in Supabase)
+        try {
+          await signIn(email, password)
+          console.log("[v0] Auto sign-in successful after registration")
+          return { success: true }
+        } catch (signInError: any) {
+          console.log("[v0] Auto sign-in failed:", signInError.message)
+          // Registration was successful, but email confirmation is needed
+          return { 
+            success: true, 
+            needsEmailConfirmation: true,
+            message: "Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail-Adresse."
+          }
+        }
+      }
+
+      // If we have both user and session, we're good
+      if (data.user && data.session) {
+        console.log("[v0] User created with session, loading profile...")
+        setLoading(true)
+        await loadUserProfile(data.user)
+        return { success: true }
+      }
+
+      return { success: true }
     },
     [signIn, loadUserProfile],
   )
