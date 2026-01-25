@@ -411,12 +411,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (initializedRef.current) return
     initializedRef.current = true
 
+    // Safety timeout - ensure loading state doesn't stay forever
+    const safetyTimeout = setTimeout(() => {
+      if (loading) {
+        console.log("[v0] Safety timeout reached, setting loading to false")
+        setLoading(false)
+      }
+    }, 5000)
+
     try {
       supabaseRef.current = createClient()
     } catch (error) {
       console.error("[v0] Failed to create Supabase client:", error)
       setLoading(false)
       setNetworkError(true)
+      clearTimeout(safetyTimeout)
       return
     }
 
@@ -485,6 +494,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error("Auth state change error:", error)
+        setLoading(false)
         if (isNetworkError(error)) {
           setNetworkError(true)
         }
@@ -499,10 +509,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       while (attempts < maxAttempts && isMounted) {
         try {
+          console.log("[v0] initializeAuth attempt", attempts + 1)
           const {
             data: { session },
             error,
           } = await supabase.auth.getSession()
+
+          console.log("[v0] getSession result - session:", !!session, "error:", error?.message)
 
           if (!isMounted) return
 
@@ -524,8 +537,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           if (session?.user) {
+            console.log("[v0] Session found, loading user profile")
             await loadUserProfile(session.user)
           } else {
+            console.log("[v0] No session found, setting user to null")
             if (isMounted) {
               setUser(null)
               setLoading(false)
@@ -560,6 +575,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isMounted = false
+      clearTimeout(safetyTimeout)
       subscription.unsubscribe()
     }
   }, [loadUserProfile, user])
