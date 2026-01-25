@@ -233,7 +233,7 @@ export default function LudoMitgliederPage() {
       return
     }
 
-    const avatarUrl = getAvatar(member.id, member.name)
+    const avatarUrl = member.avatar || getAvatar(member.id, member.name)
 
     setMessageRecipient({
       id: member.id,
@@ -510,7 +510,7 @@ export default function LudoMitgliederPage() {
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3 mb-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={getAvatar(member.id, member.name) || "/placeholder.svg"} />
+                          <AvatarImage src={member.avatar || getAvatar(member.id, member.name) || "/placeholder.svg"} />
                           <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-400 text-white">
                             {member.username?.[0]?.toUpperCase() || member.name?.[0]?.toUpperCase()}
                           </AvatarFallback>
@@ -589,7 +589,7 @@ export default function LudoMitgliederPage() {
                 <div className="h-16 bg-gradient-to-r from-teal-50 to-cyan-50 relative">
                   <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
                     <Avatar className="h-16 w-16 border-4 border-white shadow-sm">
-                      <AvatarImage src={getAvatar(member.id, member.name) || "/placeholder.svg"} />
+                      <AvatarImage src={member.avatar || getAvatar(member.id, member.name) || "/placeholder.svg"} />
                       <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-400 text-white text-lg">
                         {member.username?.[0]?.toUpperCase() || member.name?.[0]?.toUpperCase()}
                       </AvatarFallback>

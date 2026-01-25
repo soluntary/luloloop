@@ -9,6 +9,7 @@ interface AuthUser {
   id: string
   email: string
   name: string
+  username?: string
   avatar?: string
   bio?: string
   website?: string
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: authUser.id,
         email: authUser.email || "",
         name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+        username: authUser.user_metadata?.username || null,
       }
       setUser(fallbackProfile)
       setLoading(false)
@@ -107,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: authUser.id,
             email: authUser.email || "",
             name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+            username: authUser.user_metadata?.username || null,
             avatar: authUser.user_metadata?.avatar_url || null,
             bio: null,
             website: null,
@@ -156,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: authUser.id,
           email: authUser.email || "",
           name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+          username: authUser.user_metadata?.username || null,
         }
 
         setUser(fallbackProfile)
@@ -231,7 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email,
           password,
           options: {
-            data: { name: name },
+            data: { name: name, username: username },
           },
         })
       } catch (networkErr: any) {
@@ -408,28 +412,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    console.log("[v0] useEffect starting, initializedRef:", initializedRef.current)
-    
     if (initializedRef.current) {
-      console.log("[v0] Already initialized, returning early")
       return
     }
     initializedRef.current = true
 
-    console.log("[v0] Setting up auth initialization...")
-
     // Safety timeout - ensure loading state doesn't stay forever
     const safetyTimeout = setTimeout(() => {
-      console.log("[v0] Safety timeout reached, forcing loading to false")
       setLoading(false)
-    }, 3000) // Reduced to 3 seconds
+    }, 3000)
 
     let supabase: ReturnType<typeof createClient>
     try {
-      console.log("[v0] Creating Supabase client...")
       supabase = createClient()
       supabaseRef.current = supabase
-      console.log("[v0] Supabase client created successfully")
     } catch (error) {
       console.error("[v0] Failed to create Supabase client:", error)
       setLoading(false)
@@ -442,10 +438,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       try {
-        console.log("[v0] Auth state change:", event, session?.user?.id)
-
         if (event === "SIGNED_OUT") {
-          console.log("[v0] Explicit sign out detected")
           wasAuthenticatedRef.current = false
           lastUserIdRef.current = null
           setUser(null)
@@ -456,7 +449,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!session?.user) {
           if (wasAuthenticatedRef.current && lastUserIdRef.current) {
-            console.log("[v0] Session temporarily null, keeping user state")
             return
           }
           setUser(null)
@@ -467,7 +459,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (event === "INITIAL_SESSION" && session?.user) {
           if (lastUserIdRef.current === session.user.id && user) {
-            console.log("[v0] INITIAL_SESSION for same user, skipping reload")
             setLoading(false)
             return
           }
@@ -478,7 +469,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (event === "SIGNED_IN" && session?.user) {
           if (lastUserIdRef.current === session.user.id && user) {
-            console.log("[v0] SIGNED_IN for same user, skipping reload")
             setLoading(false)
             return
           }
@@ -494,9 +484,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
-          if (session?.user && lastUserIdRef.current === session.user.id) {
-            console.log("[v0] Token refreshed/user updated, session still valid")
-          }
           return
         }
       } catch (error) {
@@ -516,18 +503,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       while (attempts < maxAttempts && isMounted) {
         try {
-          console.log("[v0] initializeAuth attempt", attempts + 1)
           const {
             data: { session },
             error,
           } = await supabase.auth.getSession()
 
-          console.log("[v0] getSession result - session:", !!session, "error:", error?.message)
-
           if (!isMounted) return
 
           if (error) {
-            // Ignore abort errors - they're expected during unmount
             if (error.message?.includes("aborted") || error.message?.includes("signal")) {
               return
             }
@@ -536,7 +519,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               await delay(1000 * attempts)
               continue
             }
-            console.error("[v0] Auth session error:", error)
             setUser(null)
             setLoading(false)
             setNetworkError(true)
@@ -544,10 +526,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           if (session?.user) {
-            console.log("[v0] Session found, loading user profile")
             await loadUserProfile(session.user)
           } else {
-            console.log("[v0] No session found, setting user to null")
             if (isMounted) {
               setUser(null)
               setLoading(false)
@@ -555,12 +535,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           return
         } catch (error: any) {
-          // Ignore abort errors - they're expected during unmount
           if (error?.message?.includes("aborted") || error?.message?.includes("signal")) {
             return
           }
           attempts++
-          console.error(`Auth initialization error (attempt ${attempts}):`, error)
 
           if (isNetworkError(error) && attempts < maxAttempts) {
             setNetworkError(true)
@@ -586,9 +564,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe()
     }
   }, [loadUserProfile, user])
-
-  // Debug logging for loading state
-  console.log("[v0] AuthProvider state - loading:", loading, "user:", user?.email, "networkError:", networkError)
 
   const value = {
     user,
