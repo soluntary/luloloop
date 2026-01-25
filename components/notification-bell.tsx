@@ -96,7 +96,7 @@ export function NotificationBell() {
         return
       }
 
-      const unread = notificationsData?.filter((n) => !n.is_read).length || 0
+      const unread = notificationsData?.filter((n) => !n.read).length || 0
 
       setNotifications(notificationsData || [])
       setUnreadCount(unread)
@@ -107,9 +107,9 @@ export function NotificationBell() {
   }
 
   const handleNotificationClick = async (notification: any) => {
-    if (!notification.is_read) {
+    if (!notification.read) {
       const supabase = createClient()
-      await supabase.from("notifications").update({ is_read: true }).eq("id", notification.id)
+      await supabase.from("notifications").update({ read: true }).eq("id", notification.id)
     }
 
     // Navigate based on type
@@ -180,9 +180,9 @@ export function NotificationBell() {
     if (user) {
       const { error } = await supabase
         .from("notifications")
-        .update({ is_read: true })
+        .update({ read: true })
         .eq("user_id", user.id)
-        .eq("is_read", false)
+        .eq("read", false)
 
       if (error) {
         toast.error("Fehler beim Markieren")
@@ -336,7 +336,7 @@ export function NotificationBell() {
                 return (
                   <div
                     key={notification.id}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${!notification.is_read ? "bg-blue-50" : ""}`}
+                    className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${!notification.read ? "bg-blue-50" : ""}`}
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex gap-3 w-full">
