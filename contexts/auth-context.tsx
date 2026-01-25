@@ -218,8 +218,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!supabase) throw new Error("Supabase client not available")
 
       console.log("[v0] Starting signup process for:", email)
+      console.log("[v0] Supabase URL configured:", !!process.env.NEXT_PUBLIC_SUPABASE_URL)
 
       try {
+        console.log("[v0] Calling supabase.auth.signUp...")
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -228,33 +230,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           },
         })
 
-        console.log("[v0] Signup response - user:", data?.user?.id, "session:", !!data?.session, "error:", error?.message, "code:", error?.code, "status:", error?.status)
+        console.log("[v0] Signup raw response:", { 
+          hasData: !!data, 
+          hasUser: !!data?.user, 
+          userId: data?.user?.id,
+          hasSession: !!data?.session,
+          errorMessage: error?.message,
+          errorCode: error?.code,
+          errorStatus: error?.status,
+          errorName: error?.name
+        })
 
         if (error) {
-          console.error("[v0] Signup error details:", JSON.stringify(error, null, 2))
+          console.error("[v0] Signup error full object:", error)
 
-          if (error.status === 429 && error.code === "over_email_send_rate_limit") {
+          if (error.status === 429 || error.code === "over_email_send_rate_limit") {
             throw new Error(
               "Diese E-Mail-Adresse hat das Limit für Registrierungsversuche erreicht. Bitte versuchen Sie es mit einer anderen E-Mail-Adresse oder warten Sie einige Minuten.",
             )
           }
 
-          if (error.message?.includes("User already registered")) {
+          if (error.message?.includes("User already registered") || error.message?.includes("already been registered")) {
             throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits.")
           }
 
-          if (error.message?.includes("Invalid email")) {
+          if (error.message?.includes("Invalid email") || error.message?.includes("invalid email")) {
             throw new Error("Ungültige E-Mail-Adresse.")
           }
 
-          if (error.message?.includes("Password")) {
-            throw new Error("Das Passwort entspricht nicht den Anforderungen.")
+          if (error.message?.includes("Password") || error.message?.includes("password")) {
+            throw new Error("Das Passwort entspricht nicht den Anforderungen (mindestens 6 Zeichen).")
           }
 
-          throw new Error(`Registrierung fehlgeschlagen: ${error.message}`)
+          // For any other error, show the actual message for debugging
+          const errorMsg = error.message || error.code || "Unknown error"
+          throw new Error(`Registrierung fehlgeschlagen: ${errorMsg}`)
         }
 
-        console.log("[v0] Signup successful, user created:", data.user?.id)
+        // No error case
+        if (!data.user) {
+          console.log("[v0] No user returned from signup despite no error")
+          throw new Error("Registrierung fehlgeschlagen: Kein Benutzer erstellt")
+        }
+
+        console.log("[v0] Signup successful, user created:", data.user.id)
 
         // Check if user was created but email confirmation is required
         if (data.user && !data.session) {
@@ -270,7 +289,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (signInError.message?.includes("Email not confirmed")) {
               throw new Error("Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail-Adresse.")
             }
-            throw new Error("Registrierung erfolgreich! Bitte versuchen Sie sich anzumelden.")
+            // Registration was successful, user just needs to sign in
+            throw new Error("Registrierung erfolgreich! Bitte melden Sie sich jetzt an.")
           }
         }
 
@@ -281,7 +301,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await loadUserProfile(data.user)
         }
       } catch (error: any) {
-        console.error("[v0] Signup process failed:", error.message)
+        console.error("[v0] Signup process failed:", error)
+        console.error("[v0] Error type:", typeof error)
+        console.error("[v0] Error constructor:", error?.constructor?.name)
         throw error
       }
     },
