@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,13 +23,14 @@ export default function LoginPage() {
 
   const { user, loading: authLoading, signIn } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectUrl = searchParams.get("redirect") || "/"
 
   useEffect(() => {
     if (user && !authLoading) {
-      console.log("[v0] User authenticated, redirecting to home")
-      router.replace("/")
+      router.replace(redirectUrl)
     }
-  }, [user, authLoading, router])
+  }, [user, authLoading, router, redirectUrl])
 
   if (authLoading) {
     return (
@@ -55,12 +56,9 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      console.log("[v0] Using auth context signIn for:", email)
       await signIn(email, password)
-      console.log("[v0] SignIn completed, redirecting...")
-      router.replace("/")
+      router.replace(redirectUrl)
     } catch (error: any) {
-      console.log("[v0] SignIn failed:", error.message)
       setError(error.message || "Anmeldung fehlgeschlagen.")
     } finally {
       setLoading(false)
