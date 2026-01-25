@@ -9,14 +9,6 @@ interface AuthUser {
   id: string
   email: string
   name: string
-  username?: string
-  anzeigename?: string
-  birthDate?: string
-  phone?: string
-  address?: string
-  location?: string
-  favoriteGames?: string[]
-  preferredGameTypes?: string[]
   avatar?: string
   bio?: string
   website?: string
@@ -80,7 +72,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: authUser.id,
         email: authUser.email || "",
         name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-        username: authUser.user_metadata?.username,
       }
       setUser(fallbackProfile)
       setLoading(false)
@@ -110,15 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: authUser.id,
             email: authUser.email || "",
             name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-            username: authUser.user_metadata?.username,
-            anzeigename: null,
-            birthDate: null,
-            phone: null,
-            address: null,
-            location: null,
-            favoriteGames: [],
-            preferredGameTypes: [],
-            avatar: authUser.user_metadata?.avatar_url,
+            avatar: authUser.user_metadata?.avatar_url || null,
             bio: null,
             website: null,
             twitter: null,
@@ -167,7 +150,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: authUser.id,
           email: authUser.email || "",
           name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-          username: authUser.user_metadata?.username,
         }
 
         setUser(fallbackProfile)
@@ -381,16 +363,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await withRateLimit(async () => {
           const updateData = {
             name: data.name !== undefined ? data.name : user.name,
-            username: data.username !== undefined ? data.username : user.username,
-            anzeigename: data.anzeigename !== undefined ? data.anzeigename : user.anzeigename,
             email: data.email !== undefined ? data.email : user.email,
-            birth_date: data.birthDate !== undefined ? data.birthDate || null : user.birthDate || null,
-            phone: data.phone !== undefined ? data.phone : user.phone,
-            address: data.address !== undefined ? data.address : user.address,
-            location: data.location !== undefined ? data.location : user.location,
-            favorite_games: data.favoriteGames !== undefined ? data.favoriteGames : user.favoriteGames,
-            preferred_game_types:
-              data.preferredGameTypes !== undefined ? data.preferredGameTypes : user.preferredGameTypes,
             avatar: data.avatar !== undefined ? data.avatar : user.avatar,
             bio: data.bio !== undefined ? data.bio : user.bio,
             website: data.website !== undefined ? data.website : user.website,
