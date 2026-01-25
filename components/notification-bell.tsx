@@ -26,7 +26,10 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    loadNotifications()
+    // Delay initial load slightly to ensure auth is ready
+    const timeoutId = setTimeout(() => {
+      loadNotifications()
+    }, 100)
 
     const supabase = createClient()
 
@@ -40,9 +43,7 @@ export function NotificationBell() {
           table: "notifications",
         },
         (payload) => {
-          loadNotifications().catch((err) => {
-            // Silently handle realtime subscription errors
-          })
+          loadNotifications()
 
           // Show toast for new notification
           if (payload.new) {
@@ -57,15 +58,14 @@ export function NotificationBell() {
           schema: "public",
           table: "notifications",
         },
-        (payload) => {
-          loadNotifications().catch((err) => {
-            // Silently handle realtime subscription errors
-          })
+        () => {
+          loadNotifications()
         },
       )
       .subscribe()
 
     return () => {
+      clearTimeout(timeoutId)
       channel.unsubscribe()
     }
   }, [])
@@ -76,9 +76,11 @@ export function NotificationBell() {
 
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser()
 
-      if (!user) {
+      if (authError || !user) {
+        // User not logged in or auth error - silently return
         return
       }
 
@@ -90,23 +92,24 @@ export function NotificationBell() {
         .limit(50)
 
       if (error) {
-        console.error("NotificationBell: Error loading notifications:", error)
+        // Silently handle - notifications are non-critical
         return
       }
 
-      const unread = notificationsData?.filter((n) => !n.is_read).length || 0
+      const unread = notificationsData?.filter((n) => !n.read).length || 0
 
       setNotifications(notificationsData || [])
       setUnreadCount(unread)
     } catch (error) {
-      console.error("NotificationBell: Error loading notifications:", error)
+      // Silently handle fetch errors - notifications are non-critical
+      // This prevents "Failed to fetch" errors from showing in console
     }
   }
 
   const handleNotificationClick = async (notification: any) => {
-    if (!notification.is_read) {
+    if (!notification.read) {
       const supabase = createClient()
-      await supabase.from("notifications").update({ is_read: true }).eq("id", notification.id)
+      await supabase.from("notifications").update({ read: true }).eq("id", notification.id)
     }
 
     // Navigate based on type
@@ -126,7 +129,18 @@ export function NotificationBell() {
         break
       case "message":
       case "new_message":
-        window.location.href = "/messages"
+      case "message_group":
+      case "message_event":
+      case "message_search_ad":
+      case "message_offer":
+        // Navigate to messages with specific conversation if available
+        if (notification.data?.conversation_id) {
+          window.location.href = `/messages?conversation=${notification.data.conversation_id}`
+        } else if (notification.data?.sender_id) {
+          window.location.href = `/messages?user=${notification.data.sender_id}`
+        } else {
+          window.location.href = "/messages"
+        }
         break
       case "friend_request":
       case "friend_accepted":
@@ -166,9 +180,9 @@ export function NotificationBell() {
     if (user) {
       const { error } = await supabase
         .from("notifications")
-        .update({ is_read: true })
+        .update({ read: true })
         .eq("user_id", user.id)
-        .eq("is_read", false)
+        .eq("read", false)
 
       if (error) {
         toast.error("Fehler beim Markieren")
@@ -322,7 +336,7 @@ export function NotificationBell() {
                 return (
                   <div
                     key={notification.id}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${!notification.is_read ? "bg-blue-50" : ""}`}
+                    className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${!notification.read ? "bg-blue-50" : ""}`}
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex gap-3 w-full">

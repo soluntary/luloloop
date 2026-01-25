@@ -13,6 +13,7 @@ import { IoLibrary } from "react-icons/io5"
 import { useAuth } from "@/contexts/auth-context"
 import { useGames } from "@/contexts/games-context"
 import { createClient } from "@/lib/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { GameSearchDialog } from "@/components/game-search-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -21,11 +22,22 @@ interface CreateSearchAdFormProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  editMode?: boolean
+  editData?: {
+    id: string
+    title: string
+    description: string
+    type: string
+    rental_duration?: string
+    max_price?: number
+    trade_game_title?: string
+  } | null
 }
 
-export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchAdFormProps) {
+export function CreateSearchAdForm({ isOpen, onClose, onSuccess, editMode = false, editData = null }: CreateSearchAdFormProps) {
   const { user } = useAuth()
   const { games } = useGames()
+  const { toast } = useToast()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [type, setType] = useState("")
@@ -51,8 +63,22 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
   useEffect(() => {
     if (isOpen) {
       setErrors({})
+      
+      // Populate form with edit data if in edit mode
+      if (editMode && editData) {
+        setTitle(editData.title || "")
+        setDescription(editData.description || "")
+        setType(editData.type || "")
+        setRentalDuration(editData.rental_duration === "Flexibel" ? "" : (editData.rental_duration || ""))
+        setIsFlexibleRental(editData.rental_duration === "Flexibel")
+        setMaxPrice(editData.max_price?.toString() || "")
+        if (editData.trade_game_title) {
+          setTradeGameTitle(editData.trade_game_title)
+          setTradeGameSelectionMethod("manual")
+        }
+      }
     }
-  }, [isOpen, games])
+  }, [isOpen, games, editMode, editData])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -105,7 +131,7 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
     }
 
     if (!user) {
-      alert("Du musst angemeldet sein, um eine Suchanzeige zu erstellen.")
+      toast({ title: "Anmeldung erforderlich", description: "Du musst angemeldet sein, um eine Suchanzeige zu erstellen.", variant: "destructive" })
       return
     }
 
@@ -123,21 +149,50 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
         }
       }
 
-      const { error } = await supabase.from("search_ads").insert({
+      const adData = {
         title: title.trim(),
         description: description.trim() || null,
         type: type,
         rental_duration: finalRentalDuration,
         max_price: type === "buy" && maxPrice ? Number.parseFloat(maxPrice) : null,
         trade_game_title: finalTradeGameTitle,
-        user_id: user.id,
-      })
+        updated_at: new Date().toISOString(),
+      }
+
+      let error
+      if (editMode && editData?.id) {
+        // Update existing search ad
+        const result = await supabase
+          .from("search_ads")
+          .update(adData)
+          .eq("id", editData.id)
+        error = result.error
+      } else {
+        // Create new search ad
+        const result = await supabase.from("search_ads").insert({
+          ...adData,
+          user_id: user.id,
+        })
+        error = result.error
+      }
 
       if (error) {
-        console.error("Error creating search ad:", error)
-        alert(`Fehler beim Erstellen der Suchanzeige: ${error.message}`)
+        console.error("Error saving search ad:", error)
+        toast({
+          title: "Fehler",
+          description: `Fehler beim ${editMode ? "Aktualisieren" : "Erstellen"} der Suchanzeige: ${error.message}`,
+          variant: "destructive",
+        })
         return
       }
+
+      // Show success toast
+      toast({
+        title: editMode ? "Suchanzeige aktualisiert" : "Suchanzeige erstellt",
+        description: editMode 
+          ? "Deine Änderungen wurden erfolgreich gespeichert."
+          : "Deine Suchanzeige wurde erfolgreich erstellt.",
+      })
 
       setTitle("")
       setDescription("")
@@ -156,7 +211,11 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
       onClose()
     } catch (error) {
       console.error("Error creating search ad:", error)
-      alert("Fehler beim Erstellen der Suchanzeige. Bitte versuche es erneut.")
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Erstellen der Suchanzeige. Bitte versuche es erneut.",
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -183,8 +242,12 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-gray-200">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 -m-6 mb-6 z-10">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">Suchanzeige erstellen</DialogTitle>
-            <p className="text-sm text-gray-600">Teile der Community mit, welches Spiel du suchst</p>
+            <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">
+              {editMode ? "Suchanzeige bearbeiten" : "Suchanzeige erstellen"}
+            </DialogTitle>
+            <p className="text-sm text-gray-600">
+              {editMode ? "Bearbeite deine Suchanzeige" : "Teile der Community mit, welches Spiel du suchst"}
+            </p>
           </DialogHeader>
         </div>
 
@@ -481,12 +544,12 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess }: CreateSearchA
                   {isSubmitting ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Wird erstellt...
+                      {editMode ? "Wird gespeichert..." : "Wird erstellt..."}
                     </>
                   ) : (
                     <>
                       <FaSearch className="w-4 h-4 mr-2" />
-                      Suchanzeige erstellen
+                      {editMode ? "Änderungen speichern" : "Suchanzeige erstellen"}
                     </>
                   )}
                 </Button>

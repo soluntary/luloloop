@@ -219,8 +219,17 @@ export default function NotificationDropdown({ className }: NotificationDropdown
 
       setNotifications([])
       setUnreadCount(0)
+      toast({
+        title: "Benachrichtigungen",
+        description: "Alle Benachrichtigungen wurden als gelesen markiert.",
+      })
     } catch (error) {
       console.error("Error marking all notifications as read:", error)
+      toast({
+        title: "Fehler",
+        description: "Benachrichtigungen konnten nicht als gelesen markiert werden.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -248,14 +257,32 @@ export default function NotificationDropdown({ className }: NotificationDropdown
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id)
 
+    // Extract related_id from data if available
+    const relatedId = notification.data?.related_id || notification.data?.post_id || notification.data?.thread_id
+
     switch (notification.type) {
       case "friend_request":
-        window.location.href = "/ludo-mitglieder"
+        // Go to Mitglieder page where friend requests are shown
+        if (notification.data?.from_user_id) {
+          window.location.href = `/ludo-mitglieder?user=${notification.data.from_user_id}`
+        } else {
+          window.location.href = "/ludo-mitglieder"
+        }
+        break
+      case "friend_accepted":
+        // Go to the profile of the user who accepted
+        if (notification.data?.from_user_id) {
+          window.location.href = `/ludo-mitglieder?user=${notification.data.from_user_id}`
+        } else {
+          window.location.href = "/ludo-mitglieder"
+        }
         break
       case "forum_reply":
       case "comment_reply":
-        if (notification.related_id) {
-          window.location.href = `/ludo-forum/${notification.related_id}`
+        if (relatedId) {
+          window.location.href = `/ludo-forum/${relatedId}`
+        } else if (notification.data?.forum_post_id) {
+          window.location.href = `/ludo-forum/${notification.data.forum_post_id}`
         } else {
           window.location.href = "/ludo-forum"
         }
@@ -264,7 +291,16 @@ export default function NotificationDropdown({ className }: NotificationDropdown
         window.location.href = "/library"
         break
       case "message":
-        window.location.href = "/messages"
+        // Navigate to messages with specific conversation if available
+        if (notification.data?.conversation_id) {
+          window.location.href = `/messages?conversation=${notification.data.conversation_id}`
+        } else if (notification.data?.sender_id) {
+          window.location.href = `/messages?user=${notification.data.sender_id}`
+        } else if (notification.data?.from_user_id) {
+          window.location.href = `/messages?user=${notification.data.from_user_id}`
+        } else {
+          window.location.href = "/messages"
+        }
         break
       case "event_invitation":
         setHighlightedEventId(notification.data?.event_id || null)
@@ -278,6 +314,12 @@ export default function NotificationDropdown({ className }: NotificationDropdown
         }
         break
       default:
+        // Fallback: try to use any available URL or related_id
+        if (notification.data?.url) {
+          window.location.href = notification.data.url
+        } else if (relatedId) {
+          window.location.href = `/profile/${relatedId}`
+        }
         break
     }
     setIsOpen(false)

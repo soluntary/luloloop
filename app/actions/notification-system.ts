@@ -551,14 +551,14 @@ export async function notifySystemFeature(
   return Promise.all(notifications)
 }
 
-export async function notifyNewMessage(userId: string, senderUsername: string, messagePreview: string) {
+export async function notifyNewMessage(userId: string, senderUsername: string, messagePreview: string, senderId?: string) {
   return createNotification({
     userId,
     type: "message" as NotificationType,
     title: "Neue Nachricht",
     message: `${senderUsername} hat dir eine Nachricht gesendet: ${messagePreview}`,
-    actionUrl: `/messages`,
-    data: { senderUsername, messagePreview },
+    actionUrl: senderId ? `/messages?user=${senderId}` : `/messages`,
+    data: { senderUsername, messagePreview, sender_id: senderId },
   })
 }
 

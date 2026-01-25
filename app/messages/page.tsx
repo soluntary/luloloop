@@ -9,8 +9,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { MessageCircle, Send, Search, ArrowLeft } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
+import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { de } from "date-fns/locale"
 
@@ -36,6 +37,7 @@ interface Conversation {
 
 export default function MessagesPage() {
   const { user, loading: authLoading } = useAuth()
+  const { toast } = useToast()
   const [messagesLoading, setMessagesLoading] = useState(true)
   const [messages, setMessages] = useState<Message[]>([])
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -43,7 +45,9 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [sending, setSending] = useState(false)
+  const [initialConversationSet, setInitialConversationSet] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -64,8 +68,8 @@ export default function MessagesPage() {
           .from("messages")
           .select(`
             *,
-            from_user:users!messages_from_user_id_fkey(id, name, avatar, username),
-            to_user:users!messages_to_user_id_fkey(id, name, avatar, username)
+            from_user:from_user_id(id, name, avatar, username),
+            to_user:to_user_id(id, name, avatar, username)
           `)
           .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
           .order("created_at", { ascending: false })
@@ -118,6 +122,81 @@ export default function MessagesPage() {
     }
   }, [user, authLoading])
 
+  // Handle URL parameters to select specific conversation
+  useEffect(() => {
+    if (initialConversationSet) return
+    if (messagesLoading) return
+    if (!user) return
+    
+    const conversationId = searchParams.get("conversation")
+    const userId = searchParams.get("user")
+    const recipientId = searchParams.get("recipientId") // Support for group messages
+    const context = searchParams.get("context") // Context info (e.g., group name)
+    
+    if (conversationId || userId || recipientId) {
+      const targetUserId = conversationId || userId || recipientId
+      
+      // If conversations are loaded, check if we have one with this user
+      const existingConversation = conversations.find(c => c.odtnerId === targetUserId)
+      if (existingConversation) {
+        setSelectedConversation(targetUserId)
+        setInitialConversationSet(true)
+        return
+      }
+      
+      // If no existing conversation found, try to load user info and create new conversation
+      if (targetUserId) {
+        // Load user info for this target user to show in the conversation list
+        const loadTargetUser = async () => {
+          try {
+            const { data: targetUser, error } = await supabase
+              .from("users")
+              .select("id, name, avatar, username")
+              .eq("id", targetUserId)
+              .single()
+            
+            if (targetUser && !error) {
+              // Add a temporary conversation for this user if not exists
+              const contextMessage = context 
+                ? `Nachricht bezüglich: ${context}`
+                : "Starte eine neue Unterhaltung..."
+              
+              setConversations(prev => {
+                const existingConv = prev.find(c => c.odtnerId === targetUserId)
+                if (existingConv) return prev
+                return [{
+                  odtnerId: targetUserId,
+                  partnerName: targetUser.username || targetUser.name || "Unbekannt",
+                  partnerAvatar: targetUser.avatar || "",
+                  lastMessage: contextMessage,
+                  lastMessageTime: new Date().toISOString(),
+                  unreadCount: 0,
+                }, ...prev]
+              })
+              setSelectedConversation(targetUserId)
+              setInitialConversationSet(true)
+              
+              // Pre-fill message input with context if available
+              if (context) {
+                setNewMessage(`Hallo! Ich schreibe dir bezüglich "${context}". `)
+              }
+            } else {
+              // Even if user not found, mark as set to prevent infinite loop
+              setInitialConversationSet(true)
+            }
+          } catch (err) {
+            console.error("[v0] Error loading target user:", err)
+            setInitialConversationSet(true)
+          }
+        }
+        loadTargetUser()
+      }
+    } else {
+      // No URL parameters, mark as set
+      setInitialConversationSet(true)
+    }
+  }, [conversations, searchParams, initialConversationSet, messagesLoading, supabase, user])
+
   useEffect(() => {
     if (messagesContainerRef.current && selectedConversation) {
       // Scroll instantly without animation
@@ -147,8 +226,8 @@ export default function MessagesPage() {
         })
         .select(`
           *,
-          from_user:users!messages_from_user_id_fkey(id, name, avatar, username),
-          to_user:users!messages_to_user_id_fkey(id, name, avatar, username)
+          from_user:from_user_id(id, name, avatar, username),
+          to_user:to_user_id(id, name, avatar, username)
         `)
         .single()
 
@@ -160,9 +239,20 @@ export default function MessagesPage() {
             messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
           }
         }, 0)
+      } else if (error) {
+        toast({
+          title: "Fehler",
+          description: "Nachricht konnte nicht gesendet werden.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Error sending message:", error)
+      toast({
+        title: "Fehler",
+        description: "Nachricht konnte nicht gesendet werden.",
+        variant: "destructive",
+      })
     } finally {
       setSending(false)
     }
@@ -315,7 +405,7 @@ export default function MessagesPage() {
                           "/placeholder.svg" ||
                           "/placeholder.svg" ||
                           "/placeholder.svg"
-                        }
+                         || "/placeholder.svg"}
                       />
                       <AvatarFallback className="bg-teal-100 text-teal-700 font-handwritten">
                         {conversations

@@ -512,7 +512,7 @@ function LibraryContent() {
 
   const handleConfirmBulkDelete = async () => {
     if (!databaseConnected || selectedGames.size === 0) {
-      alert("Fehler beim Löschen der Spiele!")
+      toast({ title: "Fehler", description: "Fehler beim Löschen der Spiele!", variant: "destructive" })
       return
     }
 
@@ -520,7 +520,7 @@ function LibraryContent() {
       const deletePromises = Array.from(selectedGames).map((gameId) => deleteGame(gameId))
       await Promise.all(deletePromises)
 
-      alert(`${selectedGames.size} Spiele wurden erfolgreich aus deiner Bibliothek entfernt!`)
+      toast({ title: "Spiele gelöscht", description: `${selectedGames.size} Spiele wurden erfolgreich aus deiner Bibliothek entfernt!` })
 
       // Clear selections and exit selection mode
       setSelectedGames(new Set())
@@ -529,7 +529,7 @@ function LibraryContent() {
       setIsBulkDeleteDialogOpen(false)
     } catch (error) {
       console.error("Error deleting games:", error)
-      alert("Fehler beim Löschen der Spiele!")
+      toast({ title: "Fehler", description: "Fehler beim Löschen der Spiele!", variant: "destructive" })
     }
   }
 
@@ -741,7 +741,7 @@ function LibraryContent() {
 
   const handleOfferGame = (game: (typeof games)[0], type: string) => {
     if (!databaseConnected) {
-      alert("Datenbank ist nicht verfügbar. Bitte führe zuerst die SQL-Skripte aus.")
+      toast({ title: "Fehler", description: "Datenbank ist nicht verfügbar. Bitte führe zuerst die SQL-Skripte aus.", variant: "destructive" })
       return
     }
 
@@ -755,12 +755,12 @@ function LibraryContent() {
     e.preventDefault()
 
     if (!offerGame || !offerType || !user) {
-      alert("Fehler beim Anbieten des Spiels!")
+      toast({ title: "Fehler", description: "Fehler beim Anbieten des Spiels!", variant: "destructive" })
       return
     }
 
     if (!databaseConnected) {
-      alert("Datenbank ist nicht verfügbar. Bitte führe zuerst die SQL-Skripte aus.")
+      toast({ title: "Fehler", description: "Datenbank ist nicht verfügbar. Bitte führe zuerst die SQL-Skripte aus.", variant: "destructive" })
       return
     }
 
@@ -780,9 +780,7 @@ function LibraryContent() {
         active: true,
       })
 
-      alert(
-        `${offerGame.title} wurde erfolgreich zum ${getAvailabilityText(offerType)} angeboten und erscheint jetzt im Marktplatz!`,
-      )
+      toast({ title: "Angebot erstellt", description: `${offerGame.title} wurde erfolgreich zum ${getAvailabilityText(offerType)} angeboten!` })
 
       // Reset form
       setOfferGame(null)
@@ -792,7 +790,7 @@ function LibraryContent() {
       setIsOfferDialogOpen(false)
     } catch (error) {
       console.error("Error offering game:", error)
-      alert("Fehler beim Anbieten des Spiels!")
+      toast({ title: "Fehler", description: "Fehler beim Anbieten des Spiels!", variant: "destructive" })
     }
   }
 
@@ -844,14 +842,12 @@ function LibraryContent() {
     }
 
     if (!user) {
-      alert("Du musst angemeldet sein, um Spiele hinzuzufügen. Bitte melde dich zuerst an.")
+      toast({ title: "Anmeldung erforderlich", description: "Du musst angemeldet sein, um Spiele hinzuzufügen.", variant: "destructive" })
       return
     }
 
     if (!databaseConnected) {
-      alert(
-        "Datenbank ist nicht verfügbar. Bitte überprüfe deine Supabase-Konfiguration oder führe die SQL-Skripte aus.",
-      )
+      toast({ title: "Fehler", description: "Datenbank ist nicht verfügbar. Bitte überprüfe deine Supabase-Konfiguration.", variant: "destructive" })
       return
     }
 
@@ -898,7 +894,7 @@ function LibraryContent() {
 
       await addGame(gameData)
 
-      alert(`${gameData.title} wurde erfolgreich zu deiner Bibliothek hinzugefügt und erscheint jetzt im Regal!`)
+      toast({ title: "Spiel hinzugefügt", description: `${gameData.title} wurde erfolgreich zu deiner Bibliothek hinzugefügt!` })
 
       // Reset form
       resetAddGameForm()
@@ -906,7 +902,7 @@ function LibraryContent() {
     } catch (error) {
       console.error("Error adding game:", error)
       const errorMessage = error instanceof Error ? error.message : "Unbekannter Fehler"
-      alert(`Fehler beim Hinzufügen des Spiels: ${errorMessage}`)
+      toast({ title: "Fehler", description: `Fehler beim Hinzufügen des Spiels: ${errorMessage}`, variant: "destructive" })
     }
   }
 
@@ -961,12 +957,12 @@ function LibraryContent() {
       !editGameLanguage ||
       editGameLanguage === "custom"
     ) {
-      alert("Bitte fülle alle Pflichtfelder aus!")
+      toast({ title: "Pflichtfelder fehlen", description: "Bitte fülle alle Pflichtfelder aus!", variant: "destructive" })
       return
     }
 
     if (!databaseConnected) {
-      alert("Datenbank ist nicht verfügbar. Bitte führe zuerst die SQL-Skripte aus.")
+      toast({ title: "Fehler", description: "Datenbank ist nicht verfügbar.", variant: "destructive" })
       return
     }
 
@@ -987,7 +983,7 @@ function LibraryContent() {
 
       await updateGame(editGame.id, updatedGameData)
 
-      alert(`${updatedGameData.title} wurde erfolgreich aktualisiert!`)
+      toast({ title: "Spiel aktualisiert", description: `${updatedGameData.title} wurde erfolgreich aktualisiert!` })
 
       // Reset form
       setEditGame(null)
@@ -1013,7 +1009,7 @@ function LibraryContent() {
       }
     } catch (error) {
       console.error("Error updating game:", error)
-      alert("Fehler beim Aktualisieren des Spiels!")
+      toast({ title: "Fehler", description: "Fehler beim Aktualisieren des Spiels!", variant: "destructive" })
     }
   }
 
@@ -1025,13 +1021,13 @@ function LibraryContent() {
 
   const handleConfirmDelete = async () => {
     if (!gameToDelete || !databaseConnected) {
-      alert("Fehler beim Löschen des Spiels!")
+      toast({ title: "Fehler", description: "Fehler beim Löschen des Spiels!", variant: "destructive" })
       return
     }
 
     try {
       await deleteGame(gameToDelete.id)
-      alert(`${gameToDelete.title} wurde erfolgreich aus deiner Bibliothek entfernt!`)
+      toast({ title: "Spiel gelöscht", description: `${gameToDelete.title} wurde erfolgreich aus deiner Bibliothek entfernt!` })
 
       // Clear selected game if it was the one being deleted
       if (selectedGame?.id === gameToDelete.id) {
@@ -1042,7 +1038,7 @@ function LibraryContent() {
       setIsDeleteDialogOpen(false)
     } catch (error) {
       console.error("Error deleting game:", error)
-      alert("Fehler beim Löschen des Spiels!")
+      toast({ title: "Fehler", description: "Fehler beim Löschen des Spiels!", variant: "destructive" })
     }
   }
 

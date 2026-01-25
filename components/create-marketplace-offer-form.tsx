@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -17,6 +18,7 @@ import { AiFillPicture } from "react-icons/ai"
 import { ImageIcon, AlertCircle, Check, Plus, Info, Trash2, ArrowRight } from "lucide-react"
 import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
+import { useToast } from "@/hooks/use-toast"
 
 import { GameSearchDialog } from "./game-search-dialog"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
@@ -119,6 +121,28 @@ interface CreateMarketplaceOfferFormProps {
   preselectedGame?: any | null
   preselectedOfferType?: string
   initialStep?: number
+  editMode?: boolean
+  editData?: {
+    id: string
+    title?: string
+    description?: string
+    type?: string
+    price?: number
+    condition?: string
+    location?: string
+    pickup_available?: boolean
+    shipping_available?: boolean
+    pickup_address?: string
+    image?: string
+    daily_rate_1_day?: number
+    daily_rate_2_to_6_days?: number
+    daily_rate_7_to_30_days?: number
+    daily_rate_over_30_days?: number
+    deposit_amount?: number
+    min_rental_days?: number
+    max_rental_days?: number
+    open_to_suggestions?: boolean
+  } | null
 }
 
 export function CreateMarketplaceOfferForm({
@@ -128,9 +152,12 @@ export function CreateMarketplaceOfferForm({
   preselectedGame = null,
   preselectedOfferType = "",
   initialStep = 1,
+  editMode = false,
+  editData = null,
 }: CreateMarketplaceOfferFormProps) {
   const { games, addMarketplaceOffer, addGame } = useGames()
   const { user } = useAuth()
+  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentStep, setCurrentStep] = useState(initialStep)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -184,6 +211,31 @@ export function CreateMarketplaceOfferForm({
 
   useEffect(() => {
     if (isOpen) {
+      // Handle edit mode - populate form with existing data
+      if (editMode && editData) {
+        setCustomGameTitle(editData.title || "")
+        setDescription(editData.description || "")
+        setOfferType((editData.type as "lend" | "trade" | "sell") || "lend")
+        setPrice(editData.price?.toString() || "")
+        setCondition(editData.condition || "")
+        setPickupAddress(editData.pickup_address || "")
+        setDeliveryPickup(editData.pickup_available ?? false)
+        setDeliveryShipping(editData.shipping_available ?? false)
+        setImagePreview(editData.image || "")
+        setDailyRate1Day(editData.daily_rate_1_day?.toString() || "")
+        setDailyRate2To6Days(editData.daily_rate_2_to_6_days?.toString() || "")
+        setDailyRate7To30Days(editData.daily_rate_7_to_30_days?.toString() || "")
+        setDailyRateOver30Days(editData.daily_rate_over_30_days?.toString() || "")
+        setDepositAmount(editData.deposit_amount?.toString() || "")
+        setMinRentalDays(editData.min_rental_days?.toString() || "")
+        setMaxRentalDays(editData.max_rental_days?.toString() || "")
+        setOpenToSuggestions(editData.open_to_suggestions ?? false)
+        setSalePrice(editData.price?.toString() || "")
+        setIsManualEntry(true)
+        setCurrentStep(2) // Start at step 2 for editing
+        return
+      }
+
       if (preselectedGame) {
         setSelectedGame(preselectedGame.id || "")
         setImagePreview(preselectedGame.image || "")
@@ -204,9 +256,14 @@ export function CreateMarketplaceOfferForm({
         setOfferType(preselectedOfferType as "lend" | "trade" | "sell")
       }
     }
-  }, [isOpen, preselectedGame, preselectedOfferType, initialStep])
+  }, [isOpen, preselectedGame, preselectedOfferType, initialStep, editMode, editData])
 
   useEffect(() => {
+    // Don't override pickup address in edit mode - use the saved value
+    if (editMode && editData?.pickup_address) {
+      return
+    }
+    
     if (deliveryPickup && user) {
       console.log("[v0] User profile data:", {
         address: user.address,
@@ -223,7 +280,7 @@ export function CreateMarketplaceOfferForm({
     } else if (!deliveryPickup) {
       setPickupAddress("")
     }
-  }, [deliveryPickup, user])
+  }, [deliveryPickup, user, editMode, editData])
 
   // REMOVED: const shippingOptions = [
   //   { value: "postpac-a-2kg", label: "PostPac Economy (A-Post) bis 2 kg: CHF 10.50" },
@@ -758,8 +815,35 @@ export function CreateMarketplaceOfferForm({
       console.log("[v0] Database connected:", databaseConnected)
       console.log("[v0] User authenticated:", !!user)
 
-      await addMarketplaceOffer(offerData)
-      console.log("[v0] Marketplace offer created successfully")
+      if (editMode && editData?.id) {
+        // Update existing offer
+        console.log("[v0] Updating existing offer:", editData.id)
+        const supabase = (await import("@/lib/supabase/client")).createClient()
+        const { error: updateError } = await supabase
+          .from("marketplace_offers")
+          .update({
+            ...offerData,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", editData.id)
+
+        if (updateError) {
+          throw new Error(`Fehler beim Aktualisieren: ${updateError.message}`)
+        }
+        console.log("[v0] Marketplace offer updated successfully")
+        toast({
+          title: "Angebot aktualisiert",
+          description: "Deine Änderungen wurden erfolgreich gespeichert.",
+        })
+      } else {
+        // Create new offer
+        await addMarketplaceOffer(offerData)
+        console.log("[v0] Marketplace offer created successfully")
+        toast({
+          title: "Angebot erstellt",
+          description: "Dein Angebot wurde erfolgreich im Marktplatz erstellt.",
+        })
+      }
 
       resetForm()
       onSuccess?.()
@@ -773,7 +857,13 @@ export function CreateMarketplaceOfferForm({
         name: error instanceof Error ? error.name : undefined,
       })
 
-      setError(error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten")
+      const errorMessage = error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten"
+      setError(errorMessage)
+      toast({
+        title: "Fehler",
+        description: errorMessage,
+        variant: "destructive",
+      })
     } finally {
       console.log("[v0] Form submission finally block - setting isSubmitting to false")
       setIsSubmitting(false)
@@ -781,6 +871,16 @@ export function CreateMarketplaceOfferForm({
   }
 
   const getStepTitle = () => {
+    if (editMode) {
+      switch (currentStep) {
+        case 2:
+          return "Angebot bearbeiten"
+        case 3:
+          return "Zusammenfassung"
+        default:
+          return "Angebot bearbeiten"
+      }
+    }
     switch (currentStep) {
       case 1:
         return "Schritt 1: Spielauswahl"
@@ -819,7 +919,7 @@ export function CreateMarketplaceOfferForm({
     }
   }
 
-  return (
+  const formContent = (
     <>
       <Card className="border-0 shadow-none bg-transparent">
         <CardContent className="space-y-6 p-0">
@@ -1209,7 +1309,7 @@ export function CreateMarketplaceOfferForm({
                     <div className="space-y-4">
                       <div>
                         <Label className="text-xs font-semibold text-gray-700 mb-2 block">
-                          Kategorie * (Mehrfachauswahl)
+                          Kategorie <span className="text-red-500">*</span> (Mehrfachauswahl)
                         </Label>
                         <Popover>
                           <PopoverTrigger asChild>
@@ -1299,7 +1399,7 @@ export function CreateMarketplaceOfferForm({
 
                       <div>
                         <Label className="text-xs font-semibold text-gray-700 mb-2 block">
-                          Typus * (Mehrfachauswahl)
+                          Typus <span className="text-red-500">*</span> (Mehrfachauswahl)
                         </Label>
                         <Popover>
                           <PopoverTrigger asChild>
@@ -1402,7 +1502,7 @@ export function CreateMarketplaceOfferForm({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Offer Type */}
                   <div>
-                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Angebotsart *</Label>
+                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Angebotsart <span className="text-red-500">*</span></Label>
                     <Select value={offerType} onValueChange={(value: "lend" | "trade" | "sell") => setOfferType(value)}>
                       <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500 rounded-lg bg-white">
                         <SelectValue />
@@ -1429,7 +1529,7 @@ export function CreateMarketplaceOfferForm({
 
                   {/* Condition */}
                   <div>
-                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Zustand *</Label>
+                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Zustand <span className="text-red-500">*</span></Label>
                     <Select value={condition} onValueChange={setCondition}>
                       <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500 rounded-lg bg-white">
                         <SelectValue placeholder="Zustand auswählen..." />
@@ -1445,7 +1545,7 @@ export function CreateMarketplaceOfferForm({
                           <div className="flex items-center gap-2">Gut</div>
                         </SelectItem>
                         <SelectItem value="Gebraucht" className="rounded-md">
-                          <div className="flex items-center gap-2">Gebraucht</div>
+                          <div className="flex items-center gap-2">Akzeptabel</div>
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -1462,7 +1562,7 @@ export function CreateMarketplaceOfferForm({
               {/* Lending specific fields */}
               {offerType === "lend" && (
                 <div className="bg-white rounded-lg p-6 border border-gray-200">
-                  <h4 className="font-semibold text-gray-900 mb-4 text-sm">Mietkonditionen *</h4>
+                  <h4 className="font-semibold text-gray-900 mb-4 text-sm">Mietkonditionen <span className="text-red-500">*</span></h4>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Daily Rates */}
@@ -1564,7 +1664,7 @@ export function CreateMarketplaceOfferForm({
                   <h4 className="font-semibold text-gray-900 mb-4 text-sm">Verkaufsbedingungen</h4>
 
                   <div>
-                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Verkaufspreis (CHF) *</Label>
+                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Verkaufspreis (CHF) <span className="text-red-500">*</span></Label>
                     <Input
                       placeholder="z.B. 25.00"
                       value={salePrice}
@@ -1635,7 +1735,7 @@ export function CreateMarketplaceOfferForm({
 
               <div className="bg-white rounded-lg p-6 border border-gray-200">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
-                  Welche Zustelloption bietest du an? *
+                  Welche Zustelloption bietest du an? <span className="text-red-500">*</span>
                 </h4>
 
                 <div className="space-y-4">
@@ -2044,4 +2144,23 @@ export function CreateMarketplaceOfferForm({
       <GameSearchDialog open={isGameSearchOpen} onOpenChange={setIsGameSearchOpen} onGameSelect={handleGameSelect} />
     </>
   )
+
+  // If isOpen is controlled externally (edit mode from profile), wrap in Dialog
+  if (editMode) {
+    return (
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-gray-200">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">
+              Angebot bearbeiten
+            </DialogTitle>
+          </DialogHeader>
+          {formContent}
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  // Normal inline rendering (for marketplace page)
+  return formContent
 }

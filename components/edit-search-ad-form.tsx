@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Edit, X, Save } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 
 interface SearchAd {
   id: string
@@ -27,6 +28,7 @@ interface EditSearchAdFormProps {
 }
 
 export function EditSearchAdForm({ isOpen, onClose, onSuccess, searchAd }: EditSearchAdFormProps) {
+  const { toast } = useToast()
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -82,15 +84,16 @@ export function EditSearchAdForm({ isOpen, onClose, onSuccess, searchAd }: EditS
 
       if (error) {
         console.error("Error updating search ad:", error)
-        alert("Fehler beim Aktualisieren der Suchanzeige. Bitte versuche es erneut.")
+        toast({ title: "Fehler", description: "Fehler beim Aktualisieren der Suchanzeige.", variant: "destructive" })
         return
       }
 
+      toast({ title: "Suchanzeige aktualisiert", description: "Deine Änderungen wurden gespeichert." })
       onSuccess()
       onClose()
     } catch (error) {
       console.error("Error updating search ad:", error)
-      alert("Fehler beim Aktualisieren der Suchanzeige. Bitte versuche es erneut.")
+      toast({ title: "Fehler", description: "Fehler beim Aktualisieren der Suchanzeige.", variant: "destructive" })
     } finally {
       setIsSubmitting(false)
     }

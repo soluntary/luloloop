@@ -16,6 +16,7 @@ import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
 import { SecurityEventLogger } from "@/components/security-event-logger"
 import { Toaster as SonnerToaster } from "sonner"
+import { ConfirmDialogProvider } from "@/hooks/use-confirm-dialog"
 
 const galindo = Galindo({
   subsets: ["latin"],
@@ -61,10 +62,12 @@ export default function RootLayout({
                         <LocationSearchProvider>
                           <RequestsProvider>
                             <SecurityEventLogger>
-                              <div className="flex flex-col min-h-screen">
-                                <main className="flex-1">{children}</main>
-                                <Footer />
-                              </div>
+                              <ConfirmDialogProvider>
+                                <div className="flex flex-col min-h-screen">
+                                  <main className="flex-1">{children}</main>
+                                  <Footer />
+                                </div>
+                              </ConfirmDialogProvider>
                             </SecurityEventLogger>
                             <Toaster />
                             <SonnerToaster position="top-center" richColors />
