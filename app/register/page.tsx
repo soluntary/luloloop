@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/contexts/auth-context"
 import { Navigation } from "@/components/navigation"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Check, X } from "lucide-react"
 import { checkUsernameAvailability } from "@/app/actions/check-username"
 import "@/styles/font-handwritten.css"
 import "@/styles/font-body.css"
@@ -32,6 +32,16 @@ export default function RegisterPage() {
 
   const { signUp } = useAuth()
   const router = useRouter()
+
+  // Password validation requirements
+  const passwordRequirements = [
+    { label: "Mindestens 8 Zeichen lang", test: (pw: string) => pw.length >= 8 },
+    { label: "Kleinbuchstaben (a-z)", test: (pw: string) => /[a-z]/.test(pw) },
+    { label: "Großbuchstaben (A-Z)", test: (pw: string) => /[A-Z]/.test(pw) },
+    { label: "Zahlen (0-9)", test: (pw: string) => /[0-9]/.test(pw) },
+  ]
+
+  const allPasswordRequirementsMet = passwordRequirements.every((req) => req.test(password))
 
   const handleUsernameChange = async (value: string) => {
     setUsername(value)
@@ -64,8 +74,8 @@ export default function RegisterPage() {
       return
     }
 
-    if (password.length < 6) {
-      setError("Das Passwort muss mindestens 6 Zeichen lang sein.")
+    if (!allPasswordRequirementsMet) {
+      setError("Das Passwort erfüllt nicht alle Anforderungen.")
       return
     }
 
@@ -196,7 +206,7 @@ export default function RegisterPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       className="font-body pr-10"
-                      placeholder="Mindestens 6 Zeichen"
+                      placeholder="Sicheres Passwort eingeben"
                     />
                     <button
                       type="button"
@@ -206,6 +216,28 @@ export default function RegisterPage() {
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
+                  </div>
+                  
+                  {/* Password Requirements Checklist */}
+                  <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
+                    <p className="text-xs font-medium text-gray-700 mb-2 font-body">Ihr Passwort muss Folgendes enthalten:</p>
+                    <ul className="space-y-1">
+                      {passwordRequirements.map((req, index) => {
+                        const isMet = req.test(password)
+                        return (
+                          <li key={index} className="flex items-center gap-2 text-xs font-body">
+                            {isMet ? (
+                              <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            ) : (
+                              <X className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            )}
+                            <span className={isMet ? "text-green-700" : "text-gray-500"}>
+                              {req.label}
+                            </span>
+                          </li>
+                        )
+                      })}
+                    </ul>
                   </div>
                 </div>
 
