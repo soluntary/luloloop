@@ -215,6 +215,7 @@ function Navigation({ currentPage }: NavigationProps) {
                           <DropdownMenuItem key={dropdownItem.key} asChild>
                             <Link
                               href={dropdownItem.href}
+                              prefetch={true}
                               className="flex items-center space-x-2 cursor-pointer w-full"
                             >
                               <DropdownIcon className="w-4 h-4" />
@@ -233,6 +234,7 @@ function Navigation({ currentPage }: NavigationProps) {
                 <Link
                   key={item.href}
                   href={item.href!}
+                  prefetch={true}
                   className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${
                     active
                       ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
@@ -272,7 +274,7 @@ function Navigation({ currentPage }: NavigationProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 text-sm font-body">
                   <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center space-x-2 cursor-pointer w-full">
+                    <Link href="/profile" prefetch={true} className="flex items-center space-x-2 cursor-pointer w-full">
                       <FaCog className="w-4 h-4" />
                       <span>Profil</span>
                     </Link>
@@ -287,6 +289,7 @@ function Navigation({ currentPage }: NavigationProps) {
               <div className="flex items-center space-x-2">
                 <Link
                   href="/login"
+                  prefetch={true}
                   className="border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all bg-white flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm"
                 >
                   <FaSignInAlt className="w-4 h-4" />
@@ -294,6 +297,7 @@ function Navigation({ currentPage }: NavigationProps) {
                 </Link>
                 <Link
                   href="/register"
+                  prefetch={true}
                   className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm"
                 >
                   <FaUserPlus className="w-4 h-4" />

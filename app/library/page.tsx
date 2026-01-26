@@ -1,6 +1,7 @@
 "use client"
 
 import { Suspense, useEffect, useState, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 
 import type React from "react"
@@ -365,14 +366,8 @@ function LibraryContent() {
     databaseConnected,
     toggleGameAvailability,
   } = useGames()
-  const { user, loading: authLoading } = useAuth()
+  const { user } = useAuth()
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      window.location.href = "/login?redirect=/library"
-    }
-  }, [user, authLoading])
   const [selectedGame, setSelectedGame] = useState<(typeof games)[0] | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
 
@@ -3005,10 +3000,28 @@ function LibraryContent() {
   )
 }
 
+function AuthWrapper() {
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
+  
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/login?redirect=/library")
+    }
+  }, [user, authLoading, router])
+  
+  // Show loading while auth is being checked or redirecting
+  if (authLoading || !user) {
+    return <LibraryLoading />
+  }
+  
+  return <LibraryContent />
+}
+
 export default function LibraryPage() {
   return (
     <Suspense fallback={<LibraryLoading />}>
-      <LibraryContent />
+      <AuthWrapper />
     </Suspense>
   )
 }

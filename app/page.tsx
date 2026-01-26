@@ -316,7 +316,7 @@ function GameBoardPattern() {
 }
 
 const fadeInUp = {
-  hidden: { opacity: 0, y: 60 },
+  hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0 },
 }
 
@@ -325,13 +325,13 @@ const staggerContainer = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.05,
     },
   },
 }
 
 const scaleIn = {
-  hidden: { opacity: 0, scale: 0.8 },
+  hidden: { opacity: 0, scale: 0.95 },
   visible: { opacity: 1, scale: 1 },
 }
 
@@ -345,7 +345,7 @@ function AnimatedSection({ children, className = "" }: { children: React.ReactNo
       initial="hidden"
       animate={isInView ? "visible" : "hidden"}
       variants={fadeInUp}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
       className={className}
     >
       {children}
@@ -358,18 +358,19 @@ export default function HomePage() {
   const { user, loading } = useAuth()
 
   // useMemo must be called before any conditional returns to follow Rules of Hooks
+  // Reduced number of floating elements for better performance
   const floatingElements = useMemo(
     () => (
       <div
         className="fixed inset-0 pointer-events-none"
         style={{ transform: "translateZ(0)", willChange: "transform" }}
       >
-        {Array.from({ length: 6 }).map((_, i) => (
-          <FloatingCard key={i} delay={i * 3} duration={20 + Math.random() * 15} />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <FloatingCard key={i} delay={i * 4} duration={25 + Math.random() * 10} />
         ))}
 
-        {Array.from({ length: 5 }).map((_, i) => (
-          <FloatingDice key={`dice-${i}`} delay={i * 2.5} duration={18 + Math.random() * 8} />
+        {Array.from({ length: 2 }).map((_, i) => (
+          <FloatingDice key={`dice-${i}`} delay={i * 3} duration={22 + Math.random() * 6} />
         ))}
       </div>
     ),
@@ -450,6 +451,7 @@ export default function HomePage() {
               linkText: "Spielesammlung digital anlegen",
               color: "pink",
               rotation: "rotate-1",
+              requiresAuth: true,
             },
             {
               icon: FaStore,
@@ -553,37 +555,35 @@ export default function HomePage() {
             return (
               <motion.div key={index} variants={scaleIn} transition={{ duration: 0.5 }}>
                 <motion.div
-                  whileHover={{ scale: 1.05, y: -8 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  onHoverStart={() => setShowConfetti(true)}
-                  onHoverEnd={() => setShowConfetti(false)}
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  transition={{ type: "tween", duration: 0.15 }}
                   className="relative"
                 >
                   <Card
                     className={`transform ${feature.rotation} transition-all border-2 ${colors.border} h-full hover:shadow-2xl`}
                   >
                     <CardContent className="p-6 text-center relative">
-                      <motion.div
-                        whileHover={{ rotate: 360, scale: 1.1 }}
-                        transition={{ duration: 0.6 }}
+                      <div
                         className={`w-16 h-16 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12`}
                       >
                         <feature.icon className="w-8 h-8 text-white" />
-                      </motion.div>
+                      </div>
                       <h3 className="font-bold text-gray-800 mb-2 font-handwritten text-sm">{feature.title}</h3>
                       <p className="text-gray-600 font-body mb-4 text-xs leading-relaxed">{feature.description}</p>
-                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <Button
-                          asChild
-                          variant="outline"
-                          className={`${colors.border} ${colors.text} ${colors.hover} hover:text-white font-handwritten bg-transparent group`}
+                      <Button
+                        asChild
+                        variant="outline"
+                        className={`${colors.border} ${colors.text} ${colors.hover} hover:text-white font-handwritten bg-transparent group transition-transform hover:scale-105 active:scale-95`}
+                      >
+                        <Link 
+                          href={feature.requiresAuth && !user ? `/login?redirect=${feature.link}` : feature.link} 
+                          prefetch={true} 
+                          className="flex items-center text-xs justify-center gap-2"
                         >
-                          <Link href={feature.link} className="flex items-center text-xs justify-center gap-2">
-                            {feature.linkText}
-                            <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                          </Link>
-                        </Button>
-                      </motion.div>
+                          {feature.linkText}
+                          <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                      </Button>
                     </CardContent>
                   </Card>
                 </motion.div>
