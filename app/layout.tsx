@@ -17,6 +17,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { SecurityEventLogger } from "@/components/security-event-logger"
 import { Toaster as SonnerToaster } from "sonner"
 import { ConfirmDialogProvider } from "@/hooks/use-confirm-dialog"
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
+import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 
 const galindo = Galindo({
   subsets: ["latin"],
@@ -33,10 +35,27 @@ const mclaren = McLaren({
 })
 
 export const metadata: Metadata = {
-  title: "Ludoloop - Deine Spiele-Community",
+  title: "LudoLoop - Deine Spiele-Community",
   description:
     "Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde neue Mitspieler und entdecke grossartige Spiele!",
   generator: "v0.dev",
+  manifest: "/manifest.json",
+  themeColor: "#f97316",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "LudoLoop",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "de_DE",
+    siteName: "LudoLoop",
+    title: "LudoLoop - Deine Spiele-Community",
+    description: "Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde neue Mitspieler und entdecke grossartige Spiele!",
+  },
 }
 
 export default function RootLayout({
@@ -49,6 +68,11 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.jpg" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="LudoLoop" />
       </head>
       <body className={mclaren.className}>
         <AuthProvider>
@@ -63,6 +87,8 @@ export default function RootLayout({
                           <RequestsProvider>
                             <SecurityEventLogger>
                               <ConfirmDialogProvider>
+                                <ServiceWorkerRegistration />
+                                <PWAInstallPrompt />
                                 <div className="flex flex-col min-h-screen">
                                   <main className="flex-1">{children}</main>
                                   <Footer />
