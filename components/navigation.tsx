@@ -182,7 +182,7 @@ function Navigation({ currentPage }: NavigationProps) {
             href="/"
             className="flex items-center space-x-2 transform hover:scale-105 hover:rotate-1 transition-all hover:text-teal-600 -ml-2"
           >
-            <img src="/images/ludoloop-new-logo.png" alt="LudoLoop Logo" className="h-16 w-auto" />
+            <img src="/ludoloop-logo.png" alt="LudoLoop Logo" className="h-14 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}
