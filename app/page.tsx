@@ -354,6 +354,7 @@ function AnimatedSection({ children, className = "" }: { children: React.ReactNo
 }
 
 export default function HomePage() {
+  const [showConfetti, setShowConfetti] = useState(false)
   const { user, loading } = useAuth()
 
   // useMemo must be called before any conditional returns to follow Rules of Hooks
