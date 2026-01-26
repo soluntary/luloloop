@@ -262,12 +262,12 @@ function Navigation({ currentPage }: NavigationProps) {
                     <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-teal-400">
                       <img
                         src={avatarSrc || "/placeholder.svg"}
-                        alt={user.username || user.name}
+                        alt={user.username || "Benutzer"}
                         className="w-full h-full object-cover"
                         key={`${avatarSrc}-${avatarKey}`}
                       />
                     </div>
-                    <span className="text-gray-700 font-medium">{user.username || user.name || "Benutzer"}</span>
+                    <span className="text-gray-700 font-medium">{user.username || "Benutzer"}</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 text-sm font-body">
@@ -382,12 +382,12 @@ function Navigation({ currentPage }: NavigationProps) {
                     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-teal-400">
                       <img
                         src={avatarSrc || "/placeholder.svg"}
-                        alt={user.username || user.name}
+                        alt={user.username || "Benutzer"}
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-800">{user.username || user.name || "Benutzer"}</p>
+                      <p className="font-medium text-gray-800">{user.username || "Benutzer"}</p>
                       <p className="text-sm text-gray-500">{user.email}</p>
                     </div>
                   </div>
