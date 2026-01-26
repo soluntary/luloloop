@@ -358,18 +358,19 @@ export default function HomePage() {
   const { user, loading } = useAuth()
 
   // useMemo must be called before any conditional returns to follow Rules of Hooks
+  // Reduced number of floating elements for better performance
   const floatingElements = useMemo(
     () => (
       <div
         className="fixed inset-0 pointer-events-none"
         style={{ transform: "translateZ(0)", willChange: "transform" }}
       >
-        {Array.from({ length: 6 }).map((_, i) => (
-          <FloatingCard key={i} delay={i * 3} duration={20 + Math.random() * 15} />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <FloatingCard key={i} delay={i * 4} duration={25 + Math.random() * 10} />
         ))}
 
-        {Array.from({ length: 5 }).map((_, i) => (
-          <FloatingDice key={`dice-${i}`} delay={i * 2.5} duration={18 + Math.random() * 8} />
+        {Array.from({ length: 2 }).map((_, i) => (
+          <FloatingDice key={`dice-${i}`} delay={i * 3} duration={22 + Math.random() * 6} />
         ))}
       </div>
     ),

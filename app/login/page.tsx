@@ -57,10 +57,10 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password)
-      router.replace(redirectUrl)
+      // Use window.location for a full page reload to ensure auth state is fresh
+      window.location.href = redirectUrl
     } catch (error: any) {
       setError(error.message || "Anmeldung fehlgeschlagen.")
-    } finally {
       setLoading(false)
     }
   }

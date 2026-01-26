@@ -93,8 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         console.log("[v0] Loading user profile for:", authUser.id, `(attempt ${attempts + 1})`)
 
-        // First try to find by ID
-        const existingUserById = await withRateLimit(async () => {
+        const existingUser = await withRateLimit(async () => {
           const { data, error } = await supabase.from("users").select("*").eq("id", authUser.id).maybeSingle()
           if (error && error.code !== "PGRST116") {
             throw error
@@ -104,82 +103,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         let userProfile
 
-        if (!existingUserById) {
-          // Check if a profile exists with this email (could be from a previous auth ID)
-          const existingUserByEmail = authUser.email ? await withRateLimit(async () => {
-            const { data, error } = await supabase.from("users").select("*").eq("email", authUser.email).maybeSingle()
-            if (error && error.code !== "PGRST116") {
-              throw error
-            }
-            return data
-          }, null) : null
-
-          if (existingUserByEmail) {
-            // Profile exists with this email but different ID - update the ID to match auth
-            console.log("[v0] Found existing profile by email, updating auth ID...")
-            userProfile = await withRateLimit(async () => {
-              const { data: updatedUser, error: updateError } = await supabase
-                .from("users")
-                .update({ id: authUser.id })
-                .eq("email", authUser.email)
-                .select()
-                .single()
-
-              if (updateError) {
-                // If update fails, just use the existing profile data with current auth ID
-                console.log("[v0] Could not update profile ID, using existing profile data")
-                return {
-                  ...existingUserByEmail,
-                  id: authUser.id
-                }
-              }
-              return updatedUser
-            }, existingUserByEmail)
-          } else {
-            console.log("[v0] Creating new user profile...")
-            const newUserProfile = {
-              id: authUser.id,
-              email: authUser.email || "",
-              name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-              username: authUser.user_metadata?.username || null,
-              avatar: authUser.user_metadata?.avatar_url || null,
-              bio: null,
-              website: null,
-              twitter: null,
-              instagram: null,
-              settings: {
-                notifications: { email: true, push: true, marketing: false, security: true },
-                privacy: { profileVisible: true, emailVisible: false, onlineStatus: true, allowMessages: true },
-                security: { twoFactor: false, loginNotifications: true, sessionTimeout: 30 },
-              },
-            }
-
-            userProfile = await withRateLimit(async () => {
-              const { data: createdUser, error: createError } = await supabase
-                .from("users")
-                .insert([newUserProfile])
-                .select()
-                .single()
-
-              if (createError) throw createError
-              return createdUser
-            }, newUserProfile)
+        if (!existingUser) {
+          console.log("[v0] Creating new user profile...")
+          const newUserProfile = {
+            id: authUser.id,
+            email: authUser.email || "",
+            name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+            username: authUser.user_metadata?.username || null,
+            avatar: authUser.user_metadata?.avatar_url || null,
+            bio: null,
+            website: null,
+            twitter: null,
+            instagram: null,
+            settings: {
+              notifications: { email: true, push: true, marketing: false, security: true },
+              privacy: { profileVisible: true, emailVisible: false, onlineStatus: true, allowMessages: true },
+              security: { twoFactor: false, loginNotifications: true, sessionTimeout: 30 },
+            },
           }
+
+          userProfile = await withRateLimit(async () => {
+            const { data: createdUser, error: createError } = await supabase
+              .from("users")
+              .insert([newUserProfile])
+              .select()
+              .single()
+
+            if (createError) throw createError
+            return createdUser
+          }, newUserProfile)
         } else {
-          userProfile = existingUserById
+          userProfile = existingUser
           
           // Check if name or username are missing and we have them in user_metadata
           const metadataName = authUser.user_metadata?.name
           const metadataUsername = authUser.user_metadata?.username
-          const needsUpdate = (!existingUserById.name && metadataName) || (!existingUserById.username && metadataUsername)
+          const needsUpdate = (!existingUser.name && metadataName) || (!existingUser.username && metadataUsername)
           
           if (needsUpdate) {
             console.log("[v0] Updating user profile with missing name/username from metadata...")
             const updateData: any = {}
-            if (!existingUserById.name && metadataName) {
+            if (!existingUser.name && metadataName) {
               updateData.name = metadataName
             }
-            if (!existingUserById.username && metadataUsername) {
+            if (!existingUser.username && metadataUsername) {
               updateData.username = metadataUsername
             }
             
