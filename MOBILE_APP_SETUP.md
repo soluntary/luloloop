@@ -22,38 +22,38 @@ Diese Anleitung erklärt, wie du die LudoLoop App für iOS und Android baust.
 
 ### 1. Abhängigkeiten installieren
 
-```bash
+\`\`\`bash
 npm install
-```
+\`\`\`
 
 ### 2. Native Projekte erstellen
 
-```bash
+\`\`\`bash
 # Android-Projekt hinzufügen
 npm run cap:add:android
 
 # iOS-Projekt hinzufügen (nur auf macOS)
 npm run cap:add:ios
-```
+\`\`\`
 
 ### 3. App bauen und synchronisieren
 
-```bash
+\`\`\`bash
 # Baut die Next.js App und synchronisiert mit den nativen Projekten
 npm run app:build
-```
+\`\`\`
 
 ## Entwicklung
 
 ### Android
 
-```bash
+\`\`\`bash
 # Öffnet das Projekt in Android Studio
 npm run cap:open:android
 
 # Oder direkt auf einem Gerät/Emulator starten
 npm run cap:run:android
-```
+\`\`\`
 
 In Android Studio:
 1. Warte bis Gradle fertig synchronisiert hat
@@ -62,13 +62,13 @@ In Android Studio:
 
 ### iOS (nur macOS)
 
-```bash
+\`\`\`bash
 # Öffnet das Projekt in Xcode
 npm run cap:open:ios
 
 # Oder direkt auf einem Gerät/Simulator starten
 npm run cap:run:ios
-```
+\`\`\`
 
 In Xcode:
 1. Wähle dein Team unter "Signing & Capabilities"
@@ -80,23 +80,23 @@ In Xcode:
 Für schnellere Entwicklung kannst du Live Reload aktivieren:
 
 1. Starte den Dev-Server:
-```bash
+\`\`\`bash
 npm run dev
-```
+\`\`\`
 
 2. Bearbeite `capacitor.config.ts`:
-```typescript
+\`\`\`typescript
 server: {
   url: 'http://DEINE_IP:3000',  // z.B. http://192.168.1.100:3000
   cleartext: true,
 }
-```
+\`\`\`
 
 3. Synchronisiere und starte die App:
-```bash
+\`\`\`bash
 npm run cap:sync
 npm run cap:run:android  # oder cap:run:ios
-```
+\`\`\`
 
 **Hinweis:** Dein Gerät muss im selben Netzwerk wie dein Computer sein.
 
@@ -107,13 +107,13 @@ npm run cap:run:android  # oder cap:run:ios
 1. Erstelle ein Icon (1024x1024 px) als `resources/icon.png`
 2. Erstelle einen Splash Screen (2732x2732 px) als `resources/splash.png`
 3. Installiere das Assets-Tool:
-```bash
+\`\`\`bash
 npm install -g @capacitor/assets
-```
+\`\`\`
 4. Generiere die Assets:
-```bash
+\`\`\`bash
 npx @capacitor/assets generate
-```
+\`\`\`
 
 ## Produktion
 
@@ -161,7 +161,7 @@ npx @capacitor/assets generate
 
 ## Nützliche Befehle
 
-```bash
+\`\`\`bash
 # Alle Befehle
 npm run cap:sync      # Synchronisiert Web-Assets mit nativen Projekten
 npm run cap:open:android  # Öffnet Android Studio
@@ -171,4 +171,4 @@ npm run cap:run:ios       # Startet auf iOS
 npm run app:build         # Build + Sync in einem
 npm run app:android       # Build + Sync + Android Studio öffnen
 npm run app:ios           # Build + Sync + Xcode öffnen
-```
+\`\`\`
