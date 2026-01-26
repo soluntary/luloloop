@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Statischer Export für Capacitor
+  output: 'export',
+  
+  // Trailing Slash für bessere Kompatibilität mit Capacitor
+  trailingSlash: true,
+  
   typescript: {
     ignoreBuildErrors: true,
   },

@@ -17,6 +17,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { SecurityEventLogger } from "@/components/security-event-logger"
 import { Toaster as SonnerToaster } from "sonner"
 import { ConfirmDialogProvider } from "@/hooks/use-confirm-dialog"
+import { CapacitorInit } from "@/components/capacitor-init"
 
 const galindo = Galindo({
   subsets: ["latin"],
@@ -63,6 +64,7 @@ export default function RootLayout({
                           <RequestsProvider>
                             <SecurityEventLogger>
                               <ConfirmDialogProvider>
+                                <CapacitorInit />
                                 <div className="flex flex-col min-h-screen">
                                   <main className="flex-1">{children}</main>
                                   <Footer />
