@@ -451,6 +451,7 @@ export default function HomePage() {
               linkText: "Spielesammlung digital anlegen",
               color: "pink",
               rotation: "rotate-1",
+              requiresAuth: true,
             },
             {
               icon: FaStore,
@@ -574,7 +575,11 @@ export default function HomePage() {
                         variant="outline"
                         className={`${colors.border} ${colors.text} ${colors.hover} hover:text-white font-handwritten bg-transparent group transition-transform hover:scale-105 active:scale-95`}
                       >
-                        <Link href={feature.link} prefetch={true} className="flex items-center text-xs justify-center gap-2">
+                        <Link 
+                          href={feature.requiresAuth && !user ? `/login?redirect=${feature.link}` : feature.link} 
+                          prefetch={true} 
+                          className="flex items-center text-xs justify-center gap-2"
+                        >
                           {feature.linkText}
                           <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </Link>
