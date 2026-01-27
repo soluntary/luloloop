@@ -104,34 +104,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         let userProfile
 
         if (!existingUser) {
-          console.log("[v0] Creating new user profile...")
-          const newUserProfile = {
-            id: authUser.id,
-            email: authUser.email || "",
-            name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-            username: authUser.user_metadata?.username || null,
-            avatar: authUser.user_metadata?.avatar_url || null,
-            bio: null,
-            website: null,
-            twitter: null,
-            instagram: null,
-            settings: {
-              notifications: { email: true, push: true, marketing: false, security: true },
-              privacy: { profileVisible: true, emailVisible: false, onlineStatus: true, allowMessages: true },
-              security: { twoFactor: false, loginNotifications: true, sessionTimeout: 30 },
-            },
-          }
-
-          userProfile = await withRateLimit(async () => {
-            const { data: createdUser, error: createError } = await supabase
+          console.log("[v0] No user found by ID, checking by email...")
+          
+          // Check if a user with this email already exists (could be from a different auth provider)
+          const existingByEmail = await withRateLimit(async () => {
+            const { data, error } = await supabase
               .from("users")
-              .insert([newUserProfile])
-              .select()
-              .single()
+              .select("*")
+              .eq("email", authUser.email || "")
+              .maybeSingle()
+            if (error && error.code !== "PGRST116") {
+              throw error
+            }
+            return data
+          }, null)
 
-            if (createError) throw createError
-            return createdUser
-          }, newUserProfile)
+          if (existingByEmail) {
+            console.log("[v0] User found by email, updating ID to match auth user...")
+            // Update the existing user's ID to match the new auth user
+            userProfile = await withRateLimit(async () => {
+              const { data: updatedUser, error: updateError } = await supabase
+                .from("users")
+                .update({ id: authUser.id })
+                .eq("email", authUser.email || "")
+                .select()
+                .single()
+
+              if (updateError) {
+                // If update fails, just use the existing profile
+                console.log("[v0] Could not update user ID, using existing profile")
+                return existingByEmail
+              }
+              return updatedUser
+            }, existingByEmail)
+          } else {
+            console.log("[v0] Creating new user profile...")
+            const newUserProfile = {
+              id: authUser.id,
+              email: authUser.email || "",
+              name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+              username: authUser.user_metadata?.username || null,
+              avatar: authUser.user_metadata?.avatar_url || null,
+              bio: null,
+              website: null,
+              twitter: null,
+              instagram: null,
+              settings: {
+                notifications: { email: true, push: true, marketing: false, security: true },
+                privacy: { profileVisible: true, emailVisible: false, onlineStatus: true, allowMessages: true },
+                security: { twoFactor: false, loginNotifications: true, sessionTimeout: 30 },
+              },
+            }
+
+            userProfile = await withRateLimit(async () => {
+              const { data: createdUser, error: createError } = await supabase
+                .from("users")
+                .upsert([newUserProfile], { onConflict: "email" })
+                .select()
+                .single()
+
+              if (createError) throw createError
+              return createdUser
+            }, newUserProfile)
+          }
         } else {
           userProfile = existingUser
           
