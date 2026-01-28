@@ -421,6 +421,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       throw new Error("User not authenticated or database not connected")
     }
 
+    const supabase = getSupabase()
+
     try {
       const { error } = await supabase.from("marketplace_offers").delete().eq("id", offerId).eq("user_id", user.id)
 
@@ -440,6 +442,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!user || !databaseConnected) {
       throw new Error("User not authenticated or database not connected")
     }
+
+    const supabase = getSupabase()
 
     try {
       const availabilityStatus = isAvailable ? ["available"] : ["not_available"]

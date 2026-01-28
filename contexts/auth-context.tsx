@@ -91,7 +91,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     while (attempts < maxAttempts) {
       try {
-        console.log("[v0] Loading user profile for:", authUser.id, `(attempt ${attempts + 1})`)
 
         const existingUser = await withRateLimit(async () => {
           const { data, error } = await supabase.from("users").select("*").eq("id", authUser.id).maybeSingle()
@@ -104,7 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         let userProfile
 
         if (!existingUser) {
-          console.log("[v0] No user found by ID, checking by email...")
           
           // Check if a user with this email already exists (could be from a different auth provider)
           const existingByEmail = await withRateLimit(async () => {
@@ -120,7 +118,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }, null)
 
           if (existingByEmail) {
-            console.log("[v0] User found by email, updating ID to match auth user...")
             // Update the existing user's ID to match the new auth user
             userProfile = await withRateLimit(async () => {
               const { data: updatedUser, error: updateError } = await supabase
@@ -131,14 +128,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 .single()
 
               if (updateError) {
-                // If update fails, just use the existing profile
-                console.log("[v0] Could not update user ID, using existing profile")
                 return existingByEmail
               }
               return updatedUser
             }, existingByEmail)
           } else {
-            console.log("[v0] Creating new user profile...")
             const newUserProfile = {
               id: authUser.id,
               email: authUser.email || "",
@@ -176,7 +170,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const needsUpdate = (!existingUser.name && metadataName) || (!existingUser.username && metadataUsername)
           
           if (needsUpdate) {
-            console.log("[v0] Updating user profile with missing name/username from metadata...")
             const updateData: any = {}
             if (!existingUser.name && metadataName) {
               updateData.name = metadataName
@@ -195,15 +188,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               
               if (!updateError && updatedUser) {
                 userProfile = updatedUser
-                console.log("[v0] User profile updated with name/username from metadata")
               }
             } catch (updateErr) {
-              console.error("[v0] Failed to update user profile with metadata:", updateErr)
+              // Silently ignore metadata update errors
             }
           }
         }
 
-        console.log("[v0] User profile loaded successfully:", userProfile.name)
         setUser(userProfile)
         setLoading(false)
         setNetworkError(false)
@@ -211,17 +202,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       } catch (error) {
         attempts++
-        console.error(`[v0] Profile loading error (attempt ${attempts}):`, error)
 
         if (isNetworkError(error) && attempts < maxAttempts) {
           setNetworkError(true)
-          const delayMs = Math.pow(2, attempts) * 1000 // Exponential backoff
-          console.log(`[v0] Network error detected, retrying in ${delayMs}ms...`)
+          const delayMs = Math.pow(2, attempts) * 1000
           await delay(delayMs)
           continue
         }
-
-        console.log("[v0] All retries failed, using fallback profile")
         const fallbackProfile = {
           id: authUser.id,
           email: authUser.email || "",
@@ -242,8 +229,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (email: string, password: string) => {
       const supabase = supabaseRef.current
       if (!supabase) throw new Error("Supabase client not available")
-
-      console.log("[v0] SignIn attempt started for:", email)
 
       if (!navigator.onLine) {
         throw new Error("No internet connection. Please check your network and try again.")
