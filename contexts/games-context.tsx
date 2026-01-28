@@ -95,9 +95,18 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const FALLBACK_IMAGE = "/images/ludoloop-game-placeholder.png"
 
-  const supabase = createClient()
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  
+  // Lazy initialize supabase client
+  const getSupabase = useCallback(() => {
+    if (!supabaseRef.current) {
+      supabaseRef.current = createClient()
+    }
+    return supabaseRef.current
+  }, [])
 
   const testDatabaseConnection = async () => {
+    const supabase = getSupabase()
     try {
       const { error } = await supabase.from("marketplace_offers").select("count", { count: "exact", head: true })
 
@@ -126,6 +135,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         return
       }
 
+      const supabase = getSupabase()
+
       try {
         const { data, error } = await supabase
           .from("games")
@@ -148,11 +159,12 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         console.error("Error loading games:", err)
       }
     },
-    [user, databaseConnected, supabase],
+    [user, databaseConnected, getSupabase],
   )
 
   const loadMarketplaceOffers = useCallback(
     async (forceConnected = false) => {
+      const supabase = getSupabase()
       try {
         const { data, error } = await supabase
           .from("marketplace_offers")
@@ -185,13 +197,15 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         setMarketplaceOffers([])
       }
     },
-    [supabase],
+    [getSupabase],
   )
 
   const addGame = async (gameData: Omit<Game, "id" | "user_id" | "created_at">) => {
     if (!user || !databaseConnected) {
       throw new Error("User not authenticated or database not connected")
     }
+
+    const supabase = getSupabase()
 
     try {
       const gameWithFallback = {
@@ -232,6 +246,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!user || !databaseConnected) {
       throw new Error("User not authenticated or database not connected")
     }
+
+    const supabase = getSupabase()
 
     try {
       const { data: existingGame, error: checkError } = await supabase
@@ -289,6 +305,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       throw new Error("User not authenticated or database not connected")
     }
 
+    const supabase = getSupabase()
+
     try {
       const { error } = await supabase.from("games").delete().eq("id", gameId).eq("user_id", user.id)
 
@@ -308,6 +326,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!user || !databaseConnected) {
       throw new Error("User not authenticated or database not connected")
     }
+
+    const supabase = getSupabase()
 
     try {
       const offerWithFallback = {
@@ -345,6 +365,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!user || !databaseConnected) {
       throw new Error("User not authenticated or database not connected")
     }
+
+    const supabase = getSupabase()
 
     try {
       const { data: existingOffer, error: checkError } = await supabase
