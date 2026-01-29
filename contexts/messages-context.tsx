@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useRef, type ReactNode, useEffect, useCallback } from "react"
+import { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import { withRateLimit, checkGlobalRateLimit } from "@/lib/supabase/rate-limit"
@@ -50,26 +50,17 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false)
   const { user } = useAuth()
 
-  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
-  
-  // Lazy initialize supabase client
-  const getSupabase = useCallback(() => {
-    if (!supabaseRef.current) {
-      supabaseRef.current = createClient()
-    }
-    return supabaseRef.current
-  }, [])
+  const supabase = createClient()
 
   const refreshMessages = useCallback(async () => {
     if (!user) return
 
     if (checkGlobalRateLimit()) {
+      console.log("[v0] Messages: Skipping refresh due to rate limiting")
       setMessages([])
       setIsLoaded(true)
       return
     }
-
-    const supabase = getSupabase()
 
     try {
       const result = await new Promise((resolve) => {
@@ -121,7 +112,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       setMessages([])
       setIsLoaded(true)
     }
-  }, [user, getSupabase])
+  }, [user, supabase])
 
   // Load messages from database on mount and when user changes
   useEffect(() => {
@@ -152,8 +143,6 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     if (!privacyCheck.allowed) {
       throw new Error(privacyCheck.reason || "Nachricht nicht erlaubt")
     }
-
-    const supabase = getSupabase()
 
     try {
       const result = await new Promise((resolve, reject) => {
@@ -229,10 +218,9 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     if (!user) return
 
     if (checkGlobalRateLimit()) {
+      console.log("[v0] Messages: Skipping mark as read due to rate limiting")
       return
     }
-
-    const supabase = getSupabase()
 
     try {
       await withRateLimit(async () => {
@@ -259,10 +247,9 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     if (!user) return
 
     if (checkGlobalRateLimit()) {
+      console.log("[v0] Messages: Skipping delete due to rate limiting")
       return
     }
-
-    const supabase = getSupabase()
 
     try {
       await withRateLimit(async () => {

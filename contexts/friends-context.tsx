@@ -52,15 +52,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   const lastUserIdRef = useRef<string | null>(null)
 
   const { user, loading: authLoading } = useAuth()
-  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
-  
-  // Lazy initialize supabase client
-  const getSupabase = useCallback(() => {
-    if (!supabaseRef.current) {
-      supabaseRef.current = createClient()
-    }
-    return supabaseRef.current
-  }, [])
+  const supabase = createClient()
 
   const refreshFriends = useCallback(async () => {
     if (!user?.id) {
@@ -68,6 +60,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         return
       }
       if (dataLoadedRef.current && lastUserIdRef.current) {
+        console.log("[v0] FRIENDS: Auth finished, no user, clearing data")
         setFriends([])
         setPendingRequests([])
         setSentRequests([])
@@ -80,8 +73,6 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
     if (lastUserIdRef.current === user.id && dataLoadedRef.current) {
       return
     }
-
-    const supabase = getSupabase()
 
     try {
       setLoading(true)
@@ -200,7 +191,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [user?.id, user?.username, user?.name, getSupabase, authLoading])
+  }, [user?.id, user?.username, user?.name, supabase, authLoading])
 
   useEffect(() => {
     if (!authLoading) {
@@ -216,8 +207,6 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
     if (user.id === toUserId) {
       throw new Error("Du kannst dir nicht selbst eine Freundschaftsanfrage senden!")
     }
-
-    const supabase = getSupabase()
 
     try {
       setError(null)
@@ -358,8 +347,6 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   const acceptFriendRequest = async (requestId: string) => {
     if (!user?.id) return
 
-    const supabase = getSupabase()
-
     try {
       setError(null)
       console.log("[v0] FRIENDS: Accepting friend request:", requestId)
@@ -441,8 +428,6 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   const declineFriendRequest = async (requestId: string) => {
     if (!user?.id) return
 
-    const supabase = getSupabase()
-
     try {
       setError(null)
       console.log("[v0] FRIENDS: Declining friend request:", requestId)
@@ -486,8 +471,6 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
   const removeFriend = async (friendId: string) => {
     if (!user?.id) return
-
-    const supabase = getSupabase()
 
     try {
       setError(null)
