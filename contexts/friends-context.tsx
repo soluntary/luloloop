@@ -52,10 +52,19 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   const lastUserIdRef = useRef<string | null>(null)
 
   const { user, loading: authLoading } = useAuth()
-  const supabase = createClient()
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
+
+  useEffect(() => {
+    try {
+      const client = createClient()
+      setSupabase(client)
+    } catch (error) {
+      console.error("[v0] Failed to initialize Supabase client in FriendsProvider:", error)
+    }
+  }, [])
 
   const refreshFriends = useCallback(async () => {
-    if (!user?.id) {
+    if (!user?.id || !supabase) {
       if (authLoading) {
         return
       }

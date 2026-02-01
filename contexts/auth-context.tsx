@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { checkGlobalRateLimit, withRateLimit } from "@/lib/supabase/rate-limit"
 import type { User } from "@supabase/supabase-js"
 
-interface AuthUser {
+export interface AuthUser {
   id: string
   email: string
   name: string

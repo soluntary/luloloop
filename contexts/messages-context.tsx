@@ -48,12 +48,20 @@ const MessagesContext = createContext<MessagesContextType | undefined>(undefined
 export function MessagesProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
   const { user } = useAuth()
 
-  const supabase = createClient()
+  useEffect(() => {
+    try {
+      const client = createClient()
+      setSupabase(client)
+    } catch (error) {
+      console.error("[v0] Failed to initialize Supabase client in MessagesProvider:", error)
+    }
+  }, [])
 
   const refreshMessages = useCallback(async () => {
-    if (!user) return
+    if (!user || !supabase) return
 
     if (checkGlobalRateLimit()) {
       console.log("[v0] Messages: Skipping refresh due to rate limiting")
