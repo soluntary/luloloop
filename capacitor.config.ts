@@ -1,6 +1,7 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+// Capacitor configuration for native app builds
+// Note: @capacitor/cli is only available during native build process
 
-const config: CapacitorConfig = {
+const config = {
   appId: 'de.ludoloop.app',
   appName: 'LudoLoop',
   webDir: 'out',

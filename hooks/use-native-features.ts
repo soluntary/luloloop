@@ -26,6 +26,7 @@ export function useAppInfo() {
 
 /**
  * Hook für Haptic Feedback (Vibration)
+ * In web environment, this is a no-op
  */
 export function useHaptics() {
   const [available, setAvailable] = useState(false);
@@ -34,47 +35,19 @@ export function useHaptics() {
     setAvailable(isPluginAvailable('Haptics'));
   }, []);
 
-  const impact = useCallback(async (style: 'light' | 'medium' | 'heavy' = 'medium') => {
+  const impact = useCallback(async (_style: 'light' | 'medium' | 'heavy' = 'medium') => {
     if (!available) return;
-    
-    try {
-      const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
-      const styleMap = {
-        light: ImpactStyle.Light,
-        medium: ImpactStyle.Medium,
-        heavy: ImpactStyle.Heavy,
-      };
-      await Haptics.impact({ style: styleMap[style] });
-    } catch (e) {
-      console.warn('Haptics not available:', e);
-    }
+    // Native-only feature - no-op in web
   }, [available]);
 
-  const notification = useCallback(async (type: 'success' | 'warning' | 'error' = 'success') => {
+  const notification = useCallback(async (_type: 'success' | 'warning' | 'error' = 'success') => {
     if (!available) return;
-    
-    try {
-      const { Haptics, NotificationType } = await import('@capacitor/haptics');
-      const typeMap = {
-        success: NotificationType.Success,
-        warning: NotificationType.Warning,
-        error: NotificationType.Error,
-      };
-      await Haptics.notification({ type: typeMap[type] });
-    } catch (e) {
-      console.warn('Haptics not available:', e);
-    }
+    // Native-only feature - no-op in web
   }, [available]);
 
-  const vibrate = useCallback(async (duration = 300) => {
+  const vibrate = useCallback(async (_duration = 300) => {
     if (!available) return;
-    
-    try {
-      const { Haptics } = await import('@capacitor/haptics');
-      await Haptics.vibrate({ duration });
-    } catch (e) {
-      console.warn('Haptics not available:', e);
-    }
+    // Native-only feature - no-op in web
   }, [available]);
 
   return { available, impact, notification, vibrate };
@@ -82,12 +55,14 @@ export function useHaptics() {
 
 /**
  * Hook für Share-Funktionalität
+ * Falls Web Share API verfügbar ist, wird diese verwendet
  */
 export function useShare() {
   const [available, setAvailable] = useState(false);
 
   useEffect(() => {
-    setAvailable(isPluginAvailable('Share'));
+    // Check for Web Share API or native plugin
+    setAvailable(!!navigator.share || isPluginAvailable('Share'));
   }, []);
 
   const share = useCallback(async (options: {
@@ -96,40 +71,26 @@ export function useShare() {
     url?: string;
     dialogTitle?: string;
   }) => {
-    if (!available) {
-      // Fallback für Web
-      if (navigator.share) {
+    // Use Web Share API as fallback
+    if (navigator.share) {
+      try {
         await navigator.share(options);
+      } catch (e) {
+        console.warn('Share failed:', e);
       }
-      return;
     }
-
-    try {
-      const { Share } = await import('@capacitor/share');
-      await Share.share(options);
-    } catch (e) {
-      console.warn('Share not available:', e);
-    }
-  }, [available]);
+  }, []);
 
   const canShare = useCallback(async () => {
-    if (!available) {
-      return !!navigator.share;
-    }
-    try {
-      const { Share } = await import('@capacitor/share');
-      const result = await Share.canShare();
-      return result.value;
-    } catch {
-      return false;
-    }
-  }, [available]);
+    return !!navigator.share;
+  }, []);
 
   return { available, share, canShare };
 }
 
 /**
  * Hook für Netzwerk-Status
+ * Verwendet navigator.onLine als Fallback
  */
 export function useNetwork() {
   const [status, setStatus] = useState({
@@ -138,50 +99,21 @@ export function useNetwork() {
   });
 
   useEffect(() => {
-    if (!isPluginAvailable('Network')) {
-      // Fallback für Web
-      setStatus({
-        connected: navigator.onLine,
-        connectionType: 'unknown',
-      });
-      
-      const handleOnline = () => setStatus(s => ({ ...s, connected: true }));
-      const handleOffline = () => setStatus(s => ({ ...s, connected: false }));
-      
-      window.addEventListener('online', handleOnline);
-      window.addEventListener('offline', handleOffline);
-      
-      return () => {
-        window.removeEventListener('online', handleOnline);
-        window.removeEventListener('offline', handleOffline);
-      };
-    }
-
-    let listener: any;
+    // Web fallback
+    setStatus({
+      connected: navigator.onLine,
+      connectionType: 'unknown',
+    });
     
-    (async () => {
-      try {
-        const { Network } = await import('@capacitor/network');
-        
-        const currentStatus = await Network.getStatus();
-        setStatus({
-          connected: currentStatus.connected,
-          connectionType: currentStatus.connectionType,
-        });
-        
-        listener = await Network.addListener('networkStatusChange', (newStatus) => {
-          setStatus({
-            connected: newStatus.connected,
-            connectionType: newStatus.connectionType,
-          });
-        });
-      } catch (e) {
-        console.warn('Network plugin error:', e);
-      }
-    })();
-
+    const handleOnline = () => setStatus(s => ({ ...s, connected: true }));
+    const handleOffline = () => setStatus(s => ({ ...s, connected: false }));
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
     return () => {
-      listener?.remove();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -190,63 +122,36 @@ export function useNetwork() {
 
 /**
  * Hook für Clipboard-Operationen
+ * Verwendet navigator.clipboard als Fallback
  */
 export function useClipboard() {
-  const [available, setAvailable] = useState(false);
-
-  useEffect(() => {
-    setAvailable(isPluginAvailable('Clipboard'));
+  const write = useCallback(async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      console.warn('Clipboard write failed:', e);
+    }
   }, []);
 
-  const write = useCallback(async (text: string) => {
-    if (!available) {
-      // Fallback für Web
-      await navigator.clipboard.writeText(text);
-      return;
-    }
-
-    try {
-      const { Clipboard } = await import('@capacitor/clipboard');
-      await Clipboard.write({ string: text });
-    } catch (e) {
-      // Fallback
-      await navigator.clipboard.writeText(text);
-    }
-  }, [available]);
-
   const read = useCallback(async (): Promise<string> => {
-    if (!available) {
-      return navigator.clipboard.readText();
-    }
-
     try {
-      const { Clipboard } = await import('@capacitor/clipboard');
-      const result = await Clipboard.read();
-      return result.value;
-    } catch {
-      return navigator.clipboard.readText();
+      return await navigator.clipboard.readText();
+    } catch (e) {
+      console.warn('Clipboard read failed:', e);
+      return '';
     }
-  }, [available]);
+  }, []);
 
-  return { available, write, read };
+  return { available: true, write, read };
 }
 
 /**
  * Hook für Browser-Öffnung
+ * Verwendet window.open als Fallback
  */
 export function useBrowser() {
   const open = useCallback(async (url: string) => {
-    if (!isPluginAvailable('Browser')) {
-      window.open(url, '_blank');
-      return;
-    }
-
-    try {
-      const { Browser } = await import('@capacitor/browser');
-      await Browser.open({ url });
-    } catch {
-      window.open(url, '_blank');
-    }
+    window.open(url, '_blank');
   }, []);
 
   return { open };
