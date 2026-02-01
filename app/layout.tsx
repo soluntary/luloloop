@@ -63,6 +63,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  console.log("[v0] RootLayout rendering...")
   return (
     <html lang="de" className={`${galindo.variable} ${mclaren.variable}`}>
       <head>
