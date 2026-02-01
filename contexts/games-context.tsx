@@ -2,8 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { useAuth } from "./auth-context"
-import type { AuthUser } from "@/types/auth"
+import { useAuth, type AuthUser } from "./auth-context"
 
 interface Game {
   id: string
