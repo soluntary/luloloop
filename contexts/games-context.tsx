@@ -94,9 +94,19 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const FALLBACK_IMAGE = "/images/ludoloop-game-placeholder.png"
 
-  const supabase = createClient()
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
+
+  useEffect(() => {
+    try {
+      const client = createClient()
+      setSupabase(client)
+    } catch (error) {
+      console.error("[v0] Failed to initialize Supabase client in GamesProvider:", error)
+    }
+  }, [])
 
   const testDatabaseConnection = async () => {
+    if (!supabase) return false
     try {
       const { error } = await supabase.from("marketplace_offers").select("count", { count: "exact", head: true })
 

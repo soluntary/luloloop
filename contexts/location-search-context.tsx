@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useGeolocation } from "./geolocation-context"
 import { geocodeAddress } from "@/lib/actions/geocoding"
@@ -52,8 +52,16 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
     radius: 10, // Default 10km radius
     useCurrentLocation: true,
   })
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
 
-  const supabase = createClient()
+  useEffect(() => {
+    try {
+      const client = createClient()
+      setSupabase(client)
+    } catch (error) {
+      console.error("[v0] Failed to initialize Supabase client in LocationSearchProvider:", error)
+    }
+  }, [])
 
   const setFilters = useCallback((newFilters: Partial<LocationSearchFilters>) => {
     setFiltersState((prev) => ({ ...prev, ...newFilters }))
@@ -68,6 +76,10 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
 
   const searchGamesNearby = useCallback(
     async (additionalFilters?: any): Promise<LocationSearchResult[]> => {
+      if (!supabase) {
+        throw new Error("Datenbank-Verbindung nicht verfügbar.")
+      }
+
       const { lat, lon } = getSearchCoordinates()
 
       if (!lat || !lon) {
