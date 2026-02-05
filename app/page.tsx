@@ -441,16 +441,7 @@ export default function HomePage() {
           Eine Plattform, unzählige Möglichkeiten für deine Brettspiel-Leidenschaft
         </motion.p>
 
-        <div className="relative">
-          <Carousel
-            opts={{
-              align: "start",
-              loop: true,
-              dragFree: true,
-            }}
-            className="w-full"
-          >
-            <CarouselContent className="-ml-2 md:-ml-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[
                 {
                   icon: IoLibrary,
@@ -563,8 +554,8 @@ export default function HomePage() {
               ].map((feature, index) => {
                 const colors = getColorClasses(feature.color)
                 return (
-                  <CarouselItem key={index} className="pl-2 md:pl-4 basis-[85%] sm:basis-1/2 lg:basis-1/3">
-                    <motion.div
+                  <motion.div
+                    key={index}
                       initial={{ opacity: 0, scale: 0.95 }}
                       whileInView={{ opacity: 1, scale: 1 }}
                       viewport={{ once: true }}
@@ -604,18 +595,8 @@ export default function HomePage() {
                         </Card>
                       </motion.div>
                     </motion.div>
-                  </CarouselItem>
                 )
               })}
-            </CarouselContent>
-            <CarouselPrevious className="hidden md:flex -left-4 lg:-left-6 bg-white/90 hover:bg-white border-gray-200 shadow-lg" />
-            <CarouselNext className="hidden md:flex -right-4 lg:-right-6 bg-white/90 hover:bg-white border-gray-200 shadow-lg" />
-          </Carousel>
-          {/* Mobile swipe indicator */}
-          <div className="flex md:hidden justify-center mt-4 gap-1">
-            <span className="text-xs text-gray-500 font-body">Wische zum Entdecken</span>
-            <FaArrowRight className="w-3 h-3 text-gray-400 animate-pulse" />
-          </div>
         </div>
       </AnimatedSection>
 
