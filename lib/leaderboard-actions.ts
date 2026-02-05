@@ -39,18 +39,31 @@ export async function saveMastermindScore(attempts: number, timeSeconds: number)
   return { success: true }
 }
 
-export async function getMastermindLeaderboard(limit = 10): Promise<MastermindScore[]> {
+export async function getMastermindLeaderboard(limit = 50): Promise<MastermindScore[]> {
   const supabase = await createClient()
 
+  // Get all scores, then filter to best per user
   const { data, error } = await supabase
     .from("mastermind_scores")
     .select("*")
     .order("attempts", { ascending: true })
     .order("time_seconds", { ascending: true })
-    .limit(limit)
 
   if (error) throw error
-  return data || []
+  
+  // Filter to only best score per user
+  const bestScores = new Map<string, MastermindScore>()
+  for (const score of data || []) {
+    const existing = bestScores.get(score.user_id)
+    if (!existing || score.attempts < existing.attempts || 
+        (score.attempts === existing.attempts && score.time_seconds < existing.time_seconds)) {
+      bestScores.set(score.user_id, score)
+    }
+  }
+  
+  return Array.from(bestScores.values())
+    .sort((a, b) => a.attempts - b.attempts || a.time_seconds - b.time_seconds)
+    .slice(0, limit)
 }
 
 // 2048 Actions
@@ -79,17 +92,28 @@ export async function save2048Score(score: number) {
   return { success: true }
 }
 
-export async function get2048Leaderboard(limit = 10): Promise<Game2048Score[]> {
+export async function get2048Leaderboard(limit = 50): Promise<Game2048Score[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
     .from("game_2048_scores")
     .select("*")
     .order("score", { ascending: false })
-    .limit(limit)
 
   if (error) throw error
-  return data || []
+  
+  // Filter to only best score per user (highest score)
+  const bestScores = new Map<string, Game2048Score>()
+  for (const score of data || []) {
+    const existing = bestScores.get(score.user_id)
+    if (!existing || score.score > existing.score) {
+      bestScores.set(score.user_id, score)
+    }
+  }
+  
+  return Array.from(bestScores.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
 }
 
 // Minesweeper Actions
@@ -121,7 +145,7 @@ export async function saveMinesweeperScore(difficulty: "easy" | "medium" | "hard
 
 export async function getMinesweeperLeaderboard(
   difficulty: "easy" | "medium" | "hard",
-  limit = 10,
+  limit = 50,
 ): Promise<MinesweeperScore[]> {
   const supabase = await createClient()
 
@@ -130,10 +154,21 @@ export async function getMinesweeperLeaderboard(
     .select("*")
     .eq("difficulty", difficulty)
     .order("time_seconds", { ascending: true })
-    .limit(limit)
 
   if (error) throw error
-  return data || []
+  
+  // Filter to only best score per user (fastest time)
+  const bestScores = new Map<string, MinesweeperScore>()
+  for (const score of data || []) {
+    const existing = bestScores.get(score.user_id)
+    if (!existing || score.time_seconds < existing.time_seconds) {
+      bestScores.set(score.user_id, score)
+    }
+  }
+  
+  return Array.from(bestScores.values())
+    .sort((a, b) => a.time_seconds - b.time_seconds)
+    .slice(0, limit)
 }
 
 // Pattern Match Actions
@@ -163,7 +198,7 @@ export async function savePatternMatchScore(round: number, score: number) {
   return { success: true }
 }
 
-export async function getPatternMatchLeaderboard(limit = 10): Promise<PatternMatchScore[]> {
+export async function getPatternMatchLeaderboard(limit = 50): Promise<PatternMatchScore[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -171,10 +206,22 @@ export async function getPatternMatchLeaderboard(limit = 10): Promise<PatternMat
     .select("*")
     .order("score", { ascending: false })
     .order("round", { ascending: false })
-    .limit(limit)
 
   if (error) throw error
-  return data || []
+  
+  // Filter to only best score per user (highest score, then highest round)
+  const bestScores = new Map<string, PatternMatchScore>()
+  for (const score of data || []) {
+    const existing = bestScores.get(score.user_id)
+    if (!existing || score.score > existing.score || 
+        (score.score === existing.score && score.round > existing.round)) {
+      bestScores.set(score.user_id, score)
+    }
+  }
+  
+  return Array.from(bestScores.values())
+    .sort((a, b) => b.score - a.score || b.round - a.round)
+    .slice(0, limit)
 }
 
 // Lights Out Actions
@@ -204,7 +251,7 @@ export async function saveLightsOutScore(moves: number, hintsUsed: number) {
   return { success: true }
 }
 
-export async function getLightsOutLeaderboard(limit = 10): Promise<LightsOutScore[]> {
+export async function getLightsOutLeaderboard(limit = 50): Promise<LightsOutScore[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -212,10 +259,22 @@ export async function getLightsOutLeaderboard(limit = 10): Promise<LightsOutScor
     .select("*")
     .order("moves", { ascending: true })
     .order("hints_used", { ascending: true })
-    .limit(limit)
 
   if (error) throw error
-  return data || []
+  
+  // Filter to only best score per user (fewest moves, then fewest hints)
+  const bestScores = new Map<string, LightsOutScore>()
+  for (const score of data || []) {
+    const existing = bestScores.get(score.user_id)
+    if (!existing || score.moves < existing.moves || 
+        (score.moves === existing.moves && score.hints_used < existing.hints_used)) {
+      bestScores.set(score.user_id, score)
+    }
+  }
+  
+  return Array.from(bestScores.values())
+    .sort((a, b) => a.moves - b.moves || a.hints_used - b.hints_used)
+    .slice(0, limit)
 }
 
 // Sudoku Actions
@@ -245,7 +304,7 @@ export async function saveSudokuScore(difficulty: "easy" | "medium" | "hard", ti
   return { success: true }
 }
 
-export async function getSudokuLeaderboard(difficulty: "easy" | "medium" | "hard", limit = 10): Promise<SudokuScore[]> {
+export async function getSudokuLeaderboard(difficulty: "easy" | "medium" | "hard", limit = 50): Promise<SudokuScore[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -253,8 +312,19 @@ export async function getSudokuLeaderboard(difficulty: "easy" | "medium" | "hard
     .select("*")
     .eq("difficulty", difficulty)
     .order("time_seconds", { ascending: true })
-    .limit(limit)
 
   if (error) throw error
-  return data || []
+  
+  // Filter to only best score per user (fastest time)
+  const bestScores = new Map<string, SudokuScore>()
+  for (const score of data || []) {
+    const existing = bestScores.get(score.user_id)
+    if (!existing || score.time_seconds < existing.time_seconds) {
+      bestScores.set(score.user_id, score)
+    }
+  }
+  
+  return Array.from(bestScores.values())
+    .sort((a, b) => a.time_seconds - b.time_seconds)
+    .slice(0, limit)
 }
