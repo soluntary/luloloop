@@ -566,10 +566,10 @@ export default function HomePage() {
                       transition={{ type: "tween", duration: 0.15 }}
                       className="relative h-full"
                     >
-                      <Card className="transition-all border border-gray-200 h-full hover:shadow-lg rounded-xl">
+                      <Card className={`transform ${feature.rotation} transition-all border border-gray-200 h-full hover:shadow-lg hover:rotate-0 rounded-xl`}>
                         <CardContent className="p-6 text-center relative">
                           <div
-                            className={`w-14 h-14 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-4`}
+                            className={`w-14 h-14 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-6`}
                           >
                             <feature.icon className="w-7 h-7 text-white" />
                           </div>
