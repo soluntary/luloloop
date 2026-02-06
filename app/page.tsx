@@ -1,33 +1,36 @@
 "use client"
 
 import type React from "react"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
-  Store,
-  Plus,
-  CheckCircle,
-  Heart,
-  Coins,
-  ShieldCheck,
-  ArrowRight,
-  CalendarDays,
-  Users,
-  Library,
-  HandCoins,
-  Repeat,
-  Target,
-  Dice5,
-  Gamepad2,
-  ArrowLeftRight,
-  MessageSquare,
-  PiggyBank,
-  UserPlus,
-  CircleDot,
-  Replace,
-} from "lucide-react"
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
+import {
+  FaStore,
+  FaPlus,
+  FaCheckCircle,
+  FaHeart,
+  FaCoins,
+  FaShieldAlt,
+  FaArrowRight,
+  FaCalendarAlt,
+} from "react-icons/fa"
+import { LiaUsersSolid } from "react-icons/lia"
+import { IoLibrary } from "react-icons/io5"
+import { GiReceiveMoney, GiBackForth, GiDiceTarget, GiRollingDices, GiGamepad } from "react-icons/gi"
+import { TbExchange } from "react-icons/tb"
+import { MdForum } from "react-icons/md"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
+import { MdSavings, MdGroupAdd } from "react-icons/md"
+import { GiMeepleCircle } from "react-icons/gi"
+import { GiTrade } from "react-icons/gi"
 import "@/styles/font-handwritten.css"
 import "@/styles/font-body.css"
 import { motion } from "framer-motion"
@@ -441,7 +444,7 @@ export default function HomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 {
-                  icon: Library,
+                  icon: IoLibrary,
                   title: "Digitales Spielregal",
                   description:
                     "Leg im Handumdrehen deine gesamte Spielesammlung digital an und behalte den perfekten Überblick.",
@@ -452,7 +455,7 @@ export default function HomePage() {
                   requiresAuth: true,
                 },
                 {
-                  icon: Store,
+                  icon: FaStore,
                   title: "Spielehandel",
                   description:
                     "Entdecke tolle Angebote von anderen Mitgliedern und finde tolle Spiele zum Mieten, Kaufen oder Tauschen.",
@@ -462,7 +465,7 @@ export default function HomePage() {
                   rotation: "rotate-1",
                 },
                 {
-                  icon: Replace,
+                  icon: GiTrade,
                   title: "Spiele vermieten",
                   description:
                     "Lass deine Sammlung für dich arbeiten. Vermiete deine Spiele und verdiene dabei etwas Geld.",
@@ -472,7 +475,7 @@ export default function HomePage() {
                   rotation: "rotate-1",
                 },
                 {
-                  icon: Repeat,
+                  icon: GiBackForth,
                   title: "Spiele tauschen",
                   description:
                     "Tausche Spiele mit anderen Mitgliedern und entdecke ständig neue Spiele. Perfekt für Abwechslung im Spielregal!",
@@ -482,7 +485,7 @@ export default function HomePage() {
                   rotation: "-rotate-1",
                 },
                 {
-                  icon: HandCoins,
+                  icon: GiReceiveMoney,
                   title: "Spiele verkaufen",
                   description: "Verkaufe Spiele, die du nicht mehr brauchst. Schnell, sicher und fair!",
                   link: "/marketplace?filter=sell",
@@ -491,7 +494,7 @@ export default function HomePage() {
                   rotation: "rotate-1",
                 },
                 {
-                  icon: Users,
+                  icon: LiaUsersSolid,
                   title: "Spielgruppen",
                   description:
                     "Tritt Spielgruppen bei oder gründe deine eigene Community. Verbinde dich mit anderen Spiel-Enthusiasten und schliesse neue Freundschaften!",
@@ -501,7 +504,7 @@ export default function HomePage() {
                   rotation: "-rotate-1",
                 },
                 {
-                  icon: CalendarDays,
+                  icon: FaCalendarAlt,
                   title: "Events & Spieltreffs",
                   description:
                     "Organisiere deine nächste Spielrunde im Handumdrehen und finde Gleichgesinnte für spontane oder regelmässige Spielrunden.",
@@ -511,7 +514,7 @@ export default function HomePage() {
                   rotation: "-rotate-1",
                 },
                 {
-                  icon: UserPlus,
+                  icon: MdGroupAdd,
                   title: "Freunde finden",
                   description: "Vernetze dich mit anderen Brettspielbegeisterten und baue dein Freundesnetzwerk auf.",
                   link: "/ludo-mitglieder",
@@ -520,7 +523,7 @@ export default function HomePage() {
                   rotation: "rotate-1",
                 },
                 {
-                  icon: MessageSquare,
+                  icon: MdForum,
                   title: "Community-Forum",
                   description: "Stelle Fragen, teile deine Gedanken und Erfahrungen und diskutiere mit der Community!",
                   link: "/ludo-forum",
@@ -529,7 +532,7 @@ export default function HomePage() {
                   rotation: "rotate-1",
                 },
                 {
-                  icon: Dice5,
+                  icon: GiRollingDices,
                   title: "Spielhilfen",
                   description:
                     "Nützliche Tools für deine Spielrunden: Würfel, Timer, Punktezähler, Glücksrad und vieles mehr - alles an einer Ort!",
@@ -539,7 +542,7 @@ export default function HomePage() {
                   rotation: "-rotate-1",
                 },
                 {
-                  icon: Gamepad2,
+                  icon: GiMeepleCircle,
                   title: "Spielarena",
                   description:
                     "Entdecke klassische Mini-Games direkt im Browser: Memory, Vier gewinnt, Sudoku, Minesweeper und viele mehr. Perfekt für eine kurze Spielpause mit Spass und Herausforderung!",
@@ -583,7 +586,7 @@ export default function HomePage() {
                               className="flex items-center text-xs justify-center gap-2"
                             >
                               {feature.linkText}
-                              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                              <FaArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                             </Link>
                           </Button>
                         </CardContent>
@@ -625,7 +628,7 @@ export default function HomePage() {
         >
           {[
             {
-              icon: Target,
+              icon: GiDiceTarget,
               title: "Alles an einem Ort",
               description:
                 "Digitales Spielregal, Verleih, Tausch, Verkauf und Community - alles vereint in einer Plattform.",
@@ -634,7 +637,7 @@ export default function HomePage() {
               iconRotation: "-rotate-12",
             },
             {
-              icon: Heart,
+              icon: FaHeart,
               title: "Lebende Community",
               description:
                 "Vernetze dich mit Gleichgesinnten, finde Spielpartner für spontane oder regelmässige Runden, tausche Tipps aus und knüpfe Freundschaften, die über den Spieltisch hinausgehen.",
@@ -643,7 +646,7 @@ export default function HomePage() {
               iconRotation: "rotate-12",
             },
             {
-              icon: CheckCircle,
+              icon: FaCheckCircle,
               title: "Spielvielfalt",
               description: "Einfacher Zugang zu tollen Spielen.",
               color: "teal",
@@ -651,7 +654,7 @@ export default function HomePage() {
               iconRotation: "-rotate-12",
             },
             {
-              icon: PiggyBank,
+              icon: MdSavings,
               title: "Nachhaltig und kostensparend",
               description:
                 "Weniger ungenutzte Spiele im Regal, mehr Kreislauf durch Tausch und Verleih - gut für Umwelt und Geldbeutel.",
@@ -743,7 +746,7 @@ export default function HomePage() {
                 <Link href="/register" className="flex items-center gap-2">
                   <FaPlus className="w-5 h-5" />
                   Jetzt loslegen
-                  <ArrowRight className="w-5 h-5" />
+                  <FaArrowRight className="w-5 h-5" />
                 </Link>
               </Button>
             </motion.div>
