@@ -21,15 +21,20 @@ export function createClient() {
     }
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://kezntrzgpfmnmibnsrbt.supabase.co"
-  const supabaseAnonKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtlem50cnpncGZtbm1pYm5zcmJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2MDQ3MzYsImV4cCI6MjA3MDE4MDczNn0.0czVmiNiu3o2LnNuUB-PLDW9I61129Jj_BUps_TFsaw"
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("[v0] Supabase environment variables are missing:", {
+      url: !!supabaseUrl,
+      key: !!supabaseAnonKey
+    })
+    throw new Error("Supabase configuration is missing. Please check environment variables.")
+  }
 
   const client = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
-      storageKey: "sb-kezntrzgpfmnmibnsrbt-auth-token",
       autoRefreshToken: true,
       detectSessionInUrl: true,
     },

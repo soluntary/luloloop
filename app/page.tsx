@@ -441,15 +441,16 @@ export default function HomePage() {
           Eine Plattform, unzählige Möglichkeiten für deine Brettspiel-Leidenschaft
         </motion.p>
 
-        <div className="relative px-12">
+        <div className="relative">
           <Carousel
             opts={{
               align: "start",
               loop: true,
+              dragFree: true,
             }}
             className="w-full"
           >
-            <CarouselContent className="-ml-4">
+            <CarouselContent className="-ml-2 md:-ml-4">
               {[
                 {
                   icon: IoLibrary,
@@ -562,7 +563,7 @@ export default function HomePage() {
               ].map((feature, index) => {
                 const colors = getColorClasses(feature.color)
                 return (
-                  <CarouselItem key={index} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+                  <CarouselItem key={index} className="pl-2 md:pl-4 basis-[85%] sm:basis-1/2 lg:basis-1/3">
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       whileInView={{ opacity: 1, scale: 1 }}
@@ -607,9 +608,14 @@ export default function HomePage() {
                 )
               })}
             </CarouselContent>
-            <CarouselPrevious className="left-0 bg-white/80 hover:bg-white border-gray-200" />
-            <CarouselNext className="right-0 bg-white/80 hover:bg-white border-gray-200" />
+            <CarouselPrevious className="hidden md:flex -left-4 lg:-left-6 bg-white/90 hover:bg-white border-gray-200 shadow-lg" />
+            <CarouselNext className="hidden md:flex -right-4 lg:-right-6 bg-white/90 hover:bg-white border-gray-200 shadow-lg" />
           </Carousel>
+          {/* Mobile swipe indicator */}
+          <div className="flex md:hidden justify-center mt-4 gap-1">
+            <span className="text-xs text-gray-500 font-body">Wische zum Entdecken</span>
+            <FaArrowRight className="w-3 h-3 text-gray-400 animate-pulse" />
+          </div>
         </div>
       </AnimatedSection>
 

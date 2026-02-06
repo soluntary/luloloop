@@ -91,12 +91,20 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   const [gameInteractionRequests, setGameInteractionRequests] = useState<GameInteractionRequest[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
 
-  const supabase = createClient()
+  useEffect(() => {
+    try {
+      const client = createClient()
+      setSupabase(client)
+    } catch (error) {
+      console.error("[v0] Failed to initialize Supabase client in RequestsProvider:", error)
+    }
+  }, [])
 
   // Load shelf access requests
   const loadShelfAccessRequests = useCallback(async () => {
-    if (!user) return
+    if (!user || !supabase) return
 
     if (checkGlobalRateLimit()) {
       console.log("[v0] Requests: Skipping shelf access requests load due to rate limiting")
