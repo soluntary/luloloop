@@ -427,7 +427,7 @@ export default function HomePage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="font-handwritten text-center text-gray-800 mb-12 transform rotate-1 text-2xl"
+          className="font-handwritten text-center text-gray-800 mb-4 text-2xl"
         >
           Entdecke unsere tollen Features
         </motion.h2>
@@ -436,12 +436,12 @@ export default function HomePage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-gray-600 text-center font-body transform rotate-1 text-base mb-10"
+          className="text-gray-600 text-center font-body text-base mb-10"
         >
           Eine Plattform, unzählige Möglichkeiten für deine Brettspiel-Leidenschaft
         </motion.p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 {
                   icon: IoLibrary,
@@ -556,45 +556,43 @@ export default function HomePage() {
                 return (
                   <motion.div
                     key={index}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.5, delay: index * 0.05 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: index * 0.05 }}
+                  >
+                    <motion.div
+                      whileHover={{ scale: 1.02, y: -4 }}
+                      transition={{ type: "tween", duration: 0.15 }}
+                      className="relative h-full"
                     >
-                      <motion.div
-                        whileHover={{ scale: 1.02, y: -4 }}
-                        transition={{ type: "tween", duration: 0.15 }}
-                        className="relative h-full"
-                      >
-                        <Card
-                          className={`transform ${feature.rotation} transition-all border-2 ${colors.border} h-full hover:shadow-2xl`}
-                        >
-                          <CardContent className="p-6 text-center relative">
-                            <div
-                              className={`w-16 h-16 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12`}
+                      <Card className="transition-all border border-gray-200 h-full hover:shadow-lg rounded-xl">
+                        <CardContent className="p-6 text-center relative">
+                          <div
+                            className={`w-14 h-14 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-4`}
+                          >
+                            <feature.icon className="w-7 h-7 text-white" />
+                          </div>
+                          <h3 className="font-bold text-gray-800 mb-2 font-handwritten text-sm">{feature.title}</h3>
+                          <p className="text-gray-600 font-body mb-4 text-xs leading-relaxed">{feature.description}</p>
+                          <Button
+                            asChild
+                            variant="outline"
+                            className={`${colors.border} ${colors.text} ${colors.hover} hover:text-white font-handwritten bg-transparent group transition-transform hover:scale-105 active:scale-95 rounded-full`}
+                          >
+                            <Link 
+                              href={feature.requiresAuth && !user ? `/login?redirect=${feature.link}` : feature.link} 
+                              prefetch={true} 
+                              className="flex items-center text-xs justify-center gap-2"
                             >
-                              <feature.icon className="w-8 h-8 text-white" />
-                            </div>
-                            <h3 className="font-bold text-gray-800 mb-2 font-handwritten text-sm">{feature.title}</h3>
-                            <p className="text-gray-600 font-body mb-4 text-xs leading-relaxed">{feature.description}</p>
-                            <Button
-                              asChild
-                              variant="outline"
-                              className={`${colors.border} ${colors.text} ${colors.hover} hover:text-white font-handwritten bg-transparent group transition-transform hover:scale-105 active:scale-95`}
-                            >
-                              <Link 
-                                href={feature.requiresAuth && !user ? `/login?redirect=${feature.link}` : feature.link} 
-                                prefetch={true} 
-                                className="flex items-center text-xs justify-center gap-2"
-                              >
-                                {feature.linkText}
-                                <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                              </Link>
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
+                              {feature.linkText}
+                              <FaArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                            </Link>
+                          </Button>
+                        </CardContent>
+                      </Card>
                     </motion.div>
+                  </motion.div>
                 )
               })}
         </div>
