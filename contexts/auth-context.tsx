@@ -93,42 +93,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         console.log("[v0] Loading user profile for:", authUser.id, `(attempt ${attempts + 1})`)
 
-        // First try to find by ID, then by email if not found
-        let existingUser = await withRateLimit(async () => {
+        const existingUser = await withRateLimit(async () => {
           const { data, error } = await supabase.from("users").select("*").eq("id", authUser.id).maybeSingle()
           if (error && error.code !== "PGRST116") {
             throw error
           }
           return data
         }, null)
-        
-        // If not found by ID, try to find by email (for cases where user was created with different ID)
-        if (!existingUser && authUser.email) {
-          existingUser = await withRateLimit(async () => {
-            const { data, error } = await supabase.from("users").select("*").eq("email", authUser.email).maybeSingle()
-            if (error && error.code !== "PGRST116") {
-              throw error
-            }
-            return data
-          }, null)
-          
-          // If found by email, update the ID to match the auth user
-          if (existingUser && existingUser.id !== authUser.id) {
-            console.log("[v0] Found user by email, updating ID to match auth user...")
-            try {
-              const { error: updateError } = await supabase
-                .from("users")
-                .update({ id: authUser.id })
-                .eq("email", authUser.email)
-              
-              if (!updateError) {
-                existingUser.id = authUser.id
-              }
-            } catch (updateErr) {
-              console.error("[v0] Failed to update user ID:", updateErr)
-            }
-          }
-        }
 
         let userProfile
 
@@ -151,37 +122,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
           }
 
-          try {
-            userProfile = await withRateLimit(async () => {
-              const { data: createdUser, error: createError } = await supabase
-                .from("users")
-                .insert([newUserProfile])
-                .select()
-                .single()
+          userProfile = await withRateLimit(async () => {
+            const { data: createdUser, error: createError } = await supabase
+              .from("users")
+              .insert([newUserProfile])
+              .select()
+              .single()
 
-              if (createError) throw createError
-              return createdUser
-            }, newUserProfile)
-          } catch (createErr: any) {
-            // If duplicate key error, try to fetch the existing user
-            if (createErr?.code === "23505" || createErr?.message?.includes("duplicate key")) {
-              console.log("[v0] Duplicate key detected, fetching existing user...")
-              const { data: existingByEmail } = await supabase
-                .from("users")
-                .select("*")
-                .eq("email", authUser.email)
-                .maybeSingle()
-              
-              if (existingByEmail) {
-                userProfile = existingByEmail
-                console.log("[v0] Found existing user by email")
-              } else {
-                throw createErr
-              }
-            } else {
-              throw createErr
-            }
-          }
+            if (createError) throw createError
+            return createdUser
+          }, newUserProfile)
         } else {
           userProfile = existingUser
           
@@ -201,26 +151,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
             
             try {
-              // Try to update by ID first, then by email if that fails
-              let updateResult = await supabase
+              const { data: updatedUser, error: updateError } = await supabase
                 .from("users")
                 .update(updateData)
-                .eq("id", existingUser.id)
+                .eq("id", authUser.id)
                 .select()
                 .single()
               
-              if (updateResult.error && authUser.email) {
-                // Try updating by email
-                updateResult = await supabase
-                  .from("users")
-                  .update(updateData)
-                  .eq("email", authUser.email)
-                  .select()
-                  .single()
-              }
-              
-              if (!updateResult.error && updateResult.data) {
-                userProfile = updateResult.data
+              if (!updateError && updatedUser) {
+                userProfile = updatedUser
                 console.log("[v0] User profile updated with name/username from metadata")
               }
             } catch (updateErr) {

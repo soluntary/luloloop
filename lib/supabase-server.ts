@@ -2,22 +2,15 @@ import { createServerClient as createSupabaseServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { cache } from "react"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey)
+export const isSupabaseConfigured = true
 
 // Create a cached version of the Supabase client for Server Components
-export const createClient = cache(async () => {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase configuration is missing. Please check environment variables.")
-  }
-
-  const cookieStore = await cookies()
+export const createClient = cache(() => {
+  const cookieStore = cookies()
 
   return createSupabaseServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
+    "https://kezntrzgpfmnmibnsrbt.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtlem50cnpncGZtbm1pYm5zcmJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2MDQ3MzYsImV4cCI6MjA3MDE4MDczNn0.0czVmiNiu3o2LnNuUB-PLDW9I61129Jj_BUps_TFsaw",
     {
       cookies: {
         getAll() {
@@ -37,14 +30,10 @@ export const createClient = cache(async () => {
   )
 })
 
-export async function createServerClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase configuration is missing. Please check environment variables.")
-  }
-
+export function createServerClient(cookieStore: ReturnType<typeof cookies>) {
   return createSupabaseServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
+    "https://kezntrzgpfmnmibnsrbt.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtlem50cnpncGZtbm1pYm5zcmJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2MDQ3MzYsImV4cCI6MjA3MDE4MDczNn0.0czVmiNiu3o2LnNuUB-PLDW9I61129Jj_BUps_TFsaw",
     {
       cookies: {
         getAll() {

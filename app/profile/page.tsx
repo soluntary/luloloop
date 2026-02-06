@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 import { useAvatar } from "@/contexts/avatar-context"
-import { useUserDisplayName } from "@/hooks/use-user-data"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -187,7 +186,7 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const supabase = createClient()
-  const { updateAvatar, getAvatar } = useAvatar()
+  const { updateAvatar } = useAvatar()
   const { toast } = useToast()
   const { confirm } = useConfirmDialog()
 
@@ -2412,7 +2411,7 @@ const loadEventInstances = async (eventId: string) => {
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 <div className="relative group">
                   <Avatar className="w-24 h-24 border-4 border-teal-400">
-                    <AvatarImage src={profile?.avatar || getAvatar(user.id, user.email)} />
+                    <AvatarImage src={profile?.avatar || user.avatar} />
                     <AvatarFallback className="bg-teal-100 text-teal-700 text-2xl font-handwritten">
                       {profile?.name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
                     </AvatarFallback>
@@ -2450,11 +2449,8 @@ const loadEventInstances = async (eventId: string) => {
                 </div>
                 <div className="flex-1 text-center sm:text-left">
                   <h1 className="font-bold text-gray-900 font-handwritten text-sm">
-                    {profile?.name || user.name || "Benutzer"}
+                    {profile?.name || profile?.username || user.name || "Benutzer"}
                   </h1>
-                  {(profile?.username || user.username) && (
-                    <p className="text-teal-600 text-xs font-medium">@{profile?.username || user.username}</p>
-                  )}
                   <p className="text-gray-600 text-xs">{user.email}</p>
                 </div>
                 <Button
