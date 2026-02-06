@@ -57,8 +57,11 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password)
-      // Use window.location for a full page reload to ensure auth state is fresh
-      window.location.href = redirectUrl
+      // Wait a moment for auth state to update, then redirect
+      setTimeout(() => {
+        const targetUrl = redirectUrl.startsWith("/") ? redirectUrl : `/${redirectUrl}`
+        router.push(targetUrl)
+      }, 100)
     } catch (error: any) {
       setError(error.message || "Anmeldung fehlgeschlagen.")
       setLoading(false)
