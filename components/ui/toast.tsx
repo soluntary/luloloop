@@ -1,5 +1,6 @@
 'use client'
 
+// Custom toast implementation (no external toast library dependency)
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { X } from 'lucide-react'
