@@ -1,6 +1,5 @@
 'use client'
 
-// Custom toaster component using internal toast implementation
 import { useToast } from '@/hooks/use-toast'
 import {
   Toast,
@@ -9,7 +8,7 @@ import {
   ToastProvider,
   ToastTitle,
   ToastViewport,
-} from '@/components/ui/toast'
+} from '@/components/ui/custom-toast'
 
 export function Toaster() {
   const { toasts } = useToast()
