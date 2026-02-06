@@ -421,201 +421,184 @@ export default function HomePage() {
       </section>
 
       {/* Features */}
-      <section className="container mx-auto px-4 py-20 mb-16">
-        <div className="text-center mb-16">
-          <motion.span
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="inline-block px-4 py-1.5 bg-teal-100 text-teal-700 rounded-full text-sm font-medium mb-4"
-          >
-            Unsere Features
-          </motion.span>
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-3xl md:text-4xl font-bold text-gray-900 mb-4"
-          >
-            Alles was du brauchst
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-gray-600 text-lg max-w-2xl mx-auto"
-          >
-            Eine Plattform, unzählige Möglichkeiten für deine Brettspiel-Leidenschaft
-          </motion.p>
-        </div>
-
-        {/* Bento Grid Layout */}
-        <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto"
+      <AnimatedSection className="container mx-auto px-4 py-16 bg-white/50 rounded-3xl mx-4 mb-16 relative">
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="font-handwritten text-center text-gray-800 mb-12 transform rotate-1 text-2xl"
         >
-          {/* Large Feature Card - Digitales Spielregal */}
-          <motion.div variants={scaleIn} className="md:col-span-2 lg:row-span-2">
-            <Link href={user ? "/library" : "/login?redirect=/library"} className="block h-full">
-              <motion.div
-                whileHover={{ y: -4 }}
-                transition={{ type: "tween", duration: 0.2 }}
-                className="relative h-full min-h-[320px] bg-gradient-to-br from-teal-500 to-teal-600 rounded-3xl p-8 overflow-hidden group cursor-pointer"
-              >
-                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
-                <div className="relative z-10 h-full flex flex-col justify-between">
-                  <div>
-                    <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
-                      <IoLibrary className="w-7 h-7 text-white" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-white mb-3">Digitales Spielregal</h3>
-                    <p className="text-teal-100 text-base leading-relaxed">
-                      Leg im Handumdrehen deine gesamte Spielesammlung digital an und behalte den perfekten Überblick.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-white/80 group-hover:text-white transition-colors">
-                    <span className="text-sm font-medium">Sammlung anlegen</span>
-                    <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </motion.div>
-            </Link>
-          </motion.div>
+          Entdecke unsere tollen Features
+        </motion.h2>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="text-gray-600 text-center font-body transform rotate-1 text-base mb-10"
+        >
+          Eine Plattform, unzählige Möglichkeiten für deine Brettspiel-Leidenschaft
+        </motion.p>
 
-          {/* Spielehandel */}
-          <motion.div variants={scaleIn}>
-            <Link href="/marketplace" className="block h-full">
-              <motion.div
-                whileHover={{ y: -4 }}
-                transition={{ type: "tween", duration: 0.2 }}
-                className="h-full min-h-[150px] bg-white border border-gray-200 rounded-3xl p-6 group cursor-pointer hover:border-orange-200 hover:shadow-lg transition-all"
-              >
-                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4">
-                  <FaStore className="w-6 h-6 text-orange-600" />
-                </div>
-                <h3 className="font-bold text-gray-900 mb-2">Spielehandel</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">Kaufen, Verkaufen, Tauschen & Mieten</p>
-              </motion.div>
-            </Link>
-          </motion.div>
-
-          {/* Spielgruppen */}
-          <motion.div variants={scaleIn}>
-            <Link href="/ludo-gruppen" className="block h-full">
-              <motion.div
-                whileHover={{ y: -4 }}
-                transition={{ type: "tween", duration: 0.2 }}
-                className="h-full min-h-[150px] bg-white border border-gray-200 rounded-3xl p-6 group cursor-pointer hover:border-pink-200 hover:shadow-lg transition-all"
-              >
-                <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center mb-4">
-                  <LiaUsersSolid className="w-6 h-6 text-pink-600" />
-                </div>
-                <h3 className="font-bold text-gray-900 mb-2">Spielgruppen</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">Finde deine Community</p>
-              </motion.div>
-            </Link>
-          </motion.div>
-
-          {/* Events - Wide Card */}
-          <motion.div variants={scaleIn} className="md:col-span-2">
-            <Link href="/ludo-events" className="block h-full">
-              <motion.div
-                whileHover={{ y: -4 }}
-                transition={{ type: "tween", duration: 0.2 }}
-                className="h-full min-h-[150px] bg-gradient-to-r from-orange-500 to-pink-500 rounded-3xl p-6 group cursor-pointer"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0">
-                    <FaCalendarAlt className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-white mb-2">Events & Spieltreffs</h3>
-                    <p className="text-white/80 text-sm leading-relaxed">
-                      Organisiere Spielrunden und finde Gleichgesinnte für spontane oder regelmässige Treffen.
-                    </p>
-                  </div>
-                  <FaArrowRight className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all flex-shrink-0 mt-1" />
-                </div>
-              </motion.div>
-            </Link>
-          </motion.div>
-
-          {/* Forum */}
-          <motion.div variants={scaleIn}>
-            <Link href="/ludo-forum" className="block h-full">
-              <motion.div
-                whileHover={{ y: -4 }}
-                transition={{ type: "tween", duration: 0.2 }}
-                className="h-full min-h-[150px] bg-white border border-gray-200 rounded-3xl p-6 group cursor-pointer hover:border-purple-200 hover:shadow-lg transition-all"
-              >
-                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
-                  <MdForum className="w-6 h-6 text-purple-600" />
-                </div>
-                <h3 className="font-bold text-gray-900 mb-2">Forum</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">Diskutiere mit der Community</p>
-              </motion.div>
-            </Link>
-          </motion.div>
-
-          {/* Spielhilfen */}
-          <motion.div variants={scaleIn}>
-            <Link href="/spielhilfen" className="block h-full">
-              <motion.div
-                whileHover={{ y: -4 }}
-                transition={{ type: "tween", duration: 0.2 }}
-                className="h-full min-h-[150px] bg-white border border-gray-200 rounded-3xl p-6 group cursor-pointer hover:border-teal-200 hover:shadow-lg transition-all"
-              >
-                <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center mb-4">
-                  <GiRollingDices className="w-6 h-6 text-teal-600" />
-                </div>
-                <h3 className="font-bold text-gray-900 mb-2">Spielhilfen</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">Würfel, Timer & mehr</p>
-              </motion.div>
-            </Link>
-          </motion.div>
-
-          {/* Spielarena */}
-          <motion.div variants={scaleIn}>
-            <Link href="/spielarena" className="block h-full">
-              <motion.div
-                whileHover={{ y: -4 }}
-                transition={{ type: "tween", duration: 0.2 }}
-                className="h-full min-h-[150px] bg-white border border-gray-200 rounded-3xl p-6 group cursor-pointer hover:border-orange-200 hover:shadow-lg transition-all"
-              >
-                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4">
-                  <GiMeepleCircle className="w-6 h-6 text-orange-600" />
-                </div>
-                <h3 className="font-bold text-gray-900 mb-2">Spielarena</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">Mini-Games im Browser</p>
-              </motion.div>
-            </Link>
-          </motion.div>
-
-          {/* Mitglieder */}
-          <motion.div variants={scaleIn}>
-            <Link href="/ludo-mitglieder" className="block h-full">
-              <motion.div
-                whileHover={{ y: -4 }}
-                transition={{ type: "tween", duration: 0.2 }}
-                className="h-full min-h-[150px] bg-white border border-gray-200 rounded-3xl p-6 group cursor-pointer hover:border-pink-200 hover:shadow-lg transition-all"
-              >
-                <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center mb-4">
-                  <MdGroupAdd className="w-6 h-6 text-pink-600" />
-                </div>
-                <h3 className="font-bold text-gray-900 mb-2">Mitglieder</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">Freunde finden</p>
-              </motion.div>
-            </Link>
-          </motion.div>
-        </motion.div>
-      </section>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[
+                {
+                  icon: IoLibrary,
+                  title: "Digitales Spielregal",
+                  description:
+                    "Leg im Handumdrehen deine gesamte Spielesammlung digital an und behalte den perfekten Überblick.",
+                  link: "/library",
+                  linkText: "Spielesammlung digital anlegen",
+                  color: "pink",
+                  rotation: "rotate-1",
+                  requiresAuth: true,
+                },
+                {
+                  icon: FaStore,
+                  title: "Spielehandel",
+                  description:
+                    "Entdecke tolle Angebote von anderen Mitgliedern und finde tolle Spiele zum Mieten, Kaufen oder Tauschen.",
+                  link: "/marketplace",
+                  linkText: "Zum Spielehandel",
+                  color: "orange",
+                  rotation: "rotate-1",
+                },
+                {
+                  icon: GiTrade,
+                  title: "Spiele vermieten",
+                  description:
+                    "Lass deine Sammlung für dich arbeiten. Vermiete deine Spiele und verdiene dabei etwas Geld.",
+                  link: "/marketplace?filter=lend",
+                  linkText: "Jetzt vermieten",
+                  color: "teal",
+                  rotation: "rotate-1",
+                },
+                {
+                  icon: GiBackForth,
+                  title: "Spiele tauschen",
+                  description:
+                    "Tausche Spiele mit anderen Mitgliedern und entdecke ständig neue Spiele. Perfekt für Abwechslung im Spielregal!",
+                  link: "/marketplace?filter=trade",
+                  linkText: "Jetzt tauschen",
+                  color: "orange",
+                  rotation: "-rotate-1",
+                },
+                {
+                  icon: GiReceiveMoney,
+                  title: "Spiele verkaufen",
+                  description: "Verkaufe Spiele, die du nicht mehr brauchst. Schnell, sicher und fair!",
+                  link: "/marketplace?filter=sell",
+                  linkText: "Jetzt verkaufen",
+                  color: "pink",
+                  rotation: "rotate-1",
+                },
+                {
+                  icon: LiaUsersSolid,
+                  title: "Spielgruppen",
+                  description:
+                    "Tritt Spielgruppen bei oder gründe deine eigene Community. Verbinde dich mit anderen Spiel-Enthusiasten und schliesse neue Freundschaften!",
+                  link: "/ludo-gruppen",
+                  linkText: "Zu Spielgruppen",
+                  color: "purple",
+                  rotation: "-rotate-1",
+                },
+                {
+                  icon: FaCalendarAlt,
+                  title: "Events & Spieltreffs",
+                  description:
+                    "Organisiere deine nächste Spielrunde im Handumdrehen und finde Gleichgesinnte für spontane oder regelmässige Spielrunden.",
+                  link: "/ludo-events",
+                  linkText: "Events entdecken",
+                  color: "teal",
+                  rotation: "-rotate-1",
+                },
+                {
+                  icon: MdGroupAdd,
+                  title: "Freunde finden",
+                  description: "Vernetze dich mit anderen Brettspielbegeisterten und baue dein Freundesnetzwerk auf.",
+                  link: "/ludo-mitglieder",
+                  linkText: "Mitglieder entdecken",
+                  color: "pink",
+                  rotation: "rotate-1",
+                },
+                {
+                  icon: MdForum,
+                  title: "Community-Forum",
+                  description: "Stelle Fragen, teile deine Gedanken und Erfahrungen und diskutiere mit der Community!",
+                  link: "/ludo-forum",
+                  linkText: "Zum Forum",
+                  color: "orange",
+                  rotation: "rotate-1",
+                },
+                {
+                  icon: GiRollingDices,
+                  title: "Spielhilfen",
+                  description:
+                    "Nützliche Tools für deine Spielrunden: Würfel, Timer, Punktezähler, Glücksrad und vieles mehr - alles an einer Ort!",
+                  link: "/spielhilfen",
+                  linkText: "Zu den Spielhilfen",
+                  color: "teal",
+                  rotation: "-rotate-1",
+                },
+                {
+                  icon: GiMeepleCircle,
+                  title: "Spielarena",
+                  description:
+                    "Entdecke klassische Mini-Games direkt im Browser: Memory, Vier gewinnt, Sudoku, Minesweeper und viele mehr. Perfekt für eine kurze Spielpause mit Spass und Herausforderung!",
+                  link: "/spielarena",
+                  linkText: "Zur Spielarena",
+                  color: "purple",
+                  rotation: "rotate-1",
+                },
+              ].map((feature, index) => {
+                const colors = getColorClasses(feature.color)
+                return (
+                  <motion.div
+                    key={index}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: index * 0.05 }}
+                    >
+                      <motion.div
+                        whileHover={{ scale: 1.02, y: -4 }}
+                        transition={{ type: "tween", duration: 0.15 }}
+                        className="relative h-full"
+                      >
+                        <Card
+                          className={`transform ${feature.rotation} transition-all border-2 ${colors.border} h-full hover:shadow-2xl`}
+                        >
+                          <CardContent className="p-6 text-center relative">
+                            <div
+                              className={`w-16 h-16 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-12`}
+                            >
+                              <feature.icon className="w-8 h-8 text-white" />
+                            </div>
+                            <h3 className="font-bold text-gray-800 mb-2 font-handwritten text-sm">{feature.title}</h3>
+                            <p className="text-gray-600 font-body mb-4 text-xs leading-relaxed">{feature.description}</p>
+                            <Button
+                              asChild
+                              variant="outline"
+                              className={`${colors.border} ${colors.text} ${colors.hover} hover:text-white font-handwritten bg-transparent group transition-transform hover:scale-105 active:scale-95`}
+                            >
+                              <Link 
+                                href={feature.requiresAuth && !user ? `/login?redirect=${feature.link}` : feature.link} 
+                                prefetch={true} 
+                                className="flex items-center text-xs justify-center gap-2"
+                              >
+                                {feature.linkText}
+                                <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                              </Link>
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    </motion.div>
+                )
+              })}
+        </div>
+      </AnimatedSection>
 
       {/* Benefits Section */}
       <AnimatedSection className="container mx-auto px-4 py-16 bg-white/50 rounded-3xl mx-4 mb-16">

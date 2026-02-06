@@ -53,8 +53,7 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
   const { user: profile, isLoading: loading } = useUserData(userId)
   const displayName = useUserDisplayName(userId)
   const { getAvatar } = useAvatar()
-  // Use the user's actual avatar if available, otherwise fall back to generated avatar
-  const avatarUrl = profile?.avatar || getAvatar(userId || "", profile?.email)
+  const avatarUrl = getAvatar(userId || "", profile?.email)
 
   const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null)
   const [shelfRequestStatus, setShelfRequestStatus] = useState<string | null>(null)

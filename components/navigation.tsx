@@ -168,9 +168,9 @@ function Navigation({ currentPage }: NavigationProps) {
 
   const userAvatar = useMemo(() => {
     if (!user) return null
-    // Prioritize user's saved avatar from database, then fall back to generated avatar
-    return user.avatar || getAvatar(user.id, user.email)
-  }, [user, getAvatar, avatarKey]) // Added getAvatar and avatarKey dependencies
+    if (user.avatar) return user.avatar
+    return getAvatar(user.id, user.email)
+  }, [user, avatarKey]) // Added avatarKey dependency
 
   const avatarSrc = userAvatar || "/placeholder.svg"
 
