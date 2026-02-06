@@ -22,18 +22,57 @@ export async function saveMastermindScore(data: { attempts: number; timeSeconds:
     return { success: false, message: "Please log in to save your score" }
   }
 
-  const { data: userData } = await supabase.from("users").select("username").eq("id", user.id).single()
+  // Get username from users table
+  const { data: userData, error: userError } = await supabase
+    .from("users")
+    .select("username")
+    .eq("id", user.id)
+    .single()
+
+  if (userError) {
+    console.error("[v0] Error fetching username:", userError)
+  }
+
   const username = userData?.username || user.email?.split("@")[0] || "Anonymous"
 
-  // Always insert a new score entry
-  const { error } = await supabase.from("mastermind_scores").insert({
-    user_id: user.id,
-    username,
-    attempts: data.attempts,
-    time_seconds: data.timeSeconds,
-  })
+  // Check if user already has a score
+  const { data: existingScore } = await supabase.from("mastermind_scores").select("*").eq("user_id", user.id).single()
 
-  if (error) throw error
+  // Determine if new score is better (fewer attempts, or same attempts with less time)
+  const isBetter =
+    !existingScore ||
+    data.attempts < existingScore.attempts ||
+    (data.attempts === existingScore.attempts && data.timeSeconds < existingScore.time_seconds)
+
+  if (!isBetter) {
+    return { success: true, message: "Score not better than existing record" }
+  }
+
+  if (existingScore) {
+    // Update existing score
+    const { error } = await supabase
+      .from("mastermind_scores")
+      .update({
+        username,
+        attempts: data.attempts,
+        time_seconds: data.timeSeconds,
+        created_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id)
+
+    if (error) throw error
+  } else {
+    // Insert new score
+    const { error } = await supabase.from("mastermind_scores").insert({
+      user_id: user.id,
+      username,
+      attempts: data.attempts,
+      time_seconds: data.timeSeconds,
+    })
+
+    if (error) throw error
+  }
+
   return { success: true }
 }
 
@@ -79,16 +118,40 @@ export async function save2048Score(data: { score: number }) {
   }
 
   const { data: userData } = await supabase.from("users").select("username").eq("id", user.id).single()
+
   const username = userData?.username || user.email?.split("@")[0] || "Anonymous"
 
-  // Always insert a new score entry
-  const { error } = await supabase.from("game_2048_scores").insert({
-    user_id: user.id,
-    username,
-    score: data.score,
-  })
+  // Check if user already has a score
+  const { data: existingScore } = await supabase.from("game_2048_scores").select("*").eq("user_id", user.id).single()
 
-  if (error) throw error
+  // Only save if new score is better (higher)
+  if (existingScore && data.score <= existingScore.score) {
+    return { success: true, message: "Score not better than existing record" }
+  }
+
+  if (existingScore) {
+    // Update existing score
+    const { error } = await supabase
+      .from("game_2048_scores")
+      .update({
+        username,
+        score: data.score,
+        created_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id)
+
+    if (error) throw error
+  } else {
+    // Insert new score
+    const { error } = await supabase.from("game_2048_scores").insert({
+      user_id: user.id,
+      username,
+      score: data.score,
+    })
+
+    if (error) throw error
+  }
+
   return { success: true }
 }
 
@@ -129,17 +192,47 @@ export async function saveMinesweeperScore(data: { difficulty: "easy" | "medium"
   }
 
   const { data: userData } = await supabase.from("users").select("username").eq("id", user.id).single()
+
   const username = userData?.username || user.email?.split("@")[0] || "Anonymous"
 
-  // Always insert a new score entry
-  const { error } = await supabase.from("minesweeper_scores").insert({
-    user_id: user.id,
-    username,
-    difficulty: data.difficulty,
-    time_seconds: data.timeSeconds,
-  })
+  // Check if user already has a score for this difficulty
+  const { data: existingScore } = await supabase
+    .from("minesweeper_scores")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("difficulty", data.difficulty)
+    .single()
 
-  if (error) throw error
+  // Only save if new time is better (faster)
+  if (existingScore && data.timeSeconds >= existingScore.time_seconds) {
+    return { success: true, message: "Time not better than existing record" }
+  }
+
+  if (existingScore) {
+    // Update existing score
+    const { error } = await supabase
+      .from("minesweeper_scores")
+      .update({
+        username,
+        time_seconds: data.timeSeconds,
+        created_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id)
+      .eq("difficulty", data.difficulty)
+
+    if (error) throw error
+  } else {
+    // Insert new score
+    const { error } = await supabase.from("minesweeper_scores").insert({
+      user_id: user.id,
+      username,
+      difficulty: data.difficulty,
+      time_seconds: data.timeSeconds,
+    })
+
+    if (error) throw error
+  }
+
   return { success: true }
 }
 
@@ -184,17 +277,51 @@ export async function savePatternMatchScore(data: { round: number; score: number
   }
 
   const { data: userData } = await supabase.from("users").select("username").eq("id", user.id).single()
+
   const username = userData?.username || user.email?.split("@")[0] || "Anonymous"
 
-  // Always insert a new score entry
-  const { error } = await supabase.from("pattern_match_scores").insert({
-    user_id: user.id,
-    username,
-    round: data.round,
-    score: data.score,
-  })
+  // Check if user already has a score
+  const { data: existingScore } = await supabase
+    .from("pattern_match_scores")
+    .select("*")
+    .eq("user_id", user.id)
+    .single()
 
-  if (error) throw error
+  // Only save if new score is better (higher score, or same score with higher round)
+  const isBetter =
+    !existingScore ||
+    data.score > existingScore.score ||
+    (data.score === existingScore.score && data.round > existingScore.round)
+
+  if (!isBetter) {
+    return { success: true, message: "Score not better than existing record" }
+  }
+
+  if (existingScore) {
+    // Update existing score
+    const { error } = await supabase
+      .from("pattern_match_scores")
+      .update({
+        username,
+        round: data.round,
+        score: data.score,
+        created_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id)
+
+    if (error) throw error
+  } else {
+    // Insert new score
+    const { error } = await supabase.from("pattern_match_scores").insert({
+      user_id: user.id,
+      username,
+      round: data.round,
+      score: data.score,
+    })
+
+    if (error) throw error
+  }
+
   return { success: true }
 }
 
@@ -242,19 +369,56 @@ export async function saveLightsOutScore(data: {
   }
 
   const { data: userData } = await supabase.from("users").select("username").eq("id", user.id).single()
+
   const username = userData?.username || user.email?.split("@")[0] || "Anonymous"
 
-  // Always insert a new score entry
-  const { error } = await supabase.from("lights_out_scores").insert({
-    user_id: user.id,
-    username,
-    difficulty: data.difficulty,
-    moves: data.moves,
-    hints_used: data.hintsUsed,
-    time_seconds: data.timeSeconds,
-  })
+  // Check if user already has a score for this difficulty
+  const { data: existingScore } = await supabase
+    .from("lights_out_scores")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("difficulty", data.difficulty)
+    .single()
 
-  if (error) throw error
+  // Only save if new score is better (fewer moves, or same moves with less time)
+  const isBetter =
+    !existingScore ||
+    data.moves < existingScore.moves ||
+    (data.moves === existingScore.moves && data.timeSeconds < existingScore.time_seconds)
+
+  if (!isBetter) {
+    return { success: true, message: "Score not better than existing record" }
+  }
+
+  if (existingScore) {
+    // Update existing score
+    const { error } = await supabase
+      .from("lights_out_scores")
+      .update({
+        username,
+        moves: data.moves,
+        hints_used: data.hintsUsed,
+        time_seconds: data.timeSeconds,
+        created_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id)
+      .eq("difficulty", data.difficulty)
+
+    if (error) throw error
+  } else {
+    // Insert new score
+    const { error } = await supabase.from("lights_out_scores").insert({
+      user_id: user.id,
+      username,
+      difficulty: data.difficulty,
+      moves: data.moves,
+      hints_used: data.hintsUsed,
+      time_seconds: data.timeSeconds,
+    })
+
+    if (error) throw error
+  }
+
   return { success: true }
 }
 
@@ -301,17 +465,47 @@ export async function saveSudokuScore(data: { difficulty: "easy" | "medium" | "h
   }
 
   const { data: userData } = await supabase.from("users").select("username").eq("id", user.id).single()
+
   const username = userData?.username || user.email?.split("@")[0] || "Anonymous"
 
-  // Always insert a new score entry
-  const { error } = await supabase.from("sudoku_scores").insert({
-    user_id: user.id,
-    username,
-    difficulty: data.difficulty,
-    time_seconds: data.timeSeconds,
-  })
+  // Check if user already has a score for this difficulty
+  const { data: existingScore } = await supabase
+    .from("sudoku_scores")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("difficulty", data.difficulty)
+    .single()
 
-  if (error) throw error
+  // Only save if new time is better (faster)
+  if (existingScore && data.timeSeconds >= existingScore.time_seconds) {
+    return { success: true, message: "Time not better than existing record" }
+  }
+
+  if (existingScore) {
+    // Update existing score
+    const { error } = await supabase
+      .from("sudoku_scores")
+      .update({
+        username,
+        time_seconds: data.timeSeconds,
+        created_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id)
+      .eq("difficulty", data.difficulty)
+
+    if (error) throw error
+  } else {
+    // Insert new score
+    const { error } = await supabase.from("sudoku_scores").insert({
+      user_id: user.id,
+      username,
+      difficulty: data.difficulty,
+      time_seconds: data.timeSeconds,
+    })
+
+    if (error) throw error
+  }
+
   return { success: true }
 }
 
