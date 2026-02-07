@@ -685,7 +685,7 @@ export default function HomePage() {
                 <motion.div
                   whileHover={{ scale: 1.05, y: -5 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className={`flex items-start space-x-4 p-6 bg-white rounded-2xl shadow-sm transform ${benefit.rotation} hover:shadow-xl cursor-pointer relative`}
+                  className={`flex items-start space-x-4 p-6 bg-white rounded-2xl shadow-sm transform ${benefit.rotation} hover:shadow-xl cursor-pointer relative border-2 ${colors.border}`}
                 >
                   <motion.div
                     whileHover={{ rotate: 360, scale: 1.2 }}
