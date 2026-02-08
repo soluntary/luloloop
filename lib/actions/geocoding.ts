@@ -231,22 +231,13 @@ export async function getAddressSuggestions(input: string): Promise<AddressSugge
 
     if (data && data.length > 0) {
       const suggestions = data.map((item: any, index: number) => {
-        // geocoding Processing OSM item:", {
-          name: item.name,
-          display_name: item.display_name,
-          address: item.address,
-        })
+
 
         const cleanAddress = formatAddressClean(item.display_name, item.address, item.name)
         const mainText = item.name || item.address?.road || cleanAddress.split(",")[0]
         const secondaryText = mainText === cleanAddress ? "" : cleanAddress
 
-        // geocoding Formatted suggestion:", {
-          cleanAddress,
-          mainText,
-          secondaryText,
-          areEqual: mainText === cleanAddress,
-        })
+
 
         return {
           place_id: `osm_${item.place_id || index}`,
