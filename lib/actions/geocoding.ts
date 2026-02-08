@@ -155,7 +155,7 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult | n
 
 export async function getAddressSuggestions(input: string): Promise<AddressSuggestion[]> {
   try {
-    if (input.length < 3) {
+    if (input.length < 2) {
       return []
     }
 
@@ -209,25 +209,45 @@ export async function getAddressSuggestions(input: string): Promise<AddressSugge
       }
     }
 
-    // Fallback to OpenStreetMap Nominatim
-    // geocoding Fetching address suggestions from OpenStreetMap for input:", input)
+    // Fallback to OpenStreetMap Nominatim - use multiple search strategies for better results
+    const searchStrategies = [
+      // Strategy 1: Regular search
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}&countrycodes=de,at,ch&limit=8&addressdetails=1`,
+      // Strategy 2: Search with wildcard by appending * for partial matches
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input + "*")}&countrycodes=de,at,ch&limit=8&addressdetails=1`,
+    ]
 
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}&countrycodes=de,at,ch&limit=5&addressdetails=1`,
-      {
-        headers: {
-          "User-Agent": "LudoLoop/1.0 (contact@ludoloop.com)",
-        },
-      },
-    )
+    let allResults: any[] = []
 
-    if (!response.ok) {
-      console.error("OpenStreetMap API error:", response.status)
-      return []
+    for (const url of searchStrategies) {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            "User-Agent": "LudoLoop/1.0 (contact@ludoloop.com)",
+          },
+        })
+
+        if (response.ok) {
+          const results = await response.json()
+          if (results && results.length > 0) {
+            allResults = [...allResults, ...results]
+          }
+        }
+      } catch {
+        // Continue with next strategy
+      }
+      // If we already have enough results from the first strategy, skip the rest
+      if (allResults.length >= 5) break
     }
 
-    const data = await response.json()
-    // geocoding OpenStreetMap returned", data.length, "results")
+    // Deduplicate by place_id
+    const seenPlaceIds = new Set<string>()
+    const data = allResults.filter((item: any) => {
+      const id = String(item.place_id)
+      if (seenPlaceIds.has(id)) return false
+      seenPlaceIds.add(id)
+      return true
+    }).slice(0, 8)
 
     if (data && data.length > 0) {
       const suggestions = data.map((item: any, index: number) => {
