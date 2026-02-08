@@ -36,6 +36,7 @@ import { CgProfile } from "react-icons/cg"
 import { FaBell } from "react-icons/fa"
 import { IoColorPaletteOutline } from "react-icons/io5"
 import { getAddressSuggestions } from "@/lib/actions/geocoding"
+import { syncUsernameAcrossTables } from "@/app/actions/profile-sync"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/components/ui/use-toast"
@@ -1514,6 +1515,8 @@ const loadEventInstances = async (eventId: string) => {
     if (!user) return
     setSaving(true)
     try {
+      const usernameChanged = profile?.username !== editedProfile.username
+
       const { error } = await supabase
         .from("users")
         .update({
@@ -1532,11 +1535,18 @@ const loadEventInstances = async (eventId: string) => {
 
       if (error) throw error
 
+      // If username changed, sync across all tables (leaderboards, forum, etc.)
+      if (usernameChanged && editedProfile.username) {
+        await syncUsernameAcrossTables(user.id, editedProfile.username)
+      }
+
       setProfile(editedProfile)
       setIsEditing(false)
       toast({
         title: "Erfolg",
-        description: "Profil erfolgreich gespeichert.",
+        description: usernameChanged
+          ? "Profil und Benutzername wurden überall aktualisiert."
+          : "Profil erfolgreich gespeichert.",
       })
     } catch (error) {
       console.error("Error saving profile:", error)

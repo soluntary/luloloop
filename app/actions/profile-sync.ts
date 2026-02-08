@@ -48,6 +48,73 @@ export async function updateUserProfile(userId: string, updates: any) {
   }
 }
 
+// Sync username across all tables that store it
+export async function syncUsernameAcrossTables(userId: string, newUsername: string) {
+  const supabase = await createClient()
+
+  try {
+    const scoreTables = [
+      "mastermind_scores",
+      "game_2048_scores",
+      "minesweeper_scores",
+      "pattern_match_scores",
+      "lights_out_scores",
+      "sudoku_scores",
+    ]
+
+    const results = await Promise.allSettled(
+      scoreTables.map(async (table) => {
+        const { error } = await supabase
+          .from(table)
+          .update({ username: newUsername })
+          .eq("user_id", userId)
+        if (error) {
+          console.error(`[v0] Error updating username in ${table}:`, error)
+          throw error
+        }
+        return table
+      })
+    )
+
+    // Also update forum posts, replies, messages, etc.
+    const otherTables = [
+      { table: "forum_posts", column: "user_id" },
+      { table: "forum_replies", column: "user_id" },
+      { table: "game_reviews", column: "user_id" },
+      { table: "game_questions", column: "user_id" },
+    ]
+
+    await Promise.allSettled(
+      otherTables.map(async ({ table, column }) => {
+        const { error } = await supabase
+          .from(table)
+          .update({ username: newUsername })
+          .eq(column, userId)
+        if (error) {
+          // Not all tables may have a username column, ignore errors
+          console.log(`[v0] Note: Could not update username in ${table}:`, error.message)
+        }
+      })
+    )
+
+    const failed = results.filter((r) => r.status === "rejected")
+    if (failed.length > 0) {
+      console.error(`[v0] Failed to sync username in ${failed.length} tables`)
+    }
+
+    // Invalidate caches
+    revalidateTag(`user-${userId}`)
+    revalidateTag("users")
+    revalidatePath("/profile")
+    revalidatePath("/spielarena")
+
+    return { success: true, tablesUpdated: scoreTables.length - failed.length }
+  } catch (error: any) {
+    console.error("[v0] Error syncing username:", error)
+    return { success: false, error: error.message }
+  }
+}
+
 // Batch update multiple users (for admin operations)
 export async function batchUpdateUsers(updates: Array<{ id: string; data: any }>) {
   const supabase = await createClient()

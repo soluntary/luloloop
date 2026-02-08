@@ -390,7 +390,7 @@ export default function HomePage() {
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-body">Lade Anwendung...</p>
+          <p className="text-gray-600 font-body">Ludoloop lädt...</p>
         </div>
       </div>
     )
@@ -442,159 +442,159 @@ export default function HomePage() {
         </motion.p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
-                {
-                  icon: IoLibrary,
-                  title: "Digitales Spielregal",
-                  description:
-                    "Leg im Handumdrehen deine gesamte Spielesammlung digital an und behalte den perfekten Überblick.",
-                  link: "/library",
-                  linkText: "Spielesammlung digital anlegen",
-                  color: "pink",
-                  rotation: "rotate-1",
-                  requiresAuth: true,
-                },
-                {
-                  icon: FaStore,
-                  title: "Spielehandel",
-                  description:
-                    "Entdecke tolle Angebote von anderen Mitgliedern und finde tolle Spiele zum Mieten, Kaufen oder Tauschen.",
-                  link: "/marketplace",
-                  linkText: "Zum Spielehandel",
-                  color: "orange",
-                  rotation: "rotate-1",
-                },
-                {
-                  icon: GiTrade,
-                  title: "Spiele vermieten",
-                  description:
-                    "Lass deine Sammlung für dich arbeiten. Vermiete deine Spiele und verdiene dabei etwas Geld.",
-                  link: "/marketplace?filter=lend",
-                  linkText: "Jetzt vermieten",
-                  color: "teal",
-                  rotation: "rotate-1",
-                },
-                {
-                  icon: GiBackForth,
-                  title: "Spiele tauschen",
-                  description:
-                    "Tausche Spiele mit anderen Mitgliedern und entdecke ständig neue Spiele. Perfekt für Abwechslung im Spielregal!",
-                  link: "/marketplace?filter=trade",
-                  linkText: "Jetzt tauschen",
-                  color: "orange",
-                  rotation: "-rotate-1",
-                },
-                {
-                  icon: GiReceiveMoney,
-                  title: "Spiele verkaufen",
-                  description: "Verkaufe Spiele, die du nicht mehr brauchst. Schnell, sicher und fair!",
-                  link: "/marketplace?filter=sell",
-                  linkText: "Jetzt verkaufen",
-                  color: "pink",
-                  rotation: "rotate-1",
-                },
-                {
-                  icon: LiaUsersSolid,
-                  title: "Spielgruppen",
-                  description:
-                    "Tritt Spielgruppen bei oder gründe deine eigene Community. Verbinde dich mit anderen Spiel-Enthusiasten und schliesse neue Freundschaften!",
-                  link: "/ludo-gruppen",
-                  linkText: "Zu Spielgruppen",
-                  color: "purple",
-                  rotation: "-rotate-1",
-                },
-                {
-                  icon: FaCalendarAlt,
-                  title: "Events & Spieltreffs",
-                  description:
-                    "Organisiere deine nächste Spielrunde im Handumdrehen und finde Gleichgesinnte für spontane oder regelmässige Spielrunden.",
-                  link: "/ludo-events",
-                  linkText: "Events entdecken",
-                  color: "teal",
-                  rotation: "-rotate-1",
-                },
-                {
-                  icon: MdGroupAdd,
-                  title: "Freunde finden",
-                  description: "Vernetze dich mit anderen Brettspielbegeisterten und baue dein Freundesnetzwerk auf.",
-                  link: "/ludo-mitglieder",
-                  linkText: "Mitglieder entdecken",
-                  color: "pink",
-                  rotation: "rotate-1",
-                },
-                {
-                  icon: MdForum,
-                  title: "Community-Forum",
-                  description: "Stelle Fragen, teile deine Gedanken und Erfahrungen und diskutiere mit der Community!",
-                  link: "/ludo-forum",
-                  linkText: "Zum Forum",
-                  color: "orange",
-                  rotation: "rotate-1",
-                },
-                {
-                  icon: GiRollingDices,
-                  title: "Spielhilfen",
-                  description:
-                    "Nützliche Tools für deine Spielrunden: Würfel, Timer, Punktezähler, Glücksrad und vieles mehr - alles an einer Ort!",
-                  link: "/spielhilfen",
-                  linkText: "Zu den Spielhilfen",
-                  color: "teal",
-                  rotation: "-rotate-1",
-                },
-                {
-                  icon: GiMeepleCircle,
-                  title: "Spielarena",
-                  description:
-                    "Entdecke klassische Mini-Games direkt im Browser: Memory, Vier gewinnt, Sudoku, Minesweeper und viele mehr. Perfekt für eine kurze Spielpause mit Spass und Herausforderung!",
-                  link: "/spielarena",
-                  linkText: "Zur Spielarena",
-                  color: "purple",
-                  rotation: "rotate-1",
-                },
-              ].map((feature, index) => {
-                const colors = getColorClasses(feature.color)
-                return (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: index * 0.05 }}
-                  >
-                    <motion.div
-                      whileHover={{ scale: 1.02, y: -4 }}
-                      transition={{ type: "tween", duration: 0.15 }}
-                      className="relative h-full"
-                    >
-                      <Card className={`transform ${feature.rotation} transition-all border-2 ${colors.border} h-full hover:shadow-lg hover:rotate-0 rounded-xl`}>
-                        <CardContent className="p-6 text-center relative">
-                          <div
-                            className={`w-14 h-14 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-6`}
-                          >
-                            <feature.icon className="w-7 h-7 text-white" />
-                          </div>
-                          <h3 className="font-bold text-gray-800 mb-2 font-handwritten text-sm">{feature.title}</h3>
-                          <p className="text-gray-600 font-body mb-4 text-xs leading-relaxed">{feature.description}</p>
-                          <Button
-                            asChild
-                            variant="outline"
-                            className={`${colors.border} ${colors.text} ${colors.hover} hover:text-white font-handwritten bg-transparent group transition-transform hover:scale-105 active:scale-95 rounded-full`}
-                          >
-                            <Link 
-                              href={feature.requiresAuth && !user ? `/login?redirect=${feature.link}` : feature.link} 
-                              prefetch={true} 
-                              className="flex items-center text-xs justify-center gap-2"
-                            >
-                              {feature.linkText}
-                              <FaArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                            </Link>
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  </motion.div>
-                )
-              })}
+          {[
+            {
+              icon: IoLibrary,
+              title: "Digitales Spielregal",
+              description:
+                "Leg im Handumdrehen deine gesamte Spielesammlung digital an und behalte jederzeit den Überblick.",
+              link: "/library",
+              linkText: "Spielesammlung digital anlegen",
+              color: "pink",
+              rotation: "rotate-1",
+              requiresAuth: true,
+            },
+            {
+              icon: FaStore,
+              title: "Spielehandel",
+              description:
+                "Stöbere in Angeboten anderer Mitglieder und entdecke tolle Spiele zum Mieten, Kaufen oder Tauschen.",
+              link: "/marketplace",
+              linkText: "Zum Spielehandel",
+              color: "orange",
+              rotation: "rotate-1",
+            },
+            {
+              icon: GiTrade,
+              title: "Spiele vermieten",
+              description:
+                "Lass deine Sammlung für dich arbeiten. Vermiete deine Spiele und verdiene dabei etwas Geld.",
+              link: "/marketplace?filter=lend",
+              linkText: "Jetzt vermieten",
+              color: "teal",
+              rotation: "rotate-1",
+            },
+            {
+              icon: GiBackForth,
+              title: "Spiele tauschen",
+              description:
+                "Tausche Spiele mit anderen Mitgliedern und entdecke ständig neue Spiele. Perfekt für Abwechslung im Spielregal!",
+              link: "/marketplace?filter=trade",
+              linkText: "Jetzt tauschen",
+              color: "orange",
+              rotation: "-rotate-1",
+            },
+            {
+              icon: GiReceiveMoney,
+              title: "Spiele verkaufen",
+              description: "Verkaufe Spiele, die du nicht mehr brauchst. Schnell, sicher und fair!",
+              link: "/marketplace?filter=sell",
+              linkText: "Jetzt verkaufen",
+              color: "pink",
+              rotation: "rotate-1",
+            },
+            {
+              icon: LiaUsersSolid,
+              title: "Spielgruppen",
+              description:
+                "Tritt bestehenden Spielgruppen bei oder gründe deine eigene Community.",
+              link: "/ludo-gruppen",
+              linkText: "Zu Spielgruppen",
+              color: "purple",
+              rotation: "-rotate-1",
+            },
+            {
+              icon: FaCalendarAlt,
+              title: "Events & Spieltreffs",
+              description:
+                "Organisiere im Handumdrehen Spielrunden oder schliesse dich Events an.",
+              link: "/ludo-events",
+              linkText: "Events entdecken",
+              color: "teal",
+              rotation: "-rotate-1",
+            },
+            {
+              icon: MdGroupAdd,
+              title: "Freunde finden",
+              description: "Vernetze dich mit anderen Brettspiel-Enthusiasten und erweitere dein Spielerkreis.",
+              link: "/ludo-mitglieder",
+              linkText: "Mitglieder entdecken",
+              color: "pink",
+              rotation: "rotate-1",
+            },
+            {
+              icon: MdForum,
+              title: "Community-Forum",
+              description: "Stelle Fragen, teile Erfahrungen, diskutiere Strategien und tausche dich mit der Community aus.",
+              link: "/ludo-forum",
+              linkText: "Zum Forum",
+              color: "orange",
+              rotation: "rotate-1",
+            },
+            {
+              icon: GiRollingDices,
+              title: "Spielhilfen",
+              description:
+                "Nützliche Tools für deine Spielrunden: Würfel, Timer, Punktezähler, Glücksrad und vieles mehr - alles an einer Ort!",
+              link: "/spielhilfen",
+              linkText: "Zu den Spielhilfen",
+              color: "teal",
+              rotation: "-rotate-1",
+            },
+            {
+              icon: GiMeepleCircle,
+              title: "Spielarena",
+              description:
+                "Entdecke klassische Mini-Games direkt im Browser: Memory, Vier gewinnt, Sudoku, Minesweeper und viele mehr. Perfekt für eine kurze Spielpause mit Spass und Herausforderung!",
+              link: "/spielarena",
+              linkText: "Zur Spielarena",
+              color: "purple",
+              rotation: "rotate-1",
+            },
+          ].map((feature, index) => {
+            const colors = getColorClasses(feature.color)
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.05 }}
+              >
+                <motion.div
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  transition={{ type: "tween", duration: 0.15 }}
+                  className="relative h-full"
+                >
+                  <Card className={`transform ${feature.rotation} transition-all border-2 ${colors.border} h-full hover:shadow-lg hover:rotate-0 rounded-xl`}>
+                    <CardContent className="p-6 text-center relative">
+                      <div
+                        className={`w-14 h-14 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-4 transform -rotate-6`}
+                      >
+                        <feature.icon className="w-7 h-7 text-white" />
+                      </div>
+                      <h3 className="font-bold text-gray-800 mb-2 font-handwritten text-sm">{feature.title}</h3>
+                      <p className="text-gray-600 font-body mb-4 text-xs leading-relaxed">{feature.description}</p>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className={`${colors.border} ${colors.text} ${colors.hover} hover:text-white font-handwritten bg-transparent group transition-transform hover:scale-105 active:scale-95 rounded-full`}
+                      >
+                        <Link
+                          href={feature.requiresAuth && !user ? `/login?redirect=${feature.link}` : feature.link}
+                          prefetch={true}
+                          className="flex items-center text-xs justify-center gap-2"
+                        >
+                          {feature.linkText}
+                          <FaArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </motion.div>
+            )
+          })}
         </div>
       </AnimatedSection>
 
@@ -638,45 +638,45 @@ export default function HomePage() {
             },
             {
               icon: FaHeart,
-              title: "Lebende Community",
+              title: "Aktive & lebendige Community",
               description:
-                "Vernetze dich mit Gleichgesinnten, finde Spielpartner für spontane oder regelmässige Runden, tausche Tipps aus und knüpfe Freundschaften, die über den Spieltisch hinausgehen.",
+                "Vernetze dich mit Gleichgesinnten und knüpfe Freundschaften, die über den Spieltisch hinausgehen.",
               color: "pink",
               rotation: "-rotate-1",
               iconRotation: "rotate-12",
             },
             {
               icon: FaCheckCircle,
-              title: "Spielvielfalt",
-              description: "Einfacher Zugang zu tollen Spielen.",
+              title: "Grosse Spielvielfalt",
+              description: "Einfacher Zugang zu neuen, klassichen oder seltenen Spielen.",
               color: "teal",
               rotation: "rotate-1",
               iconRotation: "-rotate-12",
             },
             {
               icon: MdSavings,
-              title: "Nachhaltig und kostensparend",
+              title: "Nachhaltig & lohnend",
               description:
-                "Weniger ungenutzte Spiele im Regal, mehr Kreislauf durch Tausch und Verleih - gut für Umwelt und Geldbeutel.",
+                "Mehr Kreislauf durch Tausch und Vermieten - gut für Umwelt und Geldbeutel.",
               color: "green",
               rotation: "rotate-1",
               iconRotation: "-rotate-12",
             },
             {
-              icon: FaShieldAlt,
-              title: "Sicher & vertrauensvoll",
-              description: "Verifizierte Profile und Klare Abläufe für ein angenehmes und vertrauenswürdiges Erlebnis.",
-              color: "purple",
-              rotation: "rotate-1",
-              iconRotation: "-rotate-12",
-            },
-            {
               icon: FaCoins,
-              title: "Flexibel & kosteneffizient",
-              description: "Spiele nur dann kaufen, wenn sie wirklich gefallen - erst testen, dann entscheiden.",
+              title: "Maximale Abwechslung, minimale Kosten",
+              description: "Ständig neue Spiele ausprobieren bei minimalen Kosten.",
               color: "blue",
               rotation: "rotate-1",
               iconRotation: "rotate-12",
+            },
+            {
+              icon: FaShieldAlt,
+              title: "Sicher & vertrauensvoll",
+              description: "Verifizierte Profile und Klare Abläufe für ein angenehmes und vertrauensvolles Erlebnis.",
+              color: "purple",
+              rotation: "rotate-1",
+              iconRotation: "-rotate-12",
             },
           ].map((benefit, index) => {
             const colors = getColorClasses(benefit.color)
