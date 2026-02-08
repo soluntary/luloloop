@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useEffect, useRef, useState } from "react"
 import { Input } from "@/components/ui/input"
-import { MapPin, Loader2 } from "lucide-react"
+import { MapPin, Loader2, X } from "lucide-react"
 
 interface AddressAutocompleteInputProps {
   value: string
@@ -18,6 +18,8 @@ interface AddressSuggestion {
   lat: string
   lon: string
   place_id: string
+  name?: string
+  address?: Record<string, string>
 }
 
 export function AddressAutocompleteInput({
@@ -32,7 +34,6 @@ export function AddressAutocompleteInput({
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
 
-  // Fetch address suggestions from Nominatim (OpenStreetMap)
   useEffect(() => {
     if (value.length < 3) {
       setSuggestions([])
@@ -48,10 +49,10 @@ export function AddressAutocompleteInput({
         )
         const data = await response.json()
         setSuggestions(data)
-        setShowSuggestions(true)
+        setShowSuggestions(data.length > 0)
         setSelectedIndex(-1)
       } catch (error) {
-        console.error("[v0] Autocomplete error:", error)
+        console.error("Autocomplete error:", error)
         setSuggestions([])
       } finally {
         setIsLoadingSuggestions(false)
@@ -61,6 +62,13 @@ export function AddressAutocompleteInput({
     return () => clearTimeout(timeoutId)
   }, [value])
 
+  const formatSuggestion = (suggestion: AddressSuggestion) => {
+    const parts = suggestion.display_name.split(",").map((p) => p.trim())
+    const mainText = suggestion.name || parts[0]
+    const secondaryText = parts.slice(1, 3).join(", ")
+    return { mainText, secondaryText }
+  }
+
   const handleSuggestionClick = (suggestion: AddressSuggestion) => {
     onChange(suggestion.display_name)
     setShowSuggestions(false)
@@ -68,10 +76,13 @@ export function AddressAutocompleteInput({
     setSelectedIndex(-1)
   }
 
+  const handleCloseSuggestions = () => {
+    setShowSuggestions(false)
+    setSelectedIndex(-1)
+  }
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (!showSuggestions || suggestions.length === 0) {
-      return
-    }
+    if (!showSuggestions || suggestions.length === 0) return
 
     switch (e.key) {
       case "ArrowDown":
@@ -89,8 +100,7 @@ export function AddressAutocompleteInput({
         }
         break
       case "Escape":
-        setShowSuggestions(false)
-        setSelectedIndex(-1)
+        handleCloseSuggestions()
         break
     }
   }
@@ -123,24 +133,48 @@ export function AddressAutocompleteInput({
       </div>
 
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-          {suggestions.map((suggestion, index) => (
-            <div
-              key={suggestion.place_id}
-              className={`px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${
-                index === selectedIndex ? "bg-teal-50 border-teal-200" : ""
-              }`}
-              onClick={() => handleSuggestionClick(suggestion)}
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 bg-gray-50 rounded-t-lg">
+            <span className="text-xs text-gray-500 font-medium">
+              {"Vorschlaege powered by "}
+              <span className="font-semibold text-gray-700">OpenStreetMap</span>
+            </span>
+            <button
+              type="button"
+              onClick={handleCloseSuggestions}
+              className="text-gray-400 hover:text-gray-600 transition-colors p-0.5 rounded-full hover:bg-gray-200"
             >
-              <div className="flex items-start space-x-3">
-                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{suggestion.display_name.split(",")[0]}</p>
-                  <p className="text-xs text-gray-500 truncate">{suggestion.display_name}</p>
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Suggestions list */}
+          {suggestions.map((suggestion, index) => {
+            const { mainText, secondaryText } = formatSuggestion(suggestion)
+
+            return (
+              <div
+                key={suggestion.place_id}
+                className={`px-4 py-3 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors ${
+                  index === selectedIndex
+                    ? "bg-teal-50 border-l-2 border-l-teal-500"
+                    : "hover:bg-gray-50 border-l-2 border-l-transparent"
+                }`}
+                onClick={() => handleSuggestionClick(suggestion)}
+              >
+                <div className="flex items-center gap-3">
+                  <MapPin className={`w-4 h-4 flex-shrink-0 ${index === selectedIndex ? "text-teal-500" : "text-gray-400"}`} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-semibold text-gray-900">{mainText}</span>
+                    {secondaryText && (
+                      <span className="text-sm text-gray-500 ml-2">{secondaryText}</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

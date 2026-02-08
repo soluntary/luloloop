@@ -210,7 +210,7 @@ export async function getAddressSuggestions(input: string): Promise<AddressSugge
     }
 
     // Fallback to OpenStreetMap Nominatim
-    console.log("[v0] Fetching address suggestions from OpenStreetMap for input:", input)
+    // geocoding Fetching address suggestions from OpenStreetMap for input:", input)
 
     const response = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}&countrycodes=de,at,ch&limit=5&addressdetails=1`,
@@ -227,11 +227,11 @@ export async function getAddressSuggestions(input: string): Promise<AddressSugge
     }
 
     const data = await response.json()
-    console.log("[v0] OpenStreetMap returned", data.length, "results")
+    // geocoding OpenStreetMap returned", data.length, "results")
 
     if (data && data.length > 0) {
       const suggestions = data.map((item: any, index: number) => {
-        console.log("[v0] Processing OSM item:", {
+        // geocoding Processing OSM item:", {
           name: item.name,
           display_name: item.display_name,
           address: item.address,
@@ -241,7 +241,7 @@ export async function getAddressSuggestions(input: string): Promise<AddressSugge
         const mainText = item.name || item.address?.road || cleanAddress.split(",")[0]
         const secondaryText = mainText === cleanAddress ? "" : cleanAddress
 
-        console.log("[v0] Formatted suggestion:", {
+        // geocoding Formatted suggestion:", {
           cleanAddress,
           mainText,
           secondaryText,
@@ -262,14 +262,14 @@ export async function getAddressSuggestions(input: string): Promise<AddressSugge
       const seen = new Set<string>()
       const filtered = suggestions.filter((suggestion) => {
         if (seen.has(suggestion.description)) {
-          console.log("[v0] Removing duplicate suggestion:", suggestion.description)
+          // geocoding Removing duplicate suggestion:", suggestion.description)
           return false
         }
         seen.add(suggestion.description)
         return true
       })
 
-      console.log("[v0] Returning", filtered.length, "suggestions after deduplication")
+      // geocoding Returning", filtered.length, "suggestions after deduplication")
       return filtered
     }
     return []
