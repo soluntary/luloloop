@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MapPin, Loader2 } from "lucide-react"
+import { MapPin, Loader2, X } from "lucide-react"
 import { getAddressSuggestions } from "@/lib/actions/geocoding"
 
 interface AddressSuggestion {
@@ -52,9 +52,7 @@ export function AddressAutocomplete({
     const timeoutId = setTimeout(async () => {
       setIsLoading(true)
       try {
-        console.log("[v0] Fetching suggestions for input:", value)
         const addressSuggestions = await getAddressSuggestions(value)
-        console.log("[v0] Received", addressSuggestions.length, "suggestions:", addressSuggestions)
         setSuggestions(addressSuggestions)
         setShowSuggestions(addressSuggestions.length > 0 && isFocused)
         setSelectedIndex(-1)
@@ -76,6 +74,11 @@ export function AddressAutocomplete({
     setSuggestions([])
   }
 
+  const handleCloseSuggestions = () => {
+    setShowSuggestions(false)
+    setSelectedIndex(-1)
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showSuggestions || suggestions.length === 0) return
 
@@ -95,8 +98,7 @@ export function AddressAutocomplete({
         }
         break
       case "Escape":
-        setShowSuggestions(false)
-        setSelectedIndex(-1)
+        handleCloseSuggestions()
         break
     }
   }
@@ -142,32 +144,45 @@ export function AddressAutocomplete({
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto"
         >
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 bg-gray-50 rounded-t-lg">
+            <span className="text-xs text-gray-500 font-medium">
+              {"Vorschlaege powered by "}
+              <span className="font-semibold text-gray-700">OpenStreetMap</span>
+            </span>
+            <button
+              type="button"
+              onClick={handleCloseSuggestions}
+              className="text-gray-400 hover:text-gray-600 transition-colors p-0.5 rounded-full hover:bg-gray-200"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Suggestions list */}
           {suggestions.map((suggestion, index) => {
-            console.log("[v0] Displaying suggestion:", {
-              main_text: suggestion.structured_formatting?.main_text,
-              secondary_text: suggestion.structured_formatting?.secondary_text,
-              description: suggestion.description,
-            })
+            const mainText = suggestion.structured_formatting?.main_text || suggestion.description.split(",")[0]
+            const secondaryText = suggestion.structured_formatting?.secondary_text || suggestion.description
 
             return (
               <div
                 key={suggestion.place_id}
-                className={`px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${
-                  index === selectedIndex ? "bg-indigo-50 border-indigo-200" : ""
+                className={`px-4 py-3 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors ${
+                  index === selectedIndex
+                    ? "bg-teal-50 border-l-2 border-l-teal-500"
+                    : "hover:bg-gray-50 border-l-2 border-l-transparent"
                 }`}
                 onClick={() => handleSuggestionClick(suggestion)}
               >
-                <div className="flex items-start space-x-3">
-                  <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                <div className="flex items-center gap-3">
+                  <MapPin className={`w-4 h-4 flex-shrink-0 ${index === selectedIndex ? "text-teal-500" : "text-gray-400"}`} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {suggestion.structured_formatting?.main_text || suggestion.description.split(",")[0]}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {suggestion.structured_formatting?.secondary_text || suggestion.description}
-                    </p>
+                    <span className="text-sm font-semibold text-gray-900">{mainText}</span>
+                    {secondaryText && secondaryText !== mainText && (
+                      <span className="text-sm text-gray-500 ml-2">{secondaryText}</span>
+                    )}
                   </div>
                 </div>
               </div>

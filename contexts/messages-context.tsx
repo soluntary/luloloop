@@ -56,7 +56,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       const client = createClient()
       setSupabase(client)
     } catch (error) {
-      console.error("[v0] Failed to initialize Supabase client in MessagesProvider:", error)
+      console.error("Failed to initialize Supabase client in MessagesProvider:", error)
     }
   }, [])
 
@@ -64,7 +64,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     if (!user || !supabase) return
 
     if (checkGlobalRateLimit()) {
-      console.log("[v0] Messages: Skipping refresh due to rate limiting")
+      // removed debug Messages: Skipping refresh due to rate limiting")
       setMessages([])
       setIsLoaded(true)
       return
@@ -101,7 +101,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                 errorMessage.includes("rate limit") ||
                 errorMessage.includes("429")
               ) {
-                console.log("[v0] Messages: JSON/Rate limit error caught, returning empty array")
+                // removed debug Messages: JSON/Rate limit error caught, returning empty array")
                 return []
               }
               throw innerError
@@ -116,7 +116,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       setMessages(Array.isArray(result) ? result : [])
       setIsLoaded(true)
     } catch (error) {
-      console.log("[v0] Messages: Final error handler activated, using empty fallback")
+      // removed debug Messages: Final error handler activated, using empty fallback")
       setMessages([])
       setIsLoaded(true)
     }
@@ -197,7 +197,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
               errorMessage.includes("rate limit") ||
               errorMessage.includes("429")
             ) {
-              console.log("[v0] Messages: Send blocked due to rate limiting")
+              // removed debug Messages: Send blocked due to rate limiting")
               throw new Error("Service temporarily unavailable. Please try again in a moment.")
             }
             throw innerError
@@ -226,7 +226,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     if (!user) return
 
     if (checkGlobalRateLimit()) {
-      console.log("[v0] Messages: Skipping mark as read due to rate limiting")
+      // removed debug Messages: Skipping mark as read due to rate limiting")
       return
     }
 
@@ -255,7 +255,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     if (!user) return
 
     if (checkGlobalRateLimit()) {
-      console.log("[v0] Messages: Skipping delete due to rate limiting")
+      // removed debug Messages: Skipping delete due to rate limiting")
       return
     }
 

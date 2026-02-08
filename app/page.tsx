@@ -21,6 +21,7 @@ import {
   FaArrowRight,
   FaCalendarAlt,
 } from "react-icons/fa"
+import { GiChoice } from "react-icons/gi"
 import { LiaUsersSolid } from "react-icons/lia"
 import { IoLibrary } from "react-icons/io5"
 import { GiReceiveMoney, GiBackForth, GiDiceTarget, GiRollingDices, GiGamepad } from "react-icons/gi"
@@ -654,8 +655,8 @@ export default function HomePage() {
               iconRotation: "-rotate-12",
             },
             {
-              icon: FaCoins,
-              title: "Spiele ohne Risiko ausprobieren",
+              icon: GiChoice,
+              title: "risikofrei Spiele ausprobieren",
               description: "Teste Spiele erst durch Mieten oder Tauschen, bevor du dich für einen Kauf entscheidest – so triffst du immer die richtige Wahl.",
               color: "blue",
               rotation: "rotate-1",

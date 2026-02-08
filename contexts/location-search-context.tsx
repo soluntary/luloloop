@@ -59,7 +59,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
       const client = createClient()
       setSupabase(client)
     } catch (error) {
-      console.error("[v0] Failed to initialize Supabase client in LocationSearchProvider:", error)
+      console.error("Failed to initialize Supabase client in LocationSearchProvider:", error)
     }
   }, [])
 
@@ -90,7 +90,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
       setError(null)
 
       try {
-        console.log("[v0] Searching games nearby:", { lat, lon, radius: filters.radius })
+
 
         // Use the PostgreSQL function to find games within radius
         const { data, error } = await supabase.rpc("items_within_radius", {
@@ -124,7 +124,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
               }
             }) || []
 
-          console.log("[v0] Found games nearby:", gamesWithDistance.length)
+          // removed debug log Found games nearby:", gamesWithDistance.length)
           return gamesWithDistance
         }
 
@@ -152,7 +152,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
       setError(null)
 
       try {
-        console.log("[v0] Searching marketplace offers nearby:", { lat, lon, radius: filters.radius })
+        // removed debug log Searching marketplace offers nearby:", { lat, lon, radius: filters.radius })
 
         const { data, error } = await supabase.rpc("items_within_radius", {
           center_lat: lat,
@@ -187,7 +187,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
               }
             }) || []
 
-          console.log("[v0] Found marketplace offers nearby:", offersWithDistance.length)
+          // removed debug log Found marketplace offers nearby:", offersWithDistance.length)
           return offersWithDistance
         }
 
@@ -215,7 +215,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
       setError(null)
 
       try {
-        console.log("[v0] Searching events nearby:", { lat, lon, radius: filters.radius })
+        // removed debug log Searching events nearby:", { lat, lon, radius: filters.radius })
 
         const { data, error } = await supabase.rpc("items_within_radius", {
           center_lat: lat,
@@ -250,7 +250,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
               }
             }) || []
 
-          console.log("[v0] Found events nearby:", eventsWithDistance.length)
+          // removed debug log Found events nearby:", eventsWithDistance.length)
           return eventsWithDistance
         }
 
@@ -278,7 +278,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
       setError(null)
 
       try {
-        console.log("[v0] Searching communities nearby:", { lat, lon, radius: filters.radius })
+        // removed debug log Searching communities nearby:", { lat, lon, radius: filters.radius })
 
         const { data, error } = await supabase.rpc("items_within_radius", {
           center_lat: lat,
@@ -313,7 +313,7 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
               }
             }) || []
 
-          console.log("[v0] Found communities nearby:", communitiesWithDistance.length)
+          // removed debug log Found communities nearby:", communitiesWithDistance.length)
           return communitiesWithDistance
         }
 
@@ -335,14 +335,14 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
       setError(null)
 
       try {
-        console.log("[v0] Searching by address:", address, "radius:", radius)
+        // removed debug log Searching by address:", address, "radius:", radius)
 
         const coordinates = await geocodeAddress(address)
         if (!coordinates) {
           throw new Error("Standort nicht gefunden. Bitte versuchen Sie eine andere Adresse.")
         }
 
-        console.log("[v0] Address geocoded to:", coordinates)
+        // removed debug log Address geocoded to:", coordinates)
 
         const tempFilters = {
           radius,
@@ -384,11 +384,11 @@ export function LocationSearchProvider({ children }: LocationSearchProviderProps
               }
             }) || []
 
-          console.log("[v0] Location search results received:", offersWithDistance.length)
+          // removed debug log Location search results received:", offersWithDistance.length)
           return offersWithDistance
         }
 
-        console.log("[v0] Location search results received:", 0)
+        // removed debug log Location search results received:", 0)
         return []
       } catch (err: any) {
         console.error("Error in searchByAddress:", err)
