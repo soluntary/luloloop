@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [loginSuccess, setLoginSuccess] = useState(false)
 
   const { user, loading: authLoading, signIn } = useAuth()
   const router = useRouter()
@@ -32,7 +33,8 @@ export default function LoginPage() {
     }
   }, [user, authLoading, router, redirectUrl])
 
-  if (authLoading) {
+  // Only show loading on initial page load, not after login
+  if (authLoading && !loginSuccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
@@ -57,11 +59,10 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password)
-      // Wait a moment for auth state to update, then redirect
-      setTimeout(() => {
-        const targetUrl = redirectUrl.startsWith("/") ? redirectUrl : `/${redirectUrl}`
-        router.push(targetUrl)
-      }, 100)
+      setLoginSuccess(true)
+      // Redirect immediately after successful sign-in
+      const targetUrl = redirectUrl.startsWith("/") ? redirectUrl : `/${redirectUrl}`
+      router.push(targetUrl)
     } catch (error: any) {
       setError(error.message || "Anmeldung fehlgeschlagen.")
       setLoading(false)

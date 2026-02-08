@@ -458,7 +458,7 @@ export default function HomePage() {
               icon: FaStore,
               title: "Spielehandel",
               description:
-                "Stöbere in Angeboten anderer Mitglieder und entdecke tolle Spiele zum Mieten, Kaufen oder Tauschen.",
+                "Stöbere durch Angebote anderer Mitglieder und entdecke tolle Spiele zum Mieten, Kaufen oder Tauschen.",
               link: "/marketplace",
               linkText: "Zum Spielehandel",
               color: "orange",
@@ -654,21 +654,21 @@ export default function HomePage() {
               iconRotation: "-rotate-12",
             },
             {
-              icon: MdSavings,
-              title: "Nachhaltig & lohnend",
-              description:
-                "Mehr Kreislauf durch Tausch und Vermieten - gut für Umwelt und Geldbeutel.",
-              color: "green",
-              rotation: "rotate-1",
-              iconRotation: "-rotate-12",
-            },
-            {
               icon: FaCoins,
-              title: "Maximale Abwechslung, minimale Kosten",
-              description: "Ständig neue Spiele ausprobieren bei minimalen Kosten.",
+              title: "Spiele ohne Risiko ausprobieren",
+              description: "Teste Spiele erst durch Mieten oder Tauschen, bevor du dich für einen Kauf entscheidest – so triffst du immer die richtige Wahl.",
               color: "blue",
               rotation: "rotate-1",
               iconRotation: "rotate-12",
+            },
+            {
+              icon: MdSavings,
+              title: "Nachhaltig & lohnend",
+              description:
+                "Mehr Kreislauf durch Tauschen und Vermieten - gut für Umwelt und Geldbeutel.",
+              color: "green",
+              rotation: "rotate-1",
+              iconRotation: "-rotate-12",
             },
             {
               icon: FaShieldAlt,
