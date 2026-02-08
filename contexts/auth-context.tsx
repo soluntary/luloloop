@@ -452,7 +452,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Safety timeout - ensure loading state doesn't stay forever
     const safetyTimeout = setTimeout(() => {
       setLoading(false)
-    }, 3000)
+    }, 1500)
 
     let supabase: ReturnType<typeof createClient>
     try {
