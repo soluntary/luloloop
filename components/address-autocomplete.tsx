@@ -43,7 +43,7 @@ export function AddressAutocomplete({
   const suggestionsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (value.length < 3) {
+    if (value.length < 2) {
       setSuggestions([])
       setShowSuggestions(false)
       return
@@ -113,7 +113,7 @@ export function AddressAutocomplete({
 
   const handleFocus = () => {
     setIsFocused(true)
-    if (value.length >= 3 && suggestions.length > 0) {
+    if (value.length >= 2 && suggestions.length > 0) {
       setShowSuggestions(true)
     }
   }
@@ -149,7 +149,7 @@ export function AddressAutocomplete({
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 bg-gray-50 rounded-t-lg">
             <span className="text-xs text-gray-500 font-medium">
-              {"Vorschlaege powered by "}
+              {"Vorschläge powered by "}
               <span className="font-semibold text-gray-700">OpenStreetMap</span>
             </span>
             <button
@@ -169,11 +169,10 @@ export function AddressAutocomplete({
             return (
               <div
                 key={suggestion.place_id}
-                className={`px-4 py-3 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors ${
-                  index === selectedIndex
+                className={`px-4 py-3 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors ${index === selectedIndex
                     ? "bg-teal-50 border-l-2 border-l-teal-500"
                     : "hover:bg-gray-50 border-l-2 border-l-transparent"
-                }`}
+                  }`}
                 onClick={() => handleSuggestionClick(suggestion)}
               >
                 <div className="flex items-center gap-3">

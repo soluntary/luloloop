@@ -35,7 +35,7 @@ export function AddressAutocompleteInput({
   const [selectedIndex, setSelectedIndex] = useState(-1)
 
   useEffect(() => {
-    if (value.length < 3) {
+    if (value.length < 2) {
       setSuggestions([])
       setShowSuggestions(false)
       return
@@ -44,10 +44,37 @@ export function AddressAutocompleteInput({
     const timeoutId = setTimeout(async () => {
       setIsLoadingSuggestions(true)
       try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(value)}&countrycodes=de,at,ch`,
-        )
-        const data = await response.json()
+        // Use multiple search strategies for better results
+        const urls = [
+          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&q=${encodeURIComponent(value)}&countrycodes=de,at,ch`,
+          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&q=${encodeURIComponent(value + "*")}&countrycodes=de,at,ch`,
+        ]
+
+        let allResults: AddressSuggestion[] = []
+        for (const url of urls) {
+          try {
+            const response = await fetch(url, {
+              headers: { "User-Agent": "LudoLoop/1.0 (contact@ludoloop.com)" },
+            })
+            const results = await response.json()
+            if (results && results.length > 0) {
+              allResults = [...allResults, ...results]
+            }
+          } catch {
+            // continue
+          }
+          if (allResults.length >= 5) break
+        }
+
+        // Deduplicate by place_id
+        const seen = new Set<string>()
+        const data = allResults.filter((item) => {
+          const id = String(item.place_id)
+          if (seen.has(id)) return false
+          seen.add(id)
+          return true
+        }).slice(0, 8)
+
         setSuggestions(data)
         setShowSuggestions(data.length > 0)
         setSelectedIndex(-1)
@@ -126,7 +153,7 @@ export function AddressAutocompleteInput({
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyPress}
           onBlur={handleBlur}
-          onFocus={() => value.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
+          onFocus={() => value.length >= 2 && suggestions.length > 0 && setShowSuggestions(true)}
           placeholder={placeholder}
           className={`pl-10 ${className}`}
         />
@@ -137,7 +164,7 @@ export function AddressAutocompleteInput({
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 bg-gray-50 rounded-t-lg">
             <span className="text-xs text-gray-500 font-medium">
-              {"Vorschlaege powered by "}
+              {"Vorschläge powered by "}
               <span className="font-semibold text-gray-700">OpenStreetMap</span>
             </span>
             <button
@@ -156,11 +183,10 @@ export function AddressAutocompleteInput({
             return (
               <div
                 key={suggestion.place_id}
-                className={`px-4 py-3 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors ${
-                  index === selectedIndex
+                className={`px-4 py-3 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors ${index === selectedIndex
                     ? "bg-teal-50 border-l-2 border-l-teal-500"
                     : "hover:bg-gray-50 border-l-2 border-l-transparent"
-                }`}
+                  }`}
                 onClick={() => handleSuggestionClick(suggestion)}
               >
                 <div className="flex items-center gap-3">
