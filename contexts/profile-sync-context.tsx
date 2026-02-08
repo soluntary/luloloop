@@ -23,14 +23,14 @@ export function ProfileSyncProvider({ children }: { children: ReactNode }) {
       const client = createClient()
       setSupabase(client)
     } catch (error) {
-      console.error("[v0] Failed to initialize Supabase client:", error)
+      console.error(" Failed to initialize Supabase client:", error)
     }
   }, [])
 
   useEffect(() => {
     if (!user || !supabase) return
 
-    console.log("[v0] Setting up profile synchronization...")
+    // sync Setting up profile synchronization...")
 
     // Subscribe to all user profile changes
     const subscription = supabase
@@ -43,7 +43,7 @@ export function ProfileSyncProvider({ children }: { children: ReactNode }) {
           table: "users",
         },
         (payload) => {
-          console.log("[v0] Profile update received:", payload)
+          // sync Profile update received:", payload)
           const updatedUser = payload.new as any
 
           // Invalidate SWR cache for this user
@@ -103,7 +103,7 @@ export function ProfileSyncProvider({ children }: { children: ReactNode }) {
 
   const syncProfile = useCallback(
     (userId: string, changes: any) => {
-      console.log("[v0] Syncing profile changes for user:", userId, changes)
+      // sync Syncing profile changes for user:", userId, changes)
 
       // Invalidate all related SWR keys
       mutate(`user-${userId}`)
@@ -136,7 +136,7 @@ export function ProfileSyncProvider({ children }: { children: ReactNode }) {
   )
 
   const invalidateUserData = useCallback((userId: string) => {
-    console.log("[v0] Invalidating all data for user:", userId)
+    // sync Invalidating all data for user:", userId)
 
     // Comprehensive cache invalidation
     mutate(`user-${userId}`)
@@ -165,7 +165,7 @@ export function ProfileSyncProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const subscribeToUserUpdates = useCallback((userId: string, callback: (user: any) => void) => {
-    console.log("[v0] Subscribing to updates for user:", userId)
+    // sync Subscribing to updates for user:", userId)
 
     setUserSubscriptions((prev) => {
       const newMap = new Map(prev)

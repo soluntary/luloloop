@@ -98,7 +98,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
       const client = createClient()
       setSupabase(client)
     } catch (error) {
-      console.error("[v0] Failed to initialize Supabase client in RequestsProvider:", error)
+      console.error(" Failed to initialize Supabase client in RequestsProvider:", error)
     }
   }, [])
 
@@ -107,7 +107,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
     if (!user || !supabase) return
 
     if (checkGlobalRateLimit()) {
-      console.log("[v0] Requests: Skipping shelf access requests load due to rate limiting")
+      // removed debug Requests: Skipping shelf access requests load due to rate limiting")
       return
     }
 
@@ -135,7 +135,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
         err.message?.includes("Unexpected token") ||
         err.name === "SyntaxError"
       ) {
-        console.log("[v0] Shelf access requests loading rate limited, using empty fallback")
+        // removed debug Shelf access requests loading rate limited, using empty fallback")
         return
       }
       console.error("Error loading shelf access requests:", err)
@@ -148,7 +148,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
     if (!user) return
 
     if (checkGlobalRateLimit()) {
-      console.log("[v0] Requests: Skipping game interaction requests load due to rate limiting")
+      // removed debug Requests: Skipping game interaction requests load due to rate limiting")
       return
     }
 
@@ -178,7 +178,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
         err.message?.includes("Unexpected token") ||
         err.name === "SyntaxError"
       ) {
-        console.log("[v0] Game interaction requests loading rate limited, using empty fallback")
+        // removed debug Game interaction requests loading rate limited, using empty fallback")
         return
       }
       console.error("Error loading game interaction requests:", err)
@@ -453,7 +453,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   // Refresh all requests
   const refreshRequests = useCallback(async () => {
     if (checkGlobalRateLimit()) {
-      console.log("[v0] Requests: Skipping refresh due to rate limiting")
+      // removed debug Requests: Skipping refresh due to rate limiting")
       return
     }
 
@@ -469,7 +469,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
         err.message?.includes("Unexpected token") ||
         err.name === "SyntaxError"
       ) {
-        console.log("[v0] Requests refresh rate limited")
+        // removed debug Requests refresh rate limited")
         return
       }
       console.error("Error refreshing requests:", err)

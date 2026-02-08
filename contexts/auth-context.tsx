@@ -65,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadUserProfile = useCallback(async (authUser: User) => {
     const supabase = supabaseRef.current
     if (!supabase) {
-      console.error("[v0] Supabase client not available")
       setLoading(false)
       return
     }
@@ -74,7 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastUserIdRef.current = authUser.id
 
     if (checkGlobalRateLimit()) {
-      console.log("[v0] Rate limited, using fallback profile")
       const fallbackProfile = {
         id: authUser.id,
         email: authUser.email || "",
@@ -87,24 +85,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     let attempts = 0
-    const maxAttempts = 3
+    const maxAttempts = 2
 
     while (attempts < maxAttempts) {
       try {
-        console.log("[v0] Loading user profile for:", authUser.id, `(attempt ${attempts + 1})`)
-
         const existingUser = await withRateLimit(async () => {
           const { data, error } = await supabase.from("users").select("*").eq("id", authUser.id).maybeSingle()
-          if (error && error.code !== "PGRST116") {
-            throw error
-          }
+          if (error && error.code !== "PGRST116") throw error
           return data
         }, null)
 
         let userProfile
 
         if (!existingUser) {
-          console.log("[v0] Creating new user profile...")
           const newUserProfile = {
             id: authUser.id,
             email: authUser.email || "",
@@ -128,27 +121,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .insert([newUserProfile])
               .select()
               .single()
-
             if (createError) throw createError
             return createdUser
           }, newUserProfile)
         } else {
           userProfile = existingUser
           
-          // Check if name or username are missing and we have them in user_metadata
           const metadataName = authUser.user_metadata?.name
           const metadataUsername = authUser.user_metadata?.username
           const needsUpdate = (!existingUser.name && metadataName) || (!existingUser.username && metadataUsername)
           
           if (needsUpdate) {
-            console.log("[v0] Updating user profile with missing name/username from metadata...")
             const updateData: any = {}
-            if (!existingUser.name && metadataName) {
-              updateData.name = metadataName
-            }
-            if (!existingUser.username && metadataUsername) {
-              updateData.username = metadataUsername
-            }
+            if (!existingUser.name && metadataName) updateData.name = metadataName
+            if (!existingUser.username && metadataUsername) updateData.username = metadataUsername
             
             try {
               const { data: updatedUser, error: updateError } = await supabase
@@ -157,18 +143,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 .eq("id", authUser.id)
                 .select()
                 .single()
-              
-              if (!updateError && updatedUser) {
-                userProfile = updatedUser
-                console.log("[v0] User profile updated with name/username from metadata")
-              }
-            } catch (updateErr) {
-              console.error("[v0] Failed to update user profile with metadata:", updateErr)
+              if (!updateError && updatedUser) userProfile = updatedUser
+            } catch {
+              // Non-critical, continue with existing profile
             }
           }
         }
 
-        console.log("[v0] User profile loaded successfully:", userProfile.name)
         setUser(userProfile)
         setLoading(false)
         setNetworkError(false)
@@ -176,17 +157,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       } catch (error) {
         attempts++
-        console.error(`[v0] Profile loading error (attempt ${attempts}):`, error)
 
         if (isNetworkError(error) && attempts < maxAttempts) {
           setNetworkError(true)
-          const delayMs = Math.pow(2, attempts) * 1000 // Exponential backoff
-          console.log(`[v0] Network error detected, retrying in ${delayMs}ms...`)
-          await delay(delayMs)
+          await delay(Math.pow(2, attempts) * 1000)
           continue
         }
 
-        console.log("[v0] All retries failed, using fallback profile")
         const fallbackProfile = {
           id: authUser.id,
           email: authUser.email || "",
@@ -208,8 +185,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const supabase = supabaseRef.current
       if (!supabase) throw new Error("Supabase client not available")
 
-      console.log("[v0] SignIn attempt started for:", email)
-
       if (!navigator.onLine) {
         throw new Error("No internet connection. Please check your network and try again.")
       }
@@ -217,37 +192,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) {
-          console.log("[v0] SignIn failed with error:", error.message)
-
-          console.log("[v0] Security event: login_attempt failed for", email)
-
           if (isNetworkError(error)) {
             throw new Error("Network connection failed. Please check your internet connection and try again.")
           }
-
           throw error
         }
 
-        console.log("[v0] SignIn successful, loading user profile directly...")
-
         if (data.session?.user) {
-          console.log("[v0] Session and user available, loading profile...")
           setLoading(true)
           await loadUserProfile(data.session.user)
-
-          console.log("[v0] Security event: login_attempt successful for", email)
-
-          console.log("[v0] SignIn completed successfully")
         } else {
           throw new Error("No session or user data received after sign-in")
         }
       } catch (error) {
-        console.error("[v0] SignIn error:", error)
-
         if (isNetworkError(error)) {
           throw new Error("Connection failed. Please check your internet connection and try again.")
         }
-
         throw error
       }
     },
@@ -259,53 +219,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const supabase = supabaseRef.current
       if (!supabase) throw new Error("Supabase client not available")
 
-      console.log("[v0] Starting signup process for:", email)
-
       let response
       try {
         response = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { name: name, username: username },
+            data: { name, username },
           },
         })
       } catch (networkErr: any) {
-        console.error("[v0] Network error during signup:", networkErr)
         throw new Error("Netzwerkfehler bei der Registrierung. Bitte überprüfen Sie Ihre Internetverbindung.")
       }
 
       const { data, error } = response
 
-      // Check if user already exists (identities array is empty)
       if (data?.user && data?.user?.identities?.length === 0) {
         throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits. Bitte melden Sie sich an.")
       }
 
       if (error) {
-        console.error("[v0] Signup error:", error.message)
         const errMsg = (error.message || "").toLowerCase()
 
         if (errMsg.includes("sending") || errMsg.includes("smtp") || errMsg.includes("confirmation email")) {
           throw new Error("E-Mail-Bestätigung konnte nicht gesendet werden. Bitte kontaktieren Sie den Support.")
         }
-
         if (error.status === 429 || error.code === "over_email_send_rate_limit") {
           throw new Error("Zu viele Versuche. Bitte warten Sie einige Minuten.")
         }
-
         if (errMsg.includes("already registered") || errMsg.includes("already been registered")) {
           throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits.")
         }
-
         if (errMsg.includes("invalid email")) {
           throw new Error("Ungültige E-Mail-Adresse.")
         }
-
         if (errMsg.includes("password")) {
           throw new Error("Das Passwort muss mindestens 6 Zeichen lang sein.")
         }
-
         throw new Error(error.message || "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.")
       }
 
@@ -313,19 +263,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Registrierung fehlgeschlagen: Kein Benutzer erstellt")
       }
 
-      console.log("[v0] Signup successful, user created:", data.user.id)
-
-      // Check if user was created but email confirmation is required
       if (data.user && !data.session) {
-        console.log("[v0] User created but no session - email confirmation required")
-        // Try to sign in immediately (works if email confirmation is disabled in Supabase)
         try {
           await signIn(email, password)
-          console.log("[v0] Auto sign-in successful after registration")
           return { success: true }
-        } catch (signInError: any) {
-          console.log("[v0] Auto sign-in failed:", signInError.message)
-          // Registration was successful, but email confirmation is needed
+        } catch {
           return { 
             success: true, 
             needsEmailConfirmation: true,
@@ -334,9 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // If we have both user and session, we're good
       if (data.user && data.session) {
-        console.log("[v0] User created with session, loading profile...")
         setLoading(true)
         await loadUserProfile(data.user)
         return { success: true }
@@ -351,16 +291,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = supabaseRef.current
     if (!supabase) throw new Error("Supabase client not available")
 
-    if (user) {
-      console.log("[v0] Security event: logout for user", user.email)
-    }
-
     wasAuthenticatedRef.current = false
     lastUserIdRef.current = null
 
     const { error } = await supabase.auth.signOut()
     if (error) throw error
-  }, [user])
+  }, [])
 
   const requestPasswordReset = useCallback(async (email: string) => {
     const supabase = supabaseRef.current
@@ -378,16 +314,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword })
-
-      if (error) {
-        console.error("[v0] Password update error:", error.message)
-        return { success: false, error: error.message }
-      }
-
-      console.log("[v0] Password updated successfully")
+      if (error) return { success: false, error: error.message }
       return { success: true }
     } catch (error: any) {
-      console.error("[v0] Password update exception:", error)
       return { success: false, error: error.message || "Unbekannter Fehler" }
     }
   }, [])
@@ -399,8 +328,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!user) throw new Error("No user logged in")
 
       try {
-        console.log("[v0] Updating profile with data:", data)
-
         await withRateLimit(async () => {
           const updateData = {
             name: data.name !== undefined ? data.name : user.name,
@@ -413,26 +340,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             settings: data.settings !== undefined ? data.settings : user.settings,
           }
 
-          console.log("[v0] Database update data:", updateData)
-
           const { error: dbError } = await supabase.from("users").update(updateData).eq("id", user.id)
-
           if (dbError) throw dbError
         })
 
-        if (
-          data.settings?.security &&
-          JSON.stringify(data.settings.security) !== JSON.stringify(user.settings?.security)
-        ) {
-          console.log("[v0] Security event: security_settings_change")
-        }
-
-        const updatedUser = {
-          ...user,
-          ...data,
-        }
-
-        console.log("[v0] Profile updated successfully, new user state:", updatedUser)
+        const updatedUser = { ...user, ...data }
         setUser(updatedUser)
         return true
       } catch (error) {
@@ -444,12 +356,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    if (initializedRef.current) {
-      return
-    }
+    if (initializedRef.current) return
     initializedRef.current = true
 
-    // Safety timeout - ensure loading state doesn't stay forever
     const safetyTimeout = setTimeout(() => {
       setLoading(false)
     }, 1500)
@@ -459,7 +368,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase = createClient()
       supabaseRef.current = supabase
     } catch (error) {
-      console.error("[v0] Failed to create Supabase client:", error)
+      console.error("Failed to create Supabase client:", error)
       setLoading(false)
       setNetworkError(true)
       clearTimeout(safetyTimeout)
@@ -480,9 +389,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (!session?.user) {
-          if (wasAuthenticatedRef.current && lastUserIdRef.current) {
-            return
-          }
+          if (wasAuthenticatedRef.current && lastUserIdRef.current) return
           setUser(null)
           setLoading(false)
           setNetworkError(false)
@@ -505,9 +412,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return
           }
 
-          pendingAuthPromisesRef.current.forEach(({ resolve }) => {
-            resolve()
-          })
+          pendingAuthPromisesRef.current.forEach(({ resolve }) => resolve())
           pendingAuthPromisesRef.current.clear()
 
           setLoading(true)
@@ -515,15 +420,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
 
-        if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
-          return
-        }
+        if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") return
       } catch (error) {
         console.error("Auth state change error:", error)
         setLoading(false)
-        if (isNetworkError(error)) {
-          setNetworkError(true)
-        }
+        if (isNetworkError(error)) setNetworkError(true)
       }
     })
 
@@ -531,21 +432,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initializeAuth = async () => {
       let attempts = 0
-      const maxAttempts = 3
+      const maxAttempts = 2
 
       while (attempts < maxAttempts && isMounted) {
         try {
-          const {
-            data: { session },
-            error,
-          } = await supabase.auth.getSession()
+          const { data: { session }, error } = await supabase.auth.getSession()
 
           if (!isMounted) return
 
           if (error) {
-            if (error.message?.includes("aborted") || error.message?.includes("signal")) {
-              return
-            }
+            if (error.message?.includes("aborted") || error.message?.includes("signal")) return
             if (isNetworkError(error) && attempts < maxAttempts - 1) {
               attempts++
               await delay(1000 * attempts)
@@ -567,9 +463,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           return
         } catch (error: any) {
-          if (error?.message?.includes("aborted") || error?.message?.includes("signal")) {
-            return
-          }
+          if (error?.message?.includes("aborted") || error?.message?.includes("signal")) return
           attempts++
 
           if (isNetworkError(error) && attempts < maxAttempts) {
