@@ -114,7 +114,7 @@ export default function RegisterPage() {
         }, 3000)
       } else if (result.success) {
         // Registration successful and auto-signed in
-        router.push("/dashboard")
+        router.push("/")
       }
     } catch (error: any) {
       console.error("[v0] Registration failed:", error)

@@ -24,14 +24,14 @@ import { ProfileSyncProvider } from "@/contexts/profile-sync-context"
 export function AuthenticatedProviders({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
 
-  // While auth is loading, render children without data providers
-  // to avoid a flash. The individual contexts already handle null user gracefully.
-  if (!user && !loading) {
-    // Not logged in - skip all data-fetching providers
+  // While auth is still loading OR user is not logged in,
+  // render children without data-fetching providers.
+  // This prevents unnecessary Supabase queries and race conditions.
+  if (loading || !user) {
     return <>{children}</>
   }
 
-  // Logged in (or still loading auth) - wrap with all providers
+  // User is authenticated - wrap with all data providers
   return (
     <UserProvider>
       <AvatarProvider>
