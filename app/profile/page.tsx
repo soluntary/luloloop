@@ -67,75 +67,14 @@ import { FaPlus, FaTimes, FaImage, FaUserFriends, FaPoll } from "react-icons/fa"
 import { FileDown } from "lucide-react"
 import { jsPDF } from "jspdf"
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog"
+import { AVATAR_STYLES, AVATAR_COLORS, DEFAULT_NOTIFICATION_PREFERENCES } from "./constants"
+import type { ActivityData, ActivityItem } from "./constants"
+import { generateParticipantsPDF, generateGroupMembersPDF } from "./pdf-utils"
+import { NotificationsTab } from "@/components/profile/notifications-tab"
+import { PrivacyTab } from "@/components/profile/privacy-tab"
+import { SecurityTab } from "@/components/profile/security-tab"
 
-const AVATAR_STYLES = [
-  {
-    id: "avataaars",
-    name: "Flat (Vektorstil)",
-    description: "Flächiger 2D-Stil ohne Tiefenwirkung; klare Konturen, leuchtende Vollfarben.",
-  },
-  { id: "micah", name: "Modern", description: "Stilvolle, minimalistische Avatare" },
-  { id: "lorelei", name: "Minimalistisch", description: "Einfache Avatare, wenige Farben." },
-  { id: "lorelei-neutral", name: "Klassisch", description: "Zeitlose, neutrale Avatare" },
-  {
-    id: "adventurer",
-    name: "Cartoon / Comic",
-    description: "Vereinfachte, oft humorvolle Zeichnungen mit übertriebenen Figuren.",
-  },
-  { id: "croodles", name: "Skizziert", description: "Handgezeichnete, verspielte Avatare" },
-  { id: "croodles-neutral", name: "Doodle", description: "Bewusst roh und handgezeichnet wirkend." },
-  { id: "notionists", name: "Professionell", description: "Schlichte, klare Avatare" },
-  { id: "open-peeps", name: "Illustriert", description: "Handgezeichnete Illustrationen" },
-]
-
-const AVATAR_COLORS = [
-  "#FF6B6B",
-  "#4ECDC4",
-  "#45B7D1",
-  "#98D8C8",
-  "#FFEAA7",
-  "#DDA0DD",
-  "#98C8C8", // Corrected from 98C8C8 to 98D8C8
-  "#F7DC6F",
-  "#BB8FCE",
-  "#85C1E9",
-  "#F8B500",
-  "#00CED1",
-  "#FF69B4",
-  "#32CD32",
-  "#FF4500",
-]
-
-interface ActivityData {
-  // Events created by user
-  createdEvents: any[]
-  // Events user participates in
-  eventParticipations: any[]
-  // Friend requests (sent and received)
-  friendRequests: any[]
-  // Event join requests (sent and received)
-  eventJoinRequests: any[]
-  // Communities user is member of
-  memberCommunities: any[]
-  // Communities created by user
-  createdCommunities: any[]
-  // Marketplace offers
-  marketplaceOffers: any[]
-  // Search ads
-  searchAds: any[]
-  // Communities user is member of (for new tab structure)
-  communityMemberships: any[] // Added for the new structure
-}
-
-interface ActivityItem {
-  id: string
-  type: "event" | "friend_request" | "community" | "marketplace"
-  title: string
-  description: string
-  timestamp: Date
-  icon: any
-  status?: string
-}
+// Constants, types, and PDF utils are now imported from separate files
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
@@ -318,76 +257,7 @@ export default function ProfilePage() {
   const [loadingActivities, setLoadingActivities] = useState(true)
 
   const [notifications, setNotifications] = useState<any[]>([])
-  const [notificationPreferences, setNotificationPreferences] = useState({
-    // Soziales
-    friend_request_in_app: true,
-    friend_request_email: true,
-    friend_accepted_in_app: true,
-    friend_accepted_email: false,
-    friend_declined_in_app: true,
-    friend_declined_email: false,
-
-    // Spielgruppen
-    group_invitation_in_app: true,
-    group_invitation_email: true,
-    group_join_request_in_app: true,
-    group_join_request_email: true,
-    group_join_accepted_in_app: true,
-    group_join_accepted_email: true,
-    group_join_rejected_in_app: true,
-    group_join_rejected_email: false,
-    group_member_joined_in_app: true,
-    group_member_joined_email: false,
-    group_member_left_in_app: true,
-    group_member_left_email: false,
-    group_poll_created_in_app: true,
-    group_poll_created_email: false,
-
-    // Events
-    event_invitation_in_app: true,
-    event_invitation_email: true,
-    event_join_request_in_app: true,
-    event_join_request_email: true,
-    event_join_accepted_in_app: true,
-    event_join_accepted_email: true,
-    event_join_rejected_in_app: true,
-    event_join_rejected_email: false,
-    event_participant_joined_in_app: true,
-    event_participant_joined_email: false,
-    event_participant_immediate_in_app: true,
-    event_participant_immediate_email: false,
-    // ADDED: event participant left and event cancellation notifications
-    event_participant_left_in_app: true,
-    event_participant_left_email: false,
-    event_cancelled_in_app: true,
-    event_cancelled_email: false,
-
-    // Forum & Kommentare
-    forum_reply_in_app: true,
-    forum_reply_email: true,
-    forum_reaction_in_app: true,
-    forum_reaction_email: false,
-    comment_reply_in_app: true,
-    comment_reply_email: false,
-
-    // Nachrichten
-    // REMOVED: message_group_in_app, message_group_email, message_event_in_app, message_event_email, message_search_ad_in_app, message_search_ad_email, message_offer_in_app, message_offer_email
-    // (These were removed in the updates, so they are not included here)
-
-    // Spiel-Interaktionen
-    game_shelf_request_in_app: true,
-    game_shelf_request_email: true,
-    game_interaction_request_in_app: true,
-    game_interaction_request_email: true,
-    marketplace_offer_request_in_app: true,
-    marketplace_offer_request_email: true,
-
-    // System
-    system_maintenance_in_app: true,
-    system_maintenance_email: true,
-    system_feature_in_app: true,
-    system_feature_email: false,
-  })
+  const [notificationPreferences, setNotificationPreferences] = useState(DEFAULT_NOTIFICATION_PREFERENCES)
   // NotificationPreferenceRow component moved inside ProfilePage to use its state and handlers directly.
 
   const userId = user?.id
@@ -540,210 +410,30 @@ export default function ProfilePage() {
     }
   }
 
-  // PDF Export Funktionen
+  // PDF Export Funktionen - delegated to pdf-utils.ts
   const generateEventParticipantsPDF = async (event: any) => {
-    const doc = new jsPDF()
-    const pageWidth = doc.internal.pageSize.getWidth()
-    
-    // Header
-    doc.setFontSize(18)
-    doc.setFont("helvetica", "bold")
-    doc.text("Teilnehmerliste", pageWidth / 2, 20, { align: "center" })
-    
-    // Event Info
-    doc.setFontSize(14)
-    doc.setFont("helvetica", "bold")
-    doc.text(event.title || "Event", pageWidth / 2, 32, { align: "center" })
-    
-    doc.setFontSize(10)
-    doc.setFont("helvetica", "normal")
-    
-    // Event Details
-    let yPos = 45
-    doc.text(`Ort: ${event.location || "-"}`, 20, yPos)
-    yPos += 7
-    
-    if (event.first_instance_date) {
-      const date = new Date(event.first_instance_date).toLocaleDateString("de-DE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-      doc.text(`Datum: ${date}`, 20, yPos)
-      yPos += 7
+    try {
+      // Get participants for the event
+      const { data: participants } = await supabase
+        .from("ludo_event_participants")
+        .select("*, profiles:users(*)")
+        .eq("event_id", event.id)
+      generateParticipantsPDF(event, participants || [])
+      toast({ title: "PDF heruntergeladen", description: "Die Teilnehmerliste wurde als PDF gespeichert." })
+    } catch (error) {
+      console.error("Error generating PDF:", error)
+      toast({ title: "Fehler", description: "PDF konnte nicht erstellt werden", variant: "destructive" })
     }
-    
-    doc.text(`Max. Teilnehmer: ${event.max_participants || "-"}`, 20, yPos)
-    yPos += 7
-    
-    const participants = event.ludo_event_participants || []
-    doc.text(`Aktuelle Teilnehmer: ${participants.length}`, 20, yPos)
-    yPos += 15
-    
-    // Separator line
-    doc.setDrawColor(200, 200, 200)
-    doc.line(20, yPos, pageWidth - 20, yPos)
-    yPos += 10
-    
-    // Table header
-    doc.setFont("helvetica", "bold")
-    doc.text("Nr.", 20, yPos)
-    doc.text("Name", 40, yPos)
-    doc.text("E-Mail", 100, yPos)
-    doc.text("Angemeldet am", 155, yPos)
-    yPos += 3
-    
-    // Header underline
-    doc.line(20, yPos, pageWidth - 20, yPos)
-    yPos += 7
-    
-    // Participants list
-    doc.setFont("helvetica", "normal")
-    
-    if (participants.length === 0) {
-      doc.setTextColor(128, 128, 128)
-      doc.text("Keine Teilnehmer angemeldet", pageWidth / 2, yPos, { align: "center" })
-    } else {
-      participants.forEach((p: any, index: number) => {
-        if (yPos > 270) {
-          doc.addPage()
-          yPos = 20
-        }
-        
-        const profile = p.profiles || {}
-        const name = profile.name || profile.username || "Unbekannt"
-        const email = profile.email || "-"
-        const joinedDate = p.joined_at 
-          ? new Date(p.joined_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })
-          : "-"
-        
-        doc.text(`${index + 1}.`, 20, yPos)
-        doc.text(name.substring(0, 30), 40, yPos)
-        doc.text(email.substring(0, 30), 100, yPos)
-        doc.text(joinedDate, 155, yPos)
-        yPos += 7
-      })
-    }
-    
-    // Footer
-    const today = new Date().toLocaleDateString("de-DE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-    doc.setFontSize(8)
-    doc.setTextColor(128, 128, 128)
-    doc.text(`Erstellt am ${today} via LudoLoop`, pageWidth / 2, 290, { align: "center" })
-    
-    // Download
-    doc.save(`Teilnehmerliste_${event.title?.replace(/[^a-zA-Z0-9]/g, "_") || "Event"}.pdf`)
-    
-    toast({
-      title: "PDF heruntergeladen",
-      description: "Die Teilnehmerliste wurde als PDF gespeichert.",
-    })
   }
-  
-  const generateGroupMembersPDF = async (community: any) => {
-    const doc = new jsPDF()
-    const pageWidth = doc.internal.pageSize.getWidth()
-    
-    // Header
-    doc.setFontSize(18)
-    doc.setFont("helvetica", "bold")
-    doc.text("Mitgliederliste", pageWidth / 2, 20, { align: "center" })
-    
-    // Group Info
-    doc.setFontSize(14)
-    doc.setFont("helvetica", "bold")
-    doc.text(community.name || "Spielgruppe", pageWidth / 2, 32, { align: "center" })
-    
-    doc.setFontSize(10)
-    doc.setFont("helvetica", "normal")
-    
-    // Group Details
-    let yPos = 45
-    doc.text(`Ort: ${community.location || "-"}`, 20, yPos)
-    yPos += 7
-    
-    const createdDate = new Date(community.created_at).toLocaleDateString("de-DE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    })
-    doc.text(`Erstellt am: ${createdDate}`, 20, yPos)
-    yPos += 7
-    
-    const members = community.community_members || []
-    doc.text(`Anzahl Mitglieder: ${members.length}`, 20, yPos)
-    yPos += 15
-    
-    // Separator line
-    doc.setDrawColor(200, 200, 200)
-    doc.line(20, yPos, pageWidth - 20, yPos)
-    yPos += 10
-    
-    // Table header
-    doc.setFont("helvetica", "bold")
-    doc.text("Nr.", 20, yPos)
-    doc.text("Name", 40, yPos)
-    doc.text("E-Mail", 100, yPos)
-    doc.text("Beigetreten am", 155, yPos)
-    yPos += 3
-    
-    // Header underline
-    doc.line(20, yPos, pageWidth - 20, yPos)
-    yPos += 7
-    
-    // Members list
-    doc.setFont("helvetica", "normal")
-    
-    if (members.length === 0) {
-      doc.setTextColor(128, 128, 128)
-      doc.text("Keine Mitglieder", pageWidth / 2, yPos, { align: "center" })
-    } else {
-      members.forEach((m: any, index: number) => {
-        if (yPos > 270) {
-          doc.addPage()
-          yPos = 20
-        }
-        
-        const profile = m.profiles || {}
-        const name = profile.name || profile.username || "Unbekannt"
-        const email = profile.email || "-"
-        const joinedDate = m.joined_at 
-          ? new Date(m.joined_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })
-          : "-"
-        
-        doc.text(`${index + 1}.`, 20, yPos)
-        doc.text(name.substring(0, 30), 40, yPos)
-        doc.text(email.substring(0, 30), 100, yPos)
-        doc.text(joinedDate, 155, yPos)
-        yPos += 7
-      })
+
+  const handleGenerateGroupMembersPDF = (community: any) => {
+    try {
+      generateGroupMembersPDF(community)
+      toast({ title: "PDF heruntergeladen", description: "Die Mitgliederliste wurde als PDF gespeichert." })
+    } catch (error) {
+      console.error("Error generating PDF:", error)
+      toast({ title: "Fehler", description: "PDF konnte nicht erstellt werden", variant: "destructive" })
     }
-    
-    // Footer
-    const today = new Date().toLocaleDateString("de-DE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-    doc.setFontSize(8)
-    doc.setTextColor(128, 128, 128)
-    doc.text(`Erstellt am ${today} via LudoLoop`, pageWidth / 2, 290, { align: "center" })
-    
-    // Download
-    doc.save(`Mitgliederliste_${community.name?.replace(/[^a-zA-Z0-9]/g, "_") || "Gruppe"}.pdf`)
-    
-    toast({
-      title: "PDF heruntergeladen",
-      description: "Die Mitgliederliste wurde als PDF gespeichert.",
-    })
   }
 
   const handleDeleteEvent = async (eventId: string) => {
@@ -2182,39 +1872,7 @@ const loadEventInstances = async (eventId: string) => {
     toast({ title: "Gespeichert", description: "Einstellung gespeichert" })
   }
 
-  // NotificationPreferenceRow component moved inside ProfilePage to use its state and handlers directly.
-  const NotificationPreferenceRow = ({
-    label,
-    inAppKey,
-    emailKey,
-  }: { label: string; inAppKey: string; emailKey: string }) => {
-    const isEnabledInApp = notificationPreferences[inAppKey as keyof typeof notificationPreferences]
-    const isEnabledEmail = notificationPreferences[emailKey as keyof typeof notificationPreferences]
-
-    return (
-      <div className="flex items-center justify-between py-3">
-        <Label className="text-sm font-medium">{label}</Label>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Bell className="w-4 h-4 text-gray-400" />
-            <Switch
-              checked={isEnabledInApp}
-              onCheckedChange={(checked) => handleNotificationPreferenceChange(inAppKey, checked)}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Mail className="w-4 h-4 text-gray-400" />
-            <Switch
-              checked={isEnabledEmail}
-              onCheckedChange={(checked) => handleNotificationPreferenceChange(emailKey, checked)}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500"
-            />
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // NotificationPreferenceRow is now an extracted component in components/profile/notifications-tab.tsx
 
   const saveNotificationPref = async (category: string, key: string, value: number) => {
     if (!user) return
@@ -4016,340 +3674,21 @@ const loadEventInstances = async (eventId: string) => {
             </TabsContent>
 
             <TabsContent value="notifications">
-              <Card className="border-2 border-teal-200">
-                <CardHeader>
-                  <CardTitle className="font-handwritten text-teal-700 text-base">Benachrichtigungen</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {/* Notification Settings */}
-                    <div>
-                      <div className="mb-3">
-                        <div className="flex items-center gap-4 text-[10px] text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <Bell className="w-3 h-3" />
-                            <span>In-App</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            <span>E-Mail</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <ScrollArea className="h-[400px]">
-                        <div className="space-y-4 pr-3">
-                          {/* Soziales */}
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <FaUserPlusIcon className="w-4 h-4 text-green-500" /> {/* Use FaUserPlusIcon */}
-                              <h3 className="text-sm font-semibold">Soziales</h3>
-                            </div>
-                            <div className="space-y-1 text-xs">
-                              <NotificationPreferenceRow
-                                label="Freundschaftsanfrage erhalten"
-                                inAppKey="friend_request_in_app"
-                                emailKey="friend_request_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Freundschaftsanfrage akzeptiert"
-                                inAppKey="friend_accepted_in_app"
-                                emailKey="friend_accepted_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Freundschaftsanfrage abgelehnt"
-                                inAppKey="friend_declined_in_app"
-                                emailKey="friend_declined_email"
-                              />
-                            </div>
-                          </div>
-
-                          <Separator />
-
-                          {/* Spielgruppen */}
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Users className="w-4 h-4 text-purple-500" />
-                              <h3 className="text-sm font-semibold">Spielgruppen</h3>
-                            </div>
-                            <div className="space-y-1 text-xs">
-                              <NotificationPreferenceRow
-                                label="Einladung zu Spielgruppe"
-                                inAppKey="group_invitation_in_app"
-                                emailKey="group_invitation_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Beitrittsanfrage erhalten"
-                                inAppKey="group_join_request_in_app"
-                                emailKey="group_join_request_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Beitritt akzeptiert"
-                                inAppKey="group_join_accepted_in_app"
-                                emailKey="group_join_accepted_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Beitritt abgelehnt"
-                                inAppKey="group_join_rejected_in_app"
-                                emailKey="group_join_rejected_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Neues Mitglied beigetreten"
-                                inAppKey="group_member_joined_in_app"
-                                emailKey="group_member_joined_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Mitglied hat Gruppe verlassen"
-                                inAppKey="group_member_left_in_app"
-                                emailKey="group_member_left_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Neue Abstimmung in Spielgruppen"
-                                inAppKey="group_poll_created_in_app"
-                                emailKey="group_poll_created_email"
-                              />
-                            </div>
-                          </div>
-
-                          <Separator />
-
-                          {/* Events */}
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Calendar className="w-4 h-4 text-blue-500" />
-                              <h3 className="text-sm font-semibold">Events</h3>
-                            </div>
-                            <div className="space-y-1 text-xs">
-                              <NotificationPreferenceRow
-                                label="Einladung zu Event"
-                                inAppKey="event_invitation_in_app"
-                                emailKey="event_invitation_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Teilnahmeanfrage erhalten"
-                                inAppKey="event_join_request_in_app"
-                                emailKey="event_join_request_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Teilnahme akzeptiert"
-                                inAppKey="event_join_accepted_in_app"
-                                emailKey="event_join_accepted_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Teilnahme abgelehnt"
-                                inAppKey="event_join_rejected_in_app"
-                                emailKey="event_join_rejected_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Neuer Teilnehmer angemeldet"
-                                inAppKey="event_participant_joined_in_app"
-                                emailKey="event_participant_joined_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Teilnehmer abgemeldet"
-                                inAppKey="event_participant_left_in_app"
-                                emailKey="event_participant_left_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Event abgesagt"
-                                inAppKey="event_cancelled_in_app"
-                                emailKey="event_cancelled_email"
-                              />
-                            </div>
-                          </div>
-
-                          <Separator />
-
-                          {/* Forum & Kommentare */}
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <MessageSquare className="w-4 h-4 text-teal-500" />
-                              <h3 className="text-sm font-semibold">Forum & Kommentare</h3>
-                            </div>
-                            <div className="space-y-1 text-xs">
-                              <NotificationPreferenceRow
-                                label="Antwort auf eigenen Forumsbeitrag"
-                                inAppKey="forum_reply_in_app"
-                                emailKey="forum_reply_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Reaktion auf eigenen Beitrag"
-                                inAppKey="forum_reaction_in_app"
-                                emailKey="forum_reaction_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Antwort auf Kommentar"
-                                inAppKey="comment_reply_in_app"
-                                emailKey="comment_reply_email"
-                              />
-                            </div>
-                          </div>
-
-                          <Separator />
-
-                          {/* Spiel-Interaktionen */}
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Book className="w-4 h-4 text-orange-500" />
-                              <h3 className="text-sm font-semibold">Spiel-Interaktionen</h3>
-                            </div>
-                            <div className="space-y-1 text-xs">
-                              <NotificationPreferenceRow
-                                label="Spielesammlung-Anfrage"
-                                inAppKey="game_shelf_request_in_app"
-                                emailKey="game_shelf_request_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Spiel-Ausleihanfrage"
-                                inAppKey="game_interaction_request_in_app"
-                                emailKey="game_interaction_request_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Interesse an Angebot"
-                                inAppKey="marketplace_offer_request_in_app"
-                                emailKey="marketplace_offer_request_email"
-                              />
-                            </div>
-                          </div>
-
-                          <Separator />
-
-                          {/* System */}
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Bell className="w-4 h-4 text-red-500" />
-                              <h3 className="text-sm font-semibold">Systembenachrichtigungen</h3>
-                            </div>
-                            <div className="space-y-1 text-xs">
-                              <NotificationPreferenceRow
-                                label="Wartungsarbeiten & Updates"
-                                inAppKey="system_maintenance_in_app"
-                                emailKey="system_maintenance_email"
-                              />
-                              <NotificationPreferenceRow
-                                label="Neue Funktionen"
-                                inAppKey="system_feature_in_app"
-                                emailKey="system_feature_email"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </ScrollArea>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <NotificationsTab
+                notificationPreferences={notificationPreferences}
+                onPreferenceChange={handleNotificationPreferenceChange}
+              />
             </TabsContent>
 
             <TabsContent value="privacy">
-              <Card className="border-2 border-teal-200">
-                <CardHeader>
-                  <CardTitle className="font-handwritten text-teal-700 text-base">Privatsphäre-Einstellungen</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <div>
-                      <p className="font-medium text-xs">Profilsichtbarkeit</p>
-                      <p className="text-[10px] text-gray-500">Wer kann dein Profil sehen?</p>
-                    </div>
-                    <Select defaultValue="public">
-                      <SelectTrigger className="w-full h-9 text-xs">
-                        <SelectValue placeholder="Wähle eine Option" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="public">Alle</SelectItem>
-                        <SelectItem value="friends">Nur Freunde</SelectItem>
-                        <SelectItem value="private">Niemand</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div>
-                      <p className="font-medium text-xs">Spieleregal zeigen</p>
-                      <p className="text-[10px] text-gray-500">Wer kann deine Spielesammlung sehen?</p>
-                    </div>
-                    <Select defaultValue="public">
-                      <SelectTrigger className="w-full h-9 text-xs">
-                        <SelectValue placeholder="Wähle eine Option" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="public">Alle</SelectItem>
-                        <SelectItem value="friends">Nur Freunde</SelectItem>
-                        <SelectItem value="private">Niemand</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div>
-                      <p className="font-medium text-xs">Direktnachrichten erlauben</p>
-                      <p className="text-[10px] text-gray-500">
-                        Wer kann dir Direktnachrichten (zu Events, Spielgruppen, Angebote und Suchanzeigen) senden?
-                      </p>
-                    </div>
-                    <Select defaultValue="all">
-                      <SelectTrigger className="w-full h-9 text-xs">
-                        <SelectValue placeholder="Wähle eine Option" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Alle</SelectItem>
-                        <SelectItem value="friends">Nur Freunde</SelectItem>
-                        <SelectItem value="none">Niemand</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-              </Card>
+              <PrivacyTab />
             </TabsContent>
 
             <TabsContent value="security">
-              <Card className="border-2 border-teal-200">
-                <CardHeader>
-                  <CardTitle className="font-handwritten text-teal-700 text-base">Sicherheitseinstellungen</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-xs">Passwort ändern</p>
-                      <p className="text-[10px] text-gray-500">Aktualisiere dein Passwort regelmässig</p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-teal-400 text-teal-600 h-7 text-xs px-2 bg-transparent"
-                      onClick={() => setShowPasswordDialog(true)}
-                    >
-                      Ändern
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-xs">Zwei-Faktor-Authentifizierung</p>
-                      <p className="text-[10px] text-gray-500">Zusätzliche Sicherheit für dein Konto</p>
-                    </div>
-                    <Switch />
-                  </div>
-                  <div className="border-red-200 pt-4 mt-4 bg-red-50 -mx-6 px-6 pb-4 -mb-4 rounded-b-lg rounded-sm border-l-2 border-t-2 border-b-2 border-r-2">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="w-4 h-4 text-red-600" />
-                      <p className="text-red-600 text-xs font-bold">Gefahrenzone</p>
-                    </div>
-                    <p className="text-[10px] text-gray-600 mb-3">
-                      Dies löscht dein Konto und alle damit verbundenen Daten unwiderruflich. Diese Aktion kann nicht
-                      rückgängig gemacht werden.
-                    </p>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="h-8 text-xs px-3 bg-red-600 hover:bg-red-700 text-white font-semibold"
-                      onClick={() => setShowDeleteDialog(true)}
-                    >
-                      Konto endgültig löschen
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <SecurityTab
+                onChangePassword={() => setShowPasswordDialog(true)}
+                onDeleteAccount={() => setShowDeleteDialog(true)}
+              />
             </TabsContent>
           </Tabs>
         </div>
@@ -5529,7 +4868,7 @@ const loadEventInstances = async (eventId: string) => {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => generateGroupMembersPDF(managementGroup)}
+                  onClick={() => handleGenerateGroupMembersPDF(managementGroup)}
                   className="h-9 text-xs border-2 border-teal-500 text-teal-700 hover:bg-teal-50 font-medium"
                   title="Mitgliederliste als PDF herunterladen"
                 >
