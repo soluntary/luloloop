@@ -205,7 +205,7 @@ export function ProfileSyncProvider({ children }: { children: ReactNode }) {
 export function useProfileSync() {
   const context = useContext(ProfileSyncContext)
   if (context === undefined) {
-    throw new Error("useProfileSync must be used within a ProfileSyncProvider")
+    return { lastUpdate: null }
   }
   return context
 }

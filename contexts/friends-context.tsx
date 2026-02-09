@@ -63,7 +63,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const refreshFriends = useCallback(async () => {
+  const refreshFriends = useCallback(async (force = false) => {
     if (!user?.id || !supabase) {
       if (authLoading) return
       if (dataLoadedRef.current && lastUserIdRef.current) {
@@ -76,7 +76,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    if (lastUserIdRef.current === user.id && dataLoadedRef.current) {
+    if (!force && lastUserIdRef.current === user.id && dataLoadedRef.current) {
       return
     }
 
@@ -204,7 +204,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
       if (existingRequest) {
         if (existingRequest.status === "pending") {
-          await refreshFriends()
+          await refreshFriends(true)
           return { success: true, alreadyExists: true }
         }
         if (existingRequest.status === "accepted") {
@@ -222,7 +222,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
             ])
           }
 
-          await refreshFriends()
+          await refreshFriends(true)
           return { success: true, alreadyExists: true }
         }
         if (existingRequest.status === "declined") {
@@ -242,7 +242,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
       if (insertError) {
         if (insertError.message?.includes("duplicate key")) {
-          await refreshFriends()
+          await refreshFriends(true)
           return { success: true, alreadyExists: true }
         }
         throw insertError
@@ -261,7 +261,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         },
       )
 
-      await refreshFriends()
+      await refreshFriends(true)
       return { success: true, alreadyExists: false }
     } catch (err: any) {
       setError(err.message || "Failed to send friend request")
@@ -314,7 +314,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         { friend_id: user.id, friend_name: accepterName },
       )
 
-      await refreshFriends()
+      await refreshFriends(true)
     } catch (err: any) {
       setError(err.message || "Failed to accept friend request")
       throw err
@@ -348,7 +348,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         )
       }
 
-      await refreshFriends()
+      await refreshFriends(true)
     } catch (err: any) {
       setError(err.message || "Failed to decline friend request")
       throw err
@@ -368,7 +368,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error
 
-      await refreshFriends()
+      await refreshFriends(true)
     } catch (err: any) {
       setError(err.message || "Failed to remove friend")
       throw err
@@ -406,10 +406,24 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   )
 }
 
+const FRIENDS_FALLBACK: FriendsContextType = {
+  friends: [],
+  pendingRequests: [],
+  sentRequests: [],
+  loading: false,
+  error: null,
+  sendFriendRequest: async () => ({ success: false, alreadyExists: false }),
+  acceptFriendRequest: async () => {},
+  declineFriendRequest: async () => {},
+  removeFriend: async () => {},
+  getFriendshipStatus: () => "none",
+  refreshFriends: async () => {},
+}
+
 export function useFriends() {
   const context = useContext(FriendsContext)
   if (context === undefined) {
-    throw new Error("useFriends must be used within a FriendsProvider")
+    return FRIENDS_FALLBACK
   }
   return context
 }

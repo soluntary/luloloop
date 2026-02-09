@@ -529,10 +529,26 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   return <GamesContext.Provider value={value}>{children}</GamesContext.Provider>
 }
 
+const GAMES_FALLBACK: GamesContextType = {
+  games: [],
+  marketplaceOffers: [],
+  loading: false,
+  error: null,
+  databaseConnected: false,
+  addGame: async () => {},
+  updateGame: async () => {},
+  deleteGame: async () => {},
+  addMarketplaceOffer: async () => {},
+  updateMarketplaceOffer: async () => {},
+  deleteMarketplaceOffer: async () => {},
+  refreshData: async () => {},
+  toggleGameAvailability: async () => {},
+}
+
 export function useGames() {
   const context = useContext(GamesContext)
   if (context === undefined) {
-    throw new Error("useGames must be used within a GamesProvider")
+    return GAMES_FALLBACK
   }
   return context
 }

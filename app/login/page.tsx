@@ -27,14 +27,25 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const redirectUrl = searchParams.get("redirect") || "/"
 
+  const [initialLoadTimedOut, setInitialLoadTimedOut] = useState(false)
+
   useEffect(() => {
     if (user && !authLoading) {
       router.replace(redirectUrl)
     }
   }, [user, authLoading, router, redirectUrl])
 
-  // Only show loading on initial page load, not after login
-  if (authLoading && !loginSuccess) {
+  // Timeout to prevent infinite "Lade Anwendung..." - show login form after 3s
+  useEffect(() => {
+    if (!authLoading) return
+    const timeout = setTimeout(() => {
+      setInitialLoadTimedOut(true)
+    }, 3000)
+    return () => clearTimeout(timeout)
+  }, [authLoading])
+
+  // Only show loading spinner briefly on initial page load, not after login
+  if (authLoading && !loginSuccess && !initialLoadTimedOut) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">

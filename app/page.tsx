@@ -608,7 +608,7 @@ export default function HomePage() {
           transition={{ duration: 0.6 }}
           className="font-handwritten text-center text-gray-800 mb-4 transform -rotate-1 text-2xl"
         >
-          Vorteile auf einen Blick
+          Deine Vorteile auf einen Blick
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -632,7 +632,7 @@ export default function HomePage() {
               icon: GiDiceTarget,
               title: "Alles an einem Ort",
               description:
-                "Digitales Spielregal, Verleih, Tausch, Verkauf und Community - alles vereint in einer Plattform.",
+                "Digitales Spielregal, Spielehandel und Community - alles vereint in einer Plattform.",
               color: "orange",
               rotation: "rotate-1",
               iconRotation: "-rotate-12",
@@ -657,7 +657,7 @@ export default function HomePage() {
             {
               icon: GiChoice,
               title: "risikofrei Spiele ausprobieren",
-              description: "Teste Spiele erst durch Mieten oder Tauschen, bevor du dich für einen Kauf entscheidest – so triffst du immer die richtige Wahl.",
+              description: "Teste Spiele durch Mieten oder Tauschen, bevor du dich für einen Kauf entscheidest – so triffst du immer die richtige Wahl.",
               color: "blue",
               rotation: "rotate-1",
               iconRotation: "rotate-12",

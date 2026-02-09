@@ -132,6 +132,103 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     }
   }, [user, refreshMessages])
 
+  // Supabase Realtime subscription for live message updates
+  useEffect(() => {
+    if (!user || !supabase) return
+
+    const channel = supabase
+      .channel(`messages-realtime-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `to_user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          // A new message was sent TO this user - fetch with joined user data
+          const { data } = await supabase
+            .from("messages")
+            .select(`
+              *,
+              from_user:users!messages_from_user_id_fkey(id, name, username),
+              to_user:users!messages_to_user_id_fkey(id, name, username)
+            `)
+            .eq("id", payload.new.id)
+            .single()
+
+          if (data) {
+            setMessages((prev) => {
+              // Avoid duplicates (e.g. if the sender is this user and already added it optimistically)
+              if (prev.some((msg) => msg.id === data.id)) return prev
+              return [data, ...prev]
+            })
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `from_user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          // A message sent BY this user (from another tab/device)
+          const { data } = await supabase
+            .from("messages")
+            .select(`
+              *,
+              from_user:users!messages_from_user_id_fkey(id, name, username),
+              to_user:users!messages_to_user_id_fkey(id, name, username)
+            `)
+            .eq("id", payload.new.id)
+            .single()
+
+          if (data) {
+            setMessages((prev) => {
+              if (prev.some((msg) => msg.id === data.id)) return prev
+              return [data, ...prev]
+            })
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `to_user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          // Message updated (e.g. marked as read)
+          setMessages((prev) =>
+            prev.map((msg) => (msg.id === payload.new.id ? { ...msg, ...payload.new } : msg)),
+          )
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "messages",
+        },
+        (payload) => {
+          // Message deleted
+          setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id))
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user, supabase])
+
   const sendMessage = async (messageData: {
     to_user_id: string
     message: string
@@ -355,10 +452,22 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
   )
 }
 
+const MESSAGES_FALLBACK: MessagesContextType = {
+  messages: [],
+  sendMessage: async () => {},
+  markAsRead: async () => {},
+  deleteMessage: async () => {},
+  getUnreadCount: () => 0,
+  getUserMessages: () => [],
+  refreshMessages: async () => {},
+  getOfferTypeText: () => "",
+  getOfferTypeColor: () => "",
+}
+
 export function useMessages() {
   const context = useContext(MessagesContext)
   if (context === undefined) {
-    throw new Error("useMessages must be used within a MessagesProvider")
+    return MESSAGES_FALLBACK
   }
   return context
 }

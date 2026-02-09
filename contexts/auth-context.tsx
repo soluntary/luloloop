@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode, useCallback, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { checkGlobalRateLimit, withRateLimit } from "@/lib/supabase/rate-limit"
+import { createUserProfile } from "@/app/actions/create-user-profile"
 import type { User } from "@supabase/supabase-js"
 
 export interface AuthUser {
@@ -69,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    console.log("[v0] loadUserProfile called for:", authUser.id)
     wasAuthenticatedRef.current = true
     lastUserIdRef.current = authUser.id
 
@@ -98,32 +100,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         let userProfile
 
         if (!existingUser) {
-          const newUserProfile = {
+          // Use server action with admin client to bypass RLS
+          // This is critical because the client session may not be
+          // established yet right after sign-up
+          const result = await createUserProfile({
             id: authUser.id,
             email: authUser.email || "",
             name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
             username: authUser.user_metadata?.username || null,
             avatar: authUser.user_metadata?.avatar_url || null,
-            bio: null,
-            website: null,
-            twitter: null,
-            instagram: null,
-            settings: {
-              notifications: { email: true, push: true, marketing: false, security: true },
-              privacy: { profileVisible: true, emailVisible: false, onlineStatus: true, allowMessages: true },
-              security: { twoFactor: false, loginNotifications: true, sessionTimeout: 30 },
-            },
-          }
+          })
 
-          userProfile = await withRateLimit(async () => {
-            const { data: createdUser, error: createError } = await supabase
-              .from("users")
-              .insert([newUserProfile])
-              .select()
-              .single()
-            if (createError) throw createError
-            return createdUser
-          }, newUserProfile)
+          if (result.success && result.profile) {
+            userProfile = result.profile
+          } else {
+            // Fallback: use metadata directly if server action fails
+            userProfile = {
+              id: authUser.id,
+              email: authUser.email || "",
+              name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+              username: authUser.user_metadata?.username || null,
+            }
+          }
         } else {
           userProfile = existingUser
           
@@ -359,9 +357,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (initializedRef.current) return
     initializedRef.current = true
 
+    // Safety timeout increased to 5s - prevents infinite loading if something goes wrong
     const safetyTimeout = setTimeout(() => {
       setLoading(false)
-    }, 1500)
+    }, 5000)
 
     let supabase: ReturnType<typeof createClient>
     try {
@@ -379,12 +378,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       try {
+        console.log("[v0] onAuthStateChange:", event, "session:", !!session?.user)
         if (event === "SIGNED_OUT") {
           wasAuthenticatedRef.current = false
           lastUserIdRef.current = null
           setUser(null)
           setLoading(false)
           setNetworkError(false)
+          clearTimeout(safetyTimeout)
           return
         }
 
@@ -393,22 +394,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null)
           setLoading(false)
           setNetworkError(false)
+          clearTimeout(safetyTimeout)
           return
         }
 
         if (event === "INITIAL_SESSION" && session?.user) {
-          if (lastUserIdRef.current === session.user.id && user) {
+          // Use ref instead of stale closure over `user` state
+          if (lastUserIdRef.current === session.user.id && wasAuthenticatedRef.current) {
             setLoading(false)
+            clearTimeout(safetyTimeout)
             return
           }
           setLoading(true)
           await loadUserProfile(session.user)
+          clearTimeout(safetyTimeout)
           return
         }
 
         if (event === "SIGNED_IN" && session?.user) {
-          if (lastUserIdRef.current === session.user.id && user) {
+          if (lastUserIdRef.current === session.user.id && wasAuthenticatedRef.current) {
             setLoading(false)
+            clearTimeout(safetyTimeout)
             return
           }
 
@@ -417,6 +423,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           setLoading(true)
           await loadUserProfile(session.user)
+          clearTimeout(safetyTimeout)
           return
         }
 
@@ -424,6 +431,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error("Auth state change error:", error)
         setLoading(false)
+        clearTimeout(safetyTimeout)
         if (isNetworkError(error)) setNetworkError(true)
       }
     })
@@ -450,15 +458,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null)
             setLoading(false)
             setNetworkError(true)
+            clearTimeout(safetyTimeout)
             return
           }
 
-          if (session?.user) {
-            await loadUserProfile(session.user)
-          } else {
+          // onAuthStateChange INITIAL_SESSION will handle profile loading
+          // We only need to handle the no-session case here
+          if (!session?.user) {
             if (isMounted) {
               setUser(null)
               setLoading(false)
+              clearTimeout(safetyTimeout)
             }
           }
           return
@@ -476,6 +486,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null)
             setLoading(false)
             setNetworkError(true)
+            clearTimeout(safetyTimeout)
           }
           return
         }
@@ -489,7 +500,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(safetyTimeout)
       subscription.unsubscribe()
     }
-  }, [loadUserProfile, user])
+    // No dependency on `user` - refs are used instead to avoid re-running the effect
+  }, [loadUserProfile])
 
   const value = {
     user,

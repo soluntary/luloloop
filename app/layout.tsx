@@ -3,15 +3,9 @@ import type { Metadata } from "next"
 import { Galindo, McLaren } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
-import { UserProvider } from "@/contexts/user-context"
-import { GamesProvider } from "@/contexts/games-context"
-import { MessagesProvider } from "@/contexts/messages-context"
-import { FriendsProvider } from "@/contexts/friends-context"
 import { GeolocationProvider } from "@/contexts/geolocation-context"
 import { LocationSearchProvider } from "@/contexts/location-search-context"
-import { RequestsProvider } from "@/contexts/requests-context"
-import { AvatarProvider } from "@/contexts/avatar-context"
-import { ProfileSyncProvider } from "@/contexts/profile-sync-context"
+import { AuthenticatedProviders } from "@/components/authenticated-providers"
 import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/custom-toaster"
 
@@ -77,34 +71,22 @@ export default function RootLayout({
       </head>
       <body className={mclaren.className}>
         <AuthProvider>
-          <UserProvider>
-            <AvatarProvider>
-              <ProfileSyncProvider>
-                <GamesProvider>
-                  <MessagesProvider>
-                    <FriendsProvider>
-                      <GeolocationProvider>
-                        <LocationSearchProvider>
-                          <RequestsProvider>
-                            <ConfirmDialogProvider>
-                              <ServiceWorkerRegistration />
-                              <PWAInstallPrompt />
-                              <div className="flex flex-col min-h-screen">
-                                <main className="flex-1">{children}</main>
-                                <Footer />
-                              </div>
-                            </ConfirmDialogProvider>
-                            <Toaster />
-                            <SonnerToaster position="top-center" richColors />
-                          </RequestsProvider>
-                        </LocationSearchProvider>
-                      </GeolocationProvider>
-                    </FriendsProvider>
-                  </MessagesProvider>
-                </GamesProvider>
-              </ProfileSyncProvider>
-            </AvatarProvider>
-          </UserProvider>
+          <AuthenticatedProviders>
+            <GeolocationProvider>
+              <LocationSearchProvider>
+                <ConfirmDialogProvider>
+                  <ServiceWorkerRegistration />
+                  <PWAInstallPrompt />
+                  <div className="flex flex-col min-h-screen">
+                    <main className="flex-1">{children}</main>
+                    <Footer />
+                  </div>
+                </ConfirmDialogProvider>
+                <Toaster />
+                <SonnerToaster position="top-center" richColors />
+              </LocationSearchProvider>
+            </GeolocationProvider>
+          </AuthenticatedProviders>
         </AuthProvider>
       </body>
     </html>
