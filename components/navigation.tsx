@@ -31,6 +31,7 @@ import { RiUserCommunityFill } from "react-icons/ri"
 import { GiGamepad } from "react-icons/gi"
 import { useAuth } from "@/contexts/auth-context"
 import { useAvatar } from "@/contexts/avatar-context"
+import { useMessages } from "@/contexts/messages-context"
 import { NotificationBell } from "@/components/notification-bell"
 
 interface NavigationProps {
@@ -56,8 +57,9 @@ function Navigation({ currentPage }: NavigationProps) {
   const pathname = usePathname()
   const { user, signOut } = useAuth() || { user: null, signOut: null }
   const { getAvatar } = useAvatar()
+  const { getUnreadCount } = useMessages()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [unreadCount] = useState(0)
+  const unreadCount = getUnreadCount()
   const [avatarKey, setAvatarKey] = useState(0)
 
   useEffect(() => {

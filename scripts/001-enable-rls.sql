@@ -8,23 +8,27 @@
 -- ============================================================
 
 -- 1. Fix missing policies BEFORE enabling RLS
--- forum_reply_reactions is missing INSERT policy
-CREATE POLICY IF NOT EXISTS "Authenticated users can add reply reactions"
+-- Use DROP IF EXISTS + CREATE to be idempotent
+
+-- forum_reply_reactions: INSERT policy
+DROP POLICY IF EXISTS "Authenticated users can add reply reactions" ON public.forum_reply_reactions;
+CREATE POLICY "Authenticated users can add reply reactions"
   ON public.forum_reply_reactions
   FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
--- notification_queue needs INSERT for service_role (already bypasses RLS)
--- but also needs a policy for the system to insert via authenticated if needed
-CREATE POLICY IF NOT EXISTS "System can insert notification queue"
+-- notification_queue: INSERT for authenticated
+DROP POLICY IF EXISTS "System can insert notification queue" ON public.notification_queue;
+CREATE POLICY "System can insert notification queue"
   ON public.notification_queue
   FOR INSERT
   TO authenticated
   WITH CHECK (true);
 
--- user_profiles needs a proper INSERT policy
-CREATE POLICY IF NOT EXISTS "Users can insert own user_profile"
+-- user_profiles: INSERT policy
+DROP POLICY IF EXISTS "Users can insert own user_profile" ON public.user_profiles;
+CREATE POLICY "Users can insert own user_profile"
   ON public.user_profiles
   FOR INSERT
   TO authenticated
@@ -59,39 +63,47 @@ ALTER TABLE public.forum_post_reactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forum_reply_reactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 
--- 3. Ad tables have no policies - add basic admin-only + public read policies
--- then enable RLS
+-- 3. Ad tables: add basic policies then enable RLS
 
 -- ad_analytics
-CREATE POLICY IF NOT EXISTS "Service role manages ad_analytics"
+DROP POLICY IF EXISTS "Service role manages ad_analytics" ON public.ad_analytics;
+CREATE POLICY "Service role manages ad_analytics"
   ON public.ad_analytics FOR ALL TO authenticated WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Public can view ad_analytics"
+DROP POLICY IF EXISTS "Public can view ad_analytics" ON public.ad_analytics;
+CREATE POLICY "Public can view ad_analytics"
   ON public.ad_analytics FOR SELECT TO anon USING (true);
 ALTER TABLE public.ad_analytics ENABLE ROW LEVEL SECURITY;
 
 -- ad_space_assignments
-CREATE POLICY IF NOT EXISTS "Service role manages ad_space_assignments"
+DROP POLICY IF EXISTS "Service role manages ad_space_assignments" ON public.ad_space_assignments;
+CREATE POLICY "Service role manages ad_space_assignments"
   ON public.ad_space_assignments FOR ALL TO authenticated WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Public can view ad_space_assignments"
+DROP POLICY IF EXISTS "Public can view ad_space_assignments" ON public.ad_space_assignments;
+CREATE POLICY "Public can view ad_space_assignments"
   ON public.ad_space_assignments FOR SELECT TO anon USING (true);
 ALTER TABLE public.ad_space_assignments ENABLE ROW LEVEL SECURITY;
 
 -- ad_spaces
-CREATE POLICY IF NOT EXISTS "Service role manages ad_spaces"
+DROP POLICY IF EXISTS "Service role manages ad_spaces" ON public.ad_spaces;
+CREATE POLICY "Service role manages ad_spaces"
   ON public.ad_spaces FOR ALL TO authenticated WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Public can view ad_spaces"
+DROP POLICY IF EXISTS "Public can view ad_spaces" ON public.ad_spaces;
+CREATE POLICY "Public can view ad_spaces"
   ON public.ad_spaces FOR SELECT TO anon USING (true);
 ALTER TABLE public.ad_spaces ENABLE ROW LEVEL SECURITY;
 
 -- ads
-CREATE POLICY IF NOT EXISTS "Service role manages ads"
+DROP POLICY IF EXISTS "Service role manages ads" ON public.ads;
+CREATE POLICY "Service role manages ads"
   ON public.ads FOR ALL TO authenticated WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Public can view active ads"
+DROP POLICY IF EXISTS "Public can view active ads" ON public.ads;
+CREATE POLICY "Public can view active ads"
   ON public.ads FOR SELECT TO anon USING (is_active = true);
 ALTER TABLE public.ads ENABLE ROW LEVEL SECURITY;
 
--- ludo_event_instance_participants - check it has DELETE policy
-CREATE POLICY IF NOT EXISTS "Users can leave event instances"
+-- ludo_event_instance_participants: DELETE policy
+DROP POLICY IF EXISTS "Users can leave event instances" ON public.ludo_event_instance_participants;
+CREATE POLICY "Users can leave event instances"
   ON public.ludo_event_instance_participants
   FOR DELETE
   TO authenticated
