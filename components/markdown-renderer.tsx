@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
-import { cn } from "@/lib/utils"
+import { cn, escapeHtml } from "@/lib/utils"
 
 interface MarkdownRendererProps {
   content: string
@@ -10,7 +10,11 @@ interface MarkdownRendererProps {
 
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
   const htmlContent = useMemo(() => {
-    let result = content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\*(.*?)\*/g, "<em>$1</em>")
+    // Escape HTML first to prevent XSS
+    let result = escapeHtml(content)
+
+    // Then apply markdown transformations on the safe string
+    result = result.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\*(.*?)\*/g, "<em>$1</em>")
 
     // Process bullet points
     const lines = result.split("\n")

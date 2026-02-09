@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "./auth-context"
+import { useFriends } from "./friends-context"
 import { withRateLimit, checkGlobalRateLimit } from "@/lib/supabase/rate-limit"
 import { createNotificationIfEnabled } from "@/app/actions/notification-helpers"
 
@@ -87,6 +88,7 @@ const RequestsContext = createContext<RequestsContextType | undefined>(undefined
 
 export function RequestsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
+  const { getFriendshipStatus } = useFriends()
   const [shelfAccessRequests, setShelfAccessRequests] = useState<ShelfAccessRequest[]>([])
   const [gameInteractionRequests, setGameInteractionRequests] = useState<GameInteractionRequest[]>([])
   const [loading, setLoading] = useState(false)
@@ -441,10 +443,9 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
       return accessStatus === "approved"
     }
     if (libraryVisibility === "friends") {
-      // TODO: Check friendship status
-      // For now, treat as private
-      const accessStatus = getShelfAccessStatus(ownerId)
-      return accessStatus === "approved"
+      // Check if the current user is friends with the owner
+      const friendshipStatus = getFriendshipStatus(ownerId)
+      return friendshipStatus === "friends"
     }
 
     return false
