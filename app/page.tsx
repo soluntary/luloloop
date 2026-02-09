@@ -388,7 +388,7 @@ export default function HomePage() {
   // Show loading spinner while auth is initializing
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto mb-4"></div>
           <p className="text-gray-600 font-body">Ludoloop lädt...</p>
@@ -398,7 +398,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 dark:from-slate-900 dark:to-slate-800 relative overflow-hidden">
       <GameBoardPattern />
 
       {floatingElements}
@@ -422,7 +422,7 @@ export default function HomePage() {
       </section>
 
       {/* Features */}
-      <AnimatedSection className="container mx-auto px-4 py-16 bg-white/50 rounded-3xl mx-4 mb-16 relative">
+        <AnimatedSection className="container mx-auto px-4 py-16 bg-white/50 dark:bg-slate-800/50 rounded-3xl mx-4 mb-16 relative">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -600,7 +600,7 @@ export default function HomePage() {
       </AnimatedSection>
 
       {/* Benefits Section */}
-      <AnimatedSection className="container mx-auto px-4 py-16 bg-white/50 rounded-3xl mx-4 mb-16">
+        <AnimatedSection className="container mx-auto px-4 py-16 bg-white/50 dark:bg-slate-800/50 rounded-3xl mx-4 mb-16">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

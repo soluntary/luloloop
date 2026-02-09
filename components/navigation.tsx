@@ -33,6 +33,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useAvatar } from "@/contexts/avatar-context"
 import { useMessages } from "@/contexts/messages-context"
 import { NotificationBell } from "@/components/notification-bell"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface NavigationProps {
   currentPage?: string
@@ -177,7 +178,7 @@ function Navigation({ currentPage }: NavigationProps) {
   const avatarSrc = userAvatar || "/placeholder.svg"
 
   return (
-    <nav className="bg-white shadow-lg border-b-4 border-teal-400 sticky top-0 z-50">
+    <nav className="bg-white dark:bg-slate-900 shadow-lg border-b-4 border-teal-400 dark:border-teal-600 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link
@@ -201,8 +202,8 @@ function Navigation({ currentPage }: NavigationProps) {
                       <button
                         className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${
                           active
-                            ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
-                            : "text-gray-700 hover:bg-teal-400 hover:text-white"
+                            ? "bg-teal-400 dark:bg-teal-600 text-white shadow-lg rotate-1 border-2 border-teal-500 dark:border-teal-500"
+                            : "text-gray-700 dark:text-gray-200 hover:bg-teal-400 dark:hover:bg-teal-600 hover:text-white"
                         }`}
                       >
                         <Icon className="w-5 h-5" />
@@ -239,8 +240,8 @@ function Navigation({ currentPage }: NavigationProps) {
                   prefetch={true}
                   className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${
                     active
-                      ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
-                      : "text-gray-700 hover:bg-teal-400 hover:text-white"
+                      ? "bg-teal-400 dark:bg-teal-600 text-white shadow-lg rotate-1 border-2 border-teal-500 dark:border-teal-500"
+                      : "text-gray-700 dark:text-gray-200 hover:bg-teal-400 dark:hover:bg-teal-600 hover:text-white"
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -257,12 +258,13 @@ function Navigation({ currentPage }: NavigationProps) {
 
           {/* User Menu / Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
+            <ThemeToggle />
             {user && <NotificationBell />}
 
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 font-handwritten text-sm transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent">
+                  <button className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-600 dark:hover:text-teal-400 font-handwritten text-sm transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent">
                     <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-teal-400">
                       <img
                         src={avatarSrc || "/placeholder.svg"}
@@ -271,7 +273,7 @@ function Navigation({ currentPage }: NavigationProps) {
                         key={`${avatarSrc}-${avatarKey}`}
                       />
                     </div>
-                    <span className="text-gray-700 font-medium">{user.username || "Benutzer"}</span>
+                    <span className="text-gray-700 dark:text-gray-200 font-medium">{user.username || "Benutzer"}</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 text-sm font-body">
@@ -292,7 +294,7 @@ function Navigation({ currentPage }: NavigationProps) {
                 <Link
                   href="/login"
                   prefetch={true}
-                  className="border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all bg-white flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm"
+                  className="border-2 border-teal-400 dark:border-teal-500 text-teal-800 dark:text-teal-300 hover:bg-teal-400 dark:hover:bg-teal-600 hover:text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all bg-white dark:bg-transparent flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm"
                 >
                   <FaSignInAlt className="w-4 h-4" />
                   <span>Anmelden</span>
@@ -300,7 +302,7 @@ function Navigation({ currentPage }: NavigationProps) {
                 <Link
                   href="/register"
                   prefetch={true}
-                  className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm"
+                  className="bg-teal-400 dark:bg-teal-600 hover:bg-teal-500 dark:hover:bg-teal-500 text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm"
                 >
                   <FaUserPlus className="w-4 h-4" />
                   <span>Registrieren</span>
@@ -311,6 +313,7 @@ function Navigation({ currentPage }: NavigationProps) {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-2">
+            <ThemeToggle />
             {user && <NotificationBell />}
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2">
               {isMobileMenuOpen ? <FaTimes className="w-6 h-6" /> : <FaBars className="w-6 h-6" />}
@@ -320,7 +323,7 @@ function Navigation({ currentPage }: NavigationProps) {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200">
+          <div className="md:hidden py-4 border-t border-gray-200 dark:border-slate-700">
             <div className="flex flex-col space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon
@@ -328,10 +331,10 @@ function Navigation({ currentPage }: NavigationProps) {
                 if (item.dropdown) {
                   return (
                     <div key={item.key} className="space-y-1">
-                      <div className="px-4 py-2 text-sm font-medium text-gray-500 font-handwritten">
+                      <div className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 font-handwritten">
                         <div className="flex items-center space-x-2">
-                          <Icon className="w-4 h-4 text-black" />
-                          <span className="text-black">{item.label}</span>
+                          <Icon className="w-4 h-4 text-black dark:text-white" />
+                          <span className="text-black dark:text-white">{item.label}</span>
                         </div>
                       </div>
                       {item.dropdown.items.map((dropdownItem) => {
@@ -345,8 +348,8 @@ function Navigation({ currentPage }: NavigationProps) {
                             onClick={() => setIsMobileMenuOpen(false)}
                             className={`w-full flex items-center space-x-3 px-8 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${
                               active
-                                ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
-                                : "text-gray-700 hover:bg-teal-400 hover:text-white"
+                                ? "bg-teal-400 dark:bg-teal-600 text-white rotate-1 border-2 border-teal-500 shadow-lg"
+                                : "text-gray-700 dark:text-gray-200 hover:bg-teal-400 dark:hover:bg-teal-600 hover:text-white"
                             }`}
                           >
                             <DropdownIcon className="w-5 h-5" />
@@ -366,8 +369,8 @@ function Navigation({ currentPage }: NavigationProps) {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${
                       active
-                        ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
-                        : "text-gray-700 hover:bg-teal-400 hover:text-white"
+                        ? "bg-teal-400 dark:bg-teal-600 text-white rotate-1 border-2 border-teal-500 shadow-lg"
+                        : "text-gray-700 dark:text-gray-200 hover:bg-teal-400 dark:hover:bg-teal-600 hover:text-white"
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -383,7 +386,7 @@ function Navigation({ currentPage }: NavigationProps) {
 
               {/* Mobile User Menu */}
               {user ? (
-                <div className="border-t border-gray-200 pt-4 mt-2">
+                <div className="border-t border-gray-200 dark:border-slate-700 pt-4 mt-2">
                   <div className="px-4 py-2 flex items-center space-x-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-teal-400">
                       <img
@@ -393,14 +396,14 @@ function Navigation({ currentPage }: NavigationProps) {
                       />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-800">{user.username || "Benutzer"}</p>
-                      <p className="text-sm text-gray-500">{user.email}</p>
+                      <p className="font-medium text-gray-800 dark:text-gray-100">{user.username || "Benutzer"}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
                     </div>
                   </div>
                   <Link
                     href="/profile"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm text-gray-700 hover:bg-teal-400 hover:text-white"
+                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm text-gray-700 dark:text-gray-200 hover:bg-teal-400 dark:hover:bg-teal-600 hover:text-white"
                   >
                     <FaCog className="w-5 h-5" />
                     <span>Profil</span>
@@ -417,11 +420,11 @@ function Navigation({ currentPage }: NavigationProps) {
                   </button>
                 </div>
               ) : (
-                <div className="border-t border-gray-200 pt-4 mt-2 px-4 space-y-2">
+                <div className="border-t border-gray-200 dark:border-slate-700 pt-4 mt-2 px-4 space-y-2">
                   <Link
                     href="/login"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full flex items-center justify-center space-x-2 border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent px-4 py-2 rounded-lg text-sm"
+                    className="w-full flex items-center justify-center space-x-2 border-2 border-teal-400 dark:border-teal-500 text-teal-800 dark:text-teal-300 hover:bg-teal-400 dark:hover:bg-teal-600 hover:text-white font-handwritten bg-transparent px-4 py-2 rounded-lg text-sm"
                   >
                     <FaSignInAlt className="w-4 h-4" />
                     <span>Anmelden</span>
@@ -429,7 +432,7 @@ function Navigation({ currentPage }: NavigationProps) {
                   <Link
                     href="/register"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full flex items-center justify-center space-x-2 bg-teal-400 hover:bg-teal-500 text-white font-handwritten px-4 py-2 rounded-lg text-sm"
+                    className="w-full flex items-center justify-center space-x-2 bg-teal-400 dark:bg-teal-600 hover:bg-teal-500 dark:hover:bg-teal-500 text-white font-handwritten px-4 py-2 rounded-lg text-sm"
                   >
                     <FaUserPlus className="w-4 h-4" />
                     <span>Registrieren</span>

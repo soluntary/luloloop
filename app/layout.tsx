@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Galindo, McLaren } from "next/font/google"
 import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/contexts/auth-context"
 import { GeolocationProvider } from "@/contexts/geolocation-context"
 import { LocationSearchProvider } from "@/contexts/location-search-context"
@@ -57,7 +58,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="de" className={`${galindo.variable} ${mclaren.variable}`}>
+    <html lang="de" className={`${galindo.variable} ${mclaren.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -70,24 +71,26 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="LudoLoop" />
       </head>
       <body className={mclaren.className}>
-        <AuthProvider>
-          <AuthenticatedProviders>
-            <GeolocationProvider>
-              <LocationSearchProvider>
-                <ConfirmDialogProvider>
-                  <ServiceWorkerRegistration />
-                  <PWAInstallPrompt />
-                  <div className="flex flex-col min-h-screen">
-                    <main className="flex-1">{children}</main>
-                    <Footer />
-                  </div>
-                </ConfirmDialogProvider>
-                <Toaster />
-                <SonnerToaster position="top-center" richColors />
-              </LocationSearchProvider>
-            </GeolocationProvider>
-          </AuthenticatedProviders>
-        </AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <AuthProvider>
+            <AuthenticatedProviders>
+              <GeolocationProvider>
+                <LocationSearchProvider>
+                  <ConfirmDialogProvider>
+                    <ServiceWorkerRegistration />
+                    <PWAInstallPrompt />
+                    <div className="flex flex-col min-h-screen">
+                      <main className="flex-1">{children}</main>
+                      <Footer />
+                    </div>
+                  </ConfirmDialogProvider>
+                  <Toaster />
+                  <SonnerToaster position="top-center" richColors />
+                </LocationSearchProvider>
+              </GeolocationProvider>
+            </AuthenticatedProviders>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
