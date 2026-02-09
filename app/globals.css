@@ -80,14 +80,6 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
-  --coral-50: oklch(0.22 0.02 25);
-  --coral-100: oklch(0.25 0.05 25);
-  --coral-200: oklch(0.3 0.1 25);
-  --coral-300: oklch(0.4 0.15 25);
-  --coral-400: oklch(0.55 0.2 25);
-  --coral-500: oklch(0.6 0.25 25);
-  --coral-600: oklch(0.65 0.25 25);
-  --coral-700: oklch(0.75 0.25 25);
 }
 
 @theme inline {
@@ -206,7 +198,7 @@
   }
 
   .form-step {
-    @apply bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-2 border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm;
+    @apply bg-white/90 backdrop-blur-sm border-2 border-slate-200 rounded-xl p-6 shadow-sm;
   }
 
   .form-step-header {
@@ -218,7 +210,7 @@
   }
 
   .form-input-modern {
-    @apply border-2 border-slate-200 dark:border-slate-600 focus:border-coral-500 focus:ring-2 focus:ring-coral-100 dark:focus:ring-coral-500/20 rounded-lg px-4 py-3 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-slate-800 transition-all duration-200;
+    @apply border-2 border-slate-200 focus:border-coral-500 focus:ring-2 focus:ring-coral-100 rounded-lg px-4 py-3 text-slate-700 placeholder:text-slate-400 transition-all duration-200;
   }
 
   .form-button-primary {
@@ -226,17 +218,17 @@
   }
 
   .form-button-secondary {
-    @apply border-2 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-semibold px-6 py-3 rounded-lg transition-all duration-200;
+    @apply border-2 border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold px-6 py-3 rounded-lg transition-all duration-200;
   }
 
   .upload-zone {
-    @apply border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-coral-400 bg-slate-50 dark:bg-slate-800 hover:bg-coral-50 dark:hover:bg-coral-500/10 rounded-xl p-8 text-center transition-all duration-200 cursor-pointer;
+    @apply border-2 border-dashed border-slate-300 hover:border-coral-400 bg-slate-50 hover:bg-coral-50 rounded-xl p-8 text-center transition-all duration-200 cursor-pointer;
   }
 }
 
 @layer components {
   .playful-card {
-    @apply bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-orange-200 dark:border-orange-800 hover:border-orange-400 dark:hover:border-orange-600 transition-all duration-300 hover:shadow-lg rounded-2xl transform hover:scale-105;
+    @apply bg-white/80 backdrop-blur-sm border-2 border-orange-200 hover:border-orange-400 transition-all duration-300 hover:shadow-lg rounded-2xl transform hover:scale-105;
   }
 
   .playful-button {
@@ -244,23 +236,23 @@
   }
 
   .playful-input {
-    @apply border-2 border-orange-200 dark:border-orange-800 focus:border-orange-400 dark:focus:border-orange-600 rounded-xl bg-white dark:bg-slate-800 text-foreground;
+    @apply border-2 border-orange-200 focus:border-orange-400 rounded-xl;
   }
 
   .modern-form-dialog {
-    @apply bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-0 shadow-2xl;
+    @apply bg-gradient-to-br from-slate-50 to-white border-0 shadow-2xl;
   }
 
   .modern-form-step {
-    @apply bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-2 border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200;
+    @apply bg-white/90 backdrop-blur-sm border-2 border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200;
   }
 
   .modern-input {
-    @apply border-2 border-slate-200 dark:border-slate-600 focus:border-coral-500 focus:ring-2 focus:ring-coral-100 dark:focus:ring-coral-500/20 rounded-lg px-4 py-3 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-200 bg-white dark:bg-slate-800;
+    @apply border-2 border-slate-200 focus:border-coral-500 focus:ring-2 focus:ring-coral-100 rounded-lg px-4 py-3 text-slate-700 placeholder:text-slate-400 transition-all duration-200 bg-white;
   }
 
   .modern-select {
-    @apply border-2 border-slate-200 dark:border-slate-600 focus:border-coral-500 focus:ring-2 focus:ring-coral-100 dark:focus:ring-coral-500/20 rounded-lg text-slate-700 dark:text-slate-200 transition-all duration-200 bg-white dark:bg-slate-800;
+    @apply border-2 border-slate-200 focus:border-coral-500 focus:ring-2 focus:ring-coral-100 rounded-lg text-slate-700 transition-all duration-200 bg-white;
   }
 
   .modern-button-primary {
@@ -268,6 +260,6 @@
   }
 
   .modern-button-secondary {
-    @apply border-2 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-semibold px-6 py-3 rounded-lg transition-all duration-200 bg-white dark:bg-slate-800;
+    @apply border-2 border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold px-6 py-3 rounded-lg transition-all duration-200 bg-white;
   }
 }
