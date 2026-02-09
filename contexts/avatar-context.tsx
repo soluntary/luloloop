@@ -121,10 +121,17 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
   return <AvatarContext.Provider value={value}>{children}</AvatarContext.Provider>
 }
 
+const AVATAR_FALLBACK: AvatarContextType = {
+  avatarCache: {},
+  updateAvatar: async () => {},
+  getAvatar: () => null,
+  preloadAvatars: async () => {},
+}
+
 export function useAvatar() {
   const context = useContext(AvatarContext)
   if (context === undefined) {
-    throw new Error("useAvatar must be used within an AvatarProvider")
+    return AVATAR_FALLBACK
   }
   return context
 }

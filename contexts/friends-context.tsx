@@ -406,10 +406,24 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   )
 }
 
+const FRIENDS_FALLBACK: FriendsContextType = {
+  friends: [],
+  pendingRequests: [],
+  sentRequests: [],
+  loading: false,
+  error: null,
+  sendFriendRequest: async () => ({ success: false, alreadyExists: false }),
+  acceptFriendRequest: async () => {},
+  declineFriendRequest: async () => {},
+  removeFriend: async () => {},
+  getFriendshipStatus: () => "none",
+  refreshFriends: async () => {},
+}
+
 export function useFriends() {
   const context = useContext(FriendsContext)
   if (context === undefined) {
-    throw new Error("useFriends must be used within a FriendsProvider")
+    return FRIENDS_FALLBACK
   }
   return context
 }

@@ -452,10 +452,22 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
   )
 }
 
+const MESSAGES_FALLBACK: MessagesContextType = {
+  messages: [],
+  sendMessage: async () => {},
+  markAsRead: async () => {},
+  deleteMessage: async () => {},
+  getUnreadCount: () => 0,
+  getUserMessages: () => [],
+  refreshMessages: async () => {},
+  getOfferTypeText: () => "",
+  getOfferTypeColor: () => "",
+}
+
 export function useMessages() {
   const context = useContext(MessagesContext)
   if (context === undefined) {
-    throw new Error("useMessages must be used within a MessagesProvider")
+    return MESSAGES_FALLBACK
   }
   return context
 }

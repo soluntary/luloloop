@@ -504,10 +504,24 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   return <RequestsContext.Provider value={value}>{children}</RequestsContext.Provider>
 }
 
+const REQUESTS_FALLBACK: RequestsContextType = {
+  shelfAccessRequests: [],
+  gameInteractionRequests: [],
+  loading: false,
+  error: null,
+  sendShelfAccessRequest: async () => {},
+  respondToShelfAccessRequest: async () => {},
+  sendGameInteractionRequest: async () => {},
+  respondToGameInteractionRequest: async () => {},
+  getShelfAccessStatus: () => "none",
+  canViewShelf: () => false,
+  refreshRequests: async () => {},
+}
+
 export function useRequests() {
   const context = useContext(RequestsContext)
   if (context === undefined) {
-    throw new Error("useRequests must be used within a RequestsProvider")
+    return REQUESTS_FALLBACK
   }
   return context
 }
