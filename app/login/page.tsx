@@ -22,7 +22,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [mounted, setMounted] = useState(false)
 
-  const { user, loading: authLoading, signIn } = useAuth()
+  const { user, signIn } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectUrl = searchParams.get("redirect") || "/"
@@ -39,14 +39,13 @@ export default function LoginPage() {
     }
   }, [mounted, user, router, redirectUrl])
 
-  // Before mount: always render the form (matches server HTML)
-  // After mount: if user exists or auth still loading, show spinner
-  if (mounted && (user || authLoading)) {
+  // Only block the page when user is set and we're redirecting
+  if (mounted && user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-body">{user ? "Weiterleitung..." : "Lade..."}</p>
+          <p className="text-gray-600 font-body">Weiterleitung...</p>
         </div>
       </div>
     )
@@ -63,6 +62,7 @@ export default function LoginPage() {
     try {
       await signIn(email, password)
       // signIn resolved = user profile loaded. useEffect handles redirect.
+      // Keep loading=true so button stays disabled until redirect completes.
     } catch (error: any) {
       setError(error.message || "Anmeldung fehlgeschlagen.")
       setLoading(false)
