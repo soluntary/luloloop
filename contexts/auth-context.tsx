@@ -34,6 +34,8 @@ interface AuthContextType {
   requestPasswordReset: (email: string) => Promise<void>
   updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>
   updateProfile: (data: Partial<AuthUser>) => Promise<boolean>
+  /** Update user state in-memory only (no DB write). Use after saving profile directly via Supabase. */
+  patchUser: (data: Partial<AuthUser>) => void
   networkError: boolean
   retryCount: number
 }
@@ -153,6 +155,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       profileLoadingRef.current = false
     }
+  }, [])
+
+  const patchUser = useCallback((data: Partial<AuthUser>) => {
+    setUser((prev) => (prev ? { ...prev, ...data } : prev))
   }, [])
 
   const signIn = useCallback(
@@ -478,6 +484,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     requestPasswordReset,
     updatePassword,
     updateProfile,
+    patchUser,
     networkError,
     retryCount,
   }
