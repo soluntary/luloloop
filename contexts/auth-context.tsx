@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const initializedRef = useRef(false)
   const wasAuthenticatedRef = useRef(false)
   const lastUserIdRef = useRef<string | null>(null)
+  const profileLoadingRef = useRef(false)
 
   const isNetworkError = (error: any): boolean => {
     return (
@@ -70,7 +71,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    console.log("[v0] loadUserProfile called for:", authUser.id)
+    // Prevent concurrent calls to loadUserProfile for the same user
+    if (profileLoadingRef.current && lastUserIdRef.current === authUser.id) {
+      return
+    }
+    profileLoadingRef.current = true
+
     wasAuthenticatedRef.current = true
     lastUserIdRef.current = authUser.id
 
@@ -152,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false)
         setNetworkError(false)
         setRetryCount(0)
+        profileLoadingRef.current = false
         return
       } catch (error) {
         attempts++
@@ -173,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false)
         setNetworkError(true)
         setRetryCount(attempts)
+        profileLoadingRef.current = false
         return
       }
     }
@@ -196,12 +204,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw error
         }
 
-        if (data.session?.user) {
-          setLoading(true)
-          await loadUserProfile(data.session.user)
-        } else {
+        if (!data.session?.user) {
           throw new Error("No session or user data received after sign-in")
         }
+
+        // Set loading true - onAuthStateChange(SIGNED_IN) will call
+        // loadUserProfile and set loading=false when done.
+        // We wait for the user to be set before returning.
+        setLoading(true)
+
+        // Wait for onAuthStateChange to finish loading the profile
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            resolve() // Resolve after 5s even if onAuthStateChange hasn't fired
+          }, 5000)
+
+          const checkUser = () => {
+            // Profile loaded via onAuthStateChange -> loadUserProfile -> setUser
+            if (lastUserIdRef.current === data.session!.user.id && wasAuthenticatedRef.current) {
+              clearTimeout(timeout)
+              resolve()
+              return
+            }
+            // Check again in 100ms
+            setTimeout(checkUser, 100)
+          }
+          checkUser()
+        })
       } catch (error) {
         if (isNetworkError(error)) {
           throw new Error("Connection failed. Please check your internet connection and try again.")
@@ -209,7 +238,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error
       }
     },
-    [loadUserProfile],
+    [],
   )
 
   const signUp = useCallback(
@@ -378,7 +407,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       try {
-        console.log("[v0] onAuthStateChange:", event, "session:", !!session?.user)
         if (event === "SIGNED_OUT") {
           wasAuthenticatedRef.current = false
           lastUserIdRef.current = null

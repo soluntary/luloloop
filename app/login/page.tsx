@@ -27,37 +27,23 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const redirectUrl = searchParams.get("redirect") || "/"
 
-  const [initialLoadTimedOut, setInitialLoadTimedOut] = useState(false)
-
+  // Single redirect effect: when user is set (from any source), navigate away
   useEffect(() => {
-    if (user && !authLoading) {
+    if (user) {
       router.replace(redirectUrl)
     }
-  }, [user, authLoading, router, redirectUrl])
+  }, [user, router, redirectUrl])
 
-  // Timeout to prevent infinite "Lade Anwendung..." - show login form after 3s
-  useEffect(() => {
-    if (!authLoading) return
-    const timeout = setTimeout(() => {
-      setInitialLoadTimedOut(true)
-    }, 3000)
-    return () => clearTimeout(timeout)
-  }, [authLoading])
-
-  // Only show loading spinner briefly on initial page load, not after login
-  if (authLoading && !loginSuccess && !initialLoadTimedOut) {
+  // User is already logged in or login just succeeded - show spinner while redirecting
+  if (user || loginSuccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-body">Lade Anwendung...</p>
+          <p className="text-gray-600 font-body">Weiterleitung...</p>
         </div>
       </div>
     )
-  }
-
-  if (user) {
-    return null
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,10 +56,9 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password)
+      // signIn calls loadUserProfile which sets user state.
+      // The useEffect above will handle the redirect when user is set.
       setLoginSuccess(true)
-      // Redirect immediately after successful sign-in
-      const targetUrl = redirectUrl.startsWith("/") ? redirectUrl : `/${redirectUrl}`
-      router.push(targetUrl)
     } catch (error: any) {
       setError(error.message || "Anmeldung fehlgeschlagen.")
       setLoading(false)

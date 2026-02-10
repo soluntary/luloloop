@@ -117,7 +117,7 @@ export default function RegisterPage() {
         router.push("/")
       }
     } catch (error: any) {
-      console.error("[v0] Registration failed:", error)
+      console.error("Registration failed:", error)
 
       if (error.message?.includes("bereits")) {
         setError(
