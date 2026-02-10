@@ -56,12 +56,14 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password)
-      // signIn calls loadUserProfile which sets user state.
-      // The useEffect above will handle the redirect when user is set.
+      // signIn resolved = user profile is loaded and user state is set.
+      // The useEffect will handle redirect. Show "Weiterleitung..." immediately.
       setLoginSuccess(true)
+      setLoading(false)
     } catch (error: any) {
       setError(error.message || "Anmeldung fehlgeschlagen.")
       setLoading(false)
+      setLoginSuccess(false)
     }
   }
 
