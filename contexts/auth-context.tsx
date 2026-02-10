@@ -82,79 +82,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     wasAuthenticatedRef.current = true
     lastUserIdRef.current = authUser.id
 
-    // Always build a fallback profile from auth metadata so we never hang
-    const fallbackProfile: AuthUser = {
-      id: authUser.id,
-      email: authUser.email || "",
-      name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-      username: authUser.user_metadata?.username || null,
-    }
-
-    // If rate limited, use fallback immediately
+    // If rate limited, use a minimal fallback
     if (checkGlobalRateLimit()) {
-      setUser(fallbackProfile)
+      setUser({
+        id: authUser.id,
+        email: authUser.email || "",
+        name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+        username: authUser.user_metadata?.username || null,
+      })
       setLoading(false)
       profileLoadingRef.current = false
       return
     }
 
-    // Helper: race a promise against a timeout
-    const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
-      Promise.race([
-        promise,
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), ms)),
-      ])
-
     try {
-      // Try to load profile from DB with a 4s timeout so login never hangs
-      const existingUser = await withTimeout(
-        supabase.from("users").select("*").eq("id", authUser.id).maybeSingle().then(({ data, error }) => {
-          if (error && error.code !== "PGRST116") throw error
-          return data
-        }),
-        4000,
-      )
+      // Use the server action (admin client, no RLS issues, no timeout problems)
+      // This is the single source of truth for loading/creating user profiles.
+      const result = await createUserProfile({
+        id: authUser.id,
+        email: authUser.email || "",
+        name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+        username: authUser.user_metadata?.username || null,
+        avatar: authUser.user_metadata?.avatar_url || null,
+      })
 
-      if (existingUser) {
-        setUser(existingUser)
+      if (result.success && result.profile) {
+        setUser(result.profile)
         setLoading(false)
         setNetworkError(false)
         profileLoadingRef.current = false
         return
       }
-
-      // No profile found - create one via server action (bypasses RLS)
-      try {
-        const result = await withTimeout(
-          createUserProfile({
-            id: authUser.id,
-            email: authUser.email || "",
-            name: fallbackProfile.name,
-            username: fallbackProfile.username || null,
-            avatar: authUser.user_metadata?.avatar_url || null,
-          }),
-          4000,
-        )
-        if (result.success && result.profile) {
-          setUser(result.profile)
-          setLoading(false)
-          profileLoadingRef.current = false
-          return
-        }
-      } catch {
-        // Server action failed or timed out - use fallback
-      }
-
-      // Fallback: use auth metadata as profile
-      setUser(fallbackProfile)
-      setLoading(false)
-      profileLoadingRef.current = false
     } catch {
-      // DB query failed or timed out - use fallback immediately
-      setUser(fallbackProfile)
-      setLoading(false)
-      profileLoadingRef.current = false
+      // Server action failed - try client-side query as fallback
     }
+
+    // Fallback: try client-side query
+    try {
+      const { data } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", authUser.id)
+        .maybeSingle()
+
+      if (data) {
+        setUser(data)
+        setLoading(false)
+        profileLoadingRef.current = false
+        return
+      }
+    } catch {
+      // Client query also failed
+    }
+
+    // Last resort: use auth metadata
+    setUser({
+      id: authUser.id,
+      email: authUser.email || "",
+      name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+      username: authUser.user_metadata?.username || null,
+    })
+    setLoading(false)
+    profileLoadingRef.current = false
   }, [])
 
   const patchUser = useCallback((data: Partial<AuthUser>) => {
