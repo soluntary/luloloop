@@ -162,6 +162,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const loadMarketplaceOffers = useCallback(
     async (forceConnected = false) => {
+      if (!supabase) return
       try {
         const { data, error } = await supabase
           .from("marketplace_offers")
@@ -501,14 +502,14 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, [user, authLoading, loadGames, loadMarketplaceOffers])
 
   useEffect(() => {
-    if (authLoading) {
+    if (authLoading || !supabase) {
       return
     }
 
     if (!isRefreshingRef.current) {
       refreshData()
     }
-  }, [user, authLoading, refreshData])
+  }, [user, authLoading, supabase, refreshData])
 
   const value: GamesContextType = {
     games,
