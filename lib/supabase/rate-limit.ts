@@ -9,7 +9,7 @@ export const checkGlobalRateLimit = (): boolean => {
   }
   if (isGloballyRateLimited && now >= rateLimitResetTime) {
     isGloballyRateLimited = false
-    console.log("[v0] Global rate limit period expired, resuming normal operations")
+    // Rate limit period expired
     // Notify all components that rate limiting has ended
     rateLimitCallbacks.forEach((callback) => callback())
     rateLimitCallbacks = []
@@ -21,7 +21,7 @@ export const setGlobalRateLimit = (): void => {
   if (!isGloballyRateLimited) {
     isGloballyRateLimited = true
     rateLimitResetTime = Date.now() + 60000 // 60 second cooldown
-    console.log("[v0] Global rate limit activated, cooling down for 60 seconds")
+    // Rate limit activated
   }
 }
 
@@ -38,7 +38,7 @@ export const isCurrentlyRateLimited = (): boolean => checkGlobalRateLimit()
 // Wrapper for database operations with rate limiting
 export const withRateLimit = async (operation: () => Promise<any>, fallback?: any): Promise<any> => {
   if (checkGlobalRateLimit()) {
-    console.log("[v0] Operation blocked due to global rate limit")
+    // Blocked by rate limit
     if (fallback !== undefined) {
       return fallback
     }
@@ -50,7 +50,7 @@ export const withRateLimit = async (operation: () => Promise<any>, fallback?: an
   } catch (error: any) {
     if (error.message?.includes("Too Many R") || error.message?.includes("Unexpected token")) {
       setGlobalRateLimit()
-      console.log("[v0] Rate limit detected, activating global cooldown")
+      // Rate limit detected
       if (fallback !== undefined) {
         return fallback
       }
