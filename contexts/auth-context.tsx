@@ -73,10 +73,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Prevent concurrent calls to loadUserProfile for the same user
     if (profileLoadingRef.current && lastUserIdRef.current === authUser.id) {
+      // Already loading this user's profile - wait for the existing call
+      // but still ensure loading is eventually set to false
       return
     }
-    profileLoadingRef.current = true
 
+    profileLoadingRef.current = true
     wasAuthenticatedRef.current = true
     lastUserIdRef.current = authUser.id
 
@@ -208,37 +210,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error("No session or user data received after sign-in")
         }
 
-        // Set loading true - onAuthStateChange(SIGNED_IN) will call
-        // loadUserProfile and set loading=false when done.
-        // We wait for the user to be set before returning.
+        // Load user profile directly - this is the most reliable approach.
+        // onAuthStateChange(SIGNED_IN) will also fire but loadUserProfile
+        // has a lock (profileLoadingRef) that prevents double-loading.
         setLoading(true)
-
-        // Wait for onAuthStateChange to finish loading the profile
-        await new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            resolve() // Resolve after 5s even if onAuthStateChange hasn't fired
-          }, 5000)
-
-          const checkUser = () => {
-            // Profile loaded via onAuthStateChange -> loadUserProfile -> setUser
-            if (lastUserIdRef.current === data.session!.user.id && wasAuthenticatedRef.current) {
-              clearTimeout(timeout)
-              resolve()
-              return
-            }
-            // Check again in 100ms
-            setTimeout(checkUser, 100)
-          }
-          checkUser()
-        })
+        await loadUserProfile(data.session.user)
       } catch (error) {
+        setLoading(false)
         if (isNetworkError(error)) {
           throw new Error("Connection failed. Please check your internet connection and try again.")
         }
         throw error
       }
     },
-    [],
+    [loadUserProfile],
   )
 
   const signUp = useCallback(
