@@ -115,7 +115,7 @@ const formatNotificationTime = (timestamp: string) => {
 }
 
 export default function ProfilePage() {
-  const { user, loading: authLoading, signOut, updateProfile } = useAuth()
+  const { user, loading: authLoading, signOut, updateProfile, patchUser } = useAuth()
   const [profile, setProfile] = useState<any>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editedProfile, setEditedProfile] = useState<any>({})
@@ -1230,6 +1230,16 @@ const loadEventInstances = async (eventId: string) => {
       if (usernameChanged && editedProfile.username) {
         await syncUsernameAcrossTables(user.id, editedProfile.username)
       }
+
+      // Sync auth context state so navigation shows updated username/name immediately
+      patchUser({
+        name: editedProfile.name,
+        username: editedProfile.username,
+        bio: editedProfile.bio,
+        website: editedProfile.website,
+        twitter: editedProfile.twitter,
+        instagram: editedProfile.instagram,
+      })
 
       setProfile(editedProfile)
       setIsEditing(false)
