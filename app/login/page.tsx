@@ -20,22 +20,27 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [loginSuccess, setLoginSuccess] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
-  const { user, loading: authLoading, signIn } = useAuth()
+  const { user, signIn } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectUrl = searchParams.get("redirect") || "/"
 
-  // Single redirect effect: when user is set (from any source), navigate away
+  // Prevent hydration mismatch - only check user state after mount
   useEffect(() => {
-    if (user) {
+    setMounted(true)
+  }, [])
+
+  // Redirect when user is authenticated
+  useEffect(() => {
+    if (mounted && user) {
       router.replace(redirectUrl)
     }
-  }, [user, router, redirectUrl])
+  }, [mounted, user, router, redirectUrl])
 
-  // User is already logged in or login just succeeded - show spinner while redirecting
-  if (user || loginSuccess) {
+  // Only block the page when user is set and we're redirecting
+  if (mounted && user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
@@ -56,14 +61,11 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password)
-      // signIn resolved = user profile is loaded and user state is set.
-      // The useEffect will handle redirect. Show "Weiterleitung..." immediately.
-      setLoginSuccess(true)
-      setLoading(false)
+      // signIn resolved = user profile loaded. useEffect handles redirect.
+      // Keep loading=true so button stays disabled until redirect completes.
     } catch (error: any) {
       setError(error.message || "Anmeldung fehlgeschlagen.")
       setLoading(false)
-      setLoginSuccess(false)
     }
   }
 

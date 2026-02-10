@@ -977,9 +977,9 @@ const loadEventInstances = async (eventId: string) => {
 
         setProfile(profileData)
         setEditedProfile(profileData || {})
-      } catch (error) {
-        console.error("Error loading profile:", error)
-        // Even on error, try to show user data from auth context
+      } catch (error: any) {
+        console.error("Error loading profile:", error?.message || error?.code || error)
+        // Even on error, show user data from auth context
         if (user) {
           const fallbackProfile = {
             id: user.id,
@@ -995,8 +995,10 @@ const loadEventInstances = async (eventId: string) => {
       }
     }
 
-    if (!authLoading) {
+    if (!authLoading && user) {
       loadProfile()
+    } else if (!authLoading) {
+      setProfileLoading(false)
     }
   }, [user, authLoading, supabase])
 
