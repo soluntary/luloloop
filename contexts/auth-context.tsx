@@ -71,10 +71,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // Prevent concurrent calls to loadUserProfile for the same user
+    // Prevent concurrent calls for same user
     if (profileLoadingRef.current && lastUserIdRef.current === authUser.id) {
-      // Already loading this user's profile - wait for the existing call
-      // but still ensure loading is eventually set to false
       return
     }
 
@@ -82,109 +80,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     wasAuthenticatedRef.current = true
     lastUserIdRef.current = authUser.id
 
+    // Always build a fallback profile from auth metadata so we never hang
+    const fallbackProfile: AuthUser = {
+      id: authUser.id,
+      email: authUser.email || "",
+      name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+      username: authUser.user_metadata?.username || null,
+    }
+
+    // If rate limited, use fallback immediately
     if (checkGlobalRateLimit()) {
-      const fallbackProfile = {
-        id: authUser.id,
-        email: authUser.email || "",
-        name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-        username: authUser.user_metadata?.username || null,
-      }
       setUser(fallbackProfile)
       setLoading(false)
+      profileLoadingRef.current = false
       return
     }
 
-    let attempts = 0
-    const maxAttempts = 2
+    // Helper: race a promise against a timeout
+    const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
+      Promise.race([
+        promise,
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), ms)),
+      ])
 
-    while (attempts < maxAttempts) {
-      try {
-        const existingUser = await withRateLimit(async () => {
-          const { data, error } = await supabase.from("users").select("*").eq("id", authUser.id).maybeSingle()
+    try {
+      // Try to load profile from DB with a 4s timeout so login never hangs
+      const existingUser = await withTimeout(
+        supabase.from("users").select("*").eq("id", authUser.id).maybeSingle().then(({ data, error }) => {
           if (error && error.code !== "PGRST116") throw error
           return data
-        }, null)
+        }),
+        4000,
+      )
 
-        let userProfile
-
-        if (!existingUser) {
-          // Use server action with admin client to bypass RLS
-          // This is critical because the client session may not be
-          // established yet right after sign-up
-          const result = await createUserProfile({
-            id: authUser.id,
-            email: authUser.email || "",
-            name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-            username: authUser.user_metadata?.username || null,
-            avatar: authUser.user_metadata?.avatar_url || null,
-          })
-
-          if (result.success && result.profile) {
-            userProfile = result.profile
-          } else {
-            // Fallback: use metadata directly if server action fails
-            userProfile = {
-              id: authUser.id,
-              email: authUser.email || "",
-              name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-              username: authUser.user_metadata?.username || null,
-            }
-          }
-        } else {
-          userProfile = existingUser
-          
-          const metadataName = authUser.user_metadata?.name
-          const metadataUsername = authUser.user_metadata?.username
-          const needsUpdate = (!existingUser.name && metadataName) || (!existingUser.username && metadataUsername)
-          
-          if (needsUpdate) {
-            const updateData: any = {}
-            if (!existingUser.name && metadataName) updateData.name = metadataName
-            if (!existingUser.username && metadataUsername) updateData.username = metadataUsername
-            
-            try {
-              const { data: updatedUser, error: updateError } = await supabase
-                .from("users")
-                .update(updateData)
-                .eq("id", authUser.id)
-                .select()
-                .single()
-              if (!updateError && updatedUser) userProfile = updatedUser
-            } catch {
-              // Non-critical, continue with existing profile
-            }
-          }
-        }
-
-        setUser(userProfile)
+      if (existingUser) {
+        setUser(existingUser)
         setLoading(false)
         setNetworkError(false)
-        setRetryCount(0)
-        profileLoadingRef.current = false
-        return
-      } catch (error) {
-        attempts++
-
-        if (isNetworkError(error) && attempts < maxAttempts) {
-          setNetworkError(true)
-          await delay(Math.pow(2, attempts) * 1000)
-          continue
-        }
-
-        const fallbackProfile = {
-          id: authUser.id,
-          email: authUser.email || "",
-          name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-          username: authUser.user_metadata?.username || null,
-        }
-
-        setUser(fallbackProfile)
-        setLoading(false)
-        setNetworkError(true)
-        setRetryCount(attempts)
         profileLoadingRef.current = false
         return
       }
+
+      // No profile found - create one via server action (bypasses RLS)
+      try {
+        const result = await withTimeout(
+          createUserProfile({
+            id: authUser.id,
+            email: authUser.email || "",
+            name: fallbackProfile.name,
+            username: fallbackProfile.username || null,
+            avatar: authUser.user_metadata?.avatar_url || null,
+          }),
+          4000,
+        )
+        if (result.success && result.profile) {
+          setUser(result.profile)
+          setLoading(false)
+          profileLoadingRef.current = false
+          return
+        }
+      } catch {
+        // Server action failed or timed out - use fallback
+      }
+
+      // Fallback: use auth metadata as profile
+      setUser(fallbackProfile)
+      setLoading(false)
+      profileLoadingRef.current = false
+    } catch {
+      // DB query failed or timed out - use fallback immediately
+      setUser(fallbackProfile)
+      setLoading(false)
+      profileLoadingRef.current = false
     }
   }, [])
 
@@ -395,6 +362,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === "SIGNED_OUT") {
           wasAuthenticatedRef.current = false
           lastUserIdRef.current = null
+          profileLoadingRef.current = false
           setUser(null)
           setLoading(false)
           setNetworkError(false)
@@ -411,29 +379,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
 
-        if (event === "INITIAL_SESSION" && session?.user) {
-          // Use ref instead of stale closure over `user` state
-          if (lastUserIdRef.current === session.user.id && wasAuthenticatedRef.current) {
-            setLoading(false)
-            clearTimeout(safetyTimeout)
-            return
-          }
-          setLoading(true)
-          await loadUserProfile(session.user)
+        // Skip if profile is already loaded for this user (e.g. signIn called loadUserProfile directly)
+        if (lastUserIdRef.current === session.user.id && wasAuthenticatedRef.current) {
+          setLoading(false)
           clearTimeout(safetyTimeout)
           return
         }
 
-        if (event === "SIGNED_IN" && session?.user) {
-          if (lastUserIdRef.current === session.user.id && wasAuthenticatedRef.current) {
-            setLoading(false)
-            clearTimeout(safetyTimeout)
-            return
-          }
-
-          pendingAuthPromisesRef.current.forEach(({ resolve }) => resolve())
-          pendingAuthPromisesRef.current.clear()
-
+        if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
           setLoading(true)
           await loadUserProfile(session.user)
           clearTimeout(safetyTimeout)
