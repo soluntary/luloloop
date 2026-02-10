@@ -964,19 +964,26 @@ const loadEventInstances = async (eventId: string) => {
       }
 
       try {
-        const { data, error } = await supabase.from("users").select("*").eq("id", user.id).single()
+        const { data, error } = await supabase.from("users").select("*").eq("id", user.id).maybeSingle()
 
         if (error) throw error
 
-        // Use user from auth context as fallback for name and username
-        const profileData = {
-          ...data,
-          name: data?.name || user.name || "",
-          username: data?.username || user.username || "",
-        }
+        // If no profile row exists yet, use auth context data as profile
+        const profileData = data
+          ? {
+              ...data,
+              name: data.name || user.name || "",
+              username: data.username || user.username || "",
+            }
+          : {
+              id: user.id,
+              email: user.email,
+              name: user.name || "",
+              username: user.username || "",
+            }
 
         setProfile(profileData)
-        setEditedProfile(profileData || {})
+        setEditedProfile(profileData)
       } catch (error: any) {
         console.error("Error loading profile:", error?.message || error?.code || error)
         // Even on error, show user data from auth context
