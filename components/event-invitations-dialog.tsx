@@ -1,5 +1,6 @@
 "use client"
 
+import { getUserAvatar } from "@/lib/avatar"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -206,7 +207,7 @@ export default function EventInvitationsDialog({
                         <CardTitle className="text-lg text-gray-800 mb-2">{invitation.ludo_events.title}</CardTitle>
                         <div className="flex items-center gap-2 mb-2">
                           <Avatar className="h-6 w-6">
-                            <AvatarImage src={invitation.inviter.avatar || "/placeholder.svg"} />
+                            <AvatarImage src={getUserAvatar(invitation.inviter.id, invitation.inviter.avatar)} />
                             <AvatarFallback className="text-xs">
                               {invitation.inviter.username?.[0]?.toUpperCase() || "U"}
                             </AvatarFallback>

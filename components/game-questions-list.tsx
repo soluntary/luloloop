@@ -1,5 +1,6 @@
 "use client"
 
+import { getUserAvatar } from "@/lib/avatar"
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -267,7 +268,7 @@ export function GameQuestionsList({ gameId, gameTitle, limit }: GameQuestionsLis
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={question.author?.avatar || "/placeholder.svg"} />
+                      <AvatarImage src={getUserAvatar(question.author?.id || question.user_id, question.author?.avatar)} />
                       <AvatarFallback>{question.author?.username?.charAt(0).toUpperCase() || "?"}</AvatarFallback>
                     </Avatar>
 
@@ -344,7 +345,7 @@ export function GameQuestionsList({ gameId, gameTitle, limit }: GameQuestionsLis
                                 <div key={reply.id} className="bg-muted/50 rounded-lg p-4">
                                   <div className="flex items-start gap-3">
                                     <Avatar className="h-8 w-8">
-                                      <AvatarImage src={reply.author?.avatar || "/placeholder.svg"} />
+                                      <AvatarImage src={getUserAvatar(reply.author?.id || "", reply.author?.avatar)} />
                                       <AvatarFallback>
                                         {reply.author?.username?.charAt(0).toUpperCase() || "?"}
                                       </AvatarFallback>
@@ -380,7 +381,7 @@ export function GameQuestionsList({ gameId, gameTitle, limit }: GameQuestionsLis
                             <div className="border-t pt-4">
                               <div className="flex gap-3">
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                                  <AvatarImage src={getUserAvatar(user.id, user.avatar)} />
                                   <AvatarFallback>{user.username?.charAt(0).toUpperCase() || "?"}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 space-y-2">

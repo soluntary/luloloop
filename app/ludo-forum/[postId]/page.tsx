@@ -1,5 +1,6 @@
 "use client"
 
+import { getUserAvatar } from "@/lib/avatar"
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -330,7 +331,7 @@ export default function ForumThreadPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
               <Avatar className="h-5 w-5">
-                <AvatarImage src={reply.author?.avatar || "/placeholder.svg"} />
+                <AvatarImage src={getUserAvatar(reply.author?.id || reply.author_id, reply.author?.avatar)} />
                 <AvatarFallback className="text-xs text-gray-500">
                   {reply.author?.username?.[0]?.toUpperCase()}
                 </AvatarFallback>
@@ -492,7 +493,7 @@ export default function ForumThreadPage() {
                 
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Avatar className="h-5 w-5">
-                    <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
+                    <AvatarImage src={getUserAvatar(post.author?.id || post.author_id, post.author?.avatar)} />
                     <AvatarFallback className="text-xs text-gray-500">
                       {post.author?.username?.[0]?.toUpperCase()}
                     </AvatarFallback>

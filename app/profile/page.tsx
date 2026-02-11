@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 import { useAvatar } from "@/contexts/avatar-context"
+import { getUserAvatar } from "@/lib/avatar"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -3348,7 +3349,7 @@ const loadEventInstances = async (eventId: string) => {
                                   >
                                     <div className="flex items-center gap-2 flex-1 min-w-0">
                                       <Avatar className="w-8 h-8">
-                                        <AvatarImage src={otherUser?.avatar || "/placeholder-user.jpg"} />
+                                        <AvatarImage src={getUserAvatar(otherUser?.id || "", otherUser?.avatar)} />
                                         <AvatarFallback>{otherUser?.name?.charAt(0) || "?"}</AvatarFallback>
                                       </Avatar>
                                       <div className="flex-1 min-w-0">
@@ -3422,7 +3423,7 @@ const loadEventInstances = async (eventId: string) => {
                                     <div className="flex items-center gap-2 flex-1 min-w-0">
                                       {isMyEvent && (
                                         <Avatar className="w-6 h-6">
-                                          <AvatarImage src={request.user?.avatar || "/placeholder.svg"} />
+                                          <AvatarImage src={getUserAvatar(request.user?.id || "", request.user?.avatar)} />
                                           <AvatarFallback className="text-[9px]">
                                             {request.user?.name?.charAt(0) || "?"}
                                           </AvatarFallback>
@@ -4121,7 +4122,7 @@ const loadEventInstances = async (eventId: string) => {
                     >
                       <div className="flex items-center gap-2">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={participant.user.avatar || "/placeholder.svg"} />
+                          <AvatarImage src={getUserAvatar(participant.user.id, participant.user.avatar)} />
                           <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-500 text-white text-xs">
                             {participant.user.username?.[0]?.toUpperCase()}
                           </AvatarFallback>
@@ -4208,7 +4209,7 @@ const loadEventInstances = async (eventId: string) => {
                           className="h-4 w-4 text-teal-500 rounded border-gray-300 focus:ring-teal-500"
                         />
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={friend.avatar || "/placeholder.svg"} />
+                          <AvatarImage src={getUserAvatar(friend.id, friend.avatar)} />
                           <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-500 text-white text-xs">
                             {friend.username?.[0]?.toUpperCase()}
                           </AvatarFallback>
@@ -4917,7 +4918,7 @@ const loadEventInstances = async (eventId: string) => {
                     >
                       <div className="flex items-center gap-2">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={member.user?.avatar || "/placeholder.svg"} />
+                          <AvatarImage src={getUserAvatar(member.user?.id || "", member.user?.avatar)} />
                           <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-500 text-white text-xs">
                             {member.user?.name?.[0] || member.user?.username?.[0]}
                           </AvatarFallback>
@@ -5004,7 +5005,7 @@ const loadEventInstances = async (eventId: string) => {
                           className="h-4 w-4 text-teal-500 rounded border-gray-300 focus:ring-teal-500"
                         />
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={friend.avatar || "/placeholder.svg"} />
+                          <AvatarImage src={getUserAvatar(friend.id, friend.avatar)} />
                           <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-500 text-white text-xs">
                             {friend.username?.[0]?.toUpperCase()}
                           </AvatarFallback>

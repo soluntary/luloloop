@@ -1,4 +1,5 @@
 "use client"
+import { getUserAvatar } from "@/lib/avatar"
 import { useState, useEffect } from "react"
 import type React from "react"
 import { useSearchParams, useRouter } from "next/navigation" // Changed to useSearchParams and useRouter
@@ -1859,7 +1860,7 @@ export default function LudoEventsPage() {
                           <div className="flex items-center gap-2 text-xs text-gray-600">
                             <FaUserCog className="text-teal-600 h-3.5 w-3.5" /> {/* Changed to FaUserCog */}
                             <Avatar className="h-4 w-4">
-                              <AvatarImage src={event.creator.avatar || "/placeholder.svg"} />
+                              <AvatarImage src={getUserAvatar(event.creator.id, event.creator.avatar)} />
                               <AvatarFallback className="text-xs">
                                 {event.creator.username?.[0]?.toUpperCase()}
                               </AvatarFallback>
@@ -2068,7 +2069,7 @@ export default function LudoEventsPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-gray-600 font-medium text-xs">Organisiert von</span>
                     <Avatar className="h-5 w-5">
-                      <AvatarImage src={selectedEvent.creator.avatar || "/placeholder.svg"} />
+                      <AvatarImage src={getUserAvatar(selectedEvent.creator.id, selectedEvent.creator.avatar)} />
                       <AvatarFallback className="bg-gray-50 text-xs">
                         {selectedEvent.creator.username?.[0]?.toUpperCase()}
                       </AvatarFallback>
@@ -2450,7 +2451,7 @@ export default function LudoEventsPage() {
                         <FaUserCog className="h-4 w-4 text-teal-600" /> {/* Changed to FaUserCog */}
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
-                            <AvatarImage src={selectedEvent.creator.avatar || "/placeholder.svg"} />
+                            <AvatarImage src={getUserAvatar(selectedEvent.creator.id, selectedEvent.creator.avatar)} />
                             <AvatarFallback className="text-xs">
                               {selectedEvent.creator.username?.[0]?.toUpperCase()}
                             </AvatarFallback>
@@ -2728,7 +2729,7 @@ export default function LudoEventsPage() {
                   >
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={participant.user.avatar || "/placeholder.svg"} />
+                        <AvatarImage src={getUserAvatar(participant.user.id, participant.user.avatar)} />
                         <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-500 text-white text-xs">
                           {participant.user.username?.[0]?.toUpperCase()}
                         </AvatarFallback>

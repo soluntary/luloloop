@@ -1,5 +1,6 @@
 "use client"
 
+import { getUserAvatar } from "@/lib/avatar"
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -482,7 +483,7 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex items-center gap-3">
                                 <Avatar>
-                                  <AvatarImage src={request.user.avatar || "/placeholder.svg"} />
+                                  <AvatarImage src={getUserAvatar(request.user.id, request.user.avatar)} />
                                   <AvatarFallback>{request.user.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
                                 </Avatar>
                                 <div>
@@ -603,7 +604,7 @@ export function LudoEventManagementDialog({ event, isOpen, onClose }: LudoEventM
                               >
                                 <div className="flex items-center gap-3">
                                   <Avatar className="h-9 w-9">
-                                    <AvatarImage src={participant.user.avatar || "/placeholder.svg"} />
+                                    <AvatarImage src={getUserAvatar(participant.user.id, participant.user.avatar)} />
                                     <AvatarFallback>
                                       {participant.user.username?.[0]?.toUpperCase() || "?"}
                                     </AvatarFallback>

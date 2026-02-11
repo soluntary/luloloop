@@ -1,5 +1,6 @@
 "use client"
 
+import { getUserAvatar } from "@/lib/avatar"
 import { useEffect, useState, useRef } from "react"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent } from "@/components/ui/card"
