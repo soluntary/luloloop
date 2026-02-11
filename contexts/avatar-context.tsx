@@ -29,7 +29,7 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
       const client = createClient()
       setSupabase(client)
     } catch (error) {
-      console.error("[v0] Failed to initialize Supabase client in AvatarProvider:", error)
+      console.error("Failed to initialize Supabase client in AvatarProvider:", error)
     }
   }, [])
 
@@ -74,14 +74,22 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
     setAvatarCache((prev) => new Map(prev.set(userId, avatarUrl)))
   }, [])
 
-  const getAvatar = useCallback((userId: string, fallbackEmail?: string) => {
-    // Use ref to avoid re-renders while still getting current cache
+  const getAvatar = useCallback((userId: string, fallbackNameOrAvatar?: string | null) => {
+    // 1. Check if the second arg is already a full avatar URL (from DB)
+    if (fallbackNameOrAvatar && (fallbackNameOrAvatar.startsWith("http") || fallbackNameOrAvatar.startsWith("/"))) {
+      // Cache it so other callers also get it
+      if (!avatarCacheRef.current.has(userId)) {
+        avatarCacheRef.current.set(userId, fallbackNameOrAvatar)
+      }
+      return fallbackNameOrAvatar
+    }
+
+    // 2. Check the cache (populated from DB queries or preload)
     const cachedAvatar = avatarCacheRef.current.get(userId)
     if (cachedAvatar) return cachedAvatar
 
-    // Generate fallback avatar
-    const seed = fallbackEmail || userId
-    return `https://api.dicebear.com/7.x/croodles/svg?seed=${encodeURIComponent(seed)}`
+    // 3. Generate a stable DiceBear fallback using userId as seed (always consistent)
+    return `https://api.dicebear.com/7.x/croodles/svg?seed=${encodeURIComponent(userId)}`
   }, [])
 
   const preloadAvatars = useCallback(async (userIds: string[]) => {
@@ -98,16 +106,15 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
       if (data) {
         setAvatarCache((prev) => {
           const newCache = new Map(prev)
-          data.forEach((user) => {
-            if (user.avatar) {
-              newCache.set(user.id, user.avatar)
-            }
+          data.forEach((u) => {
+            const url = u.avatar || `https://api.dicebear.com/7.x/croodles/svg?seed=${encodeURIComponent(u.id)}`
+            newCache.set(u.id, url)
           })
           return newCache
         })
       }
     } catch (error) {
-      console.error("[v0] Error preloading avatars:", error)
+      console.error("Error preloading avatars:", error)
     }
   }, [supabase])
 

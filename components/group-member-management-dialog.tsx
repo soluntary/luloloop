@@ -1,5 +1,6 @@
 "use client"
 
+import { getUserAvatar } from "@/lib/avatar"
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -154,7 +155,7 @@ export function GroupMemberManagementDialog({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={member.users?.avatar || "/placeholder.svg"} />
+                        <AvatarImage src={getUserAvatar(member.users?.id || member.user_id, member.users?.avatar)} />
                         <AvatarFallback>{member.users?.username?.[0]?.toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div>

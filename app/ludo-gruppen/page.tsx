@@ -1,5 +1,6 @@
 "use client"
 
+import { getUserAvatar } from "@/lib/avatar"
 import { DialogFooter } from "@/components/ui/dialog"
 
 import type React from "react"
@@ -1875,7 +1876,7 @@ export default function LudoGruppenPage() {
                           <FaUserCog className="h-3.5 w-3.5 text-teal-600" />
                           <div className="flex items-center gap-2">
                             <Avatar className="h-4 w-4">
-                              <AvatarImage src={group.users?.avatar || "/placeholder.svg"} />
+                              <AvatarImage src={getUserAvatar(group.users?.id || group.created_by, group.users?.avatar)} />
                               <AvatarFallback className="text-[10px]">
                                 {group.users?.username?.[0]?.toUpperCase()}
                               </AvatarFallback>
@@ -2363,7 +2364,7 @@ export default function LudoGruppenPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-gray-600 font-medium">Erstellt von</span>
                     <Avatar className="h-5 w-5 bg-gray-50">
-                      <AvatarImage src={selectedGroup.users?.avatar || "/placeholder.svg"} />
+                      <AvatarImage src={getUserAvatar(selectedGroup.users?.id || selectedGroup.created_by, selectedGroup.users?.avatar)} />
                       <AvatarFallback className="bg-gray-50 text-xs">
                         {selectedGroup.users?.username?.[0]?.toUpperCase()}
                       </AvatarFallback>
@@ -2557,7 +2558,7 @@ export default function LudoGruppenPage() {
                         className="h-4 w-4 text-teal-500 rounded border-gray-300 focus:ring-teal-500"
                       />
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={friend.avatar || "/placeholder.svg"} />
+                        <AvatarImage src={getUserAvatar(friend.id, friend.avatar)} />
                         <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-500 text-white text-xs">
                           {friend.name?.[0] || friend.username?.[0]}
                         </AvatarFallback>
@@ -3195,7 +3196,7 @@ export default function LudoGruppenPage() {
                   >
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={member.user?.avatar || "/placeholder.svg"} />
+                        <AvatarImage src={getUserAvatar(member.user?.id || member.user_id, member.user?.avatar)} />
                         <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-500 text-white text-xs">
                           {member.user?.name?.[0] || member.user?.username?.[0]}
                         </AvatarFallback>

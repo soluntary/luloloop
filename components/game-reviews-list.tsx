@@ -1,5 +1,6 @@
 "use client"
 
+import { getUserAvatar } from "@/lib/avatar"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -252,7 +253,7 @@ export function GameReviewsList({ gameId, gameTitle, limit }: GameReviewsListPro
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={review.author?.avatar || "/placeholder.svg"} />
+                    <AvatarImage src={getUserAvatar(review.author?.id || review.user_id, review.author?.avatar)} />
                     <AvatarFallback>{review.author?.username?.charAt(0).toUpperCase() || "?"}</AvatarFallback>
                   </Avatar>
 

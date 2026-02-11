@@ -1,5 +1,6 @@
 "use client"
 
+import { getUserAvatar } from "@/lib/avatar"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -377,7 +378,7 @@ export default function LudoForumPage() {
                               <div className="text-gray-600 text-xs line-clamp-2 mb-p3 my-2.5">
                                 <div className="flex items-center gap-2">
                                   <Avatar className="h-5 w-5">
-                                    <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
+                                    <AvatarImage src={getUserAvatar(post.author?.id || post.author_id, post.author?.avatar)} />
                                     <AvatarFallback className="text-xs text-gray-500">
                                       {post.author?.username?.[0]?.toUpperCase()}
                                     </AvatarFallback>

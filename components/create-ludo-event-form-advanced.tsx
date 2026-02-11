@@ -1,5 +1,6 @@
 "use client"
 
+import { getUserAvatar } from "@/lib/avatar"
 import type React from "react"
 import { useEffect, useState, useRef } from "react"
 import { Search, Gamepad2, X, Library, AlertCircle, Loader2, Plus, Trash2, Users } from "lucide-react"
@@ -2537,7 +2538,7 @@ export default function CreateLudoEventForm({
                     }}
                   />
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={friend.avatar || "/placeholder.svg"} alt={friend.name} />
+                    <AvatarImage src={getUserAvatar(friend.id, friend.avatar)} alt={friend.name} />
                     <AvatarFallback>{friend.name.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <button
