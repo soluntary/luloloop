@@ -20,27 +20,38 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [mounted, setMounted] = useState(false)
 
   const { user, signIn } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectUrl = searchParams.get("redirect") || "/"
 
-  // Prevent hydration mismatch - only check user state after mount
+  // When user is set (from signIn or from existing session), redirect
   useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // Redirect when user is authenticated
-  useEffect(() => {
-    if (mounted && user) {
+    if (user) {
       router.replace(redirectUrl)
     }
-  }, [mounted, user, router, redirectUrl])
+  }, [user, router, redirectUrl])
 
-  // Only block the page when user is set and we're redirecting
-  if (mounted && user) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (loading) return
+
+    setError("")
+    setLoading(true)
+
+    try {
+      // signIn now directly sets the user state before returning.
+      // After this resolves, user is set -> useEffect redirects.
+      await signIn(email, password)
+    } catch (err: any) {
+      setError(err.message || "Anmeldung fehlgeschlagen.")
+      setLoading(false)
+    }
+  }
+
+  // If user is already logged in, show redirect spinner
+  if (user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
@@ -50,35 +61,6 @@ export default function LoginPage() {
       </div>
     )
   }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (loading) return
-
-    setError("")
-    setLoading(true)
-
-    try {
-      await signIn(email, password)
-      // signIn triggers onAuthStateChange which sets user state.
-      // useEffect above watches user and redirects.
-      // Keep loading=true so button stays disabled.
-    } catch (error: any) {
-      setError(error.message || "Anmeldung fehlgeschlagen.")
-      setLoading(false)
-    }
-  }
-
-  // Safety: if loading for >8s after submit, show form again
-  useEffect(() => {
-    if (!loading) return
-    const timeout = setTimeout(() => {
-      setLoading(false)
-      setError("Anmeldung dauert zu lange. Bitte erneut versuchen.")
-    }, 8000)
-    return () => clearTimeout(timeout)
-  }, [loading])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
@@ -148,7 +130,7 @@ export default function LoginPage() {
                   className="w-full bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
                   disabled={loading}
                 >
-                  {loading ? "Anmeldung läuft..." : "Anmelden"}
+                  {loading ? "Anmeldung laeuft..." : "Anmelden"}
                 </Button>
               </form>
 

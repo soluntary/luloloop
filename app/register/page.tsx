@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -30,10 +29,16 @@ export default function RegisterPage() {
   const [usernameError, setUsernameError] = useState("")
   const [checkingUsername, setCheckingUsername] = useState(false)
 
-  const { signUp } = useAuth()
+  const { user, signUp } = useAuth()
   const router = useRouter()
 
-  // Password validation requirements
+  // If user becomes set (after signUp), redirect to home
+  useEffect(() => {
+    if (user) {
+      router.replace("/")
+    }
+  }, [user, router])
+
   const passwordRequirements = [
     { label: "Mindestens 8 Zeichen lang", test: (pw: string) => pw.length >= 8 },
     { label: "Kleinbuchstaben (a-z)", test: (pw: string) => /[a-z]/.test(pw) },
@@ -47,9 +52,7 @@ export default function RegisterPage() {
     setUsername(value)
     setUsernameError("")
 
-    if (value.length < 3) {
-      return
-    }
+    if (value.length < 3) return
 
     setCheckingUsername(true)
     try {
@@ -57,8 +60,8 @@ export default function RegisterPage() {
       if (!result.available) {
         setUsernameError("Dieser Benutzername ist bereits vergeben")
       }
-    } catch (error) {
-      console.error("[v0] Error checking username:", error)
+    } catch {
+      // ignore
     } finally {
       setCheckingUsername(false)
     }
@@ -70,27 +73,19 @@ export default function RegisterPage() {
     setSuccess("")
 
     if (password !== confirmPassword) {
-      setError("Die Passwörter stimmen nicht überein.")
+      setError("Die Passwoerter stimmen nicht ueberein.")
       return
     }
-
     if (!allPasswordRequirementsMet) {
-      setError("Das Passwort erfüllt nicht alle Anforderungen.")
+      setError("Das Passwort erfuellt nicht alle Anforderungen.")
       return
     }
-
-    if (!username.trim()) {
-      setError("Benutzername ist erforderlich.")
-      return
-    }
-
-    if (username.length < 3) {
+    if (!username.trim() || username.length < 3) {
       setError("Benutzername muss mindestens 3 Zeichen lang sein.")
       return
     }
-
     if (usernameError) {
-      setError("Bitte wählen Sie einen anderen Benutzernamen.")
+      setError("Bitte waehle einen anderen Benutzernamen.")
       return
     }
 
@@ -99,36 +94,36 @@ export default function RegisterPage() {
     try {
       const usernameCheck = await checkUsernameAvailability(username)
       if (!usernameCheck.available) {
-        setError("Dieser Benutzername ist bereits vergeben. Bitte wählen Sie einen anderen.")
+        setError("Dieser Benutzername ist bereits vergeben.")
         setLoading(false)
         return
       }
 
       const result = await signUp(email, password, fullName, username)
-      
-      if (result.needsEmailConfirmation) {
-        // Registration successful but needs email confirmation
-        setSuccess(result.message || "Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail-Adresse.")
-        setTimeout(() => {
-          router.push("/login")
-        }, 3000)
-      } else if (result.success) {
-        // Registration successful and auto-signed in
-        router.push("/")
-      }
-    } catch (error: any) {
-      console.error("Registration failed:", error)
 
-      if (error.message?.includes("bereits")) {
-        setError(
-          "Ein Benutzer mit dieser E-Mail-Adresse existiert bereits. Bitte verwenden Sie eine andere E-Mail-Adresse oder melden Sie sich an.",
-        )
-      } else {
-        setError(error.message || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.")
+      if (result.needsEmailConfirmation) {
+        setSuccess(result.message || "Registrierung erfolgreich! Bitte bestaetige deine E-Mail-Adresse.")
+        setTimeout(() => router.push("/login"), 3000)
       }
+      // If success without email confirmation, user state is already set
+      // and the useEffect above will redirect to "/"
+    } catch (err: any) {
+      setError(err.message || "Ein Fehler ist aufgetreten.")
     } finally {
       setLoading(false)
     }
+  }
+
+  // If user is set, show redirect
+  if (user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-body">Weiterleitung...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -146,7 +141,7 @@ export default function RegisterPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullName" className="font-body text-xs">
-                    Vollständiger Name
+                    Vollstaendiger Name
                   </Label>
                   <Input
                     id="fullName"
@@ -156,6 +151,7 @@ export default function RegisterPage() {
                     required
                     className="font-body"
                     placeholder="Max Mustermann"
+                    disabled={loading}
                   />
                 </div>
 
@@ -171,11 +167,12 @@ export default function RegisterPage() {
                     required
                     className="font-body"
                     placeholder="maxmustermann"
+                    disabled={loading}
                   />
-                  {checkingUsername && <p className="text-sm text-gray-500">Überprüfe Verfügbarkeit...</p>}
+                  {checkingUsername && <p className="text-sm text-gray-500">Pruefe Verfuegbarkeit...</p>}
                   {usernameError && <p className="text-sm text-red-600">{usernameError}</p>}
                   {username.length >= 3 && !usernameError && !checkingUsername && (
-                    <p className="text-sm text-green-600">Benutzername verfügbar</p>
+                    <p className="text-sm text-green-600">Benutzername verfuegbar</p>
                   )}
                 </div>
 
@@ -191,6 +188,7 @@ export default function RegisterPage() {
                     required
                     className="font-body"
                     placeholder="max@example.com"
+                    disabled={loading}
                   />
                 </div>
 
@@ -207,6 +205,7 @@ export default function RegisterPage() {
                       required
                       className="font-body pr-10"
                       placeholder="Sicheres Passwort eingeben"
+                      disabled={loading}
                     />
                     <button
                       type="button"
@@ -217,10 +216,9 @@ export default function RegisterPage() {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  
-                  {/* Password Requirements Checklist */}
+
                   <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
-                    <p className="text-xs font-medium text-gray-700 mb-2 font-body">Ihr Passwort muss Folgendes enthalten:</p>
+                    <p className="text-xs font-medium text-gray-700 mb-2 font-body">Passwort muss enthalten:</p>
                     <ul className="space-y-1">
                       {passwordRequirements.map((req, index) => {
                         const isMet = req.test(password)
@@ -231,9 +229,7 @@ export default function RegisterPage() {
                             ) : (
                               <X className="h-4 w-4 text-gray-400 flex-shrink-0" />
                             )}
-                            <span className={isMet ? "text-green-700" : "text-gray-500"}>
-                              {req.label}
-                            </span>
+                            <span className={isMet ? "text-green-700" : "text-gray-500"}>{req.label}</span>
                           </li>
                         )
                       })}
@@ -243,7 +239,7 @@ export default function RegisterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword" className="font-body text-xs">
-                    Passwort bestätigen
+                    Passwort bestaetigen
                   </Label>
                   <div className="relative">
                     <Input
@@ -254,6 +250,7 @@ export default function RegisterPage() {
                       required
                       className="font-body pr-10"
                       placeholder="Passwort wiederholen"
+                      disabled={loading}
                     />
                     <button
                       type="button"
