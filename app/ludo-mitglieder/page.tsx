@@ -625,7 +625,7 @@ export default function LudoMitgliederPage() {
                   </CardContent>
                 </Card>
               )
-            }))
+            })
           )}
         </div>
       </div>
