@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useFriends } from "@/contexts/friends-context"
 import { useMessages } from "@/contexts/messages-context"
 import { useAvatar } from "@/contexts/avatar-context"
+import { getUserAvatar } from "@/lib/avatar"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import Navigation from "@/components/navigation"
@@ -480,7 +481,7 @@ export default function LudoMitgliederPage() {
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3 mb-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={member.avatar || getAvatar(member.id, member.name) || "/placeholder.svg"} />
+                          <AvatarImage src={getUserAvatar(member.id, member.avatar)} />
                           <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-400 text-white">
                             {member.username?.[0]?.toUpperCase() || member.name?.[0]?.toUpperCase()}
                           </AvatarFallback>
@@ -561,7 +562,7 @@ export default function LudoMitgliederPage() {
                   <div className={`h-16 relative ${isSelf ? "bg-gradient-to-r from-teal-100 to-cyan-100" : "bg-gradient-to-r from-teal-50 to-cyan-50"}`}>
                     <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
                       <Avatar className="h-16 w-16 border-4 border-white shadow-sm">
-                        <AvatarImage src={member.avatar || getAvatar(member.id, member.name) || "/placeholder.svg"} />
+                        <AvatarImage src={getUserAvatar(member.id, member.avatar)} />
                         <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-400 text-white text-lg">
                           {member.username?.[0]?.toUpperCase() || member.name?.[0]?.toUpperCase()}
                         </AvatarFallback>
