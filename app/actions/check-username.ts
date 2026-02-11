@@ -10,7 +10,7 @@ export async function checkUsernameAvailability(username: string): Promise<{ ava
     const { data, error } = await supabase.from("users").select("username").ilike("username", username).maybeSingle()
 
     if (error && error.code !== "PGRST116") {
-      console.error("[v0] Error checking username:", error)
+      console.error("Error checking username:", error)
       return { available: false, error: "Fehler beim Überprüfen des Benutzernamens" }
     }
 
@@ -22,7 +22,7 @@ export async function checkUsernameAvailability(username: string): Promise<{ ava
     // Username is available
     return { available: true }
   } catch (error) {
-    console.error("[v0] Error in checkUsernameAvailability:", error)
+    console.error("Error in checkUsernameAvailability:", error)
     return { available: false, error: "Fehler beim Überprüfen des Benutzernamens" }
   }
 }
