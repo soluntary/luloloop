@@ -82,60 +82,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     wasAuthenticatedRef.current = true
     lastUserIdRef.current = authUser.id
 
-    // If rate limited, use a minimal fallback
-    if (checkGlobalRateLimit()) {
-      setUser({
-        id: authUser.id,
-        email: authUser.email || "",
-        name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-        username: authUser.user_metadata?.username || null,
-      })
-      setLoading(false)
-      profileLoadingRef.current = false
-      return
-    }
-
     try {
-      // Use the server action (admin client, no RLS issues, no timeout problems)
-      // This is the single source of truth for loading/creating user profiles.
-      const result = await createUserProfile({
-        id: authUser.id,
-        email: authUser.email || "",
-        name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-        username: authUser.user_metadata?.username || null,
-        avatar: authUser.user_metadata?.avatar_url || null,
-      })
-
-      if (result.success && result.profile) {
-        setUser(result.profile)
-        setLoading(false)
-        setNetworkError(false)
-        profileLoadingRef.current = false
-        return
-      }
-    } catch {
-      // Server action failed - try client-side query as fallback
-    }
-
-    // Fallback: try client-side query
-    try {
-      const { data } = await supabase
+      // Simple, direct query - the users table has public SELECT access (no RLS issue)
+      const { data, error } = await supabase
         .from("users")
         .select("*")
         .eq("id", authUser.id)
         .maybeSingle()
 
-      if (data) {
+      if (data && !error) {
         setUser(data)
         setLoading(false)
+        setNetworkError(false)
         profileLoadingRef.current = false
         return
       }
+
+      // User row doesn't exist yet (new sign-up) - create it via server action
+      if (!data && !error) {
+        try {
+          const result = await createUserProfile({
+            id: authUser.id,
+            email: authUser.email || "",
+            name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+            username: authUser.user_metadata?.username || null,
+            avatar: authUser.user_metadata?.avatar_url || null,
+          })
+          if (result.success && result.profile) {
+            setUser(result.profile)
+            setLoading(false)
+            profileLoadingRef.current = false
+            return
+          }
+        } catch {
+          // Server action failed - continue to fallback
+        }
+      }
     } catch {
-      // Client query also failed
+      // Query failed
     }
 
-    // Last resort: use auth metadata
+    // Fallback: use auth metadata so the app is usable
     setUser({
       id: authUser.id,
       email: authUser.email || "",
@@ -156,36 +143,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!supabase) throw new Error("Supabase client not available")
 
       if (!navigator.onLine) {
-        throw new Error("No internet connection. Please check your network and try again.")
+        throw new Error("Keine Internetverbindung.")
       }
 
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) {
-          if (isNetworkError(error)) {
-            throw new Error("Network connection failed. Please check your internet connection and try again.")
-          }
-          throw error
-        }
-
-        if (!data.session?.user) {
-          throw new Error("No session or user data received after sign-in")
-        }
-
-        // Load user profile directly - this is the most reliable approach.
-        // onAuthStateChange(SIGNED_IN) will also fire but loadUserProfile
-        // has a lock (profileLoadingRef) that prevents double-loading.
-        setLoading(true)
-        await loadUserProfile(data.session.user)
-      } catch (error) {
-        setLoading(false)
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
         if (isNetworkError(error)) {
-          throw new Error("Connection failed. Please check your internet connection and try again.")
+          throw new Error("Netzwerkfehler. Bitte Internetverbindung prüfen.")
+        }
+        if (error.message?.includes("Invalid login")) {
+          throw new Error("E-Mail oder Passwort falsch.")
         }
         throw error
       }
+      // signInWithPassword triggers onAuthStateChange(SIGNED_IN)
+      // which will call loadUserProfile and set the user state.
+      // The login page watches the user state and redirects.
     },
-    [loadUserProfile],
+    [],
   )
 
   const signUp = useCallback(
