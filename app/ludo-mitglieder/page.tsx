@@ -78,7 +78,7 @@ export default function LudoMitgliederPage() {
 
   const loadLudoMembers = async () => {
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from("users")
         .select(`
           id,
@@ -90,16 +90,19 @@ export default function LudoMitgliederPage() {
         `)
         .order("created_at", { ascending: false })
 
-      // Exclude current user from the list
-      if (user?.id) {
-        query = query.neq("id", user.id)
-      }
-
-      const { data, error } = await query
-
       if (error) throw error
 
-      setLudoMembers(data || [])
+      // Put current user first in the list
+      const members = data || []
+      if (user?.id) {
+        const selfIndex = members.findIndex((m) => m.id === user.id)
+        if (selfIndex > 0) {
+          const [self] = members.splice(selfIndex, 1)
+          members.unshift(self)
+        }
+      }
+
+      setLudoMembers(members)
     } catch (error) {
       console.error("Error loading Ludo members:", error)
       toast.error("Fehler beim Laden der Ludo-Mitglieder")
@@ -244,15 +247,22 @@ export default function LudoMitgliederPage() {
     switch (filterTab) {
       case "sent":
         filtered = filtered.filter((member) => {
+          if (member.id === user?.id) return false
           const status = getFriendshipStatus(member.id)
           return status === "pending"
         })
         break
       case "requests":
-        filtered = filtered.filter((member) => getFriendshipStatus(member.id) === "received")
+        filtered = filtered.filter((member) => {
+          if (member.id === user?.id) return false
+          return getFriendshipStatus(member.id) === "received"
+        })
         break
       case "friends":
-        filtered = filtered.filter((member) => getFriendshipStatus(member.id) === "friends")
+        filtered = filtered.filter((member) => {
+          if (member.id === user?.id) return false
+          return getFriendshipStatus(member.id) === "friends"
+        })
         break
       default:
         break
@@ -541,57 +551,81 @@ export default function LudoMitgliederPage() {
               </p>
             </div>
           ) : (
-            filteredMembers.map((member) => (
-              <Card
-                key={member.id}
-                className="group hover:shadow-md transition-all duration-300 border-gray-100 overflow-hidden flex flex-col"
-              >
-                <div className="h-16 bg-gradient-to-r from-teal-50 to-cyan-50 relative">
-                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                    <Avatar className="h-16 w-16 border-4 border-white shadow-sm">
-                      <AvatarImage src={member.avatar || getAvatar(member.id, member.name) || "/placeholder.svg"} />
-                      <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-400 text-white text-lg">
-                        {member.username?.[0]?.toUpperCase() || member.name?.[0]?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                </div>
-
-                <CardContent className="pt-10 pb-4 px-3 flex-1 flex flex-col items-center text-center">
-                  <UserLink
-                    userId={member.id}
-                    className="font-handwritten text-gray-800 text-xs hover:text-teal-600 transition-colors mb-1 truncate w-full"
-                  >
-                    {member.username}
-                  </UserLink>
-
-                  <div className="flex items-center gap-1 text-[10px] text-gray-400 mb-3">
-                    <FaCalendarAlt className="h-3 w-3" />
-                    <span>Aktiv seit {formatMemberSince(member.created_at)}</span>
+            filteredMembers.map((member) => {
+              const isSelf = user?.id === member.id
+              return (
+                <Card
+                  key={member.id}
+                  className={`group hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col ${isSelf ? "border-teal-300 ring-1 ring-teal-200" : "border-gray-100"}`}
+                >
+                  <div className={`h-16 relative ${isSelf ? "bg-gradient-to-r from-teal-100 to-cyan-100" : "bg-gradient-to-r from-teal-50 to-cyan-50"}`}>
+                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                      <Avatar className="h-16 w-16 border-4 border-white shadow-sm">
+                        <AvatarImage src={member.avatar || getAvatar(member.id, member.name) || "/placeholder.svg"} />
+                        <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-400 text-white text-lg">
+                          {member.username?.[0]?.toUpperCase() || member.name?.[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
                   </div>
 
-                  {member.bio ? (
-                    <p className="text-xs text-gray-600 line-clamp-2 mb-4 min-h-[32px] text-left">{member.bio}</p>
-                  ) : (
-                    <p className="text-xs text-gray-400 mb-4 min-h-[32px]">Keine Beschreibung</p>
-                  )}
+                  <CardContent className="pt-10 pb-4 px-3 flex-1 flex flex-col items-center text-center">
+                    {isSelf ? (
+                      <Link
+                        href="/profile"
+                        className="font-handwritten text-teal-700 font-semibold text-xs hover:text-teal-600 transition-colors mb-1 truncate w-full"
+                      >
+                        Du
+                      </Link>
+                    ) : (
+                      <UserLink
+                        userId={member.id}
+                        className="font-handwritten text-gray-800 text-xs hover:text-teal-600 transition-colors mb-1 truncate w-full"
+                      >
+                        {member.username || member.name}
+                      </UserLink>
+                    )}
 
-                  <div className="w-full mt-auto space-y-2 text-xs">
-                    {renderFriendButton(member)}
+                    <div className="flex items-center gap-1 text-[10px] text-gray-400 mb-3">
+                      <FaCalendarAlt className="h-3 w-3" />
+                      <span>Aktiv seit {formatMemberSince(member.created_at)}</span>
+                    </div>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full h-8 text-xs text-gray-600 hover:text-teal-600 hover:border-teal-200 bg-transparent"
-                      onClick={() => handleSendMessage(member)}
-                    >
-                      <FiMessageCircle className="h-3 w-3 mr-2" />
-                      Nachricht
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                    {member.bio ? (
+                      <p className="text-xs text-gray-600 line-clamp-2 mb-4 min-h-[32px] text-left">{member.bio}</p>
+                    ) : (
+                      <p className="text-xs text-gray-400 mb-4 min-h-[32px]">{isSelf ? "Bearbeite dein Profil" : "Keine Beschreibung"}</p>
+                    )}
+
+                    <div className="w-full mt-auto space-y-2 text-xs">
+                      {isSelf ? (
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="w-full h-9 text-xs border-teal-300 text-teal-700 hover:bg-teal-50"
+                        >
+                          <Link href="/profile">Profil bearbeiten</Link>
+                        </Button>
+                      ) : (
+                        <>
+                          {renderFriendButton(member)}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full h-8 text-xs text-gray-600 hover:text-teal-600 hover:border-teal-200 bg-transparent"
+                            onClick={() => handleSendMessage(member)}
+                          >
+                            <FiMessageCircle className="h-3 w-3 mr-2" />
+                            Nachricht
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })
           )}
         </div>
       </div>
