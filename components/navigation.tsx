@@ -31,6 +31,7 @@ import { RiUserCommunityFill } from "react-icons/ri"
 import { GiGamepad } from "react-icons/gi"
 import { useAuth } from "@/contexts/auth-context"
 import { useAvatar } from "@/contexts/avatar-context"
+import { getUserAvatar } from "@/lib/avatar"
 import { useMessages } from "@/contexts/messages-context"
 import { NotificationBell } from "@/components/notification-bell"
 
@@ -168,13 +169,10 @@ function Navigation({ currentPage }: NavigationProps) {
     }
   }
 
-  const userAvatar = useMemo(() => {
-    if (!user) return null
-    if (user.avatar) return user.avatar
-    return getAvatar(user.id, user.email)
-  }, [user, avatarKey]) // Added avatarKey dependency
-
-  const avatarSrc = userAvatar || "/placeholder.svg"
+  const avatarSrc = useMemo(() => {
+    if (!user) return "/placeholder.svg"
+    return getUserAvatar(user.id, user.avatar)
+  }, [user, avatarKey])
 
   return (
     <nav className="bg-white shadow-lg border-b-4 border-teal-400 sticky top-0 z-50">

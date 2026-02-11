@@ -2098,7 +2098,7 @@ const loadEventInstances = async (eventId: string) => {
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 <div className="relative group">
                   <Avatar className="w-24 h-24 border-4 border-teal-400">
-                    <AvatarImage src={profile?.avatar || user.avatar} />
+                    <AvatarImage src={getUserAvatar(user.id, profile?.avatar || user.avatar)} />
                     <AvatarFallback className="bg-teal-100 text-teal-700 text-2xl font-handwritten">
                       {profile?.name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
                     </AvatarFallback>
