@@ -23,3 +23,6 @@ export async function createClient() {
     },
   )
 }
+
+// Alias for backward compatibility
+export { createClient as createServerClient }
