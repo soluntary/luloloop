@@ -61,13 +61,24 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password)
-      // signIn resolved = user profile loaded. useEffect handles redirect.
-      // Keep loading=true so button stays disabled until redirect completes.
+      // signIn triggers onAuthStateChange which sets user state.
+      // useEffect above watches user and redirects.
+      // Keep loading=true so button stays disabled.
     } catch (error: any) {
       setError(error.message || "Anmeldung fehlgeschlagen.")
       setLoading(false)
     }
   }
+
+  // Safety: if loading for >8s after submit, show form again
+  useEffect(() => {
+    if (!loading) return
+    const timeout = setTimeout(() => {
+      setLoading(false)
+      setError("Anmeldung dauert zu lange. Bitte erneut versuchen.")
+    }, 8000)
+    return () => clearTimeout(timeout)
+  }, [loading])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
