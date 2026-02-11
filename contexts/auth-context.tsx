@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode, useCallback, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { checkGlobalRateLimit, withRateLimit } from "@/lib/supabase/rate-limit"
 import { createUserProfile } from "@/app/actions/create-user-profile"
 import type { User } from "@supabase/supabase-js"
 
@@ -34,7 +33,6 @@ interface AuthContextType {
   requestPasswordReset: (email: string) => Promise<void>
   updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>
   updateProfile: (data: Partial<AuthUser>) => Promise<boolean>
-  /** Update user state in-memory only (no DB write). Use after saving profile directly via Supabase. */
   patchUser: (data: Partial<AuthUser>) => void
   networkError: boolean
   retryCount: number
@@ -42,433 +40,272 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Single Supabase client instance - created once at module level
+let _supabase: ReturnType<typeof createClient> | null = null
+function getSupabase() {
+  if (!_supabase) _supabase = createClient()
+  return _supabase
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [networkError, setNetworkError] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
-  const pendingAuthPromisesRef = useRef<Map<string, { resolve: () => void; reject: (error: any) => void }>>(new Map())
-  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
-  const initializedRef = useRef(false)
-  const wasAuthenticatedRef = useRef(false)
-  const lastUserIdRef = useRef<string | null>(null)
-  const profileLoadingRef = useRef(false)
+  const mountedRef = useRef(true)
 
-  const isNetworkError = (error: any): boolean => {
-    return (
-      error?.message?.includes("Failed to fetch") ||
-      error?.message?.includes("NetworkError") ||
-      error?.message?.includes("fetch") ||
-      error?.code === "NETWORK_ERROR" ||
-      !navigator.onLine
-    )
-  }
+  // ---- helpers ----
+  const fetchProfile = useCallback(async (authUser: User): Promise<AuthUser> => {
+    const supabase = getSupabase()
 
-  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-  const loadUserProfile = useCallback(async (authUser: User) => {
-    const supabase = supabaseRef.current
-    if (!supabase) {
-      setLoading(false)
-      return
-    }
-
-    // Prevent concurrent calls for same user
-    if (profileLoadingRef.current && lastUserIdRef.current === authUser.id) {
-      return
-    }
-
-    profileLoadingRef.current = true
-    wasAuthenticatedRef.current = true
-    lastUserIdRef.current = authUser.id
-
+    // 1) Try reading from DB (public SELECT, no RLS issue)
     try {
-      // Simple, direct query - the users table has public SELECT access (no RLS issue)
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("users")
         .select("*")
         .eq("id", authUser.id)
         .maybeSingle()
 
-      if (data && !error) {
-        setUser(data)
-        setLoading(false)
-        setNetworkError(false)
-        profileLoadingRef.current = false
-        return
-      }
-
-      // User row doesn't exist yet (new sign-up) - create it via server action
-      if (!data && !error) {
-        try {
-          const result = await createUserProfile({
-            id: authUser.id,
-            email: authUser.email || "",
-            name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
-            username: authUser.user_metadata?.username || null,
-            avatar: authUser.user_metadata?.avatar_url || null,
-          })
-          if (result.success && result.profile) {
-            setUser(result.profile)
-            setLoading(false)
-            profileLoadingRef.current = false
-            return
-          }
-        } catch {
-          // Server action failed - continue to fallback
-        }
-      }
+      if (data) return data as AuthUser
     } catch {
-      // Query failed
+      // query failed - continue
     }
 
-    // Fallback: use auth metadata so the app is usable
-    setUser({
+    // 2) No row yet -> create via server action (admin client, bypasses RLS)
+    try {
+      const result = await createUserProfile({
+        id: authUser.id,
+        email: authUser.email || "",
+        name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+        username: authUser.user_metadata?.username || null,
+        avatar: authUser.user_metadata?.avatar_url || null,
+      })
+      if (result.success && result.profile) return result.profile as AuthUser
+    } catch {
+      // server action failed - continue
+    }
+
+    // 3) Last resort fallback from auth metadata
+    return {
       id: authUser.id,
       email: authUser.email || "",
       name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
       username: authUser.user_metadata?.username || null,
-    })
-    setLoading(false)
-    profileLoadingRef.current = false
+    }
   }, [])
+
+  // ---- auth methods ----
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    const supabase = getSupabase()
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      if (error.message?.includes("Invalid login")) {
+        throw new Error("E-Mail oder Passwort falsch.")
+      }
+      throw new Error(error.message)
+    }
+
+    // Directly load profile and set user - don't rely on onAuthStateChange
+    if (data.session?.user) {
+      const profile = await fetchProfile(data.session.user)
+      if (mountedRef.current) {
+        setUser(profile)
+        setLoading(false)
+      }
+    }
+  }, [fetchProfile])
+
+  const signUp = useCallback(async (
+    email: string,
+    password: string,
+    name: string,
+    username?: string,
+  ): Promise<SignUpResult> => {
+    const supabase = getSupabase()
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name, username } },
+    })
+
+    if (error) {
+      const msg = (error.message || "").toLowerCase()
+      if (error.status === 429 || error.code === "over_email_send_rate_limit") {
+        throw new Error("Zu viele Versuche. Bitte warte einige Minuten.")
+      }
+      if (msg.includes("already registered") || msg.includes("already been registered")) {
+        throw new Error("Ein Benutzer mit dieser E-Mail existiert bereits.")
+      }
+      if (msg.includes("invalid email")) {
+        throw new Error("Ungueltige E-Mail-Adresse.")
+      }
+      if (msg.includes("password")) {
+        throw new Error("Das Passwort muss mindestens 6 Zeichen lang sein.")
+      }
+      throw new Error(error.message)
+    }
+
+    if (data?.user?.identities?.length === 0) {
+      throw new Error("Ein Benutzer mit dieser E-Mail existiert bereits. Bitte melde dich an.")
+    }
+
+    if (!data.user) {
+      throw new Error("Registrierung fehlgeschlagen.")
+    }
+
+    // If we got a session, user is auto-confirmed -> sign in directly
+    if (data.session) {
+      const profile = await fetchProfile(data.session.user)
+      if (mountedRef.current) {
+        setUser(profile)
+        setLoading(false)
+      }
+      return { success: true }
+    }
+
+    // No session -> try signing in (works if auto-confirm is on but session wasn't returned)
+    try {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      if (!signInError && signInData.session) {
+        const profile = await fetchProfile(signInData.session.user)
+        if (mountedRef.current) {
+          setUser(profile)
+          setLoading(false)
+        }
+        return { success: true }
+      }
+    } catch {
+      // sign in failed - email confirmation needed
+    }
+
+    return {
+      success: true,
+      needsEmailConfirmation: true,
+      message: "Registrierung erfolgreich! Bitte bestaetige deine E-Mail-Adresse.",
+    }
+  }, [fetchProfile])
+
+  const signOut = useCallback(async () => {
+    const supabase = getSupabase()
+    setUser(null)
+    setLoading(false)
+    await supabase.auth.signOut()
+  }, [])
+
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const supabase = getSupabase()
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    if (error) throw error
+  }, [])
+
+  const updatePassword = useCallback(async (newPassword: string) => {
+    const supabase = getSupabase()
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) return { success: false, error: error.message }
+    return { success: true }
+  }, [])
+
+  const updateProfile = useCallback(async (data: Partial<AuthUser>) => {
+    const supabase = getSupabase()
+    if (!user) throw new Error("Nicht eingeloggt")
+
+    const { error } = await supabase.from("users").update(data).eq("id", user.id)
+    if (error) throw error
+
+    setUser((prev) => (prev ? { ...prev, ...data } : prev))
+    return true
+  }, [user])
 
   const patchUser = useCallback((data: Partial<AuthUser>) => {
     setUser((prev) => (prev ? { ...prev, ...data } : prev))
   }, [])
 
-  const signIn = useCallback(
-    async (email: string, password: string) => {
-      const supabase = supabaseRef.current
-      if (!supabase) throw new Error("Supabase client not available")
-
-      if (!navigator.onLine) {
-        throw new Error("Keine Internetverbindung.")
-      }
-
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) {
-        if (isNetworkError(error)) {
-          throw new Error("Netzwerkfehler. Bitte Internetverbindung prüfen.")
-        }
-        if (error.message?.includes("Invalid login")) {
-          throw new Error("E-Mail oder Passwort falsch.")
-        }
-        throw error
-      }
-      // signInWithPassword triggers onAuthStateChange(SIGNED_IN)
-      // which will call loadUserProfile and set the user state.
-      // The login page watches the user state and redirects.
-    },
-    [],
-  )
-
-  const signUp = useCallback(
-    async (email: string, password: string, name: string, username?: string): Promise<SignUpResult> => {
-      const supabase = supabaseRef.current
-      if (!supabase) throw new Error("Supabase client not available")
-
-      let response
-      try {
-        response = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { name, username },
-          },
-        })
-      } catch (networkErr: any) {
-        throw new Error("Netzwerkfehler bei der Registrierung. Bitte überprüfen Sie Ihre Internetverbindung.")
-      }
-
-      const { data, error } = response
-
-      if (data?.user && data?.user?.identities?.length === 0) {
-        throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits. Bitte melden Sie sich an.")
-      }
-
-      if (error) {
-        const errMsg = (error.message || "").toLowerCase()
-
-        if (errMsg.includes("sending") || errMsg.includes("smtp") || errMsg.includes("confirmation email")) {
-          throw new Error("E-Mail-Bestätigung konnte nicht gesendet werden. Bitte kontaktieren Sie den Support.")
-        }
-        if (error.status === 429 || error.code === "over_email_send_rate_limit") {
-          throw new Error("Zu viele Versuche. Bitte warten Sie einige Minuten.")
-        }
-        if (errMsg.includes("already registered") || errMsg.includes("already been registered")) {
-          throw new Error("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits.")
-        }
-        if (errMsg.includes("invalid email")) {
-          throw new Error("Ungültige E-Mail-Adresse.")
-        }
-        if (errMsg.includes("password")) {
-          throw new Error("Das Passwort muss mindestens 6 Zeichen lang sein.")
-        }
-        throw new Error(error.message || "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.")
-      }
-
-      if (!data.user) {
-        throw new Error("Registrierung fehlgeschlagen: Kein Benutzer erstellt")
-      }
-
-      if (data.user && !data.session) {
-        // No session = email confirmation required OR auto-confirm disabled.
-        // Try to sign in directly (works if auto-confirm is on).
-        try {
-          const supabase2 = supabaseRef.current!
-          const { data: signInData, error: signInError } = await supabase2.auth.signInWithPassword({ email, password })
-          if (signInError || !signInData.session) {
-            // Can't sign in yet - email confirmation needed
-            return { 
-              success: true, 
-              needsEmailConfirmation: true,
-              message: "Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse."
-            }
-          }
-          // Signed in successfully - load profile and wait for it
-          setLoading(true)
-          await loadUserProfile(signInData.session.user)
-          return { success: true }
-        } catch {
-          return { 
-            success: true, 
-            needsEmailConfirmation: true,
-            message: "Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse."
-          }
-        }
-      }
-
-      if (data.user && data.session) {
-        // Auto-confirmed and auto-signed-in - load profile
-        setLoading(true)
-        await loadUserProfile(data.user)
-        return { success: true }
-      }
-
-      return { success: true }
-    },
-    [signIn, loadUserProfile],
-  )
-
-  const signOut = useCallback(async () => {
-    const supabase = supabaseRef.current
-    if (!supabase) throw new Error("Supabase client not available")
-
-    wasAuthenticatedRef.current = false
-    lastUserIdRef.current = null
-
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
-  }, [])
-
-  const requestPasswordReset = useCallback(async (email: string) => {
-    const supabase = supabaseRef.current
-    if (!supabase) throw new Error("Supabase client not available")
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/reset-password`,
-    })
-    if (error) throw error
-  }, [])
-
-  const updatePassword = useCallback(async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
-    const supabase = supabaseRef.current
-    if (!supabase) return { success: false, error: "Supabase client not available" }
-
-    try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword })
-      if (error) return { success: false, error: error.message }
-      return { success: true }
-    } catch (error: any) {
-      return { success: false, error: error.message || "Unbekannter Fehler" }
-    }
-  }, [])
-
-  const updateProfile = useCallback(
-    async (data: Partial<AuthUser>) => {
-      const supabase = supabaseRef.current
-      if (!supabase) throw new Error("Supabase client not available")
-      if (!user) throw new Error("No user logged in")
-
-      try {
-        await withRateLimit(async () => {
-          const updateData = {
-            name: data.name !== undefined ? data.name : user.name,
-            email: data.email !== undefined ? data.email : user.email,
-            avatar: data.avatar !== undefined ? data.avatar : user.avatar,
-            bio: data.bio !== undefined ? data.bio : user.bio,
-            website: data.website !== undefined ? data.website : user.website,
-            twitter: data.twitter !== undefined ? data.twitter : user.twitter,
-            instagram: data.instagram !== undefined ? data.instagram : user.instagram,
-            settings: data.settings !== undefined ? data.settings : user.settings,
-          }
-
-          const { error: dbError } = await supabase.from("users").update(updateData).eq("id", user.id)
-          if (dbError) throw dbError
-        })
-
-        const updatedUser = { ...user, ...data }
-        setUser(updatedUser)
-        return true
-      } catch (error) {
-        console.error("Error updating profile:", error)
-        throw error
-      }
-    },
-    [user],
-  )
-
+  // ---- initialization ----
   useEffect(() => {
-    if (initializedRef.current) return
-    initializedRef.current = true
+    mountedRef.current = true
+    const supabase = getSupabase()
 
-    // Safety timeout increased to 5s - prevents infinite loading if something goes wrong
+    // Safety: never stay in loading state forever
     const safetyTimeout = setTimeout(() => {
-      setLoading(false)
-    }, 5000)
+      if (mountedRef.current) setLoading(false)
+    }, 6000)
 
-    let supabase: ReturnType<typeof createClient>
-    try {
-      supabase = createClient()
-      supabaseRef.current = supabase
-    } catch (error) {
-      console.error("Failed to create Supabase client:", error)
-      setLoading(false)
-      setNetworkError(true)
-      clearTimeout(safetyTimeout)
-      return
-    }
+    // Listen for auth changes (handles page refresh, token refresh, sign out from other tab)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mountedRef.current) return
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      try {
-        if (event === "SIGNED_OUT") {
-          wasAuthenticatedRef.current = false
-          lastUserIdRef.current = null
-          profileLoadingRef.current = false
-          setUser(null)
-          setLoading(false)
-          setNetworkError(false)
-          clearTimeout(safetyTimeout)
-          return
-        }
-
-        if (!session?.user) {
-          if (wasAuthenticatedRef.current && lastUserIdRef.current) return
-          setUser(null)
-          setLoading(false)
-          setNetworkError(false)
-          clearTimeout(safetyTimeout)
-          return
-        }
-
-        // Skip if profile is already loaded for this user (e.g. signIn called loadUserProfile directly)
-        if (lastUserIdRef.current === session.user.id && wasAuthenticatedRef.current) {
-          setLoading(false)
-          clearTimeout(safetyTimeout)
-          return
-        }
-
-        if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
-          setLoading(true)
-          await loadUserProfile(session.user)
-          clearTimeout(safetyTimeout)
-          return
-        }
-
-        if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") return
-      } catch (error) {
-        console.error("Auth state change error:", error)
+      if (event === "SIGNED_OUT") {
+        setUser(null)
         setLoading(false)
+        return
+      }
+
+      if (event === "INITIAL_SESSION") {
+        if (!session?.user) {
+          setUser(null)
+          setLoading(false)
+          clearTimeout(safetyTimeout)
+          return
+        }
+
+        // Load profile for existing session (page refresh)
+        try {
+          const profile = await fetchProfile(session.user)
+          if (mountedRef.current) {
+            setUser(profile)
+            setLoading(false)
+          }
+        } catch {
+          if (mountedRef.current) setLoading(false)
+        }
         clearTimeout(safetyTimeout)
-        if (isNetworkError(error)) setNetworkError(true)
+        return
+      }
+
+      // For SIGNED_IN: signIn/signUp already set the user directly,
+      // so we only need to handle the case where user is null (e.g. sign in from another tab)
+      if (event === "SIGNED_IN" && session?.user && !user) {
+        try {
+          const profile = await fetchProfile(session.user)
+          if (mountedRef.current) {
+            setUser(profile)
+            setLoading(false)
+          }
+        } catch {
+          if (mountedRef.current) setLoading(false)
+        }
       }
     })
-
-    let isMounted = true
-
-    const initializeAuth = async () => {
-      let attempts = 0
-      const maxAttempts = 2
-
-      while (attempts < maxAttempts && isMounted) {
-        try {
-          const { data: { session }, error } = await supabase.auth.getSession()
-
-          if (!isMounted) return
-
-          if (error) {
-            if (error.message?.includes("aborted") || error.message?.includes("signal")) return
-            if (isNetworkError(error) && attempts < maxAttempts - 1) {
-              attempts++
-              await delay(1000 * attempts)
-              continue
-            }
-            setUser(null)
-            setLoading(false)
-            setNetworkError(true)
-            clearTimeout(safetyTimeout)
-            return
-          }
-
-          // onAuthStateChange INITIAL_SESSION will handle profile loading
-          // We only need to handle the no-session case here
-          if (!session?.user) {
-            if (isMounted) {
-              setUser(null)
-              setLoading(false)
-              clearTimeout(safetyTimeout)
-            }
-          }
-          return
-        } catch (error: any) {
-          if (error?.message?.includes("aborted") || error?.message?.includes("signal")) return
-          attempts++
-
-          if (isNetworkError(error) && attempts < maxAttempts) {
-            setNetworkError(true)
-            await delay(1000 * attempts)
-            continue
-          }
-
-          if (isMounted) {
-            setUser(null)
-            setLoading(false)
-            setNetworkError(true)
-            clearTimeout(safetyTimeout)
-          }
-          return
-        }
-      }
-    }
-
-    initializeAuth()
 
     return () => {
-      isMounted = false
+      mountedRef.current = false
       clearTimeout(safetyTimeout)
       subscription.unsubscribe()
     }
-    // No dependency on `user` - refs are used instead to avoid re-running the effect
-  }, [loadUserProfile])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const value = {
-    user,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-    requestPasswordReset,
-    updatePassword,
-    updateProfile,
-    patchUser,
-    networkError,
-    retryCount,
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      signUp,
+      signIn,
+      signOut,
+      requestPasswordReset,
+      updatePassword,
+      updateProfile,
+      patchUser,
+      networkError,
+      retryCount,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
