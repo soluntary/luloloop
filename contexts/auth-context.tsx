@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [retryCount, setRetryCount] = useState(0)
   const mountedRef = useRef(true)
 
-  // Load the full profile from DB. Returns fallback from auth metadata if DB fails.
+  // Load the full profile from DB. If no row exists, create one via upsert.
   const loadProfile = useCallback(async (authUser: User): Promise<AuthUser> => {
     const supabase = createClient()
     try {
@@ -65,10 +65,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("id", authUser.id)
         .maybeSingle()
       if (data) return data as AuthUser
+
+      // No row found - user signed up before the trigger existed. Create one now.
+      const newProfile = {
+        id: authUser.id,
+        email: authUser.email || "",
+        name: authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
+        username: authUser.user_metadata?.username || authUser.email?.split("@")[0] || null,
+        avatar: authUser.user_metadata?.avatar_url || null,
+      }
+      const { data: inserted } = await supabase
+        .from("users")
+        .upsert(newProfile, { onConflict: "id" })
+        .select()
+        .single()
+      if (inserted) return inserted as AuthUser
+      return newProfile as AuthUser
     } catch {
       // DB query failed
     }
-    // Fallback: auth metadata (the DB trigger will create the row eventually)
     return authUserFromSession(authUser)
   }, [])
 
