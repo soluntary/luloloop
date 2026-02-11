@@ -213,19 +213,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user && !data.session) {
+        // No session = email confirmation required OR auto-confirm disabled.
+        // Try to sign in directly (works if auto-confirm is on).
         try {
-          await signIn(email, password)
+          const supabase2 = supabaseRef.current!
+          const { data: signInData, error: signInError } = await supabase2.auth.signInWithPassword({ email, password })
+          if (signInError || !signInData.session) {
+            // Can't sign in yet - email confirmation needed
+            return { 
+              success: true, 
+              needsEmailConfirmation: true,
+              message: "Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse."
+            }
+          }
+          // Signed in successfully - load profile and wait for it
+          setLoading(true)
+          await loadUserProfile(signInData.session.user)
           return { success: true }
         } catch {
           return { 
             success: true, 
             needsEmailConfirmation: true,
-            message: "Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail-Adresse."
+            message: "Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse."
           }
         }
       }
 
       if (data.user && data.session) {
+        // Auto-confirmed and auto-signed-in - load profile
         setLoading(true)
         await loadUserProfile(data.user)
         return { success: true }
