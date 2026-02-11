@@ -93,13 +93,34 @@ export default function LudoMitgliederPage() {
 
       if (error) throw error
 
-      // Put current user first in the list
       const members = data || []
+
+      // Ensure current user is always in the list and appears first
       if (user?.id) {
         const selfIndex = members.findIndex((m) => m.id === user.id)
-        if (selfIndex > 0) {
+        if (selfIndex >= 0) {
+          // Move self to front
           const [self] = members.splice(selfIndex, 1)
           members.unshift(self)
+        } else {
+          // User row doesn't exist yet - create it in the background
+          const selfEntry = {
+            id: user.id,
+            username: user.username || user.name || "Du",
+            name: user.name || "",
+            avatar: user.avatar || "",
+            bio: "",
+            created_at: new Date().toISOString(),
+          }
+          members.unshift(selfEntry)
+          // Try to insert the row so it exists for future loads
+          supabase.from("users").upsert({
+            id: user.id,
+            email: user.email || "",
+            username: user.username || user.name || null,
+            name: user.name || null,
+            avatar: user.avatar || null,
+          }, { onConflict: "id" }).then(() => {})
         }
       }
 
