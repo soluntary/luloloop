@@ -20,7 +20,6 @@ import {
   FaArrowLeft,
   FaRedo,
   FaChevronDown,
-  FaChevronUp,
 } from "react-icons/fa"
 import { GiPartyPopper } from "react-icons/gi"
 import { GiMeeple, GiCardRandom, GiPuzzle, GiSwordClash, GiTreasureMap } from "react-icons/gi"
@@ -89,12 +88,14 @@ const QUESTIONS = [
     title: "Wie komplex darf es sein?",
     subtitle: "Von einfachen Familienspielen bis zu Expertenspielen",
     icon: FaBrain,
-    type: "slider" as const,
-    min: 1,
-    max: 5,
-    step: 0.5,
+    type: "choice" as const,
+    options: [
+      { label: "Einfach", value: 1.5, icon: "simple" },
+      { label: "Mittel", value: 2.5, icon: "medium" },
+      { label: "Anspruchsvoll", value: 3.5, icon: "complex" },
+      { label: "Experte", value: 4.5, icon: "expert" },
+    ],
     defaultValue: 2.5,
-    labels: { 1: "Einfach", 2: "Leicht", 3: "Mittel", 4: "Anspruchsvoll", 5: "Experte" },
     weight: 1.5,
   },
   {
@@ -134,12 +135,14 @@ const QUESTIONS = [
     title: "Wie wichtig ist die Bewertung?",
     subtitle: "Nur Top-bewertete Spiele oder auch versteckte Perlen?",
     icon: FaStar,
-    type: "slider" as const,
-    min: 5,
-    max: 9,
-    step: 0.5,
-    defaultValue: 6.5,
-    labels: { 5: "Alles", 6: "Gut", 7: "Sehr gut", 8: "Top", 9: "Meisterwerk" },
+    type: "choice" as const,
+    options: [
+      { label: "Egal", value: 5, icon: "all" },
+      { label: "Gut (6+)", value: 6, icon: "good" },
+      { label: "Sehr gut (7+)", value: 7, icon: "great" },
+      { label: "Top (8+)", value: 8, icon: "top" },
+    ],
+    defaultValue: 6,
     weight: 0.5,
   },
 ]
@@ -379,7 +382,6 @@ function QuestionCard({
 }
 
 function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
-  const [expanded, setExpanded] = useState(false)
   const scoreColor = result.score >= 80 ? "text-green-600" : result.score >= 60 ? "text-teal-600" : result.score >= 40 ? "text-amber-600" : "text-gray-500"
   const barColor = result.score >= 80 ? "bg-green-500" : result.score >= 60 ? "bg-teal-500" : result.score >= 40 ? "bg-amber-500" : "bg-gray-400"
 
@@ -461,34 +463,17 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
             </div>
           </div>
 
-          {/* Expand reasons */}
+          {/* Reasons - always visible */}
           {result.reasons.length > 0 && (
-            <div className="border-t border-gray-50">
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="flex w-full items-center justify-center gap-1 px-4 py-2 text-xs text-gray-400 hover:text-teal-600 transition-colors"
-              >
-                {expanded ? "Weniger" : "Warum passt es?"}
-                {expanded ? <FaChevronUp className="h-2.5 w-2.5" /> : <FaChevronDown className="h-2.5 w-2.5" />}
-              </button>
-              <AnimatePresence>
-                {expanded && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="flex flex-wrap gap-1.5 px-4 pb-3">
-                      {result.reasons.map((reason, i) => (
-                        <Badge key={i} variant="outline" className="text-[10px] text-teal-600 border-teal-200">
-                          {reason}
-                        </Badge>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            <div className="border-t border-gray-50 px-4 py-2.5">
+              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-gray-400">Warum passt es?</p>
+              <div className="flex flex-wrap gap-1.5">
+                {result.reasons.map((reason, i) => (
+                  <Badge key={i} variant="outline" className="text-[10px] text-teal-600 border-teal-200">
+                    {reason}
+                  </Badge>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
