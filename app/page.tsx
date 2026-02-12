@@ -20,6 +20,7 @@ import {
   FaShieldAlt,
   FaArrowRight,
   FaCalendarAlt,
+  FaDice,
 } from "react-icons/fa"
 import { GiChoice } from "react-icons/gi"
 import { LiaUsersSolid } from "react-icons/lia"
@@ -551,6 +552,16 @@ export default function HomePage() {
               linkText: "Zur Spielarena",
               color: "purple",
               rotation: "rotate-1",
+            },
+            {
+              icon: FaDice,
+              title: "Brettspiel-O-Mat",
+              description:
+                "Beantworte 6 kurze Fragen zu deinen Vorlieben und finde dein perfektes Brettspiel. Unser Matching-Algorithmus durchsucht die gesamte Spieledatenbank!",
+              link: "/brettspiel-o-mat",
+              linkText: "Zum Brettspiel-O-Mat",
+              color: "teal",
+              rotation: "-rotate-1",
             },
           ].map((feature, index) => {
             const colors = getColorClasses(feature.color)

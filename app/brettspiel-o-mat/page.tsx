@@ -560,11 +560,11 @@ export default function BrettspielOMatPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="font-handwritten text-4xl font-bold text-gray-900 md:text-5xl">
-            Brettspiel-O-Mat
-          </h1>
-          <p className="mt-2 text-gray-500">
-            Beantworte 6 kurze Fragen und finde dein perfektes Brettspiel.
+  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
+    Brettspiel-O-Mat
+  </h1>
+  <p className="text-gray-600 transform rotate-1 font-body text-base">
+    Beantworte 6 kurze Fragen und finde dein perfektes Brettspiel.
           </p>
         </motion.div>
 
