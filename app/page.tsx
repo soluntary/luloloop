@@ -20,6 +20,7 @@ import {
   FaShieldAlt,
   FaArrowRight,
   FaCalendarAlt,
+  FaDice,
 } from "react-icons/fa"
 import { GiChoice } from "react-icons/gi"
 import { LiaUsersSolid } from "react-icons/lia"
@@ -506,7 +507,7 @@ export default function HomePage() {
             },
             {
               icon: FaCalendarAlt,
-              title: "Events & Spieltreffs",
+              title: "Events",
               description:
                 "Organisiere im Handumdrehen Spielrunden oder schliesse dich Events an.",
               link: "/ludo-events",
@@ -546,11 +547,21 @@ export default function HomePage() {
               icon: GiMeepleCircle,
               title: "Spielarena",
               description:
-                "Entdecke klassische Mini-Games direkt im Browser: Memory, Vier gewinnt, Sudoku, Minesweeper und viele mehr. Perfekt für eine kurze Spielpause mit Spass und Herausforderung!",
+                "Geniesse klassische Mini-Games direkt im Browser, ohne Downloads: Memory, Vier gewinnt, Sudoku, Minesweeper und viele mehr. Perfekt für eine kurze Spielpause mit Spass und Herausforderung!",
               link: "/spielarena",
               linkText: "Zur Spielarena",
               color: "purple",
               rotation: "rotate-1",
+            },
+            {
+              icon: FaDice,
+              title: "Brettspiel-O-Mat",
+              description:
+                "Beantworte 6 kurze Fragen zu deinen Vorlieben und finde dein perfektes Brettspiel. Unser Matching-Algorithmus durchsucht die gesamte Spieledatenbank!",
+              link: "/brettspiel-o-mat",
+              linkText: "Zum Brettspiel-O-Mat",
+              color: "teal",
+              rotation: "-rotate-1",
             },
           ].map((feature, index) => {
             const colors = getColorClasses(feature.color)
