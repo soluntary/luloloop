@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
 
-// Fetches and merges games from local DB + BGG Hot list for the Brettspiel-O-Mat
+// Fetches games from BoardGameGeek for the Brettspiel-O-Mat
 
 const BGG_HEADERS = {
   "User-Agent": "Ludoloop/1.0 (Board Game Community App)",
@@ -10,63 +9,18 @@ const BGG_HEADERS = {
 
 export async function GET(request: NextRequest) {
   try {
-    // 1. Load local game_catalog from Supabase
-    const supabase = await createClient()
-    const { data: localGames } = await supabase
-      .from("game_catalog")
-      .select("*")
-      .order("rating", { ascending: false })
-      .limit(500)
-
-    // 2. Load BGG Hot list in parallel
     const bggGames = await loadBGGHotGames()
 
-    // 3. Merge: local games first, then BGG games that aren't duplicates
-    const localBggIds = new Set(
-      (localGames || []).filter((g) => g.bgg_id).map((g) => String(g.bgg_id))
-    )
-    const localTitles = new Set(
-      (localGames || []).map((g) => g.title?.toLowerCase().trim())
-    )
-
-    const uniqueBggGames = bggGames.filter(
-      (g) => !localBggIds.has(String(g.bgg_id)) && !localTitles.has(g.title?.toLowerCase().trim())
-    )
-
-    // Normalize local games to a common format
-    const normalizedLocal = (localGames || []).map((g) => ({
-      id: g.id,
-      bgg_id: g.bgg_id,
-      title: g.title,
-      description: g.description,
-      image: g.image || g.thumbnail,
-      thumbnail: g.thumbnail || g.image,
-      min_players: g.min_players,
-      max_players: g.max_players,
-      playing_time: g.playing_time,
-      min_playtime: g.min_playtime,
-      max_playtime: g.max_playtime,
-      age: g.age,
-      complexity: g.complexity,
-      rating: g.rating,
-      categories: g.categories || [],
-      mechanics: g.mechanics || [],
-      source: "local" as const,
-    }))
-
-    const allGames = [...normalizedLocal, ...uniqueBggGames]
-
     return NextResponse.json({
-      games: allGames,
+      games: bggGames,
       stats: {
-        local: normalizedLocal.length,
-        bgg: uniqueBggGames.length,
-        total: allGames.length,
+        bgg: bggGames.length,
+        total: bggGames.length,
       },
     })
   } catch (error) {
     console.error("Error loading games for Brettspiel-O-Mat:", error)
-    return NextResponse.json({ games: [], stats: { local: 0, bgg: 0, total: 0 } })
+    return NextResponse.json({ games: [], stats: { bgg: 0, total: 0 } })
   }
 }
 
@@ -75,7 +29,7 @@ async function loadBGGHotGames(): Promise<any[]> {
     // Fetch BGG Hot list
     const hotRes = await fetch("https://boardgamegeek.com/xmlapi2/hot?type=boardgame", {
       headers: BGG_HEADERS,
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      next: { revalidate: 3600 },
     })
     if (!hotRes.ok) return []
 
@@ -140,13 +94,8 @@ function parseBGGGameDetails(xml: string): any[] {
       const minAge = toNum(extractVal(content, /<minage[^>]*value="([^"]*)"/))
       const image = extractVal(content, /<image[^>]*>([^<]+)<\/image>/)
       const thumbnail = extractVal(content, /<thumbnail[^>]*>([^<]+)<\/thumbnail>/)
-
-      // Rating from statistics
       const avgRating = toFloat(extractVal(content, /<average[^>]*value="([^"]*)"/))
-      // Complexity / weight
       const complexity = toFloat(extractVal(content, /<averageweight[^>]*value="([^"]*)"/))
-
-      // Categories and mechanics
       const categories = extractMulti(content, /<link[^>]*type="boardgamecategory"[^>]*value="([^"]*)"/)
       const mechanics = extractMulti(content, /<link[^>]*type="boardgamemechanic"[^>]*value="([^"]*)"/)
 
