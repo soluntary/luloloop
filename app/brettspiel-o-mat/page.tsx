@@ -519,17 +519,24 @@ export default function BrettspielOMatPage() {
   const [loading, setLoading] = useState(false)
   const [showAll, setShowAll] = useState(false)
 
-  // Load games from combined API (local DB + BGG Hot list)
+  // Load games from BGG Hot list
   const loadGames = useCallback(async () => {
     setLoading(true)
     try {
+      console.log("[v0] Loading games from API...")
       const res = await fetch("/api/brettspiel-o-mat/games")
+      console.log("[v0] API response status:", res.status)
       if (res.ok) {
         const data = await res.json()
-        if (data.games) setGames(data.games)
+        console.log("[v0] Games loaded:", data.games?.length || 0, "source:", data.source)
+        if (data.games && data.games.length > 0) {
+          setGames(data.games)
+        }
+      } else {
+        console.log("[v0] API error:", await res.text())
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.log("[v0] Fetch error:", err)
     }
     setLoading(false)
   }, [])
@@ -626,10 +633,10 @@ export default function BrettspielOMatPage() {
                 {isLastQuestion ? (
                   <Button
                     onClick={calculateResults}
-                    disabled={loading || games.length === 0}
+                    disabled={loading}
                     className="gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600"
                   >
-                    {loading ? "Spiele laden..." : "Ergebnisse anzeigen"}
+                    {loading ? "Spiele werden geladen..." : games.length === 0 ? "Keine Spiele geladen" : `Ergebnisse anzeigen (${games.length} Spiele)`}
                     <FaDice className="h-3 w-3" />
                   </Button>
                 ) : (
