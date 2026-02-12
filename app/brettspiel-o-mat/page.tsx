@@ -22,6 +22,7 @@ import {
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa"
+import { GiPartyPopper } from "react-icons/gi"
 import { GiMeeple, GiCardRandom, GiPuzzle, GiSwordClash, GiTreasureMap } from "react-icons/gi"
 import Image from "next/image"
 import Link from "next/link"
@@ -58,7 +59,7 @@ const QUESTIONS = [
   {
     id: "players",
     title: "Wie viele Spieler?",
-    subtitle: "Fuer wie viele Personen suchst du ein Spiel?",
+    subtitle: "Für wie viele Personen suchst du ein Spiel?",
     icon: FaUsers,
     type: "slider" as const,
     min: 1,
@@ -122,7 +123,7 @@ const QUESTIONS = [
       { label: "Abenteuer", value: "Adventure", icon: GiTreasureMap },
       { label: "Kartenspiel", value: "Card Game", icon: GiCardRandom },
       { label: "Kampf", value: "Fighting", icon: GiSwordClash },
-      { label: "Party", value: "Party Game", icon: FaDice },
+      { label: "Party", value: "Party Game", icon: GiPartyPopper },
       { label: "Kooperativ", value: "Abstract Strategy", icon: GiMeeple },
     ],
     defaultValue: [],
@@ -155,7 +156,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   maxScore += playerWeight * 100
   if (playerCount >= game.min_players && playerCount <= game.max_players) {
     totalScore += playerWeight * 100
-    reasons.push(`Passt fuer ${playerCount} Spieler`)
+    reasons.push(`Passt für ${playerCount} Spieler`)
   } else {
     const diff = playerCount < game.min_players
       ? game.min_players - playerCount
@@ -318,11 +319,10 @@ function QuestionCard({
             <button
               key={opt.value}
               onClick={() => onChange(opt.value)}
-              className={`rounded-xl border-2 px-4 py-4 text-center text-sm font-medium transition-all ${
-                value === opt.value
+              className={`rounded-xl border-2 px-4 py-4 text-center text-sm font-medium transition-all ${value === opt.value
                   ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
                   : "border-gray-200 bg-white text-gray-600 hover:border-teal-200 hover:bg-teal-50/50"
-              }`}
+                }`}
             >
               {opt.label}
             </button>
@@ -360,11 +360,10 @@ function QuestionCard({
                     onChange([...selected, opt.value])
                   }
                 }}
-                className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-4 text-sm font-medium transition-all ${
-                  isSelected
+                className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-4 text-sm font-medium transition-all ${isSelected
                     ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
                     : "border-gray-200 bg-white text-gray-600 hover:border-teal-200 hover:bg-teal-50/50"
-                }`}
+                  }`}
               >
                 <OptIcon className="h-5 w-5" />
                 {opt.label}
@@ -614,7 +613,7 @@ export default function BrettspielOMatPage() {
                   className="gap-2"
                 >
                   <FaArrowLeft className="h-3 w-3" />
-                  Zurueck
+                  Zurück
                 </Button>
 
                 {isLastQuestion ? (
@@ -651,7 +650,7 @@ export default function BrettspielOMatPage() {
                   <Card className="mb-6 overflow-hidden border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
                     <CardContent className="p-6">
                       <div className="mb-2 text-center text-xs font-medium uppercase tracking-wider text-teal-600">
-                        Beste Uebereinstimmung
+                        Beste Übereinstimmung
                       </div>
                       <div className="flex items-center gap-5">
                         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-white shadow-sm">
