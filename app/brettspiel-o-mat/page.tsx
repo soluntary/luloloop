@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { createClient } from "@/lib/supabase/client"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   FaDice,
@@ -43,8 +42,10 @@ interface GameCatalogEntry {
   max_playtime: number
   age: number
   rating: number
-  year_published: number
-  designers: string[]
+  year_published?: number
+  designers?: string[]
+  source?: "local" | "bgg"
+  bgg_id?: number
 }
 
 interface MatchResult {
@@ -460,6 +461,11 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
                     {result.game.rating.toFixed(1)}
                   </Badge>
                 )}
+                {result.game.source === "bgg" && (
+                  <Badge variant="outline" className="text-[10px] border-orange-200 text-orange-600">
+                    BGG
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -513,17 +519,15 @@ export default function BrettspielOMatPage() {
   const [loading, setLoading] = useState(false)
   const [showAll, setShowAll] = useState(false)
 
-  // Load games from DB
+  // Load games from combined API (local DB + BGG Hot list)
   const loadGames = useCallback(async () => {
     setLoading(true)
     try {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from("game_catalog")
-        .select("*")
-        .order("rating", { ascending: false })
-        .limit(500)
-      if (data && !error) setGames(data)
+      const res = await fetch("/api/brettspiel-o-mat/games")
+      if (res.ok) {
+        const data = await res.json()
+        if (data.games) setGames(data.games)
+      }
     } catch {
       // silently fail
     }
