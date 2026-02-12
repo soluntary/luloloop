@@ -506,7 +506,7 @@ export default function HomePage() {
             },
             {
               icon: FaCalendarAlt,
-              title: "Events & Spieltreffs",
+              title: "Events",
               description:
                 "Organisiere im Handumdrehen Spielrunden oder schliesse dich Events an.",
               link: "/ludo-events",
@@ -546,7 +546,7 @@ export default function HomePage() {
               icon: GiMeepleCircle,
               title: "Spielarena",
               description:
-                "Entdecke klassische Mini-Games direkt im Browser: Memory, Vier gewinnt, Sudoku, Minesweeper und viele mehr. Perfekt für eine kurze Spielpause mit Spass und Herausforderung!",
+                "Geniesse klassische Mini-Games direkt im Browser, ohne Downloads: Memory, Vier gewinnt, Sudoku, Minesweeper und viele mehr. Perfekt für eine kurze Spielpause mit Spass und Herausforderung!",
               link: "/spielarena",
               linkText: "Zur Spielarena",
               color: "purple",
