@@ -382,6 +382,7 @@ function QuestionCard({
 }
 
 function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
+  const [expanded, setExpanded] = useState(false)
   const scoreColor = result.score >= 80 ? "text-green-600" : result.score >= 60 ? "text-teal-600" : result.score >= 40 ? "text-amber-600" : "text-gray-500"
   const barColor = result.score >= 80 ? "bg-green-500" : result.score >= 60 ? "bg-teal-500" : result.score >= 40 ? "bg-amber-500" : "bg-gray-400"
 
@@ -463,17 +464,34 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
             </div>
           </div>
 
-          {/* Reasons - always visible */}
+          {/* Reasons - collapsible */}
           {result.reasons.length > 0 && (
-            <div className="border-t border-gray-50 px-4 py-2.5">
-              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-gray-400">Warum passt es?</p>
-              <div className="flex flex-wrap gap-1.5">
-                {result.reasons.map((reason, i) => (
-                  <Badge key={i} variant="outline" className="text-[10px] text-teal-600 border-teal-200">
-                    {reason}
-                  </Badge>
-                ))}
-              </div>
+            <div className="border-t border-gray-50">
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="flex w-full items-center justify-center gap-1 px-4 py-2 text-xs text-gray-400 hover:text-teal-600 transition-colors"
+              >
+                {expanded ? "Weniger" : "Warum passt es?"}
+                <FaChevronDown className={`h-2.5 w-2.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+              </button>
+              <AnimatePresence>
+                {expanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex flex-wrap gap-1.5 px-4 pb-3">
+                      {result.reasons.map((reason, i) => (
+                        <Badge key={i} variant="outline" className="text-[10px] text-teal-600 border-teal-200">
+                          {reason}
+                        </Badge>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
         </CardContent>
