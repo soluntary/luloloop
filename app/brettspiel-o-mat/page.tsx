@@ -361,13 +361,13 @@ function QuestionCard({
             <p className="text-sm text-gray-500">{question.subtitle}</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {q.options.map((opt) => {
             const isSelected = selected.includes(opt.value)
             return (
               <label
                 key={opt.value}
-                className={`flex cursor-pointer items-center gap-2.5 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all select-none ${isSelected
+                className={`flex cursor-pointer items-center gap-2 rounded-lg border-2 px-2.5 py-2 text-xs font-medium transition-all select-none ${isSelected
                   ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
                   : "border-gray-200 bg-white text-gray-600 hover:border-teal-200 hover:bg-teal-50/50"
                   }`}
@@ -382,9 +382,9 @@ function QuestionCard({
                       onChange([...selected, opt.value])
                     }
                   }}
-                  className="h-4 w-4 rounded border-gray-300 text-teal-600 accent-teal-600"
+                  className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-teal-600 accent-teal-600"
                 />
-                {opt.label}
+                <span className="leading-tight">{opt.label}</span>
               </label>
             )
           })}
