@@ -365,27 +365,23 @@ function QuestionCard({
           {q.options.map((opt) => {
             const isSelected = selected.includes(opt.value)
             return (
-              <label
+              <button
                 key={opt.value}
-                className={`flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3 py-2 text-xs font-medium transition-all select-none whitespace-nowrap ${isSelected
+                type="button"
+                onClick={() => {
+                  if (isSelected) {
+                    onChange(selected.filter((v) => v !== opt.value))
+                  } else {
+                    onChange([...selected, opt.value])
+                  }
+                }}
+                className={`rounded-xl border-2 px-4 py-3 text-sm font-medium transition-all ${isSelected
                   ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
                   : "border-gray-200 bg-white text-gray-600 hover:border-teal-200 hover:bg-teal-50/50"
                   }`}
               >
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={() => {
-                    if (isSelected) {
-                      onChange(selected.filter((v) => v !== opt.value))
-                    } else {
-                      onChange([...selected, opt.value])
-                    }
-                  }}
-                  className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-teal-600 accent-teal-600"
-                />
                 {opt.label}
-              </label>
+              </button>
             )
           })}
         </div>
