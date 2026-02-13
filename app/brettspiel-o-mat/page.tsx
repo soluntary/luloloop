@@ -87,11 +87,11 @@ const QUESTIONS = [
   {
     id: "complexity",
     title: "Wie komplex darf es sein?",
-    subtitle: "Von einfachen Familienspielen bis zu Expertenspielen",
+    subtitle: "Von leichten Familienspielen bis zu Expertenspielen",
     icon: FaBrain,
     type: "choice" as const,
     options: [
-      { label: "Einfach", value: 1.5, icon: "simple" },
+      { label: "Leicht", value: 1.5, icon: "simple" },
       { label: "Mittel", value: 2.5, icon: "medium" },
       { label: "Anspruchsvoll", value: 3.5, icon: "complex" },
       { label: "Experte", value: 4.5, icon: "expert" },
@@ -324,8 +324,8 @@ function QuestionCard({
               key={opt.value}
               onClick={() => onChange(opt.value)}
               className={`rounded-xl border-2 px-4 py-4 text-center text-sm font-medium transition-all ${value === opt.value
-                  ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
-                  : "border-gray-200 bg-white text-gray-600 hover:border-teal-200 hover:bg-teal-50/50"
+                ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
+                : "border-gray-200 bg-white text-gray-600 hover:border-teal-200 hover:bg-teal-50/50"
                 }`}
             >
               {opt.label}
@@ -365,8 +365,8 @@ function QuestionCard({
                   }
                 }}
                 className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-4 text-sm font-medium transition-all ${isSelected
-                    ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
-                    : "border-gray-200 bg-white text-gray-600 hover:border-teal-200 hover:bg-teal-50/50"
+                  ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
+                  : "border-gray-200 bg-white text-gray-600 hover:border-teal-200 hover:bg-teal-50/50"
                   }`}
               >
                 <OptIcon className="h-5 w-5" />
@@ -571,11 +571,11 @@ export default function BrettspielOMatPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-    Brettspiel-O-Mat
-  </h1>
-  <p className="text-gray-600 transform rotate-1 font-body text-base">
-    Beantworte 6 kurze Fragen und finde dein perfektes Brettspiel.
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
+            Brettspiel-O-Mat
+          </h1>
+          <p className="text-gray-600 transform rotate-1 font-body text-base">
+            Beantworte 6 kurze Fragen und finde dein perfektes Brettspiel.
           </p>
         </motion.div>
 
