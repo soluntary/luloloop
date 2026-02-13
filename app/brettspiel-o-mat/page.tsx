@@ -20,8 +20,7 @@ import {
   FaRedo,
   FaChevronDown,
 } from "react-icons/fa"
-import { GiPartyPopper } from "react-icons/gi"
-import { GiMeeple, GiCardRandom, GiPuzzle, GiSwordClash, GiTreasureMap } from "react-icons/gi"
+import { GiTreasureMap } from "react-icons/gi"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -117,16 +116,20 @@ const QUESTIONS = [
   {
     id: "categories",
     title: "Welche Themen interessieren dich?",
-    subtitle: "Wähle ein oder mehrere Genres (optional)",
+    subtitle: "Wähle ein oder mehrere Themen aus",
     icon: GiTreasureMap,
     type: "multi-choice" as const,
     options: [
-      { label: "Strategie", value: "Strategy Games", icon: GiPuzzle },
-      { label: "Abenteuer", value: "Adventure", icon: GiTreasureMap },
-      { label: "Kartenspiel", value: "Card Game", icon: GiCardRandom },
-      { label: "Kampf", value: "Fighting", icon: GiSwordClash },
-      { label: "Party", value: "Party Game", icon: GiPartyPopper },
-      { label: "Kooperativ", value: "Abstract Strategy", icon: GiMeeple },
+      { label: "Fantasie", value: "Fantasy" },
+      { label: "Science-Fiction", value: "Science Fiction" },
+      { label: "Bluffen / Deduktion", value: "Bluffing,Deduction" },
+      { label: "Mittelalter", value: "Medieval" },
+      { label: "Wirtschaft / Handel", value: "Economic,Negotiation" },
+      { label: "Natur / Tiere", value: "Animals,Environmental" },
+      { label: "Geschichte", value: "Ancient,Civilization" },
+      { label: "Krimi", value: "Murder,Mystery,Spies" },
+      { label: "Horror", value: "Horror,Zombies" },
+      { label: "Humor", value: "Humor,Party Game" },
     ],
     defaultValue: [],
     weight: 1,
@@ -219,24 +222,32 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     totalScore += ageWeight * 20
   }
 
-  // 5. Categories match (weight: 1)
-  const selectedCategories: string[] = answers.categories || []
+  // 5. Categories/themes match (weight: 1)
+  // Each selected theme has comma-separated keywords (e.g. "Bluffing,Deduction")
+  // We match against both game.categories and game.mechanics
+  const selectedThemes: string[] = answers.categories || []
   const categoryWeight = QUESTIONS.find((q) => q.id === "categories")!.weight
   maxScore += categoryWeight * 100
-  if (selectedCategories.length === 0) {
+  if (selectedThemes.length === 0) {
     totalScore += categoryWeight * 100 // no filter = all match
-  } else if (game.categories) {
-    const matches = selectedCategories.filter((cat) =>
-      game.categories.some((gc) => gc.toLowerCase().includes(cat.toLowerCase()) || cat.toLowerCase().includes(gc.toLowerCase()))
-    )
-    if (matches.length > 0) {
-      totalScore += categoryWeight * (100 * (matches.length / selectedCategories.length))
-      reasons.push(`Passt zu: ${matches.join(", ")}`)
+  } else {
+    const gameTerms = [...(game.categories || []), ...(game.mechanics || [])].map((t) => t.toLowerCase())
+    const matchedLabels: string[] = []
+    const themeOptions = QUESTIONS.find((q) => q.id === "categories")?.options as { label: string; value: string }[] | undefined
+    for (const themeValue of selectedThemes) {
+      const keywords = themeValue.split(",").map((k) => k.trim().toLowerCase())
+      const hit = keywords.some((kw) => gameTerms.some((gt) => gt.includes(kw) || kw.includes(gt)))
+      if (hit) {
+        const label = themeOptions?.find((o) => o.value === themeValue)?.label || themeValue
+        matchedLabels.push(label)
+      }
+    }
+    if (matchedLabels.length > 0) {
+      totalScore += categoryWeight * (100 * (matchedLabels.length / selectedThemes.length))
+      reasons.push(`Thema: ${matchedLabels.join(", ")}`)
     } else {
       totalScore += categoryWeight * 20
     }
-  } else {
-    totalScore += categoryWeight * 30
   }
 
   // 6. Rating match (weight: 0.5)
@@ -337,7 +348,7 @@ function QuestionCard({
   }
 
   if (question.type === "multi-choice") {
-    const q = question as typeof question & { options: { label: string; value: string; icon: any }[] }
+    const q = question as typeof question & { options: { label: string; value: string }[] }
     const selected: string[] = value || []
     return (
       <div className="flex flex-col gap-6">
@@ -350,31 +361,37 @@ function QuestionCard({
             <p className="text-sm text-gray-500">{question.subtitle}</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {q.options.map((opt) => {
             const isSelected = selected.includes(opt.value)
-            const OptIcon = opt.icon
             return (
-              <button
+              <label
                 key={opt.value}
-                onClick={() => {
-                  if (isSelected) {
-                    onChange(selected.filter((v) => v !== opt.value))
-                  } else {
-                    onChange([...selected, opt.value])
-                  }
-                }}
-                className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-4 text-sm font-medium transition-all ${isSelected
+                className={`flex cursor-pointer items-center gap-2.5 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all select-none ${isSelected
                   ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
                   : "border-gray-200 bg-white text-gray-600 hover:border-teal-200 hover:bg-teal-50/50"
                   }`}
               >
-                <OptIcon className="h-5 w-5" />
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => {
+                    if (isSelected) {
+                      onChange(selected.filter((v) => v !== opt.value))
+                    } else {
+                      onChange([...selected, opt.value])
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-gray-300 text-teal-600 accent-teal-600"
+                />
                 {opt.label}
-              </button>
+              </label>
             )
           })}
         </div>
+        {selected.length > 0 && (
+          <p className="text-xs text-teal-600">{selected.length} Thema{selected.length > 1 ? "en" : ""} ausgewählt</p>
+        )}
       </div>
     )
   }
