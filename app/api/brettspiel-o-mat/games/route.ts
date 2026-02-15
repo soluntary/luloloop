@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
 
-// Top-rated and popular board games from BGG (curated list of ~100 well-known games)
-// These IDs rarely change and cover a wide range of genres, complexities, and player counts
+// Top-rated and popular board games from BGG - curated list covering many genres
 const TOP_GAME_IDS = [
   // Top Strategy
   174430, 167791, 169786, 187645, 12333, 28720, 31260, 120677, 173346, 162886,
@@ -11,19 +9,19 @@ const TOP_GAME_IDS = [
   // Party / Light
   128882, 178210, 181304, 205637, 252861, 291457, 341169, 370591, 2651, 41114,
   // Cooperative
-  161936, 169786, 224517, 205059, 244521, 291859, 285967, 233078, 126163, 180263,
+  161936, 224517, 205059, 244521, 291859, 285967, 233078, 126163, 180263,
   // Economic / Trading
   3076, 35677, 28143, 102794, 96848, 110327, 198994, 233867, 276025, 342942,
   // Adventure / Thematic
-  164153, 205637, 237182, 312484, 291457, 199792, 15987, 155426, 175914, 182028,
+  164153, 237182, 312484, 199792, 15987, 155426, 175914, 182028,
   // War / Conflict
-  12493, 2651, 24480, 42, 3076, 73439, 187645, 121921, 161936, 164928,
+  12493, 24480, 42, 73439, 121921, 164928,
   // Card Games
-  68448, 150376, 170042, 199792, 244522, 266810, 312484, 40692, 131835, 173064,
+  150376, 170042, 244522, 266810, 40692, 131835, 173064,
   // Classics & Modern Classics
-  822, 9209, 521, 2453, 5, 45, 30549, 36218, 39856, 54043,
+  822, 9209, 521, 2453, 5, 45, 39856, 54043,
   // Newer / Trending (2022-2025)
-  342942, 324856, 370591, 341169, 366013, 359871, 383607, 381983, 356123, 365717,
+  366013, 359871, 383607, 381983, 356123, 365717,
 ]
 
 // Deduplicate IDs
@@ -38,99 +36,14 @@ export const maxDuration = 30 // Allow up to 30s for BGG API calls
 
 export async function GET() {
   try {
-    // 1. Load local games from DB first (always available)
-    const localGames = await loadLocalGames()
-
-    // 2. Try to load BGG games (may fail/timeout)
-    let bggGames: any[] = []
-    try {
-      bggGames = await loadBGGGames()
-    } catch (err) {
-      console.error("BGG loading failed, using local games only:", err)
-    }
-
-    // 3. Combine: local games first, then BGG games (deduplicated by title)
-    const localTitles = new Set(localGames.map((g) => g.title.toLowerCase()))
-    const uniqueBggGames = bggGames.filter((g) => !localTitles.has(g.title.toLowerCase()))
-    const allGames = [...localGames, ...uniqueBggGames]
-
+    const games = await loadBGGGames()
     return NextResponse.json({
-      games: allGames,
-      stats: { total: allGames.length, local: localGames.length, bgg: uniqueBggGames.length },
+      games,
+      stats: { total: games.length },
     })
   } catch (error) {
-    console.error("Error loading games:", error)
+    console.error("Error loading BGG games:", error)
     return NextResponse.json({ games: [], stats: { total: 0 } })
-  }
-}
-
-async function loadLocalGames(): Promise<any[]> {
-  try {
-    const supabase = await createClient()
-    const { data: games, error } = await supabase
-      .from("games")
-      .select("id, title, description, image, publisher, category, type, style, players, min_players, max_players, play_time, duration, age, age_rating, year_published")
-
-    if (error || !games) return []
-
-    return games.map((game) => {
-      const categories = game.category
-        ? game.category.split(",").map((c: string) => c.trim()).filter(Boolean)
-        : []
-
-      const mechanics = [
-        ...(game.type ? game.type.split(",").map((t: string) => t.trim()).filter(Boolean) : []),
-        ...(game.style ? game.style.split(",").map((s: string) => s.trim()).filter(Boolean) : []),
-      ]
-
-      let minPlayers = game.min_players || 2
-      let maxPlayers = game.max_players || 4
-      if (!game.min_players && game.players) {
-        const match = game.players.match(/(\d+)\s*(?:bis|-)\s*(\d+)/)
-        if (match) {
-          minPlayers = parseInt(match[1], 10)
-          maxPlayers = parseInt(match[2], 10)
-        }
-      }
-
-      let playingTime = game.play_time || 60
-      if (!game.play_time && game.duration) {
-        const match = game.duration.match(/(\d+)(?:\s*-\s*(\d+))?/)
-        if (match) {
-          playingTime = match[2]
-            ? Math.round((parseInt(match[1], 10) + parseInt(match[2], 10)) / 2)
-            : parseInt(match[1], 10)
-        }
-      }
-
-      let age = 10
-      if (game.age) {
-        const ageMatch = game.age.match(/(\d+)/)
-        if (ageMatch) age = parseInt(ageMatch[1], 10)
-      }
-
-      return {
-        id: game.id,
-        title: game.title || "Unbekannt",
-        description: game.description || "",
-        image: game.image || "",
-        thumbnail: game.image || "",
-        categories,
-        mechanics,
-        complexity: 0,
-        min_players: minPlayers,
-        max_players: maxPlayers,
-        playing_time: playingTime,
-        min_playtime: playingTime,
-        max_playtime: playingTime,
-        age,
-        rating: 7,
-        year_published: game.year_published || undefined,
-        source: "local" as const,
-      }
-    })
-  } catch {
-    return []
   }
 }
 
