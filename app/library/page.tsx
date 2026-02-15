@@ -2368,7 +2368,6 @@ function LibraryContent() {
                     </h3>
                     <p className="text-xs text-gray-600 font-body md:text-xs">
                       {selectedGame.publisher}
-                      {selectedGame.year_published && ` (${selectedGame.year_published})`}
                     </p>
                   </div>
 
@@ -2422,18 +2421,10 @@ function LibraryContent() {
                   )}
 
                   <div className="border-t pt-3 pb-6 space-y-2.5">
-                    {selectedGame.year_published != null && selectedGame.year_published !== 0 && (
-                      <div className="flex justify-between text-xs md:text-sm">
-                        <span className="font-body text-xs font-semibold">Erscheinungsjahr:</span>
-                        <span className="font-body text-xs">{selectedGame.year_published}</span>
-                      </div>
-                    )}
-                    {!selectedGame.year_published && (
-                      <div className="flex justify-between text-xs md:text-sm">
-                        <span className="font-body text-xs font-semibold">Erscheinungsjahr:</span>
-                        <span className="font-body text-xs text-gray-400">Nicht angegeben</span>
-                      </div>
-                    )}
+                    <div className="flex justify-between text-xs md:text-sm">
+                      <span className="font-body text-xs font-semibold">Erscheinungsjahr:</span>
+                      <span className="font-body text-xs">{selectedGame.year_published || "Nicht angegeben"}</span>
+                    </div>
                     <div className="flex justify-between text-xs md:text-sm">
                       <span className="font-body text-xs font-semibold">Spieleranzahl:</span>
                       <span className="font-body text-xs">{selectedGame.players}</span>
