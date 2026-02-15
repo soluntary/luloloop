@@ -122,7 +122,6 @@ const QUESTIONS = [
     options: [
       { label: "Aktions- und Reaktionsspiel", value: "Action / Dexterity" },
       { label: "Brettspiel", value: "Board Game" },
-      { label: "Erweiterung", value: "Expansion" },
       { label: "Escape-Spiel", value: "Escape Room,Puzzle" },
       { label: "Geschicklichkeitsspiel", value: "Action / Dexterity,Flicking" },
       { label: "Glücksspiel", value: "Dice,Press Your Luck" },
