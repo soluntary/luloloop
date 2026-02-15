@@ -25,6 +25,7 @@ import {
   FaEyeSlash,
   FaCheck,
   FaTags,
+  FaEllipsisH,
 } from "react-icons/fa"
 import { MdOutlineManageSearch } from "react-icons/md"
 import { GiReceiveMoney, GiBackForth } from "react-icons/gi"
@@ -45,6 +46,7 @@ import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { de } from "date-fns/locale"
 import { Calendar } from "@/components/ui/calendar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { FiFilter } from "react-icons/fi" // Import FiFilter
@@ -2450,51 +2452,41 @@ function LibraryContent() {
                     )}
                   </div>
 
-                  <div className="space-y-2 mb-6">
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleEditGame(selectedGame)}
-                        className="flex-1 h-8 text-xs bg-blue-400 hover:bg-blue-500 text-white font-handwritten"
-                        disabled={!databaseConnected}
-                      >
-                        <FaEdit className="w-3 h-3 mr-1" />
-                        Bearbeiten
-                      </Button>
-                      <Button
-                        onClick={() => setIsTrackingDialogOpen(true)}
-                        className="flex-1 h-8 text-xs bg-purple-400 hover:bg-purple-500 text-white font-handwritten"
-                        disabled={!databaseConnected}
-                      >
-                        <FaTags className="w-3 h-3 mr-1" />
-                        Status
-                      </Button>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleOfferGame(selectedGame, "lend")}
-                        className="flex-1 h-8 text-xs bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
-                        disabled={!databaseConnected}
-                      >
-                        <TbExchange className="w-3 h-3 mr-1" />
-                        Vermieten
-                      </Button>
-                      <Button
-                        onClick={() => handleOfferGame(selectedGame, "trade")}
-                        className="flex-1 h-8 text-xs bg-orange-400 hover:bg-orange-500 text-white font-handwritten"
-                        disabled={!databaseConnected}
-                      >
-                        <GiBackForth className="w-3 h-3 mr-1" />
-                        Tauschen
-                      </Button>
-                      <Button
-                        onClick={() => handleOfferGame(selectedGame, "sell")}
-                        className="flex-1 h-8 text-xs bg-pink-400 hover:bg-pink-500 text-white font-handwritten"
-                        disabled={!databaseConnected}
-                      >
-                        <GiReceiveMoney className="w-3 h-3 mr-1" />
-                        Verkaufen
-                      </Button>
-                    </div>
+                  <div className="mb-6">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          className="w-full h-9 text-xs bg-blue-500 hover:bg-blue-600 text-white font-handwritten"
+                          disabled={!databaseConnected}
+                        >
+                          <FaEllipsisH className="w-3 h-3 mr-2" />
+                          Aktionen
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="center" className="w-56">
+                        <DropdownMenuItem onClick={() => handleEditGame(selectedGame)} className="text-xs font-handwritten cursor-pointer">
+                          <FaEdit className="w-3.5 h-3.5 mr-2 text-blue-500" />
+                          Bearbeiten
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setIsTrackingDialogOpen(true)} className="text-xs font-handwritten cursor-pointer">
+                          <FaTags className="w-3.5 h-3.5 mr-2 text-purple-500" />
+                          Status
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "lend")} className="text-xs font-handwritten cursor-pointer">
+                          <TbExchange className="w-3.5 h-3.5 mr-2 text-teal-500" />
+                          Vermieten
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "trade")} className="text-xs font-handwritten cursor-pointer">
+                          <GiBackForth className="w-3.5 h-3.5 mr-2 text-orange-500" />
+                          Tauschen
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "sell")} className="text-xs font-handwritten cursor-pointer">
+                          <GiReceiveMoney className="w-3.5 h-3.5 mr-2 text-pink-500" />
+                          Verkaufen
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
 
                   <Button
