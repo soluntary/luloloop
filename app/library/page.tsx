@@ -1483,18 +1483,21 @@ function LibraryContent() {
 
                       {/* Erscheinungsjahr */}
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Erscheinungsjahr</Label>
+                        <Label className="text-xs text-gray-700 font-medium">
+                          Erscheinungsjahr
+                        </Label>
                         <Input
                           type="number"
-                          min="1900"
+                          min={1900}
                           max={new Date().getFullYear()}
                           value={newGameYearPublished}
                           onChange={(e) => setNewGameYearPublished(e.target.value)}
                           placeholder="z.B. 2023"
-                          className="font-body border-2 border-blue-200 bg-white/80 text-xs"
+                          className="mt-1 font-body border-2 border-blue-200 bg-white/80 text-xs"
                         />
                       </div>
 
+                      {/* Sprache */}
                       <div>
                         <Label className="text-xs text-gray-700 font-medium">Sprache *</Label>
                         <Select value={newGameLanguage} onValueChange={setNewGameLanguage} required>
@@ -2669,15 +2672,17 @@ function LibraryContent() {
 
                   {/* Erscheinungsjahr */}
                   <div>
-                    <Label className="text-xs text-gray-700 font-medium">Erscheinungsjahr</Label>
+                    <Label className="text-xs text-gray-700 font-medium">
+                      Erscheinungsjahr
+                    </Label>
                     <Input
                       type="number"
-                      min="1900"
+                      min={1900}
                       max={new Date().getFullYear()}
                       value={editGameYearPublished}
                       onChange={(e) => setEditGameYearPublished(e.target.value)}
                       placeholder="z.B. 2023"
-                      className="font-body border-2 border-blue-200 bg-white/80 text-xs"
+                      className="mt-1 font-body border-2 border-blue-200 bg-white/80 text-xs"
                     />
                   </div>
 
