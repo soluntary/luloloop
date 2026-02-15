@@ -2048,7 +2048,7 @@ function LibraryContent() {
                       setSelectedGames(new Set())
                     }}
                     variant={isSelectionMode ? "outline" : "outline"}
-                    className="border-amber-400 text-white-600 hover:bg-white font-handwritten bg-transparent text-xs"
+                    className="border-amber-400 text-white-600 hover:bg-white bg-transparent text-xs"
                   >
                     {isSelectionMode ? "Auswahl beenden" : "Spiele auswählen"}
                   </Button>
@@ -2058,7 +2058,7 @@ function LibraryContent() {
                       <Button
                         onClick={selectAllGames}
                         variant="outline"
-                        className="font-handwritten bg-orange/80 hover:bg-white border-amber-400 text-xs"
+                        className="bg-orange/80 hover:bg-white border-amber-400 text-xs"
                       >
                         <span className="hidden sm:inline">
                           {selectedGames.size === filteredGames.length ? "Alle abwählen" : "Alle auswählen"}
@@ -2071,7 +2071,7 @@ function LibraryContent() {
                       {selectedGames.size > 0 && (
                         <Button
                           onClick={handleBulkDelete}
-                          className="bg-red-400 hover:bg-white-500 text-white font-handwritten text-xs"
+                          className="bg-red-400 hover:bg-white-500 text-white text-xs"
                         >
                           <FaTrash className="w-4 h-4 mr-2" />
                           {selectedGames.size} Spiel(e) löschen
@@ -2109,7 +2109,7 @@ function LibraryContent() {
                             <div className="w-20 h-28 md:w-24 md:h-32 bg-gradient-to-br from-teal-100 to-teal-200 rounded-t-lg shadow-lg border-2 border-dashed border-teal-400 overflow-hidden relative flex items-center justify-center">
                               <div className="text-center">
                                 <FaPlus className="w-6 md:w-8 md:h-8 text-teal-600 mx-auto mb-1" />
-                                <p className="text-xs text-teal-700 font-bold font-handwritten px-1">
+                                <p className="text-xs text-teal-700 font-bold px-1">
                                   <span className="hidden sm:inline text-xs font-normal">Spiel hinzufügen</span>
                                   <span className="sm:hidden">Hinzufügen</span>
                                 </p>
@@ -2169,7 +2169,7 @@ function LibraryContent() {
                                   className="w-full h-full object-cover"
                                 />
                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-1">
-                                  <p className="text-white text-xs text-center leading-tight font-handwritten font-normal">
+                                  <p className="text-white text-xs text-center leading-tight font-normal">
                                     {game.title}
                                   </p>
                                 </div>
