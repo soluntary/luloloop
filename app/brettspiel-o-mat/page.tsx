@@ -583,6 +583,7 @@ export default function BrettspielOMatPage() {
   const [results, setResults] = useState<MatchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [showAll, setShowAll] = useState(false)
+  const [bestMatchExpanded, setBestMatchExpanded] = useState(false)
 
   // Load games from DB + BGG
   const loadGames = useCallback(async () => {
@@ -771,15 +772,40 @@ export default function BrettspielOMatPage() {
                           <div className="mt-1 text-3xl font-bold text-teal-600">
                             {results[0].score}%
                           </div>
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {results[0].reasons.slice(0, 3).map((reason, i) => (
-                              <Badge key={i} className="bg-teal-100 text-[10px] text-teal-700 border-0">
-                                {reason}
-                              </Badge>
-                            ))}
                           </div>
-                        </div>
                       </div>
+
+                      {/* Warum passt es? - collapsible like other cards */}
+                      {results[0].reasons.length > 0 && (
+                        <div className="mt-4 border-t border-teal-100">
+                          <button
+                            onClick={() => setBestMatchExpanded(!bestMatchExpanded)}
+                            className="flex w-full items-center justify-center gap-1 py-2 text-xs text-teal-500 hover:text-teal-700 transition-colors"
+                          >
+                            {bestMatchExpanded ? "Weniger" : "Warum passt es?"}
+                            <FaChevronDown className={`h-2.5 w-2.5 transition-transform ${bestMatchExpanded ? "rotate-180" : ""}`} />
+                          </button>
+                          <AnimatePresence>
+                            {bestMatchExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="overflow-hidden px-1 pb-3"
+                              >
+                                <div className="flex flex-wrap gap-1.5">
+                                  {results[0].reasons.map((reason, i) => (
+                                    <Badge key={i} className="bg-teal-100 text-[10px] text-teal-700 border-0">
+                                      {reason}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 
