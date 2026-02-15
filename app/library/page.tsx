@@ -2128,8 +2128,8 @@ function LibraryContent() {
                                 <div className="absolute top-1 right-1 z-10">
                                   <div
                                     className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center ${selectedGames.has(game.id)
-                                        ? "bg-teal-500 border-teal-500"
-                                        : "bg-white border-gray-300"
+                                      ? "bg-teal-500 border-teal-500"
+                                      : "bg-white border-gray-300"
                                       }`}
                                   >
                                     {selectedGames.has(game.id) && (
@@ -2144,8 +2144,8 @@ function LibraryContent() {
                                 <div className="absolute top-1 left-1 z-10">
                                   <div
                                     className={`w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm ${!game.tracking_info?.status || game.tracking_info.status === "available"
-                                        ? "bg-green-500"
-                                        : "bg-red-500"
+                                      ? "bg-green-500"
+                                      : "bg-red-500"
                                       }`}
                                     title={
                                       !game.tracking_info?.status || game.tracking_info.status === "available"
@@ -2199,8 +2199,8 @@ function LibraryContent() {
                                   <div className="absolute top-1 right-1 z-10">
                                     <div
                                       className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedGames.has(game.id)
-                                          ? "bg-teal-500 border-teal-500"
-                                          : "bg-white border-gray-300"
+                                        ? "bg-teal-500 border-teal-500"
+                                        : "bg-white border-gray-300"
                                         }`}
                                     >
                                       {selectedGames.has(game.id) && <FaCheck className="w-4 h-4 text-white" />}
@@ -2212,8 +2212,8 @@ function LibraryContent() {
                                   <div className="absolute top-1 left-1 z-10">
                                     <div
                                       className={`w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm ${!game.tracking_info?.status || game.tracking_info.status === "available"
-                                          ? "bg-green-500"
-                                          : "bg-red-500"
+                                        ? "bg-green-500"
+                                        : "bg-red-500"
                                         }`}
                                       title={
                                         !game.tracking_info?.status || game.tracking_info.status === "available"
@@ -2338,13 +2338,6 @@ function LibraryContent() {
                       <img
                         src={selectedGame.image || "/images/ludoloop-game-placeholder.png"}
                         className="w-full h-full object-cover"
-                      />
-                      {/* Game Title Overlay for Detail View */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-2">
-                        <p className="text-white text-xs font-bold text-center leading-tight font-handwritten">
-                          {selectedGame.title}
-                        </p>
-                      </div>
                     </div>
 
                     <h3 className="text-sm font-bold text-gray-800 font-handwritten md:text-xs">
