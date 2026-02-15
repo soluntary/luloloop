@@ -1482,7 +1482,7 @@ function LibraryContent() {
                       </div>
 
                       {/* Erscheinungsjahr */}
-                      <div>
+                      <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-3">
                         <Label className="text-xs text-gray-700 font-medium">
                           Erscheinungsjahr
                         </Label>
