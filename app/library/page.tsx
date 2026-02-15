@@ -25,6 +25,7 @@ import {
   FaEyeSlash,
   FaCheck,
   FaTags,
+  FaEllipsisH,
 } from "react-icons/fa"
 import { MdOutlineManageSearch } from "react-icons/md"
 import { GiReceiveMoney, GiBackForth } from "react-icons/gi"
@@ -46,7 +47,7 @@ import { format } from "date-fns"
 import { de } from "date-fns/locale"
 import { Calendar } from "@/components/ui/calendar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { CalendarIcon, MoreHorizontal, Pencil, Tag, ArrowLeftRight, HandCoins, Repeat } from "lucide-react"
+import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { FiFilter } from "react-icons/fi" // Import FiFilter
 
@@ -2455,34 +2456,34 @@ function LibraryContent() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
-                          className="w-full h-9 text-xs bg-teal-500 hover:bg-teal-600 text-white font-handwritten"
+                          className="w-full h-9 text-xs bg-blue-500 hover:bg-blue-600 text-white font-handwritten"
                           disabled={!databaseConnected}
                         >
-                          <MoreHorizontal className="w-4 h-4 mr-2" />
+                          <FaEllipsisH className="w-3 h-3 mr-2" />
                           Aktionen
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="center" className="w-56">
-                        <DropdownMenuItem onClick={() => handleEditGame(selectedGame)} className="cursor-pointer">
-                          <Pencil className="w-4 h-4 mr-2 text-blue-500" />
-                          <span className="text-xs">Bearbeiten</span>
+                        <DropdownMenuItem onClick={() => handleEditGame(selectedGame)} className="text-xs font-handwritten cursor-pointer">
+                          <FaEdit className="w-3.5 h-3.5 mr-2 text-blue-500" />
+                          Bearbeiten
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setIsTrackingDialogOpen(true)} className="cursor-pointer">
-                          <Tag className="w-4 h-4 mr-2 text-purple-500" />
-                          <span className="text-xs">Status</span>
+                        <DropdownMenuItem onClick={() => setIsTrackingDialogOpen(true)} className="text-xs font-handwritten cursor-pointer">
+                          <FaTags className="w-3.5 h-3.5 mr-2 text-purple-500" />
+                          Status
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "lend")} className="cursor-pointer">
-                          <ArrowLeftRight className="w-4 h-4 mr-2 text-teal-500" />
-                          <span className="text-xs">Vermieten</span>
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "lend")} className="text-xs font-handwritten cursor-pointer">
+                          <TbExchange className="w-3.5 h-3.5 mr-2 text-teal-500" />
+                          Vermieten
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "trade")} className="cursor-pointer">
-                          <Repeat className="w-4 h-4 mr-2 text-orange-500" />
-                          <span className="text-xs">Tauschen</span>
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "trade")} className="text-xs font-handwritten cursor-pointer">
+                          <GiBackForth className="w-3.5 h-3.5 mr-2 text-orange-500" />
+                          Tauschen
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "sell")} className="cursor-pointer">
-                          <HandCoins className="w-4 h-4 mr-2 text-pink-500" />
-                          <span className="text-xs">Verkaufen</span>
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "sell")} className="text-xs font-handwritten cursor-pointer">
+                          <GiReceiveMoney className="w-3.5 h-3.5 mr-2 text-pink-500" />
+                          Verkaufen
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
