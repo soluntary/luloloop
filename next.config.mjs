@@ -9,7 +9,9 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@supabase/supabase-js'],
   },
-  turbopack: {},
+  turbopack: {
+    // Force rebuild
+  },
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
