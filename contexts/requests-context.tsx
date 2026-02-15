@@ -1,6 +1,6 @@
 "use client"
 // force rebuild v2
-import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "./auth-context"
 import { useFriends } from "./friends-context"
@@ -93,19 +93,14 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   const [gameInteractionRequests, setGameInteractionRequests] = useState<GameInteractionRequest[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
-  if (!supabaseRef.current) {
-    try {
-      supabaseRef.current = createClient()
-    } catch (error) {
-      console.error("Failed to initialize Supabase client in RequestsProvider:", error)
-    }
-  }
-  const supabase = supabaseRef.current
+  const getSupabase = useCallback(() => {
+    return createClient()
+  }, [])
 
   // Load shelf access requests
   const loadShelfAccessRequests = useCallback(async () => {
-    if (!user || !supabase) return
+    if (!user) return
+    const supabase = getSupabase()
 
     if (checkGlobalRateLimit()) {
       // removed debug Requests: Skipping shelf access requests load due to rate limiting")
@@ -146,7 +141,8 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
 
   // Load game interaction requests
   const loadGameInteractionRequests = useCallback(async () => {
-    if (!user || !supabase) return
+    if (!user) return
+    const supabase = getSupabase()
 
     if (checkGlobalRateLimit()) {
       return
@@ -189,6 +185,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   // Send shelf access request
   const sendShelfAccessRequest = async (ownerId: string, message?: string) => {
     if (!user) throw new Error("User not authenticated")
+    const supabase = getSupabase()
 
     try {
       await withRateLimit(async () => {
@@ -236,6 +233,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   // Respond to shelf access request
   const respondToShelfAccessRequest = async (requestId: string, status: "approved" | "denied") => {
     if (!user) throw new Error("User not authenticated")
+    const supabase = getSupabase()
 
     try {
       await withRateLimit(async () => {
@@ -297,6 +295,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
     rentalDurationDays?: number
   }) => {
     if (!user) throw new Error("User not authenticated")
+    const supabase = getSupabase()
 
     try {
       await withRateLimit(async () => {
@@ -358,6 +357,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   // Respond to game interaction request
   const respondToGameInteractionRequest = async (requestId: string, status: "approved" | "denied") => {
     if (!user) throw new Error("User not authenticated")
+    const supabase = getSupabase()
 
     try {
       await withRateLimit(async () => {
@@ -480,7 +480,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
 
   // Load data when user changes
   useEffect(() => {
-    if (user && supabase) {
+    if (user) {
       refreshRequests()
     }
   }, [user, refreshRequests])
