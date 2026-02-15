@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "./auth-context"
 import { useFriends } from "./friends-context"
@@ -93,16 +93,15 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   const [gameInteractionRequests, setGameInteractionRequests] = useState<GameInteractionRequest[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
-
-  useEffect(() => {
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  if (!supabaseRef.current) {
     try {
-      const client = createClient()
-      setSupabase(client)
+      supabaseRef.current = createClient()
     } catch (error) {
-      console.error(" Failed to initialize Supabase client in RequestsProvider:", error)
+      console.error("Failed to initialize Supabase client in RequestsProvider:", error)
     }
-  }, [])
+  }
+  const supabase = supabaseRef.current
 
   // Load shelf access requests
   const loadShelfAccessRequests = useCallback(async () => {
@@ -143,7 +142,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
       console.error("Error loading shelf access requests:", err)
       setError("Fehler beim Laden der Spielregal-Anfragen")
     }
-  }, [user, supabase])
+  }, [user])
 
   // Load game interaction requests
   const loadGameInteractionRequests = useCallback(async () => {
@@ -185,7 +184,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
       console.error("Error loading game interaction requests:", err)
       setError("Fehler beim Laden der Spiel-Anfragen")
     }
-  }, [user, supabase])
+  }, [user])
 
   // Send shelf access request
   const sendShelfAccessRequest = async (ownerId: string, message?: string) => {
@@ -479,12 +478,12 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
     }
   }, [loadShelfAccessRequests, loadGameInteractionRequests])
 
-  // Load data when user or supabase changes
+  // Load data when user changes
   useEffect(() => {
     if (user && supabase) {
       refreshRequests()
     }
-  }, [user, supabase, refreshRequests])
+  }, [user, refreshRequests])
 
   const value: RequestsContextType = {
     shelfAccessRequests,
