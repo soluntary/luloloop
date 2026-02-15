@@ -319,6 +319,19 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
 
   const score = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0
 
+  // Fallback: if no reasons were generated but score is decent, add basic info
+  if (reasons.length === 0 && score >= 30) {
+    if (game.min_players && game.max_players) {
+      reasons.push(`${game.min_players}-${game.max_players} Spieler`)
+    }
+    if (gameDuration > 0) {
+      reasons.push(`~${gameDuration} Min. Spieldauer`)
+    }
+    if (game.rating >= 6) {
+      reasons.push(`Bewertung: ${game.rating.toFixed(1)}/10`)
+    }
+  }
+
   return { game, score, reasons }
 }
 
@@ -452,8 +465,8 @@ function QuestionCard({
 
 function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
   const [expanded, setExpanded] = useState(false)
-  const scoreColor = result.score >= 80 ? "text-green-600" : result.score >= 60 ? "text-teal-600" : result.score >= 40 ? "text-amber-600" : "text-gray-500"
-  const barColor = result.score >= 80 ? "bg-green-500" : result.score >= 60 ? "bg-teal-500" : result.score >= 40 ? "bg-amber-500" : "bg-gray-400"
+  const scoreColor = result.score >= 80 ? "text-green-600" : result.score >= 50 ? "text-orange-500" : "text-red-500"
+  const barColor = result.score >= 80 ? "bg-green-500" : result.score >= 50 ? "bg-orange-400" : "bg-red-500"
 
   return (
     <motion.div
@@ -795,43 +808,54 @@ export default function BrettspielOMatPage() {
                           <h2 className="truncate text-xl font-bold text-gray-900">
                             {results[0].game.title}
                           </h2>
-                          <div className="mt-1 text-3xl font-bold text-teal-600">
+                          <div className={`mt-1 text-3xl font-bold ${results[0].score >= 80 ? "text-green-600" : results[0].score >= 50 ? "text-orange-500" : "text-red-500"}`}>
                             {results[0].score}%
                           </div>
+                          {/* Score bar with traffic light color */}
+                          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                            <motion.div
+                              className={`h-full rounded-full ${results[0].score >= 80 ? "bg-green-500" : results[0].score >= 50 ? "bg-orange-400" : "bg-red-500"}`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${results[0].score}%` }}
+                              transition={{ delay: 0.3, duration: 0.6 }}
+                            />
                           </div>
+                        </div>
                       </div>
 
-                      {/* Warum passt es? - collapsible like other cards */}
-                      {results[0].reasons.length > 0 && (
-                        <div className="mt-4 border-t border-teal-100">
-                          <button
-                            onClick={() => setBestMatchExpanded(!bestMatchExpanded)}
-                            className="flex w-full items-center justify-center gap-1 py-2 text-xs text-teal-500 hover:text-teal-700 transition-colors"
-                          >
-                            {bestMatchExpanded ? "Weniger" : "Warum passt es?"}
-                            <FaChevronDown className={`h-2.5 w-2.5 transition-transform ${bestMatchExpanded ? "rotate-180" : ""}`} />
-                          </button>
-                          <AnimatePresence>
-                            {bestMatchExpanded && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="overflow-hidden px-1 pb-3"
-                              >
-                                <div className="flex flex-wrap gap-1.5">
-                                  {results[0].reasons.map((reason, i) => (
-                                    <Badge key={i} className="bg-teal-100 text-[10px] text-teal-700 border-0">
-                                      {reason}
-                                    </Badge>
-                                  ))}
-                                </div>
+                      {/* Warum passt es? - always shown for best match */}
+                      <div className="mt-4 border-t border-teal-100">
+                        <button
+                          onClick={() => setBestMatchExpanded(!bestMatchExpanded)}
+                          className="flex w-full items-center justify-center gap-1 py-2 text-xs text-teal-500 hover:text-teal-700 transition-colors"
+                        >
+                          {bestMatchExpanded ? "Weniger" : "Warum passt es?"}
+                          <FaChevronDown className={`h-2.5 w-2.5 transition-transform ${bestMatchExpanded ? "rotate-180" : ""}`} />
+                        </button>
+                        <AnimatePresence>
+                          {bestMatchExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden px-1 pb-3"
+                            >
+                              <div className="flex flex-wrap gap-1.5">
+                                {(results[0].reasons.length > 0 ? results[0].reasons : [
+                                  `${results[0].game.min_players}-${results[0].game.max_players} Spieler`,
+                                  results[0].game.playing_time > 0 ? `~${results[0].game.playing_time} Min.` : null,
+                                  results[0].game.rating > 0 ? `Bewertung: ${results[0].game.rating.toFixed(1)}/10` : null,
+                                ].filter(Boolean) as string[]).map((reason, i) => (
+                                  <Badge key={i} className="bg-teal-100 text-[10px] text-teal-700 border-0">
+                                    {reason}
+                                  </Badge>
+                                ))}
+                              </div>
                               </motion.div>
                             )}
                           </AnimatePresence>
                         </div>
-                      )}
                     </CardContent>
                   </Card>
 
