@@ -1,5 +1,5 @@
 "use client"
-
+// force rebuild v2
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "./auth-context"
@@ -93,20 +93,14 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   const [gameInteractionRequests, setGameInteractionRequests] = useState<GameInteractionRequest[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
-
-  useEffect(() => {
-    try {
-      const client = createClient()
-      setSupabase(client)
-    } catch (error) {
-      console.error(" Failed to initialize Supabase client in RequestsProvider:", error)
-    }
+  const getSupabase = useCallback(() => {
+    return createClient()
   }, [])
 
   // Load shelf access requests
   const loadShelfAccessRequests = useCallback(async () => {
-    if (!user || !supabase) return
+    if (!user) return
+    const supabase = getSupabase()
 
     if (checkGlobalRateLimit()) {
       // removed debug Requests: Skipping shelf access requests load due to rate limiting")
@@ -143,14 +137,14 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
       console.error("Error loading shelf access requests:", err)
       setError("Fehler beim Laden der Spielregal-Anfragen")
     }
-  }, [user, supabase])
+  }, [user])
 
   // Load game interaction requests
   const loadGameInteractionRequests = useCallback(async () => {
     if (!user) return
+    const supabase = getSupabase()
 
     if (checkGlobalRateLimit()) {
-      // removed debug Requests: Skipping game interaction requests load due to rate limiting")
       return
     }
 
@@ -186,11 +180,12 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
       console.error("Error loading game interaction requests:", err)
       setError("Fehler beim Laden der Spiel-Anfragen")
     }
-  }, [user, supabase])
+  }, [user])
 
   // Send shelf access request
   const sendShelfAccessRequest = async (ownerId: string, message?: string) => {
     if (!user) throw new Error("User not authenticated")
+    const supabase = getSupabase()
 
     try {
       await withRateLimit(async () => {
@@ -238,6 +233,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   // Respond to shelf access request
   const respondToShelfAccessRequest = async (requestId: string, status: "approved" | "denied") => {
     if (!user) throw new Error("User not authenticated")
+    const supabase = getSupabase()
 
     try {
       await withRateLimit(async () => {
@@ -299,6 +295,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
     rentalDurationDays?: number
   }) => {
     if (!user) throw new Error("User not authenticated")
+    const supabase = getSupabase()
 
     try {
       await withRateLimit(async () => {
@@ -360,6 +357,7 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   // Respond to game interaction request
   const respondToGameInteractionRequest = async (requestId: string, status: "approved" | "denied") => {
     if (!user) throw new Error("User not authenticated")
+    const supabase = getSupabase()
 
     try {
       await withRateLimit(async () => {

@@ -1,5 +1,5 @@
 "use client"
-
+// force rebuild v2
 import { Suspense, useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
@@ -25,6 +25,7 @@ import {
   FaEyeSlash,
   FaCheck,
   FaTags,
+  FaEllipsisH,
 } from "react-icons/fa"
 import { MdOutlineManageSearch } from "react-icons/md"
 import { GiReceiveMoney, GiBackForth } from "react-icons/gi"
@@ -45,6 +46,7 @@ import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { de } from "date-fns/locale"
 import { Calendar } from "@/components/ui/calendar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { FiFilter } from "react-icons/fi" // Import FiFilter
@@ -1120,7 +1122,7 @@ function LibraryContent() {
   }
 
   const handleGameSelect = (game: any) => {
-    console.log("[v0] handleGameSelect called with game:", game)
+
 
     setNewGameTitle(game.name)
 
@@ -1322,9 +1324,8 @@ function LibraryContent() {
                 <button
                   type="button"
                   onClick={() => setInputMode("auto")}
-                  className={`flex-1 py-2 px-4 rounded-md font-handwritten transition-all duration-200 text-sm ${
-                    inputMode === "auto" ? "bg-green-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
-                  }`}
+                  className={`flex-1 py-2 px-4 rounded-md font-handwritten transition-all duration-200 text-sm ${inputMode === "auto" ? "bg-green-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
+                    }`}
                 >
                   <MdOutlineManageSearch className="w-4 h-4 inline mr-2" />
                   Automatisch suchen
@@ -1332,9 +1333,8 @@ function LibraryContent() {
                 <button
                   type="button"
                   onClick={() => setInputMode("manual")}
-                  className={`flex-1 py-2 px-4 rounded-md font-handwritten transition-all duration-200 text-sm ${
-                    inputMode === "manual" ? "bg-blue-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
-                  }`}
+                  className={`flex-1 py-2 px-4 rounded-md font-handwritten transition-all duration-200 text-sm ${inputMode === "manual" ? "bg-blue-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
+                    }`}
                 >
                   <FaEdit className="w-4 h-4 inline mr-2" />
                   Manuell eingeben
@@ -2127,11 +2127,10 @@ function LibraryContent() {
                               {isSelectionMode && (
                                 <div className="absolute top-1 right-1 z-10">
                                   <div
-                                    className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center ${
-                                      selectedGames.has(game.id)
+                                    className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center ${selectedGames.has(game.id)
                                         ? "bg-teal-500 border-teal-500"
                                         : "bg-white border-gray-300"
-                                    }`}
+                                      }`}
                                   >
                                     {selectedGames.has(game.id) && (
                                       <FaCheck className="w-3 h-3 md:w-4 md:h-4 text-white" />
@@ -2144,11 +2143,10 @@ function LibraryContent() {
                               {!isSelectionMode && (
                                 <div className="absolute top-1 left-1 z-10">
                                   <div
-                                    className={`w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm ${
-                                      !game.tracking_info?.status || game.tracking_info.status === "available"
+                                    className={`w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm ${!game.tracking_info?.status || game.tracking_info.status === "available"
                                         ? "bg-green-500"
                                         : "bg-red-500"
-                                    }`}
+                                      }`}
                                     title={
                                       !game.tracking_info?.status || game.tracking_info.status === "available"
                                         ? "Verfügbar"
@@ -2161,9 +2159,8 @@ function LibraryContent() {
                               )}
 
                               <div
-                                className={`w-20 h-28 md:w-24 md:h-32 bg-white rounded-t-lg shadow-lg border-2 overflow-hidden relative ${
-                                  selectedGames.has(game.id) ? "border-teal-500" : "border-gray-300"
-                                }`}
+                                className={`w-20 h-28 md:w-24 md:h-32 bg-white rounded-t-lg shadow-lg border-2 overflow-hidden relative ${selectedGames.has(game.id) ? "border-teal-500" : "border-gray-300"
+                                  }`}
                               >
                                 <img
                                   src={game.image || "/images/ludoloop-game-placeholder.png"}
@@ -2201,11 +2198,10 @@ function LibraryContent() {
                                 {isSelectionMode && (
                                   <div className="absolute top-1 right-1 z-10">
                                     <div
-                                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                                        selectedGames.has(game.id)
+                                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedGames.has(game.id)
                                           ? "bg-teal-500 border-teal-500"
                                           : "bg-white border-gray-300"
-                                      }`}
+                                        }`}
                                     >
                                       {selectedGames.has(game.id) && <FaCheck className="w-4 h-4 text-white" />}
                                     </div>
@@ -2215,11 +2211,10 @@ function LibraryContent() {
                                 {!isSelectionMode && (
                                   <div className="absolute top-1 left-1 z-10">
                                     <div
-                                      className={`w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm ${
-                                        !game.tracking_info?.status || game.tracking_info.status === "available"
+                                      className={`w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm ${!game.tracking_info?.status || game.tracking_info.status === "available"
                                           ? "bg-green-500"
                                           : "bg-red-500"
-                                      }`}
+                                        }`}
                                       title={
                                         !game.tracking_info?.status || game.tracking_info.status === "available"
                                           ? "Verfügbar"
@@ -2232,9 +2227,8 @@ function LibraryContent() {
                                 )}
 
                                 <div
-                                  className={`w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 overflow-hidden relative ${
-                                    selectedGames.has(game.id) ? "border-teal-500" : "border-gray-300"
-                                  }`}
+                                  className={`w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 overflow-hidden relative ${selectedGames.has(game.id) ? "border-teal-500" : "border-gray-300"
+                                    }`}
                                 >
                                   <img
                                     src={game.image || "/images/ludoloop-game-placeholder.png"}
@@ -2308,13 +2302,6 @@ function LibraryContent() {
                             const isCurrentlyAvailable = localToggleState[selectedGame.id]
                             const newState = !isCurrentlyAvailable
 
-                            console.log(
-                              "[v0] Toggle clicked - current state:",
-                              isCurrentlyAvailable,
-                              "will set to:",
-                              newState,
-                            )
-
                             setLocalToggleState((prev) => ({
                               ...prev,
                               [selectedGame.id]: newState,
@@ -2322,7 +2309,7 @@ function LibraryContent() {
 
                             await toggleGameAvailability(selectedGame.id, newState)
 
-                            console.log("[v0] Toggle completed successfully")
+
                           } catch (error) {
                             console.error("Error toggling availability:", error)
                             const newState = !localToggleState[selectedGame.id]
@@ -2334,15 +2321,13 @@ function LibraryContent() {
                             setIsToggling(false)
                           }
                         }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 ${
-                          localToggleState[selectedGame.id] ? "bg-green-500" : "bg-red-500"
-                        } ${isToggling ? "opacity-50 cursor-not-allowed" : ""}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 ${localToggleState[selectedGame.id] ? "bg-green-500" : "bg-red-500"
+                          } ${isToggling ? "opacity-50 cursor-not-allowed" : ""}`}
                         disabled={!databaseConnected || isToggling}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            localToggleState[selectedGame.id] ? "translate-x-6" : "translate-x-1"
-                          }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${localToggleState[selectedGame.id] ? "translate-x-6" : "translate-x-1"
+                            }`}
                         />
                       </button>
                     </div>
@@ -2352,7 +2337,6 @@ function LibraryContent() {
                     <div className="relative w-24 h-32 md:w-32 md:h-40 mx-auto rounded-lg shadow-lg mb-4 overflow-hidden">
                       <img
                         src={selectedGame.image || "/images/ludoloop-game-placeholder.png"}
-                        alt={selectedGame.title}
                         className="w-full h-full object-cover"
                       />
                       {/* Game Title Overlay for Detail View */}
@@ -2363,12 +2347,9 @@ function LibraryContent() {
                       </div>
                     </div>
 
-                    <h3 className="text-sm font-bold text-gray-800 mb-2 font-handwritten md:text-xs">
+                    <h3 className="text-sm font-bold text-gray-800 font-handwritten md:text-xs">
                       {selectedGame.title}
                     </h3>
-                    <p className="text-xs text-gray-600 font-body md:text-xs">
-                      {selectedGame.publisher}
-                    </p>
                   </div>
 
                   {/* CHANGE: Moved status display to after title and publisher */}
@@ -2420,17 +2401,21 @@ function LibraryContent() {
                     </div>
                   )}
 
-                  <div className="border-t pt-3 pb-6 space-y-2.5">
+                  <div className="border-t border-gray-300 mt-4 pt-4 pb-6 space-y-2.5">
                     <div className="flex justify-between text-xs md:text-sm">
-                      <span className="font-body text-xs font-semibold">Erscheinungsjahr:</span>
-                      <span className="font-body text-xs">{selectedGame.year_published || "Nicht angegeben"}</span>
+                      <span className="font-body text-xs font-bold">Verlag:</span>
+                      <span className="font-body text-xs">{selectedGame.publisher || "Nicht angegeben"}</span>
+                    </div>
+                    <div className="flex justify-between text-xs md:text-sm">
+                      <span className="font-body text-xs font-bold">Erscheinungsjahr:</span>
+                      <span className="font-body text-xs">{selectedGame.year_published ?? "Nicht angegeben"}</span>
                     </div>
                     <div className="flex justify-between text-xs md:text-sm">
                       <span className="font-body text-xs font-semibold">Spieleranzahl:</span>
                       <span className="font-body text-xs">{selectedGame.players}</span>
                     </div>
                     <div className="flex justify-between text-xs md:text-sm">
-                      <span className="font-body text-xs font-bold">Spieldauer:</span>
+                      <span className="font-body text-xs font-semibold">Spieldauer:</span>
                       <span className="font-body text-xs">{selectedGame.duration}</span>
                     </div>
                     <div className="flex justify-between text-xs md:text-sm">
@@ -2455,51 +2440,41 @@ function LibraryContent() {
                     )}
                   </div>
 
-                  <div className="space-y-2 mb-6">
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleEditGame(selectedGame)}
-                        className="flex-1 h-8 text-xs bg-blue-400 hover:bg-blue-500 text-white font-handwritten"
-                        disabled={!databaseConnected}
-                      >
-                        <FaEdit className="w-3 h-3 mr-1" />
-                        Bearbeiten
-                      </Button>
-                      <Button
-                        onClick={() => setIsTrackingDialogOpen(true)}
-                        className="flex-1 h-8 text-xs bg-purple-400 hover:bg-purple-500 text-white font-handwritten"
-                        disabled={!databaseConnected}
-                      >
-                        <FaTags className="w-3 h-3 mr-1" />
-                        Status
-                      </Button>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleOfferGame(selectedGame, "lend")}
-                        className="flex-1 h-8 text-xs bg-teal-400 hover:bg-teal-500 text-white font-handwritten"
-                        disabled={!databaseConnected}
-                      >
-                        <TbExchange className="w-3 h-3 mr-1" />
-                        Vermieten
-                      </Button>
-                      <Button
-                        onClick={() => handleOfferGame(selectedGame, "trade")}
-                        className="flex-1 h-8 text-xs bg-orange-400 hover:bg-orange-500 text-white font-handwritten"
-                        disabled={!databaseConnected}
-                      >
-                        <GiBackForth className="w-3 h-3 mr-1" />
-                        Tauschen
-                      </Button>
-                      <Button
-                        onClick={() => handleOfferGame(selectedGame, "sell")}
-                        className="flex-1 h-8 text-xs bg-pink-400 hover:bg-pink-500 text-white font-handwritten"
-                        disabled={!databaseConnected}
-                      >
-                        <GiReceiveMoney className="w-3 h-3 mr-1" />
-                        Verkaufen
-                      </Button>
-                    </div>
+                  <div className="mb-6">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          className="w-full h-9 text-xs bg-blue-500 hover:bg-blue-600 text-white font-handwritten"
+                          disabled={!databaseConnected}
+                        >
+                          <FaEllipsisH className="w-3 h-3 mr-2" />
+                          Aktionen
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="center" className="w-56">
+                        <DropdownMenuItem onClick={() => handleEditGame(selectedGame)} className="text-xs font-handwritten cursor-pointer">
+                          <FaEdit className="w-3.5 h-3.5 mr-2 text-blue-500" />
+                          Bearbeiten
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setIsTrackingDialogOpen(true)} className="text-xs font-handwritten cursor-pointer">
+                          <FaTags className="w-3.5 h-3.5 mr-2 text-purple-500" />
+                          Status
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "lend")} className="text-xs font-handwritten cursor-pointer">
+                          <TbExchange className="w-3.5 h-3.5 mr-2 text-teal-500" />
+                          Vermieten
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "trade")} className="text-xs font-handwritten cursor-pointer">
+                          <GiBackForth className="w-3.5 h-3.5 mr-2 text-orange-500" />
+                          Tauschen
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "sell")} className="text-xs font-handwritten cursor-pointer">
+                          <GiReceiveMoney className="w-3.5 h-3.5 mr-2 text-pink-500" />
+                          Verkaufen
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
 
                   <Button
@@ -3053,18 +3028,18 @@ function LibraryContent() {
 function AuthWrapper() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
-  
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.replace("/login?redirect=/library")
     }
   }, [user, authLoading, router])
-  
+
   // Show loading while auth is being checked or redirecting
   if (authLoading || !user) {
     return <LibraryLoading />
   }
-  
+
   return <LibraryContent />
 }
 
