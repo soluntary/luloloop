@@ -399,6 +399,7 @@ function LibraryContent() {
   const [newGameTitle, setNewGameTitle] = useState("")
   const [newGamePublisher, setNewGamePublisher] = useState("")
   const [newGameCustomPublisher, setNewGameCustomPublisher] = useState("")
+  const [newGameYearPublished, setNewGameYearPublished] = useState("")
   const [newGameCondition, setNewGameCondition] = useState("")
   const [newGamePlayerCount, setNewGamePlayerCount] = useState("")
   const [newGameDuration, setNewGameDuration] = useState("")
@@ -423,6 +424,7 @@ function LibraryContent() {
   const [editGameTitle, setEditGameTitle] = useState("")
   const [editGamePublisher, setEditGamePublisher] = useState("")
   const [editGameCustomPublisher, setEditGameCustomPublisher] = useState("")
+  const [editGameYearPublished, setEditGameYearPublished] = useState("")
   const [editGameCondition, setEditGameCondition] = useState("")
   const [editGamePlayerCount, setEditGamePlayerCount] = useState("")
   const [editGameDuration, setEditGameDuration] = useState("")
@@ -877,6 +879,7 @@ function LibraryContent() {
       const gameData = {
         title: newGameTitle.trim(),
         publisher: newGamePublisher === "custom" ? newGameCustomPublisher.trim() : newGamePublisher.trim(),
+        year_published: newGameYearPublished ? parseInt(newGameYearPublished) : null,
         language: newGameLanguage === "custom" ? newGameCustomLanguage.trim() : newGameLanguage,
         available: ["lend", "trade", "sell"],
         image: newGameImage || "/images/ludoloop-game-placeholder.png",
@@ -913,6 +916,7 @@ function LibraryContent() {
     setEditGame(game)
     setEditGameTitle(game.title)
     setEditGamePublisher(game.publisher || "")
+    setEditGameYearPublished(game.year_published ? String(game.year_published) : "")
     setEditGameCondition(game.condition)
     setEditGamePlayerCount(game.players || "")
     setEditGameDuration(game.duration || "")
@@ -972,6 +976,7 @@ function LibraryContent() {
       const updatedGameData = {
         title: editGameTitle,
         publisher: editGamePublisher,
+        year_published: editGameYearPublished ? parseInt(editGameYearPublished) : null,
         condition: editGameCondition,
         players: editGamePlayerCount,
         duration: editGameDuration,
@@ -992,6 +997,7 @@ function LibraryContent() {
       setEditGameTitle("")
       setEditGamePublisher("")
       setEditGameCustomPublisher("")
+      setEditGameYearPublished("")
       setEditGameCondition("")
       setEditGamePlayerCount("")
       setEditGameDuration("")
@@ -1051,6 +1057,7 @@ function LibraryContent() {
     setNewGameTitle("")
     setNewGamePublisher("")
     setNewGameCustomPublisher("")
+    setNewGameYearPublished("")
     setNewGameCondition("")
     setNewGamePlayerCount("")
     setNewGameDuration("")
@@ -1119,6 +1126,10 @@ function LibraryContent() {
 
     if (game.image) {
       setNewGameImage(game.image)
+    }
+
+    if (game.yearPublished) {
+      setNewGameYearPublished(String(game.yearPublished))
     }
 
     if (game.publishers && game.publishers.length > 0) {
@@ -1468,6 +1479,20 @@ function LibraryContent() {
                         {fieldErrors.publisher && (
                           <p className="text-red-500 text-xs mt-1 font-body">{fieldErrors.publisher}</p>
                         )}
+                      </div>
+
+                      {/* Erscheinungsjahr */}
+                      <div>
+                        <Label className="text-xs text-gray-700 font-medium">Erscheinungsjahr</Label>
+                        <Input
+                          type="number"
+                          min="1900"
+                          max={new Date().getFullYear()}
+                          value={newGameYearPublished}
+                          onChange={(e) => setNewGameYearPublished(e.target.value)}
+                          placeholder="z.B. 2023"
+                          className="font-body border-2 border-blue-200 bg-white/80 text-xs"
+                        />
                       </div>
 
                       <div>
@@ -2338,7 +2363,10 @@ function LibraryContent() {
                     <h3 className="text-sm font-bold text-gray-800 mb-2 font-handwritten md:text-xs">
                       {selectedGame.title}
                     </h3>
-                    <p className="text-xs text-gray-600 font-body md:text-xs">{selectedGame.publisher}</p>
+                    <p className="text-xs text-gray-600 font-body md:text-xs">
+                      {selectedGame.publisher}
+                      {selectedGame.year_published && ` (${selectedGame.year_published})`}
+                    </p>
                   </div>
 
                   {/* CHANGE: Moved status display to after title and publisher */}
@@ -2637,6 +2665,20 @@ function LibraryContent() {
                         </Button>
                       </div>
                     )}
+                  </div>
+
+                  {/* Erscheinungsjahr */}
+                  <div>
+                    <Label className="text-xs text-gray-700 font-medium">Erscheinungsjahr</Label>
+                    <Input
+                      type="number"
+                      min="1900"
+                      max={new Date().getFullYear()}
+                      value={editGameYearPublished}
+                      onChange={(e) => setEditGameYearPublished(e.target.value)}
+                      placeholder="z.B. 2023"
+                      className="font-body border-2 border-blue-200 bg-white/80 text-xs"
+                    />
                   </div>
 
                   <div>

@@ -13,6 +13,7 @@ interface Game {
   id: string
   title: string
   publisher?: string
+  year_published?: number
   condition: string
   players?: string
   duration?: string
@@ -261,6 +262,13 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
                   <div className="flex items-center text-xs text-gray-600">
                     <span className="text-xs text-gray-900 font-semibold mr-1">Verlag:</span>
                     <span>{selectedGame.publisher}</span>
+                  </div>
+                )}
+
+                {selectedGame.year_published && (
+                  <div className="flex items-center text-xs text-gray-600">
+                    <span className="text-xs text-gray-900 font-semibold mr-1">Erscheinungsjahr:</span>
+                    <span>{selectedGame.year_published}</span>
                   </div>
                 )}
 
