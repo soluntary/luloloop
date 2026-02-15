@@ -1412,7 +1412,7 @@ function LibraryContent() {
                     </h3>
                     <div className="space-y-4">
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Spielname *</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Spielname <span className="text-red-500">*</span></Label>
                         <Input
                           value={newGameTitle}
                           onChange={(e) => setNewGameTitle(e.target.value)}
@@ -1426,7 +1426,7 @@ function LibraryContent() {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Verlag *</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Verlag <span className="text-red-500">*</span></Label>
                         <Select value={newGamePublisher} onValueChange={setNewGamePublisher} required>
                           <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80 text-xs">
                             <SelectValue placeholder="Verlag wählen..." />
@@ -1500,7 +1500,7 @@ function LibraryContent() {
 
                       {/* Sprache */}
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Sprache *</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Sprache <span className="text-red-500">*</span></Label>
                         <Select value={newGameLanguage} onValueChange={setNewGameLanguage} required>
                           <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80 text-xs">
                             <SelectValue placeholder="Sprache wählen..." />
@@ -1574,7 +1574,7 @@ function LibraryContent() {
                         )}
                       </div>
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Spieldauer *</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Spieldauer <span className="text-red-500">*</span></Label>
                         <Select value={newGameDuration} onValueChange={setNewGameDuration} required>
                           <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80 text-xs">
                             <SelectValue placeholder="Spieldauer wählen..." />
@@ -1592,7 +1592,7 @@ function LibraryContent() {
                         )}
                       </div>
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Altersempfehlung *</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Altersempfehlung <span className="text-red-500">*</span></Label>
                         <Select value={newGameAge} onValueChange={setNewGameAge} required>
                           <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80 text-xs">
                             <SelectValue placeholder="Altersempfehlung wählen..." />
@@ -1618,7 +1618,7 @@ function LibraryContent() {
                     </h3>
                     <div className="space-y-4">
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Kategorie * (Mehrfachauswahl)</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Kategorie <span className="text-red-500">*</span> (Mehrfachauswahl)</Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
@@ -1702,7 +1702,7 @@ function LibraryContent() {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Typus * (Mehrfachauswahl)</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Typus <span className="text-red-500">*</span> (Mehrfachauswahl)</Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
@@ -2583,7 +2583,7 @@ function LibraryContent() {
                   </div>
 
                   <div>
-                    <Label className="text-xs text-gray-700 font-medium">Verlag *</Label>
+                    <Label className="text-xs text-gray-700 font-medium">Verlag <span className="text-red-500">*</span></Label>
                     <Select value={editGamePublisher} onValueChange={setEditGamePublisher} required>
                       <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80 text-xs">
                         <SelectValue placeholder="Verlag wählen..." />
@@ -2653,7 +2653,7 @@ function LibraryContent() {
                   </div>
 
                   <div>
-                    <Label className="text-xs text-gray-700 font-medium">Sprache *</Label>
+                    <Label className="text-xs text-gray-700 font-medium">Sprache <span className="text-red-500">*</span></Label>
                     <Select value={editGameLanguage} onValueChange={setEditGameLanguage} required>
                       <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80 text-xs">
                         <SelectValue placeholder="Sprache wählen..." />
@@ -2866,7 +2866,7 @@ function LibraryContent() {
                 </h3>
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <Label className="text-xs text-gray-700 font-medium">Spieleranzahl *</Label>
+                    <Label className="text-xs text-gray-700 font-medium">Spieleranzahl <span className="text-red-500">*</span></Label>
                     <Select value={editGamePlayerCount} onValueChange={setEditGamePlayerCount} required>
                       <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80 text-xs">
                         <SelectValue placeholder="Spieleranzahl wählen..." />
