@@ -27,16 +27,21 @@ const TOP_GAME_IDS = [
 // Deduplicate IDs
 const UNIQUE_IDS = [...new Set(TOP_GAME_IDS)]
 
-const BGG_HEADERS = {
-  "User-Agent": "Ludoloop/1.0 (Board Game Community App)",
-  Accept: "application/xml, text/xml, */*",
-}
-
 export const maxDuration = 60 // Allow up to 60s for sequential BGG API calls
+
+function getHeaders(): Record<string, string> {
+  const bggToken = process.env.BGG_API_TOKEN
+  return {
+    "User-Agent": "Ludoloop/1.0 (Board Game Community App)",
+    Accept: "application/xml, text/xml, */*",
+    ...(bggToken ? { Authorization: `Bearer ${bggToken}` } : {}),
+  }
+}
 
 export async function GET() {
   try {
-    console.log("[v0] BGG API: Starting to load games, IDs count:", UNIQUE_IDS.length)
+    const bggToken = process.env.BGG_API_TOKEN
+    console.log("[v0] BGG API: Starting to load games, IDs count:", UNIQUE_IDS.length, "Token:", bggToken ? "present" : "MISSING")
     const games = await loadBGGGames()
     console.log("[v0] BGG API: Loaded", games.length, "games successfully")
     return NextResponse.json({
@@ -63,21 +68,21 @@ async function loadBGGGames(): Promise<any[]> {
     if (i > 0) await new Promise((r) => setTimeout(r, 1500))
 
     try {
-      let res = await fetch(url, { headers: BGG_HEADERS, cache: "no-store" })
+      let res = await fetch(url, { headers: getHeaders(), cache: "no-store" })
       console.log("[v0] BGG API: Chunk", i, "status:", res.status)
 
       // BGG returns 202 when data is not ready yet - retry after delay
       if (res.status === 202) {
         console.log("[v0] BGG API: Chunk", i, "got 202, retrying in 3s...")
         await new Promise((r) => setTimeout(r, 3000))
-        res = await fetch(url, { headers: BGG_HEADERS, cache: "no-store" })
+        res = await fetch(url, { headers: getHeaders(), cache: "no-store" })
         console.log("[v0] BGG API: Chunk", i, "retry status:", res.status)
       }
 
       if (res.status === 429) {
         console.log("[v0] BGG API: Rate limited, waiting 5s...")
         await new Promise((r) => setTimeout(r, 5000))
-        res = await fetch(url, { headers: BGG_HEADERS, cache: "no-store" })
+        res = await fetch(url, { headers: getHeaders(), cache: "no-store" })
       }
 
       if (!res.ok) {
