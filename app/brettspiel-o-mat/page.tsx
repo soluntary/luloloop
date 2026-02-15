@@ -614,16 +614,39 @@ export default function BrettspielOMatPage() {
     loadGames()
   }, [loadGames])
 
-  // Calculate results
-  const calculateResults = useCallback(() => {
+  // Calculate results - retry loading games if none available
+  const calculateResults = useCallback(async () => {
     console.log("[v0] Brettspiel-O-Mat: Calculating results with", games.length, "games")
     console.log("[v0] Brettspiel-O-Mat: Answers:", JSON.stringify(answers))
-    const matched = games
+
+    let gamesToUse = games
+
+    // If no games loaded yet, try loading again
+    if (gamesToUse.length === 0) {
+      console.log("[v0] Brettspiel-O-Mat: No games loaded, retrying...")
+      setLoading(true)
+      try {
+        const res = await fetch("/api/brettspiel-o-mat/games")
+        if (res.ok) {
+          const data = await res.json()
+          if (data.games && data.games.length > 0) {
+            gamesToUse = data.games
+            setGames(data.games)
+            console.log("[v0] Brettspiel-O-Mat: Retry loaded", data.games.length, "games")
+          }
+        }
+      } catch (err) {
+        console.error("[v0] Brettspiel-O-Mat: Retry failed", err)
+      }
+      setLoading(false)
+    }
+
+    const matched = gamesToUse
       .map((game) => calculateMatch(game, answers))
       .sort((a, b) => b.score - a.score)
-    console.log("[v0] Brettspiel-O-Mat: Top 3 results:", matched.slice(0, 3).map(r => `${r.game.title}: ${r.score}%`))
+    console.log("[v0] Brettspiel-O-Mat: Results:", matched.length, "Top 3:", matched.slice(0, 3).map(r => `${r.game.title}: ${r.score}%`))
     setResults(matched)
-    setStep(QUESTIONS.length) // go to results
+    setStep(QUESTIONS.length)
   }, [games, answers])
 
   const currentQuestion = QUESTIONS[step]

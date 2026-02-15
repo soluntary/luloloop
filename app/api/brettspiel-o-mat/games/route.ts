@@ -32,7 +32,7 @@ const BGG_HEADERS = {
   Accept: "application/xml, text/xml, */*",
 }
 
-export const maxDuration = 30 // Allow up to 30s for BGG API calls
+export const maxDuration = 60 // Allow up to 60s for sequential BGG API calls
 
 export async function GET() {
   try {
@@ -51,37 +51,47 @@ export async function GET() {
 
 async function loadBGGGames(): Promise<any[]> {
   const allGames: any[] = []
-  // BGG allows up to 20 IDs per request
   const chunks = chunkArray(UNIQUE_IDS, 20)
 
-  // Run all chunks in parallel for speed
-  console.log("[v0] BGG API: Fetching", chunks.length, "chunks")
-  const results = await Promise.allSettled(
-    chunks.map(async (chunk, i) => {
-      const ids = chunk.join(",")
-      const url = `https://boardgamegeek.com/xmlapi2/thing?id=${ids}&stats=1`
-      try {
-        const res = await fetch(url, { headers: BGG_HEADERS, next: { revalidate: 3600 } })
-        console.log("[v0] BGG API: Chunk", i, "status:", res.status)
-        if (!res.ok) {
-          console.error("[v0] BGG API: Chunk", i, "failed with status", res.status)
-          return []
-        }
-        const xml = await res.text()
-        console.log("[v0] BGG API: Chunk", i, "XML length:", xml.length)
-        const parsed = parseGames(xml)
-        console.log("[v0] BGG API: Chunk", i, "parsed", parsed.length, "games")
-        return parsed
-      } catch (err) {
-        console.error("[v0] BGG API: Chunk", i, "fetch error:", err)
-        return []
-      }
-    })
-  )
+  // Fetch chunks sequentially with delay to avoid BGG rate limiting
+  console.log("[v0] BGG API: Fetching", chunks.length, "chunks sequentially")
+  for (let i = 0; i < chunks.length; i++) {
+    const ids = chunks[i].join(",")
+    const url = `https://boardgamegeek.com/xmlapi2/thing?id=${ids}&stats=1`
 
-  for (const r of results) {
-    if (r.status === "fulfilled" && r.value) {
-      allGames.push(...r.value)
+    // Add delay between requests (BGG rate limits at ~2 req/sec)
+    if (i > 0) await new Promise((r) => setTimeout(r, 1500))
+
+    try {
+      let res = await fetch(url, { headers: BGG_HEADERS, cache: "no-store" })
+      console.log("[v0] BGG API: Chunk", i, "status:", res.status)
+
+      // BGG returns 202 when data is not ready yet - retry after delay
+      if (res.status === 202) {
+        console.log("[v0] BGG API: Chunk", i, "got 202, retrying in 3s...")
+        await new Promise((r) => setTimeout(r, 3000))
+        res = await fetch(url, { headers: BGG_HEADERS, cache: "no-store" })
+        console.log("[v0] BGG API: Chunk", i, "retry status:", res.status)
+      }
+
+      if (res.status === 429) {
+        console.log("[v0] BGG API: Rate limited, waiting 5s...")
+        await new Promise((r) => setTimeout(r, 5000))
+        res = await fetch(url, { headers: BGG_HEADERS, cache: "no-store" })
+      }
+
+      if (!res.ok) {
+        console.error("[v0] BGG API: Chunk", i, "failed with status", res.status)
+        continue
+      }
+
+      const xml = await res.text()
+      console.log("[v0] BGG API: Chunk", i, "XML length:", xml.length)
+      const parsed = parseGames(xml)
+      console.log("[v0] BGG API: Chunk", i, "parsed", parsed.length, "games")
+      allGames.push(...parsed)
+    } catch (err) {
+      console.error("[v0] BGG API: Chunk", i, "fetch error:", err)
     }
   }
 
