@@ -585,23 +585,27 @@ export default function BrettspielOMatPage() {
   const [showAll, setShowAll] = useState(false)
   const [bestMatchExpanded, setBestMatchExpanded] = useState(false)
 
-  // Load games from DB + BGG
+  // Load games from BGG
   const loadGames = useCallback(async () => {
     setLoading(true)
     try {
+      console.log("[v0] Brettspiel-O-Mat: Fetching games from API...")
       const res = await fetch("/api/brettspiel-o-mat/games")
+      console.log("[v0] Brettspiel-O-Mat: API status:", res.status)
       if (res.ok) {
         const data = await res.json()
+        console.log("[v0] Brettspiel-O-Mat: Games received:", data.games?.length, "stats:", JSON.stringify(data.stats))
         if (data.games && data.games.length > 0) {
           setGames(data.games)
         } else {
-          console.warn("Brettspiel-O-Mat: No games returned from API")
+          console.warn("[v0] Brettspiel-O-Mat: No games returned from API")
         }
       } else {
-        console.error("Brettspiel-O-Mat: API returned status", res.status)
+        const text = await res.text()
+        console.error("[v0] Brettspiel-O-Mat: API error status", res.status, text)
       }
     } catch (err) {
-      console.error("Brettspiel-O-Mat: Failed to load games", err)
+      console.error("[v0] Brettspiel-O-Mat: Failed to load games", err)
     }
     setLoading(false)
   }, [])
@@ -610,13 +614,39 @@ export default function BrettspielOMatPage() {
     loadGames()
   }, [loadGames])
 
-  // Calculate results
-  const calculateResults = useCallback(() => {
-    const matched = games
+  // Calculate results - retry loading games if none available
+  const calculateResults = useCallback(async () => {
+    console.log("[v0] Brettspiel-O-Mat: Calculating results with", games.length, "games")
+    console.log("[v0] Brettspiel-O-Mat: Answers:", JSON.stringify(answers))
+
+    let gamesToUse = games
+
+    // If no games loaded yet, try loading again
+    if (gamesToUse.length === 0) {
+      console.log("[v0] Brettspiel-O-Mat: No games loaded, retrying...")
+      setLoading(true)
+      try {
+        const res = await fetch("/api/brettspiel-o-mat/games")
+        if (res.ok) {
+          const data = await res.json()
+          if (data.games && data.games.length > 0) {
+            gamesToUse = data.games
+            setGames(data.games)
+            console.log("[v0] Brettspiel-O-Mat: Retry loaded", data.games.length, "games")
+          }
+        }
+      } catch (err) {
+        console.error("[v0] Brettspiel-O-Mat: Retry failed", err)
+      }
+      setLoading(false)
+    }
+
+    const matched = gamesToUse
       .map((game) => calculateMatch(game, answers))
       .sort((a, b) => b.score - a.score)
+    console.log("[v0] Brettspiel-O-Mat: Results:", matched.length, "Top 3:", matched.slice(0, 3).map(r => `${r.game.title}: ${r.score}%`))
     setResults(matched)
-    setStep(QUESTIONS.length) // go to results
+    setStep(QUESTIONS.length)
   }, [games, answers])
 
   const currentQuestion = QUESTIONS[step]
