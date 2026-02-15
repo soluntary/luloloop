@@ -1425,7 +1425,7 @@ function LibraryContent() {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Verlag *</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Verlag / Herausgeber *</Label>
                         <Select value={newGamePublisher} onValueChange={setNewGamePublisher} required>
                           <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80 text-xs">
                             <SelectValue placeholder="Verlag wählen..." />
@@ -1481,10 +1481,23 @@ function LibraryContent() {
                         )}
                       </div>
 
-                      <div>
-                        <Label className="text-xs text-gray-700 font-medium">Erscheinungsjahr</Label>
-                        <Input type="number" min={1900} max={2026} value={newGameYearPublished} onChange={(e) => setNewGameYearPublished(e.target.value)} placeholder="z.B. 2023" className="font-body border-2 border-blue-200 bg-white/80 text-xs" />
+                      {/* Erscheinungsjahr */}
+                      <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-3">
+                        <Label className="text-xs text-gray-700 font-medium">
+                          Erscheinungsjahr
+                        </Label>
+                        <Input
+                          type="number"
+                          min={1900}
+                          max={new Date().getFullYear()}
+                          value={newGameYearPublished}
+                          onChange={(e) => setNewGameYearPublished(e.target.value)}
+                          placeholder="z.B. 2023"
+                          className="mt-1 font-body border-2 border-blue-200 bg-white/80 text-xs"
+                        />
                       </div>
+
+                      {/* Sprache */}
                       <div>
                         <Label className="text-xs text-gray-700 font-medium">Sprache *</Label>
                         <Select value={newGameLanguage} onValueChange={setNewGameLanguage} required>
@@ -2657,9 +2670,20 @@ function LibraryContent() {
                     )}
                   </div>
 
+                  {/* Erscheinungsjahr */}
                   <div>
-                    <Label className="text-xs text-gray-700 font-medium">Erscheinungsjahr</Label>
-                    <Input type="number" min={1900} max={2026} value={editGameYearPublished} onChange={(e) => setEditGameYearPublished(e.target.value)} placeholder="z.B. 2023" className="font-body border-2 border-blue-200 bg-white/80 text-xs" />
+                    <Label className="text-xs text-gray-700 font-medium">
+                      Erscheinungsjahr
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1900}
+                      max={new Date().getFullYear()}
+                      value={editGameYearPublished}
+                      onChange={(e) => setEditGameYearPublished(e.target.value)}
+                      placeholder="z.B. 2023"
+                      className="mt-1 font-body border-2 border-blue-200 bg-white/80 text-xs"
+                    />
                   </div>
 
                   <div>
