@@ -2422,6 +2422,12 @@ function LibraryContent() {
                   )}
 
                   <div className="border-t pt-3 pb-6 space-y-2.5">
+                    {selectedGame.year_published && (
+                      <div className="flex justify-between text-xs md:text-sm">
+                        <span className="font-body text-xs font-semibold">Erscheinungsjahr:</span>
+                        <span className="font-body text-xs">{selectedGame.year_published}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-xs md:text-sm">
                       <span className="font-body text-xs font-semibold">Spieleranzahl:</span>
                       <span className="font-body text-xs">{selectedGame.players}</span>
