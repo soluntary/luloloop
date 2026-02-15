@@ -771,15 +771,22 @@ export default function BrettspielOMatPage() {
                           <div className="mt-1 text-3xl font-bold text-teal-600">
                             {results[0].score}%
                           </div>
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {results[0].reasons.slice(0, 3).map((reason, i) => (
+                          </div>
+                      </div>
+
+                      {/* Warum passt es? - same as other cards */}
+                      {results[0].reasons.length > 0 && (
+                        <div className="mt-4 border-t border-teal-100 pt-3">
+                          <p className="mb-2 text-xs font-medium text-teal-700">Warum passt es?</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {results[0].reasons.map((reason, i) => (
                               <Badge key={i} className="bg-teal-100 text-[10px] text-teal-700 border-0">
                                 {reason}
                               </Badge>
                             ))}
                           </div>
                         </div>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
 
