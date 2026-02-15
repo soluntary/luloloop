@@ -1425,7 +1425,7 @@ function LibraryContent() {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Verlag *</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Verlag / Herausgeber *</Label>
                         <Select value={newGamePublisher} onValueChange={setNewGamePublisher} required>
                           <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80 text-xs">
                             <SelectValue placeholder="Verlag wählen..." />
