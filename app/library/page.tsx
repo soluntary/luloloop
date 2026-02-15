@@ -2358,7 +2358,7 @@ function LibraryContent() {
                       </div>
                     </div>
 
-                    <h3 className="text-sm font-bold text-gray-800 mb-2 font-handwritten md:text-xs">
+                    <h3 className="text-sm font-bold text-gray-800 mb-1 font-handwritten md:text-xs">
                       {selectedGame.title}
                     </h3>
                   </div>
