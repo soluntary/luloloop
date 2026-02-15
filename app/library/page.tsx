@@ -2337,7 +2337,9 @@ function LibraryContent() {
                     <div className="relative w-24 h-32 md:w-32 md:h-40 mx-auto rounded-lg shadow-lg mb-4 overflow-hidden">
                       <img
                         src={selectedGame.image || "/images/ludoloop-game-placeholder.png"}
+                        alt={selectedGame.title}
                         className="w-full h-full object-cover"
+                      />
                     </div>
 
                     <h3 className="text-sm font-bold text-gray-800 font-handwritten md:text-xs">
