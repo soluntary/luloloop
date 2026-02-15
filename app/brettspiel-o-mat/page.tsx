@@ -209,6 +209,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     reasons.push(`Spieldauer passt (${gameDuration} Min.)`)
   } else if (durationDiff <= 30) {
     totalScore += durationWeight * 75
+    reasons.push(`Spieldauer: ~${gameDuration} Min.`)
   } else if (durationDiff <= 60) {
     totalScore += durationWeight * 40
   } else {
@@ -226,6 +227,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
       reasons.push("Schwierigkeitsgrad passt perfekt")
     } else if (complexDiff <= 1) {
       totalScore += complexityWeight * 70
+      reasons.push("Schwierigkeitsgrad passt gut")
     } else if (complexDiff <= 1.5) {
       totalScore += complexityWeight * 40
     } else {
@@ -308,7 +310,8 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   maxScore += ratingWeight * 100
   if (game.rating >= minRating) {
     totalScore += ratingWeight * 100
-    if (game.rating >= 7.5) reasons.push(`Bewertung: ${game.rating.toFixed(1)}/10`)
+    if (game.rating >= 7.5) reasons.push(`Top-Bewertung: ${game.rating.toFixed(1)}/10`)
+    else if (game.rating >= 6.5) reasons.push(`Gute Bewertung: ${game.rating.toFixed(1)}/10`)
   } else {
     const ratingDiff = minRating - game.rating
     totalScore += ratingWeight * Math.max(0, 100 - ratingDiff * 50)
@@ -589,23 +592,20 @@ export default function BrettspielOMatPage() {
   const loadGames = useCallback(async () => {
     setLoading(true)
     try {
-      console.log("[v0] Brettspiel-O-Mat: Fetching games from API...")
       const res = await fetch("/api/brettspiel-o-mat/games")
-      console.log("[v0] Brettspiel-O-Mat: API status:", res.status)
       if (res.ok) {
         const data = await res.json()
-        console.log("[v0] Brettspiel-O-Mat: Games received:", data.games?.length, "stats:", JSON.stringify(data.stats))
         if (data.games && data.games.length > 0) {
           setGames(data.games)
         } else {
-          console.warn("[v0] Brettspiel-O-Mat: No games returned from API")
+          console.warn("Brettspiel-O-Mat: No games returned from API")
         }
       } else {
         const text = await res.text()
-        console.error("[v0] Brettspiel-O-Mat: API error status", res.status, text)
+        console.error("Brettspiel-O-Mat: API error", res.status)
       }
     } catch (err) {
-      console.error("[v0] Brettspiel-O-Mat: Failed to load games", err)
+      console.error("Brettspiel-O-Mat: Failed to load games", err)
     }
     setLoading(false)
   }, [])
@@ -616,14 +616,11 @@ export default function BrettspielOMatPage() {
 
   // Calculate results - retry loading games if none available
   const calculateResults = useCallback(async () => {
-    console.log("[v0] Brettspiel-O-Mat: Calculating results with", games.length, "games")
-    console.log("[v0] Brettspiel-O-Mat: Answers:", JSON.stringify(answers))
-
     let gamesToUse = games
 
     // If no games loaded yet, try loading again
     if (gamesToUse.length === 0) {
-      console.log("[v0] Brettspiel-O-Mat: No games loaded, retrying...")
+
       setLoading(true)
       try {
         const res = await fetch("/api/brettspiel-o-mat/games")
@@ -632,11 +629,11 @@ export default function BrettspielOMatPage() {
           if (data.games && data.games.length > 0) {
             gamesToUse = data.games
             setGames(data.games)
-            console.log("[v0] Brettspiel-O-Mat: Retry loaded", data.games.length, "games")
+
           }
         }
       } catch (err) {
-        console.error("[v0] Brettspiel-O-Mat: Retry failed", err)
+        console.error("Brettspiel-O-Mat: Retry failed", err)
       }
       setLoading(false)
     }
@@ -644,7 +641,6 @@ export default function BrettspielOMatPage() {
     const matched = gamesToUse
       .map((game) => calculateMatch(game, answers))
       .sort((a, b) => b.score - a.score)
-    console.log("[v0] Brettspiel-O-Mat: Results:", matched.length, "Top 3:", matched.slice(0, 3).map(r => `${r.game.title}: ${r.score}%`))
     setResults(matched)
     setStep(QUESTIONS.length)
   }, [games, answers])
