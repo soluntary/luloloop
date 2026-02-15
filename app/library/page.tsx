@@ -2361,11 +2361,6 @@ function LibraryContent() {
                     <h3 className="text-sm font-bold text-gray-800 mb-2 font-handwritten md:text-xs">
                       {selectedGame.title}
                     </h3>
-                    {selectedGame.publisher && (
-                      <p className="text-xs text-gray-600 font-body md:text-xs">
-                        Verlag: {selectedGame.publisher}
-                      </p>
-                    )}
                   </div>
 
                   {/* CHANGE: Moved status display to after title and publisher */}
@@ -2418,6 +2413,10 @@ function LibraryContent() {
                   )}
 
                   <div className="border-t pt-3 pb-6 space-y-2.5">
+                    <div className="flex justify-between text-xs md:text-sm">
+                      <span className="font-body text-xs font-semibold">Verlag:</span>
+                      <span className="font-body text-xs">{selectedGame.publisher || "Nicht angegeben"}</span>
+                    </div>
                     <div className="flex justify-between text-xs md:text-sm">
                       <span className="font-body text-xs font-semibold">Erscheinungsjahr:</span>
                       <span className="font-body text-xs">{selectedGame.year_published ?? "Nicht angegeben"}</span>
