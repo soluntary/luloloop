@@ -1412,7 +1412,7 @@ function LibraryContent() {
                     </h3>
                     <div className="space-y-4">
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Spielname *</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Spielname <span className="text-red-500">*</span></Label>
                         <Input
                           value={newGameTitle}
                           onChange={(e) => setNewGameTitle(e.target.value)}
@@ -1426,7 +1426,7 @@ function LibraryContent() {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Verlag *</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Verlag <span className="text-red-500">*</span></Label>
                         <Select value={newGamePublisher} onValueChange={setNewGamePublisher} required>
                           <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80 text-xs">
                             <SelectValue placeholder="Verlag wählen..." />
@@ -1500,7 +1500,7 @@ function LibraryContent() {
 
                       {/* Sprache */}
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Sprache *</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Sprache <span className="text-red-500">*</span></Label>
                         <Select value={newGameLanguage} onValueChange={setNewGameLanguage} required>
                           <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80 text-xs">
                             <SelectValue placeholder="Sprache wählen..." />
@@ -1574,7 +1574,7 @@ function LibraryContent() {
                         )}
                       </div>
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Spieldauer *</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Spieldauer <span className="text-red-500">*</span></Label>
                         <Select value={newGameDuration} onValueChange={setNewGameDuration} required>
                           <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80 text-xs">
                             <SelectValue placeholder="Spieldauer wählen..." />
@@ -1592,7 +1592,7 @@ function LibraryContent() {
                         )}
                       </div>
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Altersempfehlung *</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Altersempfehlung <span className="text-red-500">*</span></Label>
                         <Select value={newGameAge} onValueChange={setNewGameAge} required>
                           <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80 text-xs">
                             <SelectValue placeholder="Altersempfehlung wählen..." />
@@ -1618,7 +1618,7 @@ function LibraryContent() {
                     </h3>
                     <div className="space-y-4">
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Kategorie * (Mehrfachauswahl)</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Kategorie <span className="text-red-500">*</span> (Mehrfachauswahl)</Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
@@ -1702,7 +1702,7 @@ function LibraryContent() {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-700 font-medium">Typus * (Mehrfachauswahl)</Label>
+                        <Label className="text-xs text-gray-700 font-medium">Typus <span className="text-red-500">*</span> (Mehrfachauswahl)</Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
@@ -2048,7 +2048,7 @@ function LibraryContent() {
                       setSelectedGames(new Set())
                     }}
                     variant={isSelectionMode ? "outline" : "outline"}
-                    className="border-amber-400 text-white-600 hover:bg-white font-handwritten bg-transparent text-xs"
+                    className="border-amber-400 text-white-600 hover:bg-white bg-transparent text-xs"
                   >
                     {isSelectionMode ? "Auswahl beenden" : "Spiele auswählen"}
                   </Button>
@@ -2058,7 +2058,7 @@ function LibraryContent() {
                       <Button
                         onClick={selectAllGames}
                         variant="outline"
-                        className="font-handwritten bg-orange/80 hover:bg-white border-amber-400 text-xs"
+                        className="bg-orange/80 hover:bg-white border-amber-400 text-xs"
                       >
                         <span className="hidden sm:inline">
                           {selectedGames.size === filteredGames.length ? "Alle abwählen" : "Alle auswählen"}
@@ -2071,7 +2071,7 @@ function LibraryContent() {
                       {selectedGames.size > 0 && (
                         <Button
                           onClick={handleBulkDelete}
-                          className="bg-red-400 hover:bg-white-500 text-white font-handwritten text-xs"
+                          className="bg-red-400 hover:bg-white-500 text-white text-xs"
                         >
                           <FaTrash className="w-4 h-4 mr-2" />
                           {selectedGames.size} Spiel(e) löschen
@@ -2109,7 +2109,7 @@ function LibraryContent() {
                             <div className="w-20 h-28 md:w-24 md:h-32 bg-gradient-to-br from-teal-100 to-teal-200 rounded-t-lg shadow-lg border-2 border-dashed border-teal-400 overflow-hidden relative flex items-center justify-center">
                               <div className="text-center">
                                 <FaPlus className="w-6 md:w-8 md:h-8 text-teal-600 mx-auto mb-1" />
-                                <p className="text-xs text-teal-700 font-bold font-handwritten px-1">
+                                <p className="text-xs text-teal-700 font-bold px-1">
                                   <span className="hidden sm:inline text-xs font-normal">Spiel hinzufügen</span>
                                   <span className="sm:hidden">Hinzufügen</span>
                                 </p>
@@ -2169,7 +2169,7 @@ function LibraryContent() {
                                   className="w-full h-full object-cover"
                                 />
                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-1">
-                                  <p className="text-white text-xs text-center leading-tight font-handwritten font-normal">
+                                  <p className="text-white text-xs text-center leading-tight font-normal">
                                     {game.title}
                                   </p>
                                 </div>
@@ -2583,7 +2583,7 @@ function LibraryContent() {
                   </div>
 
                   <div>
-                    <Label className="text-xs text-gray-700 font-medium">Verlag *</Label>
+                    <Label className="text-xs text-gray-700 font-medium">Verlag <span className="text-red-500">*</span></Label>
                     <Select value={editGamePublisher} onValueChange={setEditGamePublisher} required>
                       <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80 text-xs">
                         <SelectValue placeholder="Verlag wählen..." />
@@ -2653,7 +2653,7 @@ function LibraryContent() {
                   </div>
 
                   <div>
-                    <Label className="text-xs text-gray-700 font-medium">Sprache *</Label>
+                    <Label className="text-xs text-gray-700 font-medium">Sprache <span className="text-red-500">*</span></Label>
                     <Select value={editGameLanguage} onValueChange={setEditGameLanguage} required>
                       <SelectTrigger className="font-body border-2 border-blue-200 bg-white/80 text-xs">
                         <SelectValue placeholder="Sprache wählen..." />
@@ -2866,7 +2866,7 @@ function LibraryContent() {
                 </h3>
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <Label className="text-xs text-gray-700 font-medium">Spieleranzahl *</Label>
+                    <Label className="text-xs text-gray-700 font-medium">Spieleranzahl <span className="text-red-500">*</span></Label>
                     <Select value={editGamePlayerCount} onValueChange={setEditGamePlayerCount} required>
                       <SelectTrigger className="font-body border-2 border-orange-200 focus:border-orange-400 bg-white/80 text-xs">
                         <SelectValue placeholder="Spieleranzahl wählen..." />

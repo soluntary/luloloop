@@ -114,6 +114,32 @@ const QUESTIONS = [
     weight: 1.5,
   },
   {
+    id: "genres",
+    title: "Welche Genres magst du?",
+    subtitle: "Wähle ein oder mehrere Genres aus (Mehrfachauswahl)",
+    icon: FaDice,
+    type: "multi-choice" as const,
+    options: [
+      { label: "Aktions- und Reaktionsspiel", value: "Action / Dexterity" },
+      { label: "Brettspiel", value: "Board Game" },
+      { label: "Escape-Spiel", value: "Escape Room,Puzzle" },
+      { label: "Geschicklichkeitsspiel", value: "Action / Dexterity,Flicking" },
+      { label: "Glücksspiel", value: "Dice,Press Your Luck" },
+      { label: "Kartenspiel", value: "Card Game" },
+      { label: "Krimi- und Detektivspiel", value: "Murder,Mystery,Deduction,Spies" },
+      { label: "Legespiel", value: "Tile Placement,Pattern Building" },
+      { label: "Merkspiel", value: "Memory" },
+      { label: "Outdoor-Spiel", value: "Outdoor,Sports" },
+      { label: "Partyspiel", value: "Party Game" },
+      { label: "Wissens- und Quizspiel", value: "Trivia" },
+      { label: "Rollenspiel", value: "Role Playing,Adventure" },
+      { label: "Trinkspiel", value: "Party Game,Drinking" },
+      { label: "Würfelspiel", value: "Dice,Dice Rolling" },
+    ],
+    defaultValue: [],
+    weight: 1.5,
+  },
+  {
     id: "categories",
     title: "Welche Themen interessieren dich?",
     subtitle: "Wähle ein oder mehrere Themen aus",
@@ -222,7 +248,33 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     totalScore += ageWeight * 20
   }
 
-  // 5. Categories/themes match (weight: 1)
+  // 5. Genres match (weight: 1.5)
+  const selectedGenres: string[] = answers.genres || []
+  const genreWeight = QUESTIONS.find((q) => q.id === "genres")!.weight
+  maxScore += genreWeight * 100
+  if (selectedGenres.length === 0) {
+    totalScore += genreWeight * 100
+  } else {
+    const gameTermsForGenre = [...(game.categories || []), ...(game.mechanics || [])].map((t) => t.toLowerCase())
+    const genreOptions = QUESTIONS.find((q) => q.id === "genres")?.options as { label: string; value: string }[] | undefined
+    const matchedGenreLabels: string[] = []
+    for (const genreValue of selectedGenres) {
+      const keywords = genreValue.split(",").map((k) => k.trim().toLowerCase())
+      const hit = keywords.some((kw) => gameTermsForGenre.some((gt) => gt.includes(kw) || kw.includes(gt)))
+      if (hit) {
+        const label = genreOptions?.find((o) => o.value === genreValue)?.label || genreValue
+        matchedGenreLabels.push(label)
+      }
+    }
+    if (matchedGenreLabels.length > 0) {
+      totalScore += genreWeight * (100 * (matchedGenreLabels.length / selectedGenres.length))
+      reasons.push(`Genre: ${matchedGenreLabels.join(", ")}`)
+    } else {
+      totalScore += genreWeight * 20
+    }
+  }
+
+  // 6. Categories/themes match (weight: 1)
   // Each selected theme has comma-separated keywords (e.g. "Bluffing,Deduction")
   // We match against both game.categories and game.mechanics
   const selectedThemes: string[] = answers.categories || []
@@ -250,7 +302,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     }
   }
 
-  // 6. Rating match (weight: 0.5)
+  // 7. Rating match (weight: 0.5)
   const minRating = answers.rating || 6.5
   const ratingWeight = QUESTIONS.find((q) => q.id === "rating")!.weight
   maxScore += ratingWeight * 100
@@ -532,7 +584,7 @@ export default function BrettspielOMatPage() {
   const [loading, setLoading] = useState(false)
   const [showAll, setShowAll] = useState(false)
 
-  // Load games from BGG
+  // Load games from DB + BGG
   const loadGames = useCallback(async () => {
     setLoading(true)
     try {
@@ -541,10 +593,14 @@ export default function BrettspielOMatPage() {
         const data = await res.json()
         if (data.games && data.games.length > 0) {
           setGames(data.games)
+        } else {
+          console.warn("Brettspiel-O-Mat: No games returned from API")
         }
+      } else {
+        console.error("Brettspiel-O-Mat: API returned status", res.status)
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error("Brettspiel-O-Mat: Failed to load games", err)
     }
     setLoading(false)
   }, [])
@@ -583,7 +639,7 @@ export default function BrettspielOMatPage() {
             Brettspiel-O-Mat
           </h1>
           <p className="text-gray-600 transform rotate-1 font-body text-base">
-            Beantworte 6 kurze Fragen und finde dein perfektes Brettspiel.
+            Beantworte 7 kurze Fragen und finde dein perfektes Brettspiel.
           </p>
         </motion.div>
 
@@ -666,6 +722,24 @@ export default function BrettspielOMatPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
             >
+              {results.length === 0 && (
+                <Card className="border-gray-100 p-8 text-center">
+                  <FaDice className="mx-auto mb-4 h-12 w-12 text-gray-300" />
+                  <h3 className="text-lg font-bold text-gray-700 mb-2">Keine Spiele gefunden</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    {games.length === 0
+                      ? "Es konnten keine Spiele geladen werden. Bitte versuche es erneut."
+                      : "Kein Spiel passt zu deinen Kriterien. Versuch es mit weniger Filtern."}
+                  </p>
+                  <Button
+                    onClick={() => { setStep(0); setResults([]); setShowAll(false); if (games.length === 0) loadGames(); }}
+                    className="gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white"
+                  >
+                    <FaRedo className="h-3 w-3" />
+                    Neu starten
+                  </Button>
+                </Card>
+              )}
               {results.length > 0 && (
                 <>
                   {/* Top Match Highlight */}

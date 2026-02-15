@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
 
 // Top-rated and popular board games from BGG (curated list of ~100 well-known games)
 // These IDs rarely change and cover a wide range of genres, complexities, and player counts
@@ -37,14 +38,99 @@ export const maxDuration = 30 // Allow up to 30s for BGG API calls
 
 export async function GET() {
   try {
-    const games = await loadBGGGames()
+    // 1. Load local games from DB first (always available)
+    const localGames = await loadLocalGames()
+
+    // 2. Try to load BGG games (may fail/timeout)
+    let bggGames: any[] = []
+    try {
+      bggGames = await loadBGGGames()
+    } catch (err) {
+      console.error("BGG loading failed, using local games only:", err)
+    }
+
+    // 3. Combine: local games first, then BGG games (deduplicated by title)
+    const localTitles = new Set(localGames.map((g) => g.title.toLowerCase()))
+    const uniqueBggGames = bggGames.filter((g) => !localTitles.has(g.title.toLowerCase()))
+    const allGames = [...localGames, ...uniqueBggGames]
+
     return NextResponse.json({
-      games,
-      stats: { total: games.length },
+      games: allGames,
+      stats: { total: allGames.length, local: localGames.length, bgg: uniqueBggGames.length },
     })
   } catch (error) {
     console.error("Error loading games:", error)
     return NextResponse.json({ games: [], stats: { total: 0 } })
+  }
+}
+
+async function loadLocalGames(): Promise<any[]> {
+  try {
+    const supabase = await createClient()
+    const { data: games, error } = await supabase
+      .from("games")
+      .select("id, title, description, image, publisher, category, type, style, players, min_players, max_players, play_time, duration, age, age_rating, year_published")
+
+    if (error || !games) return []
+
+    return games.map((game) => {
+      const categories = game.category
+        ? game.category.split(",").map((c: string) => c.trim()).filter(Boolean)
+        : []
+
+      const mechanics = [
+        ...(game.type ? game.type.split(",").map((t: string) => t.trim()).filter(Boolean) : []),
+        ...(game.style ? game.style.split(",").map((s: string) => s.trim()).filter(Boolean) : []),
+      ]
+
+      let minPlayers = game.min_players || 2
+      let maxPlayers = game.max_players || 4
+      if (!game.min_players && game.players) {
+        const match = game.players.match(/(\d+)\s*(?:bis|-)\s*(\d+)/)
+        if (match) {
+          minPlayers = parseInt(match[1], 10)
+          maxPlayers = parseInt(match[2], 10)
+        }
+      }
+
+      let playingTime = game.play_time || 60
+      if (!game.play_time && game.duration) {
+        const match = game.duration.match(/(\d+)(?:\s*-\s*(\d+))?/)
+        if (match) {
+          playingTime = match[2]
+            ? Math.round((parseInt(match[1], 10) + parseInt(match[2], 10)) / 2)
+            : parseInt(match[1], 10)
+        }
+      }
+
+      let age = 10
+      if (game.age) {
+        const ageMatch = game.age.match(/(\d+)/)
+        if (ageMatch) age = parseInt(ageMatch[1], 10)
+      }
+
+      return {
+        id: game.id,
+        title: game.title || "Unbekannt",
+        description: game.description || "",
+        image: game.image || "",
+        thumbnail: game.image || "",
+        categories,
+        mechanics,
+        complexity: 0,
+        min_players: minPlayers,
+        max_players: maxPlayers,
+        playing_time: playingTime,
+        min_playtime: playingTime,
+        max_playtime: playingTime,
+        age,
+        rating: 7,
+        year_published: game.year_published || undefined,
+        source: "local" as const,
+      }
+    })
+  } catch {
+    return []
   }
 }
 
