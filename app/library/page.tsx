@@ -26,6 +26,7 @@ import {
   FaCheck,
   FaTags,
   FaEllipsisH,
+  FaTimes,
 } from "react-icons/fa"
 import { MdOutlineManageSearch } from "react-icons/md"
 import { GiReceiveMoney, GiBackForth } from "react-icons/gi"
@@ -2287,8 +2288,7 @@ function LibraryContent() {
             {selectedGame ? (
               <Card className="sticky top-4 lg:top-8 transform rotate-0 lg:rotate-1 hover:rotate-0 transition-all border-2 border-teal-200">
                 <CardContent className="p-4 md:p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1" />
+                  <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-gray-600">
                         {localToggleState[selectedGame.id] ? "Verfügbar" : "Nicht verfügbar"}
@@ -2296,20 +2296,15 @@ function LibraryContent() {
                       <button
                         onClick={async () => {
                           if (isToggling) return
-
                           try {
                             setIsToggling(true)
                             const isCurrentlyAvailable = localToggleState[selectedGame.id]
                             const newState = !isCurrentlyAvailable
-
                             setLocalToggleState((prev) => ({
                               ...prev,
                               [selectedGame.id]: newState,
                             }))
-
                             await toggleGameAvailability(selectedGame.id, newState)
-
-
                           } catch (error) {
                             console.error("Error toggling availability:", error)
                             const newState = !localToggleState[selectedGame.id]
@@ -2321,16 +2316,21 @@ function LibraryContent() {
                             setIsToggling(false)
                           }
                         }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 ${localToggleState[selectedGame.id] ? "bg-green-500" : "bg-red-500"
-                          } ${isToggling ? "opacity-50 cursor-not-allowed" : ""}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 ${localToggleState[selectedGame.id] ? "bg-green-500" : "bg-red-500"} ${isToggling ? "opacity-50 cursor-not-allowed" : ""}`}
                         disabled={!databaseConnected || isToggling}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${localToggleState[selectedGame.id] ? "translate-x-6" : "translate-x-1"
-                            }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${localToggleState[selectedGame.id] ? "translate-x-6" : "translate-x-1"}`}
                         />
                       </button>
                     </div>
+                    <button
+                      onClick={() => setSelectedGame(null)}
+                      className="p-1 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+                      aria-label="Ansicht schliessen"
+                    >
+                      <FaTimes className="w-4 h-4" />
+                    </button>
                   </div>
 
                   <div className="text-center mb-4">
@@ -2472,14 +2472,7 @@ function LibraryContent() {
                     </DropdownMenu>
                   </div>
 
-                  <Button
-                    variant="secondary"
-                    className="w-full font-handwritten h-8 text-xs"
-                    onClick={() => setSelectedGame(null)}
-                  >
-                    <FaEyeSlash className="w-3 h-3 mr-2" />
-                    Ansicht schliessen
-                  </Button>
+
                 </CardContent>
               </Card>
             ) : (
