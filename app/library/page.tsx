@@ -1324,9 +1324,8 @@ function LibraryContent() {
                 <button
                   type="button"
                   onClick={() => setInputMode("auto")}
-                  className={`flex-1 py-2 px-4 rounded-md font-handwritten transition-all duration-200 text-sm ${
-                    inputMode === "auto" ? "bg-green-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
-                  }`}
+                  className={`flex-1 py-2 px-4 rounded-md font-handwritten transition-all duration-200 text-sm ${inputMode === "auto" ? "bg-green-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
+                    }`}
                 >
                   <MdOutlineManageSearch className="w-4 h-4 inline mr-2" />
                   Automatisch suchen
@@ -1334,9 +1333,8 @@ function LibraryContent() {
                 <button
                   type="button"
                   onClick={() => setInputMode("manual")}
-                  className={`flex-1 py-2 px-4 rounded-md font-handwritten transition-all duration-200 text-sm ${
-                    inputMode === "manual" ? "bg-blue-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
-                  }`}
+                  className={`flex-1 py-2 px-4 rounded-md font-handwritten transition-all duration-200 text-sm ${inputMode === "manual" ? "bg-blue-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
+                    }`}
                 >
                   <FaEdit className="w-4 h-4 inline mr-2" />
                   Manuell eingeben
@@ -2129,11 +2127,10 @@ function LibraryContent() {
                               {isSelectionMode && (
                                 <div className="absolute top-1 right-1 z-10">
                                   <div
-                                    className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center ${
-                                      selectedGames.has(game.id)
+                                    className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center ${selectedGames.has(game.id)
                                         ? "bg-teal-500 border-teal-500"
                                         : "bg-white border-gray-300"
-                                    }`}
+                                      }`}
                                   >
                                     {selectedGames.has(game.id) && (
                                       <FaCheck className="w-3 h-3 md:w-4 md:h-4 text-white" />
@@ -2146,11 +2143,10 @@ function LibraryContent() {
                               {!isSelectionMode && (
                                 <div className="absolute top-1 left-1 z-10">
                                   <div
-                                    className={`w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm ${
-                                      !game.tracking_info?.status || game.tracking_info.status === "available"
+                                    className={`w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm ${!game.tracking_info?.status || game.tracking_info.status === "available"
                                         ? "bg-green-500"
                                         : "bg-red-500"
-                                    }`}
+                                      }`}
                                     title={
                                       !game.tracking_info?.status || game.tracking_info.status === "available"
                                         ? "Verfügbar"
@@ -2163,9 +2159,8 @@ function LibraryContent() {
                               )}
 
                               <div
-                                className={`w-20 h-28 md:w-24 md:h-32 bg-white rounded-t-lg shadow-lg border-2 overflow-hidden relative ${
-                                  selectedGames.has(game.id) ? "border-teal-500" : "border-gray-300"
-                                }`}
+                                className={`w-20 h-28 md:w-24 md:h-32 bg-white rounded-t-lg shadow-lg border-2 overflow-hidden relative ${selectedGames.has(game.id) ? "border-teal-500" : "border-gray-300"
+                                  }`}
                               >
                                 <img
                                   src={game.image || "/images/ludoloop-game-placeholder.png"}
@@ -2203,11 +2198,10 @@ function LibraryContent() {
                                 {isSelectionMode && (
                                   <div className="absolute top-1 right-1 z-10">
                                     <div
-                                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                                        selectedGames.has(game.id)
+                                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedGames.has(game.id)
                                           ? "bg-teal-500 border-teal-500"
                                           : "bg-white border-gray-300"
-                                      }`}
+                                        }`}
                                     >
                                       {selectedGames.has(game.id) && <FaCheck className="w-4 h-4 text-white" />}
                                     </div>
@@ -2217,11 +2211,10 @@ function LibraryContent() {
                                 {!isSelectionMode && (
                                   <div className="absolute top-1 left-1 z-10">
                                     <div
-                                      className={`w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm ${
-                                        !game.tracking_info?.status || game.tracking_info.status === "available"
+                                      className={`w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm ${!game.tracking_info?.status || game.tracking_info.status === "available"
                                           ? "bg-green-500"
                                           : "bg-red-500"
-                                      }`}
+                                        }`}
                                       title={
                                         !game.tracking_info?.status || game.tracking_info.status === "available"
                                           ? "Verfügbar"
@@ -2234,9 +2227,8 @@ function LibraryContent() {
                                 )}
 
                                 <div
-                                  className={`w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 overflow-hidden relative ${
-                                    selectedGames.has(game.id) ? "border-teal-500" : "border-gray-300"
-                                  }`}
+                                  className={`w-24 h-32 bg-white rounded-t-lg shadow-lg border-2 overflow-hidden relative ${selectedGames.has(game.id) ? "border-teal-500" : "border-gray-300"
+                                    }`}
                                 >
                                   <img
                                     src={game.image || "/images/ludoloop-game-placeholder.png"}
@@ -2329,15 +2321,13 @@ function LibraryContent() {
                             setIsToggling(false)
                           }
                         }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 ${
-                          localToggleState[selectedGame.id] ? "bg-green-500" : "bg-red-500"
-                        } ${isToggling ? "opacity-50 cursor-not-allowed" : ""}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 ${localToggleState[selectedGame.id] ? "bg-green-500" : "bg-red-500"
+                          } ${isToggling ? "opacity-50 cursor-not-allowed" : ""}`}
                         disabled={!databaseConnected || isToggling}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            localToggleState[selectedGame.id] ? "translate-x-6" : "translate-x-1"
-                          }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${localToggleState[selectedGame.id] ? "translate-x-6" : "translate-x-1"
+                            }`}
                         />
                       </button>
                     </div>
@@ -2347,7 +2337,6 @@ function LibraryContent() {
                     <div className="relative w-24 h-32 md:w-32 md:h-40 mx-auto rounded-lg shadow-lg mb-4 overflow-hidden">
                       <img
                         src={selectedGame.image || "/images/ludoloop-game-placeholder.png"}
-                        alt={selectedGame.title}
                         className="w-full h-full object-cover"
                       />
                       {/* Game Title Overlay for Detail View */}
@@ -3039,18 +3028,18 @@ function LibraryContent() {
 function AuthWrapper() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
-  
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.replace("/login?redirect=/library")
     }
   }, [user, authLoading, router])
-  
+
   // Show loading while auth is being checked or redirecting
   if (authLoading || !user) {
     return <LibraryLoading />
   }
-  
+
   return <LibraryContent />
 }
 
