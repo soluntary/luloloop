@@ -2359,9 +2359,11 @@ function LibraryContent() {
                     <h3 className="text-sm font-bold text-gray-800 mb-2 font-handwritten md:text-xs">
                       {selectedGame.title}
                     </h3>
-                    <p className="text-xs text-gray-600 font-body md:text-xs">
-                      {selectedGame.publisher}
-                    </p>
+                    {selectedGame.publisher && (
+                      <p className="text-xs text-gray-600 font-body md:text-xs">
+                        Verlag: {selectedGame.publisher}
+                      </p>
+                    )}
                   </div>
 
                   {/* CHANGE: Moved status display to after title and publisher */}
