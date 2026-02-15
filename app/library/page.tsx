@@ -2347,7 +2347,7 @@ function LibraryContent() {
                       </div>
                     </div>
 
-                    <h3 className="text-sm font-bold text-gray-800 mb-1 font-handwritten md:text-xs">
+                    <h3 className="text-sm font-bold text-gray-800 font-handwritten md:text-xs">
                       {selectedGame.title}
                     </h3>
                   </div>
@@ -2401,13 +2401,13 @@ function LibraryContent() {
                     </div>
                   )}
 
-                  <div className="border-t pt-3 pb-6 space-y-2.5">
+                  <div className="border-t border-gray-300 mt-4 pt-4 pb-6 space-y-2.5">
                     <div className="flex justify-between text-xs md:text-sm">
-                      <span className="font-body text-xs font-semibold">Verlag:</span>
+                      <span className="font-body text-xs font-bold">Verlag:</span>
                       <span className="font-body text-xs">{selectedGame.publisher || "Nicht angegeben"}</span>
                     </div>
                     <div className="flex justify-between text-xs md:text-sm">
-                      <span className="font-body text-xs font-semibold">Erscheinungsjahr:</span>
+                      <span className="font-body text-xs font-bold">Erscheinungsjahr:</span>
                       <span className="font-body text-xs">{selectedGame.year_published ?? "Nicht angegeben"}</span>
                     </div>
                     <div className="flex justify-between text-xs md:text-sm">
