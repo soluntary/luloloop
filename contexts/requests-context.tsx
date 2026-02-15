@@ -147,10 +147,9 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
 
   // Load game interaction requests
   const loadGameInteractionRequests = useCallback(async () => {
-    if (!user) return
+    if (!user || !supabase) return
 
     if (checkGlobalRateLimit()) {
-      // removed debug Requests: Skipping game interaction requests load due to rate limiting")
       return
     }
 
@@ -480,12 +479,12 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
     }
   }, [loadShelfAccessRequests, loadGameInteractionRequests])
 
-  // Load data when user changes
+  // Load data when user or supabase changes
   useEffect(() => {
-    if (user) {
+    if (user && supabase) {
       refreshRequests()
     }
-  }, [user, refreshRequests])
+  }, [user, supabase, refreshRequests])
 
   const value: RequestsContextType = {
     shelfAccessRequests,
