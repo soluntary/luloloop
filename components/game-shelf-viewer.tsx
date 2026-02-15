@@ -265,12 +265,10 @@ export function GameShelfViewer({ userId, userName, isOpen, onClose, onBack }: G
                   </div>
                 )}
 
-                {selectedGame.year_published && (
-                  <div className="flex items-center text-xs text-gray-600">
-                    <span className="text-xs text-gray-900 font-semibold mr-1">Erscheinungsjahr:</span>
-                    <span>{selectedGame.year_published}</span>
-                  </div>
-                )}
+                <div className="flex items-center text-xs text-gray-600">
+                  <span className="text-xs text-gray-900 font-semibold mr-1">Erscheinungsjahr:</span>
+                  <span>{selectedGame.year_published || "Nicht angegeben"}</span>
+                </div>
 
                 {selectedGame.players && (
                   <div className="flex items-center text-xs text-gray-600">

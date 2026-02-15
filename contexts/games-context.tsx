@@ -8,6 +8,7 @@ interface Game {
   id: string
   title: string
   publisher?: string
+  year_published?: number | null
   condition: string
   players?: string
   duration?: string
@@ -212,6 +213,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         ...(gameData.type && { type: gameData.type }),
         ...(gameData.style && { style: gameData.style }),
         ...(gameData.besonderheit && { besonderheit: gameData.besonderheit }),
+        ...(gameData.year_published !== undefined && { year_published: gameData.year_published }),
         ...(gameData.latitude && { latitude: gameData.latitude }),
         ...(gameData.longitude && { longitude: gameData.longitude }),
         ...(gameData.location && { location: gameData.location }),
@@ -261,6 +263,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         ...(gameData.type && { type: gameData.type }),
         ...(gameData.style && { style: gameData.style }),
         ...(gameData.besonderheit !== undefined && { besonderheit: gameData.besonderheit }),
+        ...(gameData.year_published !== undefined && { year_published: gameData.year_published }),
         ...(gameData.latitude && { latitude: gameData.latitude }),
         ...(gameData.longitude && { longitude: gameData.longitude }),
         ...(gameData.location && { location: gameData.location }),
