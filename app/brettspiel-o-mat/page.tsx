@@ -538,8 +538,8 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
             </div>
           </div>
 
-          {/* Reasons - collapsible, only for good matches */}
-          {result.reasons.length > 0 && result.score >= 40 && (
+          {/* Reasons - collapsible */}
+          {result.reasons.length > 0 && (
             <div className="border-t border-gray-50">
               <button
                 onClick={() => setExpanded(!expanded)}
