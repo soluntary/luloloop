@@ -584,7 +584,7 @@ export default function BrettspielOMatPage() {
   const [loading, setLoading] = useState(false)
   const [showAll, setShowAll] = useState(false)
 
-  // Load games from BGG
+  // Load games from DB + BGG
   const loadGames = useCallback(async () => {
     setLoading(true)
     try {
@@ -593,10 +593,14 @@ export default function BrettspielOMatPage() {
         const data = await res.json()
         if (data.games && data.games.length > 0) {
           setGames(data.games)
+        } else {
+          console.warn("Brettspiel-O-Mat: No games returned from API")
         }
+      } else {
+        console.error("Brettspiel-O-Mat: API returned status", res.status)
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error("Brettspiel-O-Mat: Failed to load games", err)
     }
     setLoading(false)
   }, [])
@@ -718,6 +722,24 @@ export default function BrettspielOMatPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
             >
+              {results.length === 0 && (
+                <Card className="border-gray-100 p-8 text-center">
+                  <FaDice className="mx-auto mb-4 h-12 w-12 text-gray-300" />
+                  <h3 className="text-lg font-bold text-gray-700 mb-2">Keine Spiele gefunden</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    {games.length === 0
+                      ? "Es konnten keine Spiele geladen werden. Bitte versuche es erneut."
+                      : "Kein Spiel passt zu deinen Kriterien. Versuch es mit weniger Filtern."}
+                  </p>
+                  <Button
+                    onClick={() => { setStep(0); setResults([]); setShowAll(false); if (games.length === 0) loadGames(); }}
+                    className="gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white"
+                  >
+                    <FaRedo className="h-3 w-3" />
+                    Neu starten
+                  </Button>
+                </Card>
+              )}
               {results.length > 0 && (
                 <>
                   {/* Top Match Highlight */}
