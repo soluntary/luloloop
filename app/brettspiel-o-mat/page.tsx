@@ -114,6 +114,33 @@ const QUESTIONS = [
     weight: 1.5,
   },
   {
+    id: "genres",
+    title: "Welche Genres magst du?",
+    subtitle: "Wähle ein oder mehrere Genres aus (Mehrfachauswahl)",
+    icon: FaDice,
+    type: "multi-choice" as const,
+    options: [
+      { label: "Aktions- und Reaktionsspiel", value: "Action / Dexterity" },
+      { label: "Brettspiel", value: "Board Game" },
+      { label: "Erweiterung", value: "Expansion" },
+      { label: "Escape-Spiel", value: "Escape Room,Puzzle" },
+      { label: "Geschicklichkeitsspiel", value: "Action / Dexterity,Flicking" },
+      { label: "Glücksspiel", value: "Dice,Press Your Luck" },
+      { label: "Kartenspiel", value: "Card Game" },
+      { label: "Krimi- und Detektivspiel", value: "Murder,Mystery,Deduction,Spies" },
+      { label: "Legespiel", value: "Tile Placement,Pattern Building" },
+      { label: "Merkspiel", value: "Memory" },
+      { label: "Outdoor-Spiel", value: "Outdoor,Sports" },
+      { label: "Partyspiel", value: "Party Game" },
+      { label: "Wissens- und Quizspiel", value: "Trivia" },
+      { label: "Rollenspiel", value: "Role Playing,Adventure" },
+      { label: "Trinkspiel", value: "Party Game,Drinking" },
+      { label: "Würfelspiel", value: "Dice,Dice Rolling" },
+    ],
+    defaultValue: [],
+    weight: 1.5,
+  },
+  {
     id: "categories",
     title: "Welche Themen interessieren dich?",
     subtitle: "Wähle ein oder mehrere Themen aus",
@@ -222,7 +249,33 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     totalScore += ageWeight * 20
   }
 
-  // 5. Categories/themes match (weight: 1)
+  // 5. Genres match (weight: 1.5)
+  const selectedGenres: string[] = answers.genres || []
+  const genreWeight = QUESTIONS.find((q) => q.id === "genres")!.weight
+  maxScore += genreWeight * 100
+  if (selectedGenres.length === 0) {
+    totalScore += genreWeight * 100
+  } else {
+    const gameTermsForGenre = [...(game.categories || []), ...(game.mechanics || [])].map((t) => t.toLowerCase())
+    const genreOptions = QUESTIONS.find((q) => q.id === "genres")?.options as { label: string; value: string }[] | undefined
+    const matchedGenreLabels: string[] = []
+    for (const genreValue of selectedGenres) {
+      const keywords = genreValue.split(",").map((k) => k.trim().toLowerCase())
+      const hit = keywords.some((kw) => gameTermsForGenre.some((gt) => gt.includes(kw) || kw.includes(gt)))
+      if (hit) {
+        const label = genreOptions?.find((o) => o.value === genreValue)?.label || genreValue
+        matchedGenreLabels.push(label)
+      }
+    }
+    if (matchedGenreLabels.length > 0) {
+      totalScore += genreWeight * (100 * (matchedGenreLabels.length / selectedGenres.length))
+      reasons.push(`Genre: ${matchedGenreLabels.join(", ")}`)
+    } else {
+      totalScore += genreWeight * 20
+    }
+  }
+
+  // 6. Categories/themes match (weight: 1)
   // Each selected theme has comma-separated keywords (e.g. "Bluffing,Deduction")
   // We match against both game.categories and game.mechanics
   const selectedThemes: string[] = answers.categories || []
@@ -250,7 +303,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     }
   }
 
-  // 6. Rating match (weight: 0.5)
+  // 7. Rating match (weight: 0.5)
   const minRating = answers.rating || 6.5
   const ratingWeight = QUESTIONS.find((q) => q.id === "rating")!.weight
   maxScore += ratingWeight * 100
@@ -583,7 +636,7 @@ export default function BrettspielOMatPage() {
             Brettspiel-O-Mat
           </h1>
           <p className="text-gray-600 transform rotate-1 font-body text-base">
-            Beantworte 6 kurze Fragen und finde dein perfektes Brettspiel.
+            Beantworte 7 kurze Fragen und finde dein perfektes Brettspiel.
           </p>
         </motion.div>
 
