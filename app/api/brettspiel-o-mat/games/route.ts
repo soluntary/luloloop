@@ -36,13 +36,15 @@ export const maxDuration = 30 // Allow up to 30s for BGG API calls
 
 export async function GET() {
   try {
+    console.log("[v0] BGG API: Starting to load games, IDs count:", UNIQUE_IDS.length)
     const games = await loadBGGGames()
+    console.log("[v0] BGG API: Loaded", games.length, "games successfully")
     return NextResponse.json({
       games,
       stats: { total: games.length },
     })
   } catch (error) {
-    console.error("Error loading BGG games:", error)
+    console.error("[v0] BGG API: Error loading games:", error)
     return NextResponse.json({ games: [], stats: { total: 0 } })
   }
 }
@@ -53,16 +55,27 @@ async function loadBGGGames(): Promise<any[]> {
   const chunks = chunkArray(UNIQUE_IDS, 20)
 
   // Run all chunks in parallel for speed
+  console.log("[v0] BGG API: Fetching", chunks.length, "chunks")
   const results = await Promise.allSettled(
-    chunks.map(async (chunk) => {
+    chunks.map(async (chunk, i) => {
       const ids = chunk.join(",")
-      const res = await fetch(
-        `https://boardgamegeek.com/xmlapi2/thing?id=${ids}&stats=1`,
-        { headers: BGG_HEADERS, next: { revalidate: 3600 } }
-      )
-      if (!res.ok) return []
-      const xml = await res.text()
-      return parseGames(xml)
+      const url = `https://boardgamegeek.com/xmlapi2/thing?id=${ids}&stats=1`
+      try {
+        const res = await fetch(url, { headers: BGG_HEADERS, next: { revalidate: 3600 } })
+        console.log("[v0] BGG API: Chunk", i, "status:", res.status)
+        if (!res.ok) {
+          console.error("[v0] BGG API: Chunk", i, "failed with status", res.status)
+          return []
+        }
+        const xml = await res.text()
+        console.log("[v0] BGG API: Chunk", i, "XML length:", xml.length)
+        const parsed = parseGames(xml)
+        console.log("[v0] BGG API: Chunk", i, "parsed", parsed.length, "games")
+        return parsed
+      } catch (err) {
+        console.error("[v0] BGG API: Chunk", i, "fetch error:", err)
+        return []
+      }
     })
   )
 
