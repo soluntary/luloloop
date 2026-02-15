@@ -856,7 +856,6 @@ export default function BrettspielOMatPage() {
                             )}
                           </AnimatePresence>
                         </div>
-                      )}
                     </CardContent>
                   </Card>
 
