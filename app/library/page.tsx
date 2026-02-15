@@ -2421,9 +2421,10 @@ function LibraryContent() {
                   )}
 
                   <div className="border-t pt-3 pb-6 space-y-2.5">
+                    {/* Erscheinungsjahr - always shown */}
                     <div className="flex justify-between text-xs md:text-sm">
-                      <span className="font-body text-xs font-semibold">Erscheinungsjahr:</span>
-                      <span className="font-body text-xs">{selectedGame.year_published || "Nicht angegeben"}</span>
+                      <span className="font-body text-xs font-bold">Erscheinungsjahr:</span>
+                      <span className="font-body text-xs">{selectedGame.year_published ?? "Nicht angegeben"}</span>
                     </div>
                     <div className="flex justify-between text-xs md:text-sm">
                       <span className="font-body text-xs font-semibold">Spieleranzahl:</span>
