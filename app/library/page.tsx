@@ -1120,7 +1120,7 @@ function LibraryContent() {
   }
 
   const handleGameSelect = (game: any) => {
-    console.log("[v0] handleGameSelect called with game:", game)
+
 
     setNewGameTitle(game.name)
 
@@ -2308,13 +2308,6 @@ function LibraryContent() {
                             const isCurrentlyAvailable = localToggleState[selectedGame.id]
                             const newState = !isCurrentlyAvailable
 
-                            console.log(
-                              "[v0] Toggle clicked - current state:",
-                              isCurrentlyAvailable,
-                              "will set to:",
-                              newState,
-                            )
-
                             setLocalToggleState((prev) => ({
                               ...prev,
                               [selectedGame.id]: newState,
@@ -2322,7 +2315,7 @@ function LibraryContent() {
 
                             await toggleGameAvailability(selectedGame.id, newState)
 
-                            console.log("[v0] Toggle completed successfully")
+
                           } catch (error) {
                             console.error("Error toggling availability:", error)
                             const newState = !localToggleState[selectedGame.id]
