@@ -611,14 +611,14 @@ export default function BrettspielOMatPage() {
         if (data.games && data.games.length > 0) {
           setGames(data.games)
         } else {
-          console.warn("Brettspiel-O-Mat: No games returned from API")
+          console.warn("Ludo-O-Mat: No games returned from API")
         }
       } else {
         const text = await res.text()
-        console.error("Brettspiel-O-Mat: API error", res.status)
+        console.error("Ludo-O-Mat: API error", res.status)
       }
     } catch (err) {
-      console.error("Brettspiel-O-Mat: Failed to load games", err)
+      console.error("Ludo-O-Mat: Failed to load games", err)
     }
     setLoading(false)
   }, [])
@@ -646,7 +646,7 @@ export default function BrettspielOMatPage() {
           }
         }
       } catch (err) {
-        console.error("Brettspiel-O-Mat: Retry failed", err)
+        console.error("Ludo-O-Mat: Retry failed", err)
       }
       setLoading(false)
     }
@@ -654,6 +654,22 @@ export default function BrettspielOMatPage() {
     const matched = gamesToUse
       .map((game) => calculateMatch(game, answers))
       .sort((a, b) => b.score - a.score)
+    if (matched.length > 0) {
+      const top = matched[0]
+      console.log("[v0] Top match:", top.game.title, "score:", top.score, "reasons:", JSON.stringify(top.reasons))
+      console.log("[v0] Top game data:", JSON.stringify({
+        min_players: top.game.min_players,
+        max_players: top.game.max_players,
+        playing_time: top.game.playing_time,
+        complexity: top.game.complexity,
+        age: top.game.age,
+        rating: top.game.rating,
+        categories: top.game.categories?.slice(0, 3),
+        mechanics: top.game.mechanics?.slice(0, 3),
+      }))
+      console.log("[v0] Answers:", JSON.stringify(answers))
+      console.log("[v0] Games with reasons:", matched.filter(m => m.reasons.length > 0).length, "of", matched.length)
+    }
     setResults(matched)
     setStep(QUESTIONS.length)
   }, [games, answers])
@@ -676,7 +692,7 @@ export default function BrettspielOMatPage() {
           animate={{ opacity: 1, y: 0 }}
         >
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-            Brettspiel-O-Mat
+            Ludo-O-Mat
           </h1>
           <p className="text-gray-600 transform rotate-1 font-body text-base">
             Beantworte 7 kurze Fragen und finde dein perfektes Brettspiel.

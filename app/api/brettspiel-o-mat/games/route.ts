@@ -1,33 +1,6 @@
 import { NextResponse } from "next/server"
 
-// Top-rated and popular board games from BGG - curated list covering many genres
-const TOP_GAME_IDS = [
-  // Top Strategy
-  174430, 167791, 169786, 187645, 12333, 28720, 31260, 120677, 173346, 162886,
-  // Family / Gateway
-  13, 30549, 68448, 36218, 148228, 178900, 266192, 295947, 246784, 324856,
-  // Party / Light
-  128882, 178210, 181304, 205637, 252861, 291457, 341169, 370591, 2651, 41114,
-  // Cooperative
-  161936, 224517, 205059, 244521, 291859, 285967, 233078, 126163, 180263,
-  // Economic / Trading
-  3076, 35677, 28143, 102794, 96848, 110327, 198994, 233867, 276025, 342942,
-  // Adventure / Thematic
-  164153, 237182, 312484, 199792, 15987, 155426, 175914, 182028,
-  // War / Conflict
-  12493, 24480, 42, 73439, 121921, 164928,
-  // Card Games
-  150376, 170042, 244522, 266810, 40692, 131835, 173064,
-  // Classics & Modern Classics
-  822, 9209, 521, 2453, 5, 45, 39856, 54043,
-  // Newer / Trending (2022-2025)
-  366013, 359871, 383607, 381983, 356123, 365717,
-]
-
-// Deduplicate IDs
-const UNIQUE_IDS = [...new Set(TOP_GAME_IDS)]
-
-export const maxDuration = 60 // Allow up to 60s for sequential BGG API calls
+export const maxDuration = 120 // Allow up to 120s for many BGG API calls
 
 function getHeaders(): Record<string, string> {
   const bggToken = process.env.BGG_API_TOKEN
@@ -38,28 +11,106 @@ function getHeaders(): Record<string, string> {
   }
 }
 
+// In-memory cache to avoid re-fetching on every request
+let cachedGames: any[] | null = null
+let cacheTimestamp = 0
+const CACHE_TTL = 1000 * 60 * 60 // 1 hour
+
 export async function GET() {
   try {
-    const games = await loadBGGGames()
+    // Return cached games if still fresh
+    if (cachedGames && Date.now() - cacheTimestamp < CACHE_TTL) {
+      return NextResponse.json({
+        games: cachedGames,
+        stats: { total: cachedGames.length, cached: true },
+      })
+    }
+
+    // 1. Fetch game IDs from multiple BGG ranked lists (each returns up to 100)
+    const gameIds = await fetchBGGGameIds()
+
+    // 2. Fetch full details for all IDs
+    const games = await fetchGameDetails(gameIds)
+
+    // Cache results
+    cachedGames = games
+    cacheTimestamp = Date.now()
+
     return NextResponse.json({
       games,
-      stats: { total: games.length },
+      stats: { total: games.length, cached: false },
     })
   } catch (error) {
     console.error("BGG API: Error loading games:", error)
+    // Return cached games as fallback if available
+    if (cachedGames) {
+      return NextResponse.json({
+        games: cachedGames,
+        stats: { total: cachedGames.length, cached: true, fallback: true },
+      })
+    }
     return NextResponse.json({ games: [], stats: { total: 0 } })
   }
 }
 
-async function loadBGGGames(): Promise<any[]> {
+/**
+ * Fetch game IDs from multiple BGG ranked/hot lists.
+ * BGG sitemap XML and the "hot" endpoint give us broad coverage.
+ * We fetch pages 1-10 of the top ranked boardgames (~1000 games).
+ */
+async function fetchBGGGameIds(): Promise<number[]> {
+  const allIds = new Set<number>()
+
+  // Fetch BGG Hot list (50 trending games)
+  try {
+    const hotRes = await fetch("https://boardgamegeek.com/xmlapi2/hot?type=boardgame", {
+      headers: getHeaders(),
+      cache: "no-store",
+    })
+    if (hotRes.ok) {
+      const hotXml = await hotRes.text()
+      const idMatches = hotXml.matchAll(/item\s+id="(\d+)"/g)
+      for (const m of idMatches) allIds.add(Number(m[1]))
+    }
+  } catch { /* skip */ }
+
+  // Fetch top ranked games from BGG search sorted by rank (pages 1-10, ~100 per page)
+  // BGG XMLAPI2 doesn't have a direct "top list" endpoint, so we use a known list approach:
+  // We'll scrape the sitemap or use the browse endpoint
+  const topListPages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  for (const page of topListPages) {
+    try {
+      const browseRes = await fetch(
+        `https://boardgamegeek.com/browse/boardgame/page/${page}`,
+        { headers: { ...getHeaders(), Accept: "text/html" }, cache: "no-store" }
+      )
+      if (browseRes.ok) {
+        const html = await browseRes.text()
+        // Extract game IDs from the browse page HTML
+        const idMatches = html.matchAll(/\/boardgame\/(\d+)/g)
+        for (const m of idMatches) allIds.add(Number(m[1]))
+      }
+      // Small delay between page fetches
+      await new Promise((r) => setTimeout(r, 800))
+    } catch { /* skip page */ }
+  }
+
+  return [...allIds]
+}
+
+/**
+ * Fetch full game details from BGG XML API in chunks of 20.
+ * Sequential with delay to respect rate limits.
+ */
+async function fetchGameDetails(ids: number[]): Promise<any[]> {
   const allGames: any[] = []
-  const chunks = chunkArray(UNIQUE_IDS, 20)
+  const chunks = chunkArray(ids, 20)
 
   for (let i = 0; i < chunks.length; i++) {
-    const ids = chunks[i].join(",")
-    const url = `https://boardgamegeek.com/xmlapi2/thing?id=${ids}&stats=1`
+    const idsStr = chunks[i].join(",")
+    const url = `https://boardgamegeek.com/xmlapi2/thing?id=${idsStr}&stats=1`
 
-    if (i > 0) await new Promise((r) => setTimeout(r, 1500))
+    if (i > 0) await new Promise((r) => setTimeout(r, 1000))
 
     try {
       let res = await fetch(url, { headers: getHeaders(), cache: "no-store" })
