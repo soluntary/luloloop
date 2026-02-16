@@ -977,7 +977,7 @@ export default function BrettspielOMatPage() {
                   {/* Top Match Highlight */}
                   <Card className="mb-6 overflow-hidden border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
                     <CardContent className="p-6">
-                      <div className="mb-2 text-xs font-medium uppercase tracking-wider text-teal-600">
+                      <div className="mb-2 text-sm font-medium uppercase tracking-wider text-teal-600">
                         Beste Übereinstimmung
                       </div>
                       <div className="flex items-center gap-5">
