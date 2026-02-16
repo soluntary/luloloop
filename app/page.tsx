@@ -555,11 +555,11 @@ export default function HomePage() {
             },
             {
               icon: FaDice,
-              title: "Brettspiel-O-Mat",
+              title: "Ludo-O-Mat",
               description:
                 "Beantworte 6 kurze Fragen zu deinen Vorlieben und finde dein perfektes Brettspiel. Unser Matching-Algorithmus durchsucht die gesamte Spieledatenbank!",
               link: "/brettspiel-o-mat",
-              linkText: "Zum Brettspiel-O-Mat",
+              linkText: "Zum Ludo-O-Mat",
               color: "teal",
               rotation: "-rotate-1",
             },

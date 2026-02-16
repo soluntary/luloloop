@@ -611,14 +611,14 @@ export default function BrettspielOMatPage() {
         if (data.games && data.games.length > 0) {
           setGames(data.games)
         } else {
-          console.warn("Brettspiel-O-Mat: No games returned from API")
+          console.warn("Ludo-O-Mat: No games returned from API")
         }
       } else {
         const text = await res.text()
-        console.error("Brettspiel-O-Mat: API error", res.status)
+        console.error("Ludo-O-Mat: API error", res.status)
       }
     } catch (err) {
-      console.error("Brettspiel-O-Mat: Failed to load games", err)
+      console.error("Ludo-O-Mat: Failed to load games", err)
     }
     setLoading(false)
   }, [])
@@ -646,7 +646,7 @@ export default function BrettspielOMatPage() {
           }
         }
       } catch (err) {
-        console.error("Brettspiel-O-Mat: Retry failed", err)
+        console.error("Ludo-O-Mat: Retry failed", err)
       }
       setLoading(false)
     }
@@ -676,7 +676,7 @@ export default function BrettspielOMatPage() {
           animate={{ opacity: 1, y: 0 }}
         >
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 mb-4 transform -rotate-1 font-handwritten">
-            Brettspiel-O-Mat
+            Ludo-O-Mat
           </h1>
           <p className="text-gray-600 transform rotate-1 font-body text-base">
             Beantworte 7 kurze Fragen und finde dein perfektes Brettspiel.

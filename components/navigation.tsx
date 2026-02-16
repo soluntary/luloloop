@@ -97,7 +97,7 @@ function Navigation({ currentPage }: NavigationProps) {
         items: [
           { href: "/spielhilfen", label: "Spielhilfen", icon: FaToolbox, key: "spielhilfen" },
           { href: "/spielarena", label: "Spielarena", icon: GiMeepleCircle, key: "spielarena" },
-          { href: "/brettspiel-o-mat", label: "Brettspiel-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
+          { href: "/brettspiel-o-mat", label: "Ludo-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
         ],
       },
     },
@@ -129,7 +129,7 @@ function Navigation({ currentPage }: NavigationProps) {
         items: [
           { href: "/spielhilfen", label: "Spielhilfen", icon: FaToolbox, key: "spielhilfen" },
           { href: "/spielarena", label: "Spielarena", icon: GiMeepleCircle, key: "spielarena" },
-          { href: "/brettspiel-o-mat", label: "Brettspiel-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
+          { href: "/brettspiel-o-mat", label: "Ludo-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
         ],
       },
     },
