@@ -19,6 +19,7 @@ import {
   FaArrowLeft,
   FaRedo,
   FaChevronDown,
+  FaSlidersH,
 } from "react-icons/fa"
 import { GiTreasureMap } from "react-icons/gi"
 import Image from "next/image"
@@ -603,22 +604,29 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="px-4 pb-4 space-y-2">
-                      {/* Header */}
-                      <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-1 border-b border-gray-100">
-                        <span></span>
-                        <span>Deine Auswahl</span>
-                        <span>Spiel</span>
-                        <span></span>
-                      </div>
-                      {result.comparisons.map((c, i) => (
-                        <div key={i} className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-center text-[11px]">
-                          <span className="font-semibold text-gray-700 min-w-[80px]">{c.label}</span>
-                          <span className="text-gray-500 truncate">{c.userValue}</span>
-                          <span className="text-gray-700 truncate">{c.gameValue}</span>
-                          <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
-                        </div>
-                      ))}
+                    <div className="px-4 pb-4">
+                      <table className="w-full text-[11px]">
+                        <thead>
+                          <tr className="border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                            <th className="w-[28%] pb-2 text-left font-semibold"></th>
+                            <th className="w-[30%] pb-2 text-left font-semibold">Deine Auswahl</th>
+                            <th className="w-[30%] pb-2 text-left font-semibold">Spiel</th>
+                            <th className="w-[12%] pb-2 text-center font-semibold"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {result.comparisons.map((c, i) => (
+                            <tr key={i} className="border-b border-gray-50 last:border-0">
+                              <td className="py-1.5 pr-2 font-semibold text-gray-700">{c.label}</td>
+                              <td className="py-1.5 pr-2 text-gray-500">{c.userValue}</td>
+                              <td className="py-1.5 pr-2 text-gray-700">{c.gameValue}</td>
+                              <td className="py-1.5 text-center">
+                                <span className={`inline-block h-2.5 w-2.5 rounded-full ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </motion.div>
                 )}
@@ -645,6 +653,7 @@ export default function BrettspielOMatPage() {
   const [calculating, setCalculating] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const [bestMatchExpanded, setBestMatchExpanded] = useState(false)
+  const [editingAnswers, setEditingAnswers] = useState(false)
 
   // Load games from BGG
   const loadGames = useCallback(async () => {
@@ -837,6 +846,134 @@ export default function BrettspielOMatPage() {
               )}
               {results.length > 0 && (
                 <>
+                  {/* Adjust answers */}
+                  <Card className="mb-6 border-gray-200">
+                    <CardContent className="p-0">
+                      <button
+                        onClick={() => setEditingAnswers(!editingAnswers)}
+                        className="flex w-full items-center justify-between px-5 py-3.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <span className="flex items-center gap-2">
+                          <FaSlidersH className="h-3.5 w-3.5 text-teal-500" />
+                          Antworten anpassen
+                        </span>
+                        <FaChevronDown className={`h-3 w-3 text-gray-400 transition-transform ${editingAnswers ? "rotate-180" : ""}`} />
+                      </button>
+                      <AnimatePresence>
+                        {editingAnswers && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="border-t border-gray-100 px-5 pb-5 pt-4 space-y-5">
+                              {QUESTIONS.map((q) => {
+                                const Icon = q.icon
+                                if (q.type === "slider") {
+                                  const sq = q as typeof q & { min: number; max: number; step: number; labels: Record<number, string> }
+                                  const val = answers[q.id] ?? sq.defaultValue
+                                  return (
+                                    <div key={q.id}>
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <Icon className="h-3.5 w-3.5 text-teal-500" />
+                                        <span className="text-xs font-semibold text-gray-700">{q.title}</span>
+                                        <span className="ml-auto rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-bold text-teal-700">{sq.labels[val] || val}</span>
+                                      </div>
+                                      <Slider
+                                        value={[val]}
+                                        onValueChange={([v]) => setAnswers((prev) => ({ ...prev, [q.id]: v }))}
+                                        min={sq.min}
+                                        max={sq.max}
+                                        step={sq.step}
+                                        className="w-full"
+                                      />
+                                    </div>
+                                  )
+                                }
+                                if (q.type === "choice") {
+                                  const cq = q as typeof q & { options: { label: string; value: number; icon: string }[] }
+                                  const val = answers[q.id] ?? cq.defaultValue
+                                  return (
+                                    <div key={q.id}>
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <Icon className="h-3.5 w-3.5 text-teal-500" />
+                                        <span className="text-xs font-semibold text-gray-700">{q.title}</span>
+                                      </div>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {cq.options.map((opt) => (
+                                          <button
+                                            key={opt.value}
+                                            onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: opt.value }))}
+                                            className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${val === opt.value
+                                              ? "border-teal-500 bg-teal-50 text-teal-700"
+                                              : "border-gray-200 text-gray-500 hover:border-teal-200"
+                                            }`}
+                                          >
+                                            {opt.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )
+                                }
+                                if (q.type === "multi-choice") {
+                                  const mq = q as typeof q & { options: { label: string; value: string }[] }
+                                  const selected: string[] = answers[q.id] || []
+                                  return (
+                                    <div key={q.id}>
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <Icon className="h-3.5 w-3.5 text-teal-500" />
+                                        <span className="text-xs font-semibold text-gray-700">{q.title}</span>
+                                      </div>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {mq.options.map((opt) => {
+                                          const isSelected = selected.includes(opt.value)
+                                          return (
+                                            <button
+                                              key={opt.value}
+                                              onClick={() => {
+                                                const next = isSelected
+                                                  ? selected.filter((v) => v !== opt.value)
+                                                  : [...selected, opt.value]
+                                                setAnswers((prev) => ({ ...prev, [q.id]: next }))
+                                              }}
+                                              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${isSelected
+                                                ? "border-teal-500 bg-teal-50 text-teal-700"
+                                                : "border-gray-200 text-gray-500 hover:border-teal-200"
+                                              }`}
+                                            >
+                                              {opt.label}
+                                            </button>
+                                          )
+                                        })}
+                                      </div>
+                                    </div>
+                                  )
+                                }
+                                return null
+                              })}
+                              <Button
+                                onClick={() => {
+                                  const matched = games
+                                    .map((game) => calculateMatch(game, answers))
+                                    .sort((a, b) => b.score - a.score)
+                                  setResults(matched)
+                                  setEditingAnswers(false)
+                                  setShowAll(false)
+                                }}
+                                className="w-full gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600"
+                              >
+                                Ergebnisse aktualisieren
+                              </Button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </CardContent>
+                  </Card>
+
                   {/* Top Match Highlight */}
                   <Card className="mb-6 overflow-hidden border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
                     <CardContent className="p-6">
@@ -897,22 +1034,28 @@ export default function BrettspielOMatPage() {
                               transition={{ duration: 0.2 }}
                               className="overflow-hidden px-4 pb-4"
                             >
-                              <div className="space-y-2">
-                                <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-1 border-b border-teal-100">
-                                  <span></span>
-                                  <span>Deine Auswahl</span>
-                                  <span>Spiel</span>
-                                  <span></span>
-                                </div>
-                                {results[0].comparisons.map((c, i) => (
-                                  <div key={i} className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-center text-[11px]">
-                                    <span className="font-semibold text-gray-700 min-w-[80px]">{c.label}</span>
-                                    <span className="text-gray-500 truncate">{c.userValue}</span>
-                                    <span className="text-gray-700 truncate">{c.gameValue}</span>
-                                    <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
-                                  </div>
-                                ))}
-                              </div>
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b border-teal-100 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                                    <th className="w-[28%] pb-2 text-left font-semibold"></th>
+                                    <th className="w-[30%] pb-2 text-left font-semibold">Deine Auswahl</th>
+                                    <th className="w-[30%] pb-2 text-left font-semibold">Spiel</th>
+                                    <th className="w-[12%] pb-2 text-center font-semibold"></th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {results[0].comparisons.map((c, i) => (
+                                    <tr key={i} className="border-b border-teal-50 last:border-0">
+                                      <td className="py-2 pr-2 font-semibold text-gray-700">{c.label}</td>
+                                      <td className="py-2 pr-2 text-gray-500">{c.userValue}</td>
+                                      <td className="py-2 pr-2 text-gray-700">{c.gameValue}</td>
+                                      <td className="py-2 text-center">
+                                        <span className={`inline-block h-2.5 w-2.5 rounded-full ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
                             </motion.div>
                           )}
                         </AnimatePresence>
