@@ -47,10 +47,18 @@ interface GameCatalogEntry {
   bgg_id?: number
 }
 
+interface MatchComparison {
+  label: string
+  userValue: string
+  gameValue: string
+  match: "good" | "okay" | "bad"
+}
+
 interface MatchResult {
   game: GameCatalogEntry
   score: number
   reasons: string[]
+  comparisons: MatchComparison[]
 }
 
 // --- Questions Definition ---
@@ -210,12 +218,14 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   let totalScore = 0
   let maxScore = 0
   const reasons: string[] = []
+  const comparisons: MatchComparison[] = []
 
   // 1. Players match (weight: 2)
   const playerCount = answers.players || 3
   const playerWeight = QUESTIONS.find((q) => q.id === "players")!.weight
   maxScore += playerWeight * 100
-  if (playerCount >= game.min_players && playerCount <= game.max_players) {
+  const playerFits = playerCount >= game.min_players && playerCount <= game.max_players
+  if (playerFits) {
     totalScore += playerWeight * 100
     reasons.push(`Passt für ${playerCount} Spieler`)
   } else {
@@ -225,6 +235,12 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     const penalty = Math.max(0, 100 - diff * 40)
     totalScore += playerWeight * penalty
   }
+  comparisons.push({
+    label: "Spieleranzahl",
+    userValue: `${playerCount} Spieler`,
+    gameValue: `${game.min_players}-${game.max_players} Spieler`,
+    match: playerFits ? "good" : (Math.abs(playerCount - (playerFits ? playerCount : playerCount < game.min_players ? game.min_players : game.max_players)) <= 1 ? "okay" : "bad"),
+  })
 
   // 2. Duration match (weight: 2)
   const targetDuration = answers.duration || 60
@@ -243,6 +259,14 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   } else {
     totalScore += durationWeight * 10
   }
+  const durationLabel = QUESTIONS.find((q) => q.id === "duration")?.options as { label: string; value: number }[] | undefined
+  const durationUserLabel = durationLabel?.find((o) => o.value === targetDuration)?.label || `${targetDuration} Min.`
+  comparisons.push({
+    label: "Spieldauer",
+    userValue: durationUserLabel,
+    gameValue: `${gameDuration} Min.`,
+    match: durationDiff <= 15 ? "good" : durationDiff <= 30 ? "okay" : "bad",
+  })
 
   // 3. Complexity match (weight: 1.5)
   const targetComplexity = answers.complexity || 2.5
@@ -262,8 +286,16 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
       totalScore += complexityWeight * 10
     }
   } else {
-    totalScore += complexityWeight * 50 // unknown complexity = neutral
+    totalScore += complexityWeight * 50
   }
+  const complexDiffVal = game.complexity ? Math.abs(game.complexity - targetComplexity) : 2
+  const complexityLabels: Record<string, string> = { "1": "Einfach", "2": "Leicht", "3": "Mittel", "4": "Anspruchsvoll", "5": "Komplex" }
+  comparisons.push({
+    label: "Schwierigkeit",
+    userValue: complexityLabels[String(Math.round(targetComplexity))] || `${targetComplexity}/5`,
+    gameValue: game.complexity ? `${game.complexity.toFixed(1)}/5` : "Unbekannt",
+    match: complexDiffVal <= 0.5 ? "good" : complexDiffVal <= 1 ? "okay" : "bad",
+  })
 
   // 4. Age match (weight: 1.5)
   const targetAge = answers.age || 10
@@ -277,6 +309,12 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   } else {
     totalScore += ageWeight * 20
   }
+  comparisons.push({
+    label: "Altersempfehlung",
+    userValue: `Ab ${targetAge} Jahren`,
+    gameValue: game.age ? `Ab ${game.age} Jahren` : "Unbekannt",
+    match: game.age && game.age <= targetAge ? "good" : game.age && game.age <= targetAge + 2 ? "okay" : "bad",
+  })
 
   // 5. Genres match (weight: 1.5)
   const selectedGenres: string[] = answers.genres || []
@@ -302,6 +340,16 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     } else {
       totalScore += genreWeight * 20
     }
+    const genreUserLabels = selectedGenres.map((v) => {
+      const opt = (QUESTIONS.find((q) => q.id === "genres")?.options as { label: string; value: string }[])?.find((o) => o.value === v)
+      return opt?.label || v
+    })
+    comparisons.push({
+      label: "Genre",
+      userValue: genreUserLabels.join(", "),
+      gameValue: matchedGenreLabels.length > 0 ? matchedGenreLabels.join(", ") : "Keine Treffer",
+      match: matchedGenreLabels.length === selectedGenres.length ? "good" : matchedGenreLabels.length > 0 ? "okay" : "bad",
+    })
   }
 
   // 6. Categories/themes match (weight: 1)
@@ -330,6 +378,16 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     } else {
       totalScore += categoryWeight * 20
     }
+    const catUserLabels = selectedThemes.map((v) => {
+      const opt = (QUESTIONS.find((q) => q.id === "categories")?.options as { label: string; value: string }[])?.find((o) => o.value === v)
+      return opt?.label || v
+    })
+    comparisons.push({
+      label: "Thema",
+      userValue: catUserLabels.join(", "),
+      gameValue: matchedLabels.length > 0 ? matchedLabels.join(", ") : "Keine Treffer",
+      match: matchedLabels.length === selectedThemes.length ? "good" : matchedLabels.length > 0 ? "okay" : "bad",
+    })
   }
 
   // 7. Rating match (weight: 0.5)
@@ -344,6 +402,12 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     const ratingDiff = minRating - game.rating
     totalScore += ratingWeight * Math.max(0, 100 - ratingDiff * 50)
   }
+  comparisons.push({
+    label: "Bewertung",
+    userValue: `Mind. ${minRating}/10`,
+    gameValue: game.rating > 0 ? `${game.rating.toFixed(1)}/10` : "Unbekannt",
+    match: game.rating >= minRating ? "good" : game.rating >= minRating - 1 ? "okay" : "bad",
+  })
 
   const score = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0
 
@@ -360,7 +424,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     }
   }
 
-  return { game, score, reasons }
+  return { game, score, reasons, comparisons }
 }
 
 // --- Components ---
@@ -587,12 +651,12 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
             )}
           </div>
 
-          {/* Reasons - collapsible */}
-          {result.reasons.length > 0 && (
-            <div className="border-t border-gray-50">
+          {/* Warum passt es? - comparison table */}
+          {result.comparisons.length > 0 && (
+            <div className="border-t border-gray-100">
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="flex w-full items-center justify-center gap-1 px-4 py-2 text-xs text-gray-400 hover:text-teal-600 transition-colors"
+                className="flex w-full items-center justify-center gap-1 px-4 py-2.5 text-xs text-gray-400 hover:text-teal-600 transition-colors"
               >
                 {expanded ? "Weniger" : "Warum passt es?"}
                 <FaChevronDown className={`h-2.5 w-2.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
@@ -605,11 +669,21 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="flex flex-wrap gap-1.5 px-4 pb-3">
-                      {result.reasons.map((reason, i) => (
-                        <Badge key={i} variant="outline" className="text-[10px] text-teal-600 border-teal-200">
-                          {reason}
-                        </Badge>
+                    <div className="px-4 pb-4 space-y-2">
+                      {/* Header */}
+                      <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-1 border-b border-gray-100">
+                        <span></span>
+                        <span>Deine Auswahl</span>
+                        <span>Spiel</span>
+                        <span></span>
+                      </div>
+                      {result.comparisons.map((c, i) => (
+                        <div key={i} className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-center text-[11px]">
+                          <span className="font-semibold text-gray-700 min-w-[80px]">{c.label}</span>
+                          <span className="text-gray-500 truncate">{c.userValue}</span>
+                          <span className="text-gray-700 truncate">{c.gameValue}</span>
+                          <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
+                        </div>
                       ))}
                     </div>
                   </motion.div>
@@ -946,11 +1020,11 @@ export default function BrettspielOMatPage() {
                         )}
                       </div>
 
-                      {/* Warum passt es? - always shown for best match */}
+                      {/* Warum passt es? - comparison table */}
                       <div className="mt-4 border-t border-teal-100">
                         <button
                           onClick={() => setBestMatchExpanded(!bestMatchExpanded)}
-                          className="flex w-full items-center justify-center gap-1 py-2 text-xs text-teal-500 hover:text-teal-700 transition-colors"
+                          className="flex w-full items-center justify-center gap-1 py-2.5 text-xs text-teal-500 hover:text-teal-700 transition-colors"
                         >
                           {bestMatchExpanded ? "Weniger" : "Warum passt es?"}
                           <FaChevronDown className={`h-2.5 w-2.5 transition-transform ${bestMatchExpanded ? "rotate-180" : ""}`} />
@@ -962,23 +1036,28 @@ export default function BrettspielOMatPage() {
                               animate={{ height: "auto", opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
                               transition={{ duration: 0.2 }}
-                              className="overflow-hidden px-1 pb-3"
+                              className="overflow-hidden px-4 pb-4"
                             >
-                              <div className="flex flex-wrap gap-1.5">
-                                {(results[0].reasons.length > 0 ? results[0].reasons : [
-                                  `${results[0].game.min_players}-${results[0].game.max_players} Spieler`,
-                                  results[0].game.playing_time > 0 ? `~${results[0].game.playing_time} Min.` : null,
-                                  results[0].game.rating > 0 ? `Bewertung: ${results[0].game.rating.toFixed(1)}/10` : null,
-                                ].filter(Boolean) as string[]).map((reason, i) => (
-                                  <Badge key={i} className="bg-teal-100 text-[10px] text-teal-700 border-0">
-                                    {reason}
-                                  </Badge>
+                              <div className="space-y-2">
+                                <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-1 border-b border-teal-100">
+                                  <span></span>
+                                  <span>Deine Auswahl</span>
+                                  <span>Spiel</span>
+                                  <span></span>
+                                </div>
+                                {results[0].comparisons.map((c, i) => (
+                                  <div key={i} className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-center text-[11px]">
+                                    <span className="font-semibold text-gray-700 min-w-[80px]">{c.label}</span>
+                                    <span className="text-gray-500 truncate">{c.userValue}</span>
+                                    <span className="text-gray-700 truncate">{c.gameValue}</span>
+                                    <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
+                                  </div>
                                 ))}
                               </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </CardContent>
                   </Card>
 
