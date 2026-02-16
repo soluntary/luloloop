@@ -185,34 +185,6 @@ const QUESTIONS = [
   },
 ]
 
-// --- Answer Display Helper ---
-function getAnswerLabel(questionId: string, answer: any): string {
-  const question = QUESTIONS.find((q) => q.id === questionId)
-  if (!question) return String(answer)
-
-  if (question.type === "slider") {
-    if (questionId === "players") return `${answer} Spieler`
-    return String(answer)
-  }
-
-  if (question.type === "multi-choice") {
-    const selected = answer as string[]
-    if (!selected || selected.length === 0) return "Keine Auswahl"
-    const opts = question.options as { label: string; value: string }[]
-    return selected
-      .map((val) => opts.find((o) => o.value === val)?.label || val)
-      .join(", ")
-  }
-
-  if (question.type === "choice") {
-    const opts = question.options as { label: string; value: number }[]
-    const found = opts.find((o) => o.value === answer)
-    return found?.label || String(answer)
-  }
-
-  return String(answer)
-}
-
 // --- Matching Algorithm ---
 function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): MatchResult {
   let totalScore = 0
@@ -261,10 +233,13 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   }
   const durationLabel = QUESTIONS.find((q) => q.id === "duration")?.options as { label: string; value: number }[] | undefined
   const durationUserLabel = durationLabel?.find((o) => o.value === targetDuration)?.label || `${targetDuration} Min.`
+  const minPlay = game.min_playtime || gameDuration
+  const maxPlay = game.max_playtime || gameDuration
+  const gameDurationDisplay = minPlay === maxPlay ? `${minPlay} Min.` : `${minPlay}-${maxPlay} Min.`
   comparisons.push({
     label: "Spieldauer",
     userValue: durationUserLabel,
-    gameValue: `${gameDuration} Min.`,
+    gameValue: gameDurationDisplay,
     match: durationDiff <= 15 ? "good" : durationDiff <= 30 ? "okay" : "bad",
   })
 
@@ -594,7 +569,10 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
 
             {/* Title + Score */}
             <div className="min-w-0 flex-1">
-              <h3 className="text-base font-bold text-gray-900">{result.game.title}</h3>
+              <h3 className="text-base font-bold text-gray-900">
+                {result.game.title}
+                {result.game.year_published ? <span className="ml-1 font-normal text-gray-400">({result.game.year_published})</span> : null}
+              </h3>
               <div className={`mt-1 text-2xl font-bold ${scoreColor}`}>{result.score}%</div>
               <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-gray-100">
                 <motion.div
@@ -606,24 +584,6 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
               </div>
             </div>
           </div>
-
-          {/* Separator + Detail overview (only non-compared fields) */}
-          {(result.game.publisher || result.game.year_published) && (
-            <div className="mt-4 border-t border-gray-200 pt-3 space-y-1.5 text-xs text-gray-600">
-              {result.game.publisher && (
-                <div className="flex justify-between">
-                  <span className="font-semibold text-gray-700">Verlag:</span>
-                  <span>{result.game.publisher}</span>
-                </div>
-              )}
-              {result.game.year_published && (
-                <div className="flex justify-between">
-                  <span className="font-semibold text-gray-700">Erscheinungsjahr:</span>
-                  <span>{result.game.year_published}</span>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Warum passt es? - comparison table */}
           {result.comparisons.length > 0 && (
@@ -682,9 +642,9 @@ export default function BrettspielOMatPage() {
   const [games, setGames] = useState<GameCatalogEntry[]>([])
   const [results, setResults] = useState<MatchResult[]>([])
   const [loading, setLoading] = useState(false)
+  const [calculating, setCalculating] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const [bestMatchExpanded, setBestMatchExpanded] = useState(false)
-  const [answersSummaryExpanded, setAnswersSummaryExpanded] = useState(false)
 
   // Load games from BGG
   const loadGames = useCallback(async () => {
@@ -714,13 +674,11 @@ export default function BrettspielOMatPage() {
 
   // Calculate results - retry loading games if none available
   const calculateResults = useCallback(async () => {
-    console.log("[v0] calculateResults called, games:", games.length, "step:", step, "answers:", JSON.stringify(answers))
+    setCalculating(true)
     let gamesToUse = games
 
     // If no games loaded yet, try loading again
     if (gamesToUse.length === 0) {
-      console.log("[v0] No games, retrying fetch...")
-      setLoading(true)
       try {
         const res = await fetch("/api/brettspiel-o-mat/games")
         if (res.ok) {
@@ -728,23 +686,20 @@ export default function BrettspielOMatPage() {
           if (data.games && data.games.length > 0) {
             gamesToUse = data.games
             setGames(data.games)
-
           }
         }
-      } catch (err) {
-        console.error("Ludo-O-Mat: Retry failed", err)
+      } catch {
+        // retry failed silently
       }
-      setLoading(false)
     }
 
-    console.log("[v0] gamesToUse count:", gamesToUse.length)
     const matched = gamesToUse
       .map((game) => calculateMatch(game, answers))
       .sort((a, b) => b.score - a.score)
-    console.log("[v0] matched count:", matched.length, "setting step to:", QUESTIONS.length)
     setResults(matched)
+    setCalculating(false)
     setStep(QUESTIONS.length)
-  }, [games, answers, step])
+  }, [games, answers])
 
   const currentQuestion = QUESTIONS[step]
   const isLastQuestion = step === QUESTIONS.length - 1
@@ -825,10 +780,23 @@ export default function BrettspielOMatPage() {
                 {isLastQuestion ? (
                   <Button
                     onClick={calculateResults}
-                    className="gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600"
+                    disabled={calculating}
+                    className="gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600 disabled:opacity-80"
                   >
-                    Ergebnisse anzeigen
-                    <FaDice className="h-3 w-3" />
+                    {calculating ? (
+                      <>
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Spiele werden geladen...
+                      </>
+                    ) : (
+                      <>
+                        Ergebnisse anzeigen
+                        <FaDice className="h-3 w-3" />
+                      </>
+                    )}
                   </Button>
                 ) : (
                   <Button
@@ -869,48 +837,6 @@ export default function BrettspielOMatPage() {
               )}
               {results.length > 0 && (
                 <>
-                  {/* Answers Summary */}
-                  <Card className="mb-6 border-gray-200">
-                    <CardContent className="p-0">
-                      <button
-                        onClick={() => setAnswersSummaryExpanded(!answersSummaryExpanded)}
-                        className="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <span>Deine Auswahl</span>
-                        <FaChevronDown className={`h-3 w-3 text-gray-400 transition-transform ${answersSummaryExpanded ? "rotate-180" : ""}`} />
-                      </button>
-                      <AnimatePresence>
-                        {answersSummaryExpanded && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="border-t border-gray-100 px-5 pb-4 pt-3 space-y-2.5">
-                              {QUESTIONS.map((q) => {
-                                const answer = answers[q.id]
-                                if (answer === undefined || answer === null) return null
-                                if (Array.isArray(answer) && answer.length === 0) return null
-                                const Icon = q.icon
-                                return (
-                                  <div key={q.id} className="flex items-start gap-3 text-xs">
-                                    <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-500" />
-                                    <div className="min-w-0 flex-1">
-                                      <div className="font-semibold text-gray-700">{q.title}</div>
-                                      <div className="mt-0.5 text-gray-500">{getAnswerLabel(q.id, answer)}</div>
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </CardContent>
-                  </Card>
-
                   {/* Top Match Highlight */}
                   <Card className="mb-6 overflow-hidden border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
                     <CardContent className="p-6">
@@ -936,6 +862,7 @@ export default function BrettspielOMatPage() {
                         <div className="min-w-0 flex-1">
                           <h2 className="truncate text-xl font-bold text-gray-900">
                             {results[0].game.title}
+                            {results[0].game.year_published ? <span className="ml-1 font-normal text-gray-400">({results[0].game.year_published})</span> : null}
                           </h2>
                           <div className={`mt-1 text-3xl font-bold ${results[0].score >= 80 ? "text-green-600" : results[0].score >= 50 ? "text-orange-500" : "text-red-500"}`}>
                             {results[0].score}%
@@ -951,24 +878,6 @@ export default function BrettspielOMatPage() {
                           </div>
                         </div>
                       </div>
-
-                      {/* Game details (only non-compared fields) */}
-                      {(results[0].game.publisher || results[0].game.year_published) && (
-                        <div className="mt-4 border-t border-teal-100 pt-3 space-y-1.5 text-xs text-gray-600">
-                          {results[0].game.publisher && (
-                            <div className="flex justify-between">
-                              <span className="font-semibold text-gray-700">Verlag:</span>
-                              <span>{results[0].game.publisher}</span>
-                            </div>
-                          )}
-                          {results[0].game.year_published && (
-                            <div className="flex justify-between">
-                              <span className="font-semibold text-gray-700">Erscheinungsjahr:</span>
-                              <span>{results[0].game.year_published}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
 
                       {/* Warum passt es? - comparison table */}
                       <div className="mt-4 border-t border-teal-100">
