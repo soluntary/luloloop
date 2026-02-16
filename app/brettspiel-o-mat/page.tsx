@@ -177,6 +177,34 @@ const QUESTIONS = [
   },
 ]
 
+// --- Answer Display Helper ---
+function getAnswerLabel(questionId: string, answer: any): string {
+  const question = QUESTIONS.find((q) => q.id === questionId)
+  if (!question) return String(answer)
+
+  if (question.type === "slider") {
+    if (questionId === "players") return `${answer} Spieler`
+    return String(answer)
+  }
+
+  if (question.type === "multi-choice") {
+    const selected = answer as string[]
+    if (!selected || selected.length === 0) return "Keine Auswahl"
+    const opts = question.options as { label: string; value: string }[]
+    return selected
+      .map((val) => opts.find((o) => o.value === val)?.label || val)
+      .join(", ")
+  }
+
+  if (question.type === "choice") {
+    const opts = question.options as { label: string; value: number }[]
+    const found = opts.find((o) => o.value === answer)
+    return found?.label || String(answer)
+  }
+
+  return String(answer)
+}
+
 // --- Matching Algorithm ---
 function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): MatchResult {
   let totalScore = 0
@@ -608,6 +636,7 @@ export default function BrettspielOMatPage() {
   const [loading, setLoading] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const [bestMatchExpanded, setBestMatchExpanded] = useState(false)
+  const [answersSummaryExpanded, setAnswersSummaryExpanded] = useState(false)
 
   // Load games from BGG
   const loadGames = useCallback(async () => {
@@ -790,6 +819,48 @@ export default function BrettspielOMatPage() {
               )}
               {results.length > 0 && (
                 <>
+                  {/* Answers Summary */}
+                  <Card className="mb-6 border-gray-200">
+                    <CardContent className="p-0">
+                      <button
+                        onClick={() => setAnswersSummaryExpanded(!answersSummaryExpanded)}
+                        className="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <span>Deine Auswahl</span>
+                        <FaChevronDown className={`h-3 w-3 text-gray-400 transition-transform ${answersSummaryExpanded ? "rotate-180" : ""}`} />
+                      </button>
+                      <AnimatePresence>
+                        {answersSummaryExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="border-t border-gray-100 px-5 pb-4 pt-3 space-y-2.5">
+                              {QUESTIONS.map((q) => {
+                                const answer = answers[q.id]
+                                if (answer === undefined || answer === null) return null
+                                if (Array.isArray(answer) && answer.length === 0) return null
+                                const Icon = q.icon
+                                return (
+                                  <div key={q.id} className="flex items-start gap-3 text-xs">
+                                    <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-500" />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="font-semibold text-gray-700">{q.title}</div>
+                                      <div className="mt-0.5 text-gray-500">{getAnswerLabel(q.id, answer)}</div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </CardContent>
+                  </Card>
+
                   {/* Top Match Highlight */}
                   <Card className="mb-6 overflow-hidden border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
                     <CardContent className="p-6">
