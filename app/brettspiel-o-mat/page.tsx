@@ -261,10 +261,13 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   }
   const durationLabel = QUESTIONS.find((q) => q.id === "duration")?.options as { label: string; value: number }[] | undefined
   const durationUserLabel = durationLabel?.find((o) => o.value === targetDuration)?.label || `${targetDuration} Min.`
+  const minPlay = game.min_playtime || gameDuration
+  const maxPlay = game.max_playtime || gameDuration
+  const gameDurationDisplay = minPlay === maxPlay ? `${minPlay} Min.` : `${minPlay}-${maxPlay} Min.`
   comparisons.push({
     label: "Spieldauer",
     userValue: durationUserLabel,
-    gameValue: `${gameDuration} Min.`,
+    gameValue: gameDurationDisplay,
     match: durationDiff <= 15 ? "good" : durationDiff <= 30 ? "okay" : "bad",
   })
 
@@ -594,7 +597,10 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
 
             {/* Title + Score */}
             <div className="min-w-0 flex-1">
-              <h3 className="text-base font-bold text-gray-900">{result.game.title}</h3>
+              <h3 className="text-base font-bold text-gray-900">
+                {result.game.title}
+                {result.game.year_published ? <span className="ml-1 font-normal text-gray-400">({result.game.year_published})</span> : null}
+              </h3>
               <div className={`mt-1 text-2xl font-bold ${scoreColor}`}>{result.score}%</div>
               <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-gray-100">
                 <motion.div
@@ -606,24 +612,6 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
               </div>
             </div>
           </div>
-
-          {/* Separator + Detail overview (only non-compared fields) */}
-          {(result.game.publisher || result.game.year_published) && (
-            <div className="mt-4 border-t border-gray-200 pt-3 space-y-1.5 text-xs text-gray-600">
-              {result.game.publisher && (
-                <div className="flex justify-between">
-                  <span className="font-semibold text-gray-700">Verlag:</span>
-                  <span>{result.game.publisher}</span>
-                </div>
-              )}
-              {result.game.year_published && (
-                <div className="flex justify-between">
-                  <span className="font-semibold text-gray-700">Erscheinungsjahr:</span>
-                  <span>{result.game.year_published}</span>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Warum passt es? - comparison table */}
           {result.comparisons.length > 0 && (
@@ -931,6 +919,7 @@ export default function BrettspielOMatPage() {
                         <div className="min-w-0 flex-1">
                           <h2 className="truncate text-xl font-bold text-gray-900">
                             {results[0].game.title}
+                            {results[0].game.year_published ? <span className="ml-1 font-normal text-gray-400">({results[0].game.year_published})</span> : null}
                           </h2>
                           <div className={`mt-1 text-3xl font-bold ${results[0].score >= 80 ? "text-green-600" : results[0].score >= 50 ? "text-orange-500" : "text-red-500"}`}>
                             {results[0].score}%
@@ -946,24 +935,6 @@ export default function BrettspielOMatPage() {
                           </div>
                         </div>
                       </div>
-
-                      {/* Game details (only non-compared fields) */}
-                      {(results[0].game.publisher || results[0].game.year_published) && (
-                        <div className="mt-4 border-t border-teal-100 pt-3 space-y-1.5 text-xs text-gray-600">
-                          {results[0].game.publisher && (
-                            <div className="flex justify-between">
-                              <span className="font-semibold text-gray-700">Verlag:</span>
-                              <span>{results[0].game.publisher}</span>
-                            </div>
-                          )}
-                          {results[0].game.year_published && (
-                            <div className="flex justify-between">
-                              <span className="font-semibold text-gray-700">Erscheinungsjahr:</span>
-                              <span>{results[0].game.year_published}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
 
                       {/* Warum passt es? - comparison table */}
                       <div className="mt-4 border-t border-teal-100">
