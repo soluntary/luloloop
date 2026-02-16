@@ -846,95 +846,6 @@ export default function BrettspielOMatPage() {
               )}
               {results.length > 0 && (
                 <>
-                  {/* Top Match Highlight */}
-                  <Card className="mb-6 overflow-hidden border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
-                    <CardContent className="p-6">
-                      <div className="mb-2 text-center text-xs font-medium uppercase tracking-wider text-teal-600">
-                        Beste Übereinstimmung
-                      </div>
-                      <div className="flex items-center gap-5">
-                        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-white shadow-sm">
-                          {results[0].game.thumbnail || results[0].game.image ? (
-                            <Image
-                              src={results[0].game.thumbnail || results[0].game.image}
-                              alt={results[0].game.title}
-                              fill
-                              className="object-cover"
-                              sizes="96px"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center">
-                              <FaDice className="h-10 w-10 text-gray-300" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h2 className="truncate text-xl font-bold text-gray-900">
-                            {results[0].game.title}
-                            {results[0].game.year_published ? <span className="ml-1 font-normal text-gray-400">({results[0].game.year_published})</span> : null}
-                          </h2>
-                          <div className={`mt-1 text-3xl font-bold ${results[0].score >= 80 ? "text-green-600" : results[0].score >= 50 ? "text-orange-500" : "text-red-500"}`}>
-                            {results[0].score}%
-                          </div>
-                          {/* Score bar with traffic light color */}
-                          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                            <motion.div
-                              className={`h-full rounded-full ${results[0].score >= 80 ? "bg-green-500" : results[0].score >= 50 ? "bg-orange-400" : "bg-red-500"}`}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${results[0].score}%` }}
-                              transition={{ delay: 0.3, duration: 0.6 }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Warum passt es? - comparison table */}
-                      <div className="mt-4 border-t border-teal-100">
-                        <button
-                          onClick={() => setBestMatchExpanded(!bestMatchExpanded)}
-                          className="flex w-full items-center justify-center gap-1 py-2.5 text-xs text-teal-500 hover:text-teal-700 transition-colors"
-                        >
-                          {bestMatchExpanded ? "Weniger" : "Warum passt es?"}
-                          <FaChevronDown className={`h-2.5 w-2.5 transition-transform ${bestMatchExpanded ? "rotate-180" : ""}`} />
-                        </button>
-                        <AnimatePresence>
-                          {bestMatchExpanded && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="overflow-hidden px-4 pb-4"
-                            >
-                              <table className="w-full text-xs">
-                                <thead>
-                                  <tr className="border-b border-teal-100 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                                    <th className="w-[28%] pb-2 text-left font-semibold"></th>
-                                    <th className="w-[30%] pb-2 text-left font-semibold">Deine Auswahl</th>
-                                    <th className="w-[30%] pb-2 text-left font-semibold">Spiel</th>
-                                    <th className="w-[12%] pb-2 text-center font-semibold"></th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {results[0].comparisons.map((c, i) => (
-                                    <tr key={i} className="border-b border-teal-50 last:border-0">
-                                      <td className="py-2 pr-2 font-semibold text-gray-700">{c.label}</td>
-                                      <td className="py-2 pr-2 text-gray-500">{c.userValue}</td>
-                                      <td className="py-2 pr-2 text-gray-700">{c.gameValue}</td>
-                                      <td className="py-2 text-center">
-                                        <span className={`inline-block h-2.5 w-2.5 rounded-full ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </CardContent>
-                  </Card>
-
                   {/* Adjust answers */}
                   <Card className="mb-6 border-gray-200">
                     <CardContent className="p-0">
@@ -1060,6 +971,95 @@ export default function BrettspielOMatPage() {
                           </motion.div>
                         )}
                       </AnimatePresence>
+                    </CardContent>
+                  </Card>
+
+                  {/* Top Match Highlight */}
+                  <Card className="mb-6 overflow-hidden border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
+                    <CardContent className="p-6">
+                      <div className="mb-2 text-center text-xs font-medium uppercase tracking-wider text-teal-600">
+                        Beste Übereinstimmung
+                      </div>
+                      <div className="flex items-center gap-5">
+                        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-white shadow-sm">
+                          {results[0].game.thumbnail || results[0].game.image ? (
+                            <Image
+                              src={results[0].game.thumbnail || results[0].game.image}
+                              alt={results[0].game.title}
+                              fill
+                              className="object-cover"
+                              sizes="96px"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <FaDice className="h-10 w-10 text-gray-300" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h2 className="truncate text-xl font-bold text-gray-900">
+                            {results[0].game.title}
+                            {results[0].game.year_published ? <span className="ml-1 font-normal text-gray-400">({results[0].game.year_published})</span> : null}
+                          </h2>
+                          <div className={`mt-1 text-3xl font-bold ${results[0].score >= 80 ? "text-green-600" : results[0].score >= 50 ? "text-orange-500" : "text-red-500"}`}>
+                            {results[0].score}%
+                          </div>
+                          {/* Score bar with traffic light color */}
+                          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                            <motion.div
+                              className={`h-full rounded-full ${results[0].score >= 80 ? "bg-green-500" : results[0].score >= 50 ? "bg-orange-400" : "bg-red-500"}`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${results[0].score}%` }}
+                              transition={{ delay: 0.3, duration: 0.6 }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Warum passt es? - comparison table */}
+                      <div className="mt-4 border-t border-teal-100">
+                        <button
+                          onClick={() => setBestMatchExpanded(!bestMatchExpanded)}
+                          className="flex w-full items-center justify-center gap-1 py-2.5 text-xs text-teal-500 hover:text-teal-700 transition-colors"
+                        >
+                          {bestMatchExpanded ? "Weniger" : "Warum passt es?"}
+                          <FaChevronDown className={`h-2.5 w-2.5 transition-transform ${bestMatchExpanded ? "rotate-180" : ""}`} />
+                        </button>
+                        <AnimatePresence>
+                          {bestMatchExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden px-4 pb-4"
+                            >
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b border-teal-100 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                                    <th className="w-[28%] pb-2 text-left font-semibold"></th>
+                                    <th className="w-[30%] pb-2 text-left font-semibold">Deine Auswahl</th>
+                                    <th className="w-[30%] pb-2 text-left font-semibold">Spiel</th>
+                                    <th className="w-[12%] pb-2 text-center font-semibold"></th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {results[0].comparisons.map((c, i) => (
+                                    <tr key={i} className="border-b border-teal-50 last:border-0">
+                                      <td className="py-2 pr-2 font-semibold text-gray-700">{c.label}</td>
+                                      <td className="py-2 pr-2 text-gray-500">{c.userValue}</td>
+                                      <td className="py-2 pr-2 text-gray-700">{c.gameValue}</td>
+                                      <td className="py-2 text-center">
+                                        <span className={`inline-block h-2.5 w-2.5 rounded-full ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </CardContent>
                   </Card>
 
