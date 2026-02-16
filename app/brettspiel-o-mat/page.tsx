@@ -654,6 +654,22 @@ export default function BrettspielOMatPage() {
     const matched = gamesToUse
       .map((game) => calculateMatch(game, answers))
       .sort((a, b) => b.score - a.score)
+    if (matched.length > 0) {
+      const top = matched[0]
+      console.log("[v0] Top match:", top.game.title, "score:", top.score, "reasons:", JSON.stringify(top.reasons))
+      console.log("[v0] Top game data:", JSON.stringify({
+        min_players: top.game.min_players,
+        max_players: top.game.max_players,
+        playing_time: top.game.playing_time,
+        complexity: top.game.complexity,
+        age: top.game.age,
+        rating: top.game.rating,
+        categories: top.game.categories?.slice(0, 3),
+        mechanics: top.game.mechanics?.slice(0, 3),
+      }))
+      console.log("[v0] Answers:", JSON.stringify(answers))
+      console.log("[v0] Games with reasons:", matched.filter(m => m.reasons.length > 0).length, "of", matched.length)
+    }
     setResults(matched)
     setStep(QUESTIONS.length)
   }, [games, answers])
