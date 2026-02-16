@@ -516,36 +516,47 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
                 />
               </div>
 
-              {/* Quick info */}
-              <div className="mt-2 flex flex-wrap gap-2">
+              {/* Detail overview */}
+              <div className="mt-3 space-y-1 text-[11px] text-gray-600">
+                {result.game.publisher && (
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-700">Verlag:</span>
+                    <span>{result.game.publisher}</span>
+                  </div>
+                )}
+                {result.game.year_published && (
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-700">Erscheinungsjahr:</span>
+                    <span>{result.game.year_published}</span>
+                  </div>
+                )}
                 {result.game.min_players && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    <FaUsers className="mr-1 h-2.5 w-2.5" />
-                    {result.game.min_players}-{result.game.max_players}
-                  </Badge>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-700">Spieleranzahl:</span>
+                    <span>{result.game.min_players}-{result.game.max_players} Personen</span>
+                  </div>
                 )}
                 {result.game.playing_time > 0 && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    <FaClock className="mr-1 h-2.5 w-2.5" />
-                    {result.game.playing_time} Min.
-                  </Badge>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-700">Spieldauer:</span>
+                    <span>{result.game.playing_time} Min.</span>
+                  </div>
                 )}
-                {result.game.complexity > 0 && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    <FaBrain className="mr-1 h-2.5 w-2.5" />
-                    {result.game.complexity.toFixed(1)}/5
-                  </Badge>
+                {result.game.age > 0 && (
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-700">Altersempfehlung:</span>
+                    <span>Ab {result.game.age} Jahren</span>
+                  </div>
                 )}
-                {result.game.rating > 0 && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    <FaStar className="mr-1 h-2.5 w-2.5" />
-                    {result.game.rating.toFixed(1)}
-                  </Badge>
-                )}
-                {result.game.source === "bgg" && (
-                  <Badge variant="outline" className="text-[10px] border-orange-200 text-orange-600">
-                    BGG
-                  </Badge>
+                <div className="flex justify-between">
+                  <span className="font-semibold text-gray-700">Sprache:</span>
+                  <span>{result.game.language || "Nicht angegeben"}</span>
+                </div>
+                {result.game.categories && result.game.categories.length > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <span className="shrink-0 font-semibold text-gray-700">Kategorie:</span>
+                    <span className="text-right">{result.game.categories.slice(0, 3).join(", ")}</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -654,22 +665,6 @@ export default function BrettspielOMatPage() {
     const matched = gamesToUse
       .map((game) => calculateMatch(game, answers))
       .sort((a, b) => b.score - a.score)
-    if (matched.length > 0) {
-      const top = matched[0]
-      console.log("[v0] Top match:", top.game.title, "score:", top.score, "reasons:", JSON.stringify(top.reasons))
-      console.log("[v0] Top game data:", JSON.stringify({
-        min_players: top.game.min_players,
-        max_players: top.game.max_players,
-        playing_time: top.game.playing_time,
-        complexity: top.game.complexity,
-        age: top.game.age,
-        rating: top.game.rating,
-        categories: top.game.categories?.slice(0, 3),
-        mechanics: top.game.mechanics?.slice(0, 3),
-      }))
-      console.log("[v0] Answers:", JSON.stringify(answers))
-      console.log("[v0] Games with reasons:", matched.filter(m => m.reasons.length > 0).length, "of", matched.length)
-    }
     setResults(matched)
     setStep(QUESTIONS.length)
   }, [games, answers])
@@ -837,6 +832,50 @@ export default function BrettspielOMatPage() {
                             />
                           </div>
                         </div>
+                      </div>
+
+                      {/* Game details */}
+                      <div className="mt-4 border-t border-teal-100 pt-3 space-y-1.5 text-xs text-gray-600">
+                        {results[0].game.publisher && (
+                          <div className="flex justify-between">
+                            <span className="font-semibold text-gray-700">Verlag:</span>
+                            <span>{results[0].game.publisher}</span>
+                          </div>
+                        )}
+                        {results[0].game.year_published && (
+                          <div className="flex justify-between">
+                            <span className="font-semibold text-gray-700">Erscheinungsjahr:</span>
+                            <span>{results[0].game.year_published}</span>
+                          </div>
+                        )}
+                        {results[0].game.min_players && (
+                          <div className="flex justify-between">
+                            <span className="font-semibold text-gray-700">Spieleranzahl:</span>
+                            <span>{results[0].game.min_players}-{results[0].game.max_players} Personen</span>
+                          </div>
+                        )}
+                        {results[0].game.playing_time > 0 && (
+                          <div className="flex justify-between">
+                            <span className="font-semibold text-gray-700">Spieldauer:</span>
+                            <span>{results[0].game.playing_time} Min.</span>
+                          </div>
+                        )}
+                        {results[0].game.age > 0 && (
+                          <div className="flex justify-between">
+                            <span className="font-semibold text-gray-700">Altersempfehlung:</span>
+                            <span>Ab {results[0].game.age} Jahren</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="font-semibold text-gray-700">Sprache:</span>
+                          <span>{results[0].game.language || "Nicht angegeben"}</span>
+                        </div>
+                        {results[0].game.categories && results[0].game.categories.length > 0 && (
+                          <div className="flex justify-between gap-4">
+                            <span className="shrink-0 font-semibold text-gray-700">Kategorie:</span>
+                            <span className="text-right">{results[0].game.categories.slice(0, 3).join(", ")}</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Warum passt es? - always shown for best match */}

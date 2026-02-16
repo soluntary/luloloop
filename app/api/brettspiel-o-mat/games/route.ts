@@ -162,10 +162,12 @@ function parseGames(xml: string): any[] {
       const minAge = toNum(extractVal(c, /<minage[^>]*value="([^"]*)"/))
       const image = extractVal(c, /<image[^>]*>([^<]+)<\/image>/)
       const thumbnail = extractVal(c, /<thumbnail[^>]*>([^<]+)<\/thumbnail>/)
+      const yearPublished = toNum(extractVal(c, /<yearpublished[^>]*value="([^"]*)"/))
       const avgRating = toFloat(extractVal(c, /<average[^>]*value="([^"]*)"/))
       const complexity = toFloat(extractVal(c, /<averageweight[^>]*value="([^"]*)"/))
       const categories = extractMulti(c, /<link[^>]*type="boardgamecategory"[^>]*value="([^"]*)"/)
       const mechanics = extractMulti(c, /<link[^>]*type="boardgamemechanic"[^>]*value="([^"]*)"/)
+      const publishers = extractMulti(c, /<link[^>]*type="boardgamepublisher"[^>]*value="([^"]*)"/)
 
       games.push({
         id: `bgg-${bggId}`,
@@ -180,10 +182,13 @@ function parseGames(xml: string): any[] {
         min_playtime: minPlaytime ?? playingTime ?? 30,
         max_playtime: maxPlaytime ?? playingTime ?? 90,
         age: minAge ?? 10,
+        year_published: yearPublished ?? null,
+        publisher: publishers.length > 0 ? decode(publishers[0]) : null,
         complexity: complexity ?? 2.5,
         rating: avgRating ?? 6.0,
         categories: categories.map(decode),
         mechanics: mechanics.map(decode),
+        language: null,
         source: "bgg" as const,
       })
     } catch {
