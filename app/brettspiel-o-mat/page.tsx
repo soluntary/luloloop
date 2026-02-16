@@ -714,12 +714,10 @@ export default function BrettspielOMatPage() {
 
   // Calculate results - retry loading games if none available
   const calculateResults = useCallback(async () => {
-    console.log("[v0] calculateResults called, games:", games.length, "step:", step, "answers:", JSON.stringify(answers))
     let gamesToUse = games
 
     // If no games loaded yet, try loading again
     if (gamesToUse.length === 0) {
-      console.log("[v0] No games, retrying fetch...")
       setLoading(true)
       try {
         const res = await fetch("/api/brettspiel-o-mat/games")
@@ -728,23 +726,20 @@ export default function BrettspielOMatPage() {
           if (data.games && data.games.length > 0) {
             gamesToUse = data.games
             setGames(data.games)
-
           }
         }
-      } catch (err) {
-        console.error("Ludo-O-Mat: Retry failed", err)
+      } catch {
+        // retry failed silently
       }
       setLoading(false)
     }
 
-    console.log("[v0] gamesToUse count:", gamesToUse.length)
     const matched = gamesToUse
       .map((game) => calculateMatch(game, answers))
       .sort((a, b) => b.score - a.score)
-    console.log("[v0] matched count:", matched.length, "setting step to:", QUESTIONS.length)
     setResults(matched)
     setStep(QUESTIONS.length)
-  }, [games, answers, step])
+  }, [games, answers])
 
   const currentQuestion = QUESTIONS[step]
   const isLastQuestion = step === QUESTIONS.length - 1
