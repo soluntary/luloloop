@@ -475,22 +475,23 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
       transition={{ delay: rank * 0.05 }}
     >
       <Card className="overflow-hidden border-gray-100 transition-shadow hover:shadow-md">
-        <CardContent className="p-0">
-          <div className="flex gap-4 p-4">
+        <CardContent className="p-4">
+          {/* Top section: Image + Title + Score */}
+          <div className="flex items-start gap-4">
             {/* Rank */}
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-500">
               {rank}
             </div>
 
             {/* Game Image */}
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-50">
+            <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-50">
               {result.game.thumbnail || result.game.image ? (
                 <Image
                   src={result.game.thumbnail || result.game.image}
                   alt={result.game.title}
                   fill
                   className="object-cover"
-                  sizes="80px"
+                  sizes="96px"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
@@ -499,14 +500,10 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
               )}
             </div>
 
-            {/* Info */}
+            {/* Title + Score */}
             <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="truncate text-sm font-bold text-gray-900">{result.game.title}</h3>
-                <span className={`shrink-0 text-lg font-bold ${scoreColor}`}>{result.score}%</span>
-              </div>
-
-              {/* Match bar */}
+              <h3 className="text-base font-bold text-gray-900">{result.game.title}</h3>
+              <div className={`mt-1 text-2xl font-bold ${scoreColor}`}>{result.score}%</div>
               <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-gray-100">
                 <motion.div
                   className={`h-full rounded-full ${barColor}`}
@@ -515,51 +512,51 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
                   transition={{ delay: rank * 0.05 + 0.3, duration: 0.5 }}
                 />
               </div>
-
-              {/* Detail overview */}
-              <div className="mt-3 space-y-1 text-[11px] text-gray-600">
-                {result.game.publisher && (
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-700">Verlag:</span>
-                    <span>{result.game.publisher}</span>
-                  </div>
-                )}
-                {result.game.year_published && (
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-700">Erscheinungsjahr:</span>
-                    <span>{result.game.year_published}</span>
-                  </div>
-                )}
-                {result.game.min_players && (
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-700">Spieleranzahl:</span>
-                    <span>{result.game.min_players}-{result.game.max_players} Personen</span>
-                  </div>
-                )}
-                {result.game.playing_time > 0 && (
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-700">Spieldauer:</span>
-                    <span>{result.game.playing_time} Min.</span>
-                  </div>
-                )}
-                {result.game.age > 0 && (
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-700">Altersempfehlung:</span>
-                    <span>Ab {result.game.age} Jahren</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="font-semibold text-gray-700">Sprache:</span>
-                  <span>{result.game.language || "Nicht angegeben"}</span>
-                </div>
-                {result.game.categories && result.game.categories.length > 0 && (
-                  <div className="flex justify-between gap-4">
-                    <span className="shrink-0 font-semibold text-gray-700">Kategorie:</span>
-                    <span className="text-right">{result.game.categories.slice(0, 3).join(", ")}</span>
-                  </div>
-                )}
-              </div>
             </div>
+          </div>
+
+          {/* Separator + Detail overview */}
+          <div className="mt-4 border-t border-gray-200 pt-3 space-y-1.5 text-xs text-gray-600">
+            {result.game.publisher && (
+              <div className="flex justify-between">
+                <span className="font-semibold text-gray-700">Verlag:</span>
+                <span>{result.game.publisher}</span>
+              </div>
+            )}
+            {result.game.year_published && (
+              <div className="flex justify-between">
+                <span className="font-semibold text-gray-700">Erscheinungsjahr:</span>
+                <span>{result.game.year_published}</span>
+              </div>
+            )}
+            {result.game.min_players && (
+              <div className="flex justify-between">
+                <span className="font-semibold text-gray-700">Spieleranzahl:</span>
+                <span>{result.game.min_players}-{result.game.max_players} Personen</span>
+              </div>
+            )}
+            {result.game.playing_time > 0 && (
+              <div className="flex justify-between">
+                <span className="font-semibold text-gray-700">Spieldauer:</span>
+                <span>{result.game.playing_time} Min.</span>
+              </div>
+            )}
+            {result.game.age > 0 && (
+              <div className="flex justify-between">
+                <span className="font-semibold text-gray-700">Altersempfehlung:</span>
+                <span>Ab {result.game.age} Jahren</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="font-semibold text-gray-700">Sprache:</span>
+              <span>{result.game.language || "Nicht angegeben"}</span>
+            </div>
+            {result.game.categories && result.game.categories.length > 0 && (
+              <div className="flex justify-between gap-4">
+                <span className="shrink-0 font-semibold text-gray-700">Kategorie:</span>
+                <span className="text-right">{result.game.categories.slice(0, 3).join(", ")}</span>
+              </div>
+            )}
           </div>
 
           {/* Reasons - collapsible */}
