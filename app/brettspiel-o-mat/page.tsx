@@ -84,6 +84,7 @@ const QUESTIONS = [
     icon: FaClock,
     type: "choice" as const,
     options: [
+      { label: "Egal", value: 0, icon: "any" },
       { label: "Kurz (bis 30 Min.)", value: 30, icon: "quick" },
       { label: "Mittel (30-60 Min.)", value: 60, icon: "medium" },
       { label: "Lang (60-120 Min.)", value: 120, icon: "long" },
@@ -99,6 +100,7 @@ const QUESTIONS = [
     icon: FaBrain,
     type: "choice" as const,
     options: [
+      { label: "Egal", value: 0, icon: "any" },
       { label: "Leicht", value: 1.5, icon: "simple" },
       { label: "Mittel", value: 2.5, icon: "medium" },
       { label: "Anspruchsvoll", value: 3.5, icon: "complex" },
@@ -129,6 +131,7 @@ const QUESTIONS = [
     icon: FaDice,
     type: "multi-choice" as const,
     options: [
+      { label: "Egal", value: "__any__" },
       { label: "Aktions- und Reaktionsspiel", value: "Action / Dexterity" },
       { label: "Brettspiel", value: "Board Game" },
       { label: "Escape-Spiel", value: "Escape Room,Puzzle" },
@@ -155,6 +158,7 @@ const QUESTIONS = [
     icon: GiTreasureMap,
     type: "multi-choice" as const,
     options: [
+      { label: "Egal", value: "__any__" },
       { label: "Fantasie", value: "Fantasy" },
       { label: "Science-Fiction", value: "Science Fiction" },
       { label: "Bluffen / Deduktion", value: "Bluffing,Deduction" },
@@ -219,59 +223,69 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   const targetDuration = answers.duration || 60
   const durationWeight = QUESTIONS.find((q) => q.id === "duration")!.weight
   maxScore += durationWeight * 100
-  const gameDuration = game.playing_time || game.max_playtime || game.min_playtime || 60
-  const durationDiff = Math.abs(gameDuration - targetDuration)
-  if (durationDiff <= 15) {
+  if (targetDuration === 0) {
+    // "Egal" selected
     totalScore += durationWeight * 100
-    reasons.push(`Spieldauer passt (${gameDuration} Min.)`)
-  } else if (durationDiff <= 30) {
-    totalScore += durationWeight * 75
-    reasons.push(`Spieldauer: ~${gameDuration} Min.`)
-  } else if (durationDiff <= 60) {
-    totalScore += durationWeight * 40
   } else {
-    totalScore += durationWeight * 10
+    const gameDuration = game.playing_time || game.max_playtime || game.min_playtime || 60
+    const durationDiff = Math.abs(gameDuration - targetDuration)
+    if (durationDiff <= 15) {
+      totalScore += durationWeight * 100
+      reasons.push(`Spieldauer passt (${gameDuration} Min.)`)
+    } else if (durationDiff <= 30) {
+      totalScore += durationWeight * 75
+      reasons.push(`Spieldauer: ~${gameDuration} Min.`)
+    } else if (durationDiff <= 60) {
+      totalScore += durationWeight * 40
+    } else {
+      totalScore += durationWeight * 10
+    }
+    const durationLabel = QUESTIONS.find((q) => q.id === "duration")?.options as { label: string; value: number }[] | undefined
+    const durationUserLabel = durationLabel?.find((o) => o.value === targetDuration)?.label || `${targetDuration} Min.`
+    const minPlay = game.min_playtime || gameDuration
+    const maxPlay = game.max_playtime || gameDuration
+    const gameDurationDisplay = minPlay === maxPlay ? `${minPlay} Min.` : `${minPlay}-${maxPlay} Min.`
+    comparisons.push({
+      label: "Spieldauer",
+      userValue: durationUserLabel,
+      gameValue: gameDurationDisplay,
+      match: durationDiff <= 15 ? "good" : durationDiff <= 30 ? "okay" : "bad",
+    })
   }
-  const durationLabel = QUESTIONS.find((q) => q.id === "duration")?.options as { label: string; value: number }[] | undefined
-  const durationUserLabel = durationLabel?.find((o) => o.value === targetDuration)?.label || `${targetDuration} Min.`
-  const minPlay = game.min_playtime || gameDuration
-  const maxPlay = game.max_playtime || gameDuration
-  const gameDurationDisplay = minPlay === maxPlay ? `${minPlay} Min.` : `${minPlay}-${maxPlay} Min.`
-  comparisons.push({
-    label: "Spieldauer",
-    userValue: durationUserLabel,
-    gameValue: gameDurationDisplay,
-    match: durationDiff <= 15 ? "good" : durationDiff <= 30 ? "okay" : "bad",
-  })
 
   // 3. Complexity match (weight: 1.5)
   const targetComplexity = answers.complexity || 2.5
   const complexityWeight = QUESTIONS.find((q) => q.id === "complexity")!.weight
   maxScore += complexityWeight * 100
-  if (game.complexity) {
-    const complexDiff = Math.abs(game.complexity - targetComplexity)
-    if (complexDiff <= 0.5) {
-      totalScore += complexityWeight * 100
-      reasons.push("Schwierigkeitsgrad passt perfekt")
-    } else if (complexDiff <= 1) {
-      totalScore += complexityWeight * 70
-      reasons.push("Schwierigkeitsgrad passt gut")
-    } else if (complexDiff <= 1.5) {
-      totalScore += complexityWeight * 40
-    } else {
-      totalScore += complexityWeight * 10
-    }
+  if (targetComplexity === 0) {
+    // "Egal" selected
+    totalScore += complexityWeight * 100
   } else {
-    totalScore += complexityWeight * 50
+    if (game.complexity) {
+      const complexDiff = Math.abs(game.complexity - targetComplexity)
+      if (complexDiff <= 0.5) {
+        totalScore += complexityWeight * 100
+        reasons.push("Schwierigkeitsgrad passt perfekt")
+      } else if (complexDiff <= 1) {
+        totalScore += complexityWeight * 70
+        reasons.push("Schwierigkeitsgrad passt gut")
+      } else if (complexDiff <= 1.5) {
+        totalScore += complexityWeight * 40
+      } else {
+        totalScore += complexityWeight * 10
+      }
+    } else {
+      totalScore += complexityWeight * 50
+    }
+    const complexDiffVal = game.complexity ? Math.abs(game.complexity - targetComplexity) : 2
+    const complexityLabels: Record<string, string> = { "1": "Einfach", "2": "Leicht", "3": "Mittel", "4": "Anspruchsvoll", "5": "Komplex" }
+    comparisons.push({
+      label: "Schwierigkeit",
+      userValue: complexityLabels[String(Math.round(targetComplexity))] || `${targetComplexity}/5`,
+      gameValue: game.complexity ? `${game.complexity.toFixed(1)}/5` : "Unbekannt",
+      match: complexDiffVal <= 0.5 ? "good" : complexDiffVal <= 1 ? "okay" : "bad",
+    })
   }
-  const complexDiffVal = game.complexity ? Math.abs(game.complexity - targetComplexity) : 2
-  const complexityLabels: Record<string, string> = { "1": "Einfach", "2": "Leicht", "3": "Mittel", "4": "Anspruchsvoll", "5": "Komplex" }
-  comparisons.push({
-    label: "Schwierigkeit",
-    userValue: complexityLabels[String(Math.round(targetComplexity))] || `${targetComplexity}/5`,
-    gameValue: game.complexity ? `${game.complexity.toFixed(1)}/5` : "Unbekannt",
-    match: complexDiffVal <= 0.5 ? "good" : complexDiffVal <= 1 ? "okay" : "bad",
-  })
 
   // 4. Age match (weight: 1.5)
   const targetAge = answers.age || 10
@@ -296,7 +310,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   const selectedGenres: string[] = answers.genres || []
   const genreWeight = QUESTIONS.find((q) => q.id === "genres")!.weight
   maxScore += genreWeight * 100
-  if (selectedGenres.length === 0) {
+  if (selectedGenres.length === 0 || selectedGenres.includes("__any__")) {
     totalScore += genreWeight * 100
   } else {
     const gameTermsForGenre = [...(game.categories || []), ...(game.mechanics || [])].map((t) => t.toLowerCase())
@@ -334,7 +348,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   const selectedThemes: string[] = answers.categories || []
   const categoryWeight = QUESTIONS.find((q) => q.id === "categories")!.weight
   maxScore += categoryWeight * 100
-  if (selectedThemes.length === 0) {
+  if (selectedThemes.length === 0 || selectedThemes.includes("__any__")) {
     totalScore += categoryWeight * 100 // no filter = all match
   } else {
     const gameTerms = [...(game.categories || []), ...(game.mechanics || [])].map((t) => t.toLowerCase())
@@ -505,10 +519,14 @@ function QuestionCard({
                 key={opt.value}
                 type="button"
                 onClick={() => {
-                  if (isSelected) {
+                  if (opt.value === "__any__") {
+                    // "Egal" toggles: select only "__any__" or deselect it
+                    onChange(isSelected ? [] : ["__any__"])
+                  } else if (isSelected) {
                     onChange(selected.filter((v) => v !== opt.value))
                   } else {
-                    onChange([...selected, opt.value])
+                    // Remove "__any__" when selecting a specific option
+                    onChange([...selected.filter((v) => v !== "__any__"), opt.value])
                   }
                 }}
                 className={`rounded-xl border-2 px-4 py-3 text-sm font-medium transition-all ${isSelected
@@ -909,7 +927,7 @@ export default function BrettspielOMatPage() {
                                             className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${val === opt.value
                                               ? "border-teal-500 bg-teal-50 text-teal-700"
                                               : "border-gray-200 text-gray-500 hover:border-teal-200"
-                                            }`}
+                                              }`}
                                           >
                                             {opt.label}
                                           </button>
@@ -933,16 +951,21 @@ export default function BrettspielOMatPage() {
                                           return (
                                             <button
                                               key={opt.value}
-                                              onClick={() => {
-                                                const next = isSelected
-                                                  ? selected.filter((v) => v !== opt.value)
-                                                  : [...selected, opt.value]
-                                                setAnswers((prev) => ({ ...prev, [q.id]: next }))
-                                              }}
+  onClick={() => {
+  let next: string[]
+  if (opt.value === "__any__") {
+    next = isSelected ? [] : ["__any__"]
+  } else if (isSelected) {
+    next = selected.filter((v) => v !== opt.value)
+  } else {
+    next = [...selected.filter((v) => v !== "__any__"), opt.value]
+  }
+  setAnswers((prev) => ({ ...prev, [q.id]: next }))
+  }}
                                               className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${isSelected
                                                 ? "border-teal-500 bg-teal-50 text-teal-700"
                                                 : "border-gray-200 text-gray-500 hover:border-teal-200"
-                                              }`}
+                                                }`}
                                             >
                                               {opt.label}
                                             </button>
@@ -977,7 +1000,7 @@ export default function BrettspielOMatPage() {
                   {/* Top Match Highlight */}
                   <Card className="mb-6 overflow-hidden border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
                     <CardContent className="p-6">
-                      <div className="mb-2 text-center text-xs font-medium uppercase tracking-wider text-teal-600">
+                      <div className="mb-2 text-sm font-medium uppercase tracking-wider text-teal-600">
                         Beste Übereinstimmung
                       </div>
                       <div className="flex items-center gap-5">
