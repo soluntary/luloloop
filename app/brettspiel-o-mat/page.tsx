@@ -848,10 +848,9 @@ export default function BrettspielOMatPage() {
                 {isLastQuestion ? (
                   <Button
                     onClick={calculateResults}
-                    disabled={loading}
                     className="gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600"
                   >
-                    {loading ? "Spiele werden geladen..." : `Ergebnisse anzeigen (${games.length} Spiele)`}
+                    Ergebnisse anzeigen
                     <FaDice className="h-3 w-3" />
                   </Button>
                 ) : (
