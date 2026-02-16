@@ -603,22 +603,29 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="px-4 pb-4 space-y-2">
-                      {/* Header */}
-                      <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-1 border-b border-gray-100">
-                        <span></span>
-                        <span>Deine Auswahl</span>
-                        <span>Spiel</span>
-                        <span></span>
-                      </div>
-                      {result.comparisons.map((c, i) => (
-                        <div key={i} className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-center text-[11px]">
-                          <span className="font-semibold text-gray-700 min-w-[80px]">{c.label}</span>
-                          <span className="text-gray-500 truncate">{c.userValue}</span>
-                          <span className="text-gray-700 truncate">{c.gameValue}</span>
-                          <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
-                        </div>
-                      ))}
+                    <div className="px-4 pb-4">
+                      <table className="w-full text-[11px]">
+                        <thead>
+                          <tr className="border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                            <th className="w-[28%] pb-2 text-left font-semibold"></th>
+                            <th className="w-[30%] pb-2 text-left font-semibold">Deine Auswahl</th>
+                            <th className="w-[30%] pb-2 text-left font-semibold">Spiel</th>
+                            <th className="w-[12%] pb-2 text-center font-semibold"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {result.comparisons.map((c, i) => (
+                            <tr key={i} className="border-b border-gray-50 last:border-0">
+                              <td className="py-1.5 pr-2 font-semibold text-gray-700">{c.label}</td>
+                              <td className="py-1.5 pr-2 text-gray-500">{c.userValue}</td>
+                              <td className="py-1.5 pr-2 text-gray-700">{c.gameValue}</td>
+                              <td className="py-1.5 text-center">
+                                <span className={`inline-block h-2.5 w-2.5 rounded-full ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </motion.div>
                 )}
@@ -897,22 +904,28 @@ export default function BrettspielOMatPage() {
                               transition={{ duration: 0.2 }}
                               className="overflow-hidden px-4 pb-4"
                             >
-                              <div className="space-y-2">
-                                <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-1 border-b border-teal-100">
-                                  <span></span>
-                                  <span>Deine Auswahl</span>
-                                  <span>Spiel</span>
-                                  <span></span>
-                                </div>
-                                {results[0].comparisons.map((c, i) => (
-                                  <div key={i} className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-center text-[11px]">
-                                    <span className="font-semibold text-gray-700 min-w-[80px]">{c.label}</span>
-                                    <span className="text-gray-500 truncate">{c.userValue}</span>
-                                    <span className="text-gray-700 truncate">{c.gameValue}</span>
-                                    <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
-                                  </div>
-                                ))}
-                              </div>
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b border-teal-100 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                                    <th className="w-[28%] pb-2 text-left font-semibold"></th>
+                                    <th className="w-[30%] pb-2 text-left font-semibold">Deine Auswahl</th>
+                                    <th className="w-[30%] pb-2 text-left font-semibold">Spiel</th>
+                                    <th className="w-[12%] pb-2 text-center font-semibold"></th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {results[0].comparisons.map((c, i) => (
+                                    <tr key={i} className="border-b border-teal-50 last:border-0">
+                                      <td className="py-2 pr-2 font-semibold text-gray-700">{c.label}</td>
+                                      <td className="py-2 pr-2 text-gray-500">{c.userValue}</td>
+                                      <td className="py-2 pr-2 text-gray-700">{c.gameValue}</td>
+                                      <td className="py-2 text-center">
+                                        <span className={`inline-block h-2.5 w-2.5 rounded-full ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
                             </motion.div>
                           )}
                         </AnimatePresence>
