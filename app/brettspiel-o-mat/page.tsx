@@ -607,49 +607,23 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
             </div>
           </div>
 
-          {/* Separator + Detail overview */}
-          <div className="mt-4 border-t border-gray-200 pt-3 space-y-1.5 text-xs text-gray-600">
-            {result.game.publisher && (
-              <div className="flex justify-between">
-                <span className="font-semibold text-gray-700">Verlag:</span>
-                <span>{result.game.publisher}</span>
-              </div>
-            )}
-            {result.game.year_published && (
-              <div className="flex justify-between">
-                <span className="font-semibold text-gray-700">Erscheinungsjahr:</span>
-                <span>{result.game.year_published}</span>
-              </div>
-            )}
-            {result.game.min_players && (
-              <div className="flex justify-between">
-                <span className="font-semibold text-gray-700">Spieleranzahl:</span>
-                <span>{result.game.min_players}-{result.game.max_players} Personen</span>
-              </div>
-            )}
-            {result.game.playing_time > 0 && (
-              <div className="flex justify-between">
-                <span className="font-semibold text-gray-700">Spieldauer:</span>
-                <span>{result.game.playing_time} Min.</span>
-              </div>
-            )}
-            {result.game.age > 0 && (
-              <div className="flex justify-between">
-                <span className="font-semibold text-gray-700">Altersempfehlung:</span>
-                <span>Ab {result.game.age} Jahren</span>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span className="font-semibold text-gray-700">Sprache:</span>
-              <span>{result.game.language || "Nicht angegeben"}</span>
+          {/* Separator + Detail overview (only non-compared fields) */}
+          {(result.game.publisher || result.game.year_published) && (
+            <div className="mt-4 border-t border-gray-200 pt-3 space-y-1.5 text-xs text-gray-600">
+              {result.game.publisher && (
+                <div className="flex justify-between">
+                  <span className="font-semibold text-gray-700">Verlag:</span>
+                  <span>{result.game.publisher}</span>
+                </div>
+              )}
+              {result.game.year_published && (
+                <div className="flex justify-between">
+                  <span className="font-semibold text-gray-700">Erscheinungsjahr:</span>
+                  <span>{result.game.year_published}</span>
+                </div>
+              )}
             </div>
-            {result.game.categories && result.game.categories.length > 0 && (
-              <div className="flex justify-between gap-4">
-                <span className="shrink-0 font-semibold text-gray-700">Kategorie:</span>
-                <span className="text-right">{result.game.categories.slice(0, 3).join(", ")}</span>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Warum passt es? - comparison table */}
           {result.comparisons.length > 0 && (
@@ -975,49 +949,23 @@ export default function BrettspielOMatPage() {
                         </div>
                       </div>
 
-                      {/* Game details */}
-                      <div className="mt-4 border-t border-teal-100 pt-3 space-y-1.5 text-xs text-gray-600">
-                        {results[0].game.publisher && (
-                          <div className="flex justify-between">
-                            <span className="font-semibold text-gray-700">Verlag:</span>
-                            <span>{results[0].game.publisher}</span>
-                          </div>
-                        )}
-                        {results[0].game.year_published && (
-                          <div className="flex justify-between">
-                            <span className="font-semibold text-gray-700">Erscheinungsjahr:</span>
-                            <span>{results[0].game.year_published}</span>
-                          </div>
-                        )}
-                        {results[0].game.min_players && (
-                          <div className="flex justify-between">
-                            <span className="font-semibold text-gray-700">Spieleranzahl:</span>
-                            <span>{results[0].game.min_players}-{results[0].game.max_players} Personen</span>
-                          </div>
-                        )}
-                        {results[0].game.playing_time > 0 && (
-                          <div className="flex justify-between">
-                            <span className="font-semibold text-gray-700">Spieldauer:</span>
-                            <span>{results[0].game.playing_time} Min.</span>
-                          </div>
-                        )}
-                        {results[0].game.age > 0 && (
-                          <div className="flex justify-between">
-                            <span className="font-semibold text-gray-700">Altersempfehlung:</span>
-                            <span>Ab {results[0].game.age} Jahren</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between">
-                          <span className="font-semibold text-gray-700">Sprache:</span>
-                          <span>{results[0].game.language || "Nicht angegeben"}</span>
+                      {/* Game details (only non-compared fields) */}
+                      {(results[0].game.publisher || results[0].game.year_published) && (
+                        <div className="mt-4 border-t border-teal-100 pt-3 space-y-1.5 text-xs text-gray-600">
+                          {results[0].game.publisher && (
+                            <div className="flex justify-between">
+                              <span className="font-semibold text-gray-700">Verlag:</span>
+                              <span>{results[0].game.publisher}</span>
+                            </div>
+                          )}
+                          {results[0].game.year_published && (
+                            <div className="flex justify-between">
+                              <span className="font-semibold text-gray-700">Erscheinungsjahr:</span>
+                              <span>{results[0].game.year_published}</span>
+                            </div>
+                          )}
                         </div>
-                        {results[0].game.categories && results[0].game.categories.length > 0 && (
-                          <div className="flex justify-between gap-4">
-                            <span className="shrink-0 font-semibold text-gray-700">Kategorie:</span>
-                            <span className="text-right">{results[0].game.categories.slice(0, 3).join(", ")}</span>
-                          </div>
-                        )}
-                      </div>
+                      )}
 
                       {/* Warum passt es? - comparison table */}
                       <div className="mt-4 border-t border-teal-100">
