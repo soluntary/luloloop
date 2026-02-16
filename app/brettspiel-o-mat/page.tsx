@@ -642,6 +642,7 @@ export default function BrettspielOMatPage() {
   const [games, setGames] = useState<GameCatalogEntry[]>([])
   const [results, setResults] = useState<MatchResult[]>([])
   const [loading, setLoading] = useState(false)
+  const [calculating, setCalculating] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const [bestMatchExpanded, setBestMatchExpanded] = useState(false)
 
@@ -673,11 +674,11 @@ export default function BrettspielOMatPage() {
 
   // Calculate results - retry loading games if none available
   const calculateResults = useCallback(async () => {
+    setCalculating(true)
     let gamesToUse = games
 
     // If no games loaded yet, try loading again
     if (gamesToUse.length === 0) {
-      setLoading(true)
       try {
         const res = await fetch("/api/brettspiel-o-mat/games")
         if (res.ok) {
@@ -690,13 +691,13 @@ export default function BrettspielOMatPage() {
       } catch {
         // retry failed silently
       }
-      setLoading(false)
     }
 
     const matched = gamesToUse
       .map((game) => calculateMatch(game, answers))
       .sort((a, b) => b.score - a.score)
     setResults(matched)
+    setCalculating(false)
     setStep(QUESTIONS.length)
   }, [games, answers])
 
@@ -779,10 +780,23 @@ export default function BrettspielOMatPage() {
                 {isLastQuestion ? (
                   <Button
                     onClick={calculateResults}
-                    className="gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600"
+                    disabled={calculating}
+                    className="gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600 disabled:opacity-80"
                   >
-                    Ergebnisse anzeigen
-                    <FaDice className="h-3 w-3" />
+                    {calculating ? (
+                      <>
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Spiele werden geladen...
+                      </>
+                    ) : (
+                      <>
+                        Ergebnisse anzeigen
+                        <FaDice className="h-3 w-3" />
+                      </>
+                    )}
                   </Button>
                 ) : (
                   <Button
