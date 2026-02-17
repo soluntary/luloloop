@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,7 @@ import {
   FaRedo,
   FaChevronDown,
   FaSlidersH,
+  FaSearch,
 } from "react-icons/fa"
 import { GiTreasureMap } from "react-icons/gi"
 import Image from "next/image"
@@ -132,21 +133,65 @@ const QUESTIONS = [
     type: "multi-choice" as const,
     options: [
       { label: "Egal", value: "__any__" },
-      { label: "Aktions- und Reaktionsspiel", value: "Action / Dexterity" },
-      { label: "Brettspiel", value: "Board Game" },
-      { label: "Escape-Spiel", value: "Escape Room,Puzzle" },
-      { label: "Geschicklichkeitsspiel", value: "Action / Dexterity,Flicking" },
-      { label: "Glücksspiel", value: "Dice,Press Your Luck" },
-      { label: "Kartenspiel", value: "Card Game" },
-      { label: "Krimi- und Detektivspiel", value: "Murder,Mystery,Deduction,Spies" },
-      { label: "Legespiel", value: "Tile Placement,Pattern Building" },
-      { label: "Merkspiel", value: "Memory" },
-      { label: "Outdoor-Spiel", value: "Outdoor,Sports" },
-      { label: "Partyspiel", value: "Party Game" },
-      { label: "Wissens- und Quizspiel", value: "Trivia" },
-      { label: "Rollenspiel", value: "Role Playing,Adventure" },
-      { label: "Trinkspiel", value: "Party Game,Drinking" },
-      { label: "Würfelspiel", value: "Dice,Dice Rolling" },
+      { label: "Abstimmung", value: "Abstimmung" },
+      { label: "Aktion/Ereignis", value: "Aktion/Ereignis" },
+      { label: "Aktionspunkte", value: "Aktionspunkte" },
+      { label: "Aktionswahl", value: "Aktionswahl" },
+      { label: "Allianzen", value: "Allianzen" },
+      { label: "Arbeitereinsatz", value: "Arbeitereinsatz" },
+      { label: "Aufnehmen und Liefern", value: "Aufnehmen und Liefern" },
+      { label: "Auktion / Bieten", value: "Auktion / Bieten" },
+      { label: "Auslegen und Faechern", value: "Auslegen und Faechern" },
+      { label: "Bingo", value: "Bingo" },
+      { label: "Deckbau", value: "Deckbau" },
+      { label: "Deck-/Beutel-/Pool-Bau", value: "Deck-/Beutel-/Pool-Bau" },
+      { label: "Deduktion", value: "Deduktion" },
+      { label: "Draften", value: "Draften" },
+      { label: "Echtzeit", value: "Echtzeit" },
+      { label: "Einkommen", value: "Einkommen" },
+      { label: "Endspiel-Boni", value: "Endspiel-Boni" },
+      { label: "Gebietsbewegung", value: "Gebietsbewegung" },
+      { label: "Gebietsmehrheit / Einfluss", value: "Gebietsmehrheit / Einfluss" },
+      { label: "Gebietsaufbau", value: "Gebietsaufbau" },
+      { label: "Gedaechtnis", value: "Gedaechtnis" },
+      { label: "Geschichtenerzaehlen", value: "Geschichtenerzaehlen" },
+      { label: "Gleichzeitige Aktionswahl", value: "Gleichzeitige Aktionswahl" },
+      { label: "Glueck herausfordern", value: "Glueck herausfordern" },
+      { label: "Handkarten-Management", value: "Handkarten-Management" },
+      { label: "Handeln", value: "Handeln" },
+      { label: "Kooperativ", value: "Kooperativ" },
+      { label: "Legacy-Spiel", value: "Legacy-Spiel" },
+      { label: "Markt", value: "Markt" },
+      { label: "Mehrzweck-Karten", value: "Mehrzweck-Karten" },
+      { label: "Modulares Spielfeld", value: "Modulares Spielfeld" },
+      { label: "Musterbau", value: "Musterbau" },
+      { label: "Netzwerk- und Routenbau", value: "Netzwerk- und Routenbau" },
+      { label: "Offenes Draften", value: "Offenes Draften" },
+      { label: "Plaettchen legen", value: "Plaettchen legen" },
+      { label: "Punkt-zu-Punkt-Bewegung", value: "Punkt-zu-Punkt-Bewegung" },
+      { label: "Rasterbewegung", value: "Rasterbewegung" },
+      { label: "Rennen", value: "Rennen" },
+      { label: "Rollenspiel", value: "Rollenspiel" },
+      { label: "Rondell", value: "Rondell" },
+      { label: "Schere-Stein-Papier", value: "Schere-Stein-Papier" },
+      { label: "Schnippen", value: "Schnippen" },
+      { label: "Semi-Kooperativ", value: "Semi-Kooperativ" },
+      { label: "Set-Sammlung", value: "Set-Sammlung" },
+      { label: "Simulation", value: "Simulation" },
+      { label: "Solospiel", value: "Solospiel" },
+      { label: "Spielerausscheidung", value: "Spielerausscheidung" },
+      { label: "Stichspiel", value: "Stichspiel" },
+      { label: "Szenario / Mission / Kampagne", value: "Szenario / Mission / Kampagne" },
+      { label: "Technologiebaeume", value: "Technologiebaeume" },
+      { label: "Variable Spielerfaehigkeiten", value: "Variable Spielerfaehigkeiten" },
+      { label: "Verhandlung", value: "Verhandlung" },
+      { label: "Verraeter-Spiel", value: "Verraeter-Spiel" },
+      { label: "Versteckte Bewegung", value: "Versteckte Bewegung" },
+      { label: "Versteckte Rollen", value: "Versteckte Rollen" },
+      { label: "Wetten und Bluffen", value: "Wetten und Bluffen" },
+      { label: "Wuerfeln", value: "Wuerfeln" },
+      { label: "Wuerfeln und Ziehen", value: "Wuerfeln und Ziehen" },
+      { label: "Zuordnen", value: "Zuordnen" },
     ],
     defaultValue: [],
     weight: 1.5,
@@ -159,16 +204,57 @@ const QUESTIONS = [
     type: "multi-choice" as const,
     options: [
       { label: "Egal", value: "__any__" },
-      { label: "Fantasie", value: "Fantasy" },
-      { label: "Science-Fiction", value: "Science Fiction" },
-      { label: "Bluffen / Deduktion", value: "Bluffing,Deduction" },
-      { label: "Mittelalter", value: "Medieval" },
-      { label: "Wirtschaft / Handel", value: "Economic,Negotiation" },
-      { label: "Natur / Tiere", value: "Animals,Environmental" },
-      { label: "Geschichte", value: "Ancient,Civilization" },
-      { label: "Krimi", value: "Murder,Mystery,Spies" },
-      { label: "Horror", value: "Horror,Zombies" },
-      { label: "Humor", value: "Humor,Party Game" },
+      { label: "Abenteuer", value: "Abenteuer" },
+      { label: "Abstrakte Strategie", value: "Abstrakte Strategie" },
+      { label: "Aktion / Geschicklichkeit", value: "Aktion / Geschicklichkeit" },
+      { label: "Antike", value: "Antike" },
+      { label: "Bluffen", value: "Bluffen" },
+      { label: "Comic", value: "Comic" },
+      { label: "Deduktion", value: "Deduktion" },
+      { label: "Echtzeit", value: "Echtzeit" },
+      { label: "Eisenbahn", value: "Eisenbahn" },
+      { label: "Erkundung", value: "Erkundung" },
+      { label: "Erweiterung", value: "Erweiterung" },
+      { label: "Fantasy", value: "Fantasy" },
+      { label: "Film / TV / Radio", value: "Film / TV / Radio" },
+      { label: "Gebietsaufbau", value: "Gebietsaufbau" },
+      { label: "Horror", value: "Horror" },
+      { label: "Humor", value: "Humor" },
+      { label: "Kampf", value: "Kampf" },
+      { label: "Kartenspiel", value: "Kartenspiel" },
+      { label: "Kinderspiel", value: "Kinderspiel" },
+      { label: "Kriegsspiel", value: "Kriegsspiel" },
+      { label: "Krimi / Raetsel", value: "Krimi / Raetsel" },
+      { label: "Labyrinth", value: "Labyrinth" },
+      { label: "Landwirtschaft", value: "Landwirtschaft" },
+      { label: "Lernspiel", value: "Lernspiel" },
+      { label: "Mathematik", value: "Mathematik" },
+      { label: "Medizin", value: "Medizin" },
+      { label: "Miniaturen", value: "Miniaturen" },
+      { label: "Mittelalter", value: "Mittelalter" },
+      { label: "Musik", value: "Musik" },
+      { label: "Mythologie", value: "Mythologie" },
+      { label: "Partyspiel", value: "Partyspiel" },
+      { label: "Piraten", value: "Piraten" },
+      { label: "Politik", value: "Politik" },
+      { label: "Puzzle", value: "Puzzle" },
+      { label: "Renaissance", value: "Renaissance" },
+      { label: "Rennen", value: "Rennen" },
+      { label: "Science-Fiction", value: "Science-Fiction" },
+      { label: "Seefahrt", value: "Seefahrt" },
+      { label: "Spione / Geheimagenten", value: "Spione / Geheimagenten" },
+      { label: "Sport", value: "Sport" },
+      { label: "Staedtebau", value: "Staedtebau" },
+      { label: "Tiere", value: "Tiere" },
+      { label: "Verhandlung", value: "Verhandlung" },
+      { label: "Weltraumforschung", value: "Weltraumforschung" },
+      { label: "Wirtschaft", value: "Wirtschaft" },
+      { label: "Wissensquiz", value: "Wissensquiz" },
+      { label: "Wortspiel", value: "Wortspiel" },
+      { label: "Wuerfel", value: "Wuerfel" },
+      { label: "Zahlen", value: "Zahlen" },
+      { label: "Zivilisation", value: "Zivilisation" },
+      { label: "Zombies", value: "Zombies" },
     ],
     defaultValue: [],
     weight: 1,
@@ -238,13 +324,16 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     })
   } else {
     const gameDuration = game.playing_time || game.max_playtime || game.min_playtime || 60
+    const minPlay = game.min_playtime || gameDuration
+    const maxPlay = game.max_playtime || gameDuration
+    const gameDurationDisplay = minPlay === maxPlay ? `${minPlay} Min.` : `${minPlay}-${maxPlay} Min.`
     const durationDiff = Math.abs(gameDuration - targetDuration)
     if (durationDiff <= 15) {
       totalScore += durationWeight * 100
-      reasons.push(`Spieldauer passt (${gameDuration} Min.)`)
+      reasons.push(`Spieldauer passt (${gameDurationDisplay})`)
     } else if (durationDiff <= 30) {
       totalScore += durationWeight * 75
-      reasons.push(`Spieldauer: ~${gameDuration} Min.`)
+      reasons.push(`Spieldauer: ${gameDurationDisplay}`)
     } else if (durationDiff <= 60) {
       totalScore += durationWeight * 40
     } else {
@@ -252,9 +341,6 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     }
     const durationLabel = QUESTIONS.find((q) => q.id === "duration")?.options as { label: string; value: number }[] | undefined
     const durationUserLabel = durationLabel?.find((o) => o.value === targetDuration)?.label || `${targetDuration} Min.`
-    const minPlay = game.min_playtime || gameDuration
-    const maxPlay = game.max_playtime || gameDuration
-    const gameDurationDisplay = minPlay === maxPlay ? `${minPlay} Min.` : `${minPlay}-${maxPlay} Min.`
     comparisons.push({
       label: "Spieldauer",
       userValue: durationUserLabel,
@@ -336,15 +422,12 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
       match: "good",
     })
   } else {
-    const gameTermsForGenre = [...(game.categories || []), ...(game.mechanics || [])].map((t) => t.toLowerCase())
-    const genreOptions = QUESTIONS.find((q) => q.id === "genres")?.options as { label: string; value: string }[] | undefined
+    const gameMechanicsLower = [...(game.mechanics || [])].map((t) => t.toLowerCase())
     const matchedGenreLabels: string[] = []
     for (const genreValue of selectedGenres) {
-      const keywords = genreValue.split(",").map((k) => k.trim().toLowerCase())
-      const hit = keywords.some((kw) => gameTermsForGenre.some((gt) => gt.includes(kw) || kw.includes(gt)))
+      const hit = gameMechanicsLower.some((gm) => gm === genreValue.toLowerCase())
       if (hit) {
-        const label = genreOptions?.find((o) => o.value === genreValue)?.label || genreValue
-        matchedGenreLabels.push(label)
+        matchedGenreLabels.push(genreValue)
       }
     }
     if (matchedGenreLabels.length > 0) {
@@ -353,13 +436,9 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     } else {
       totalScore += genreWeight * 20
     }
-    const genreUserLabels = selectedGenres.map((v) => {
-      const opt = (QUESTIONS.find((q) => q.id === "genres")?.options as { label: string; value: string }[])?.find((o) => o.value === v)
-      return opt?.label || v
-    })
     comparisons.push({
       label: "Genre",
-      userValue: genreUserLabels.join(", "),
+      userValue: selectedGenres.join(", "),
       gameValue: matchedGenreLabels.length > 0 ? matchedGenreLabels.join(", ") : "Keine Treffer",
       match: matchedGenreLabels.length === selectedGenres.length ? "good" : matchedGenreLabels.length > 0 ? "okay" : "bad",
     })
@@ -381,15 +460,12 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
       match: "good",
     })
   } else {
-    const gameTerms = [...(game.categories || []), ...(game.mechanics || [])].map((t) => t.toLowerCase())
+    const gameCategoriesLower = [...(game.categories || [])].map((t) => t.toLowerCase())
     const matchedLabels: string[] = []
-    const themeOptions = QUESTIONS.find((q) => q.id === "categories")?.options as { label: string; value: string }[] | undefined
     for (const themeValue of selectedThemes) {
-      const keywords = themeValue.split(",").map((k) => k.trim().toLowerCase())
-      const hit = keywords.some((kw) => gameTerms.some((gt) => gt.includes(kw) || kw.includes(gt)))
+      const hit = gameCategoriesLower.some((gc) => gc === themeValue.toLowerCase())
       if (hit) {
-        const label = themeOptions?.find((o) => o.value === themeValue)?.label || themeValue
-        matchedLabels.push(label)
+        matchedLabels.push(themeValue)
       }
     }
     if (matchedLabels.length > 0) {
@@ -398,13 +474,9 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     } else {
       totalScore += categoryWeight * 20
     }
-    const catUserLabels = selectedThemes.map((v) => {
-      const opt = (QUESTIONS.find((q) => q.id === "categories")?.options as { label: string; value: string }[])?.find((o) => o.value === v)
-      return opt?.label || v
-    })
     comparisons.push({
       label: "Thema",
-      userValue: catUserLabels.join(", "),
+      userValue: selectedThemes.join(", "),
       gameValue: matchedLabels.length > 0 ? matchedLabels.join(", ") : "Keine Treffer",
       match: matchedLabels.length === selectedThemes.length ? "good" : matchedLabels.length > 0 ? "okay" : "bad",
     })
@@ -457,6 +529,184 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   }
 
   return { game, score, reasons, comparisons }
+}
+
+// --- Searchable Multi-Choice Component ---
+function MultiChoiceQuestion({
+  question,
+  Icon,
+  options,
+  selected,
+  isEgal,
+  onChange,
+}: {
+  question: { title: string; subtitle: string }
+  Icon: React.ElementType
+  options: { label: string; value: string }[]
+  selected: string[]
+  isEgal: boolean
+  onChange: (val: string[]) => void
+}) {
+  const [search, setSearch] = useState("")
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const specificOptions = options.filter((o) => o.value !== "__any__")
+  const filtered = search
+    ? specificOptions.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
+    : specificOptions
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
+
+  const toggleOption = (val: string) => {
+    if (selected.includes(val)) {
+      onChange(selected.filter((v) => v !== val))
+    } else {
+      onChange([...selected.filter((v) => v !== "__any__"), val])
+    }
+  }
+
+  const removeOption = (val: string) => {
+    onChange(selected.filter((v) => v !== val))
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center gap-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-100 text-teal-600">
+          <Icon className="h-6 w-6" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">{question.title}</h3>
+          <p className="text-sm text-gray-500">{question.subtitle}</p>
+        </div>
+      </div>
+
+      {/* "Egal" toggle */}
+      <button
+        type="button"
+        onClick={() => onChange(isEgal ? [] : ["__any__"])}
+        className={`w-full rounded-xl border-2 px-4 py-3 text-sm font-medium transition-all ${
+          isEgal
+            ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
+            : "border-gray-200 bg-white text-gray-600 hover:border-teal-200 hover:bg-teal-50/50"
+        }`}
+      >
+        Egal - alle anzeigen
+      </button>
+
+      {/* Search + Dropdown */}
+      {!isEgal && (
+        <div ref={containerRef} className="relative">
+          <div className="relative">
+            <FaSearch className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setDropdownOpen(true)
+              }}
+              onFocus={() => setDropdownOpen(true)}
+              placeholder="Suche..."
+              className="w-full rounded-xl border-2 border-gray-200 bg-white py-3 pl-9 pr-4 text-sm text-gray-700 outline-none transition-colors focus:border-teal-400 focus:ring-2 focus:ring-teal-100"
+            />
+          </div>
+
+          {/* Dropdown list */}
+          {dropdownOpen && (
+            <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+              {filtered.length === 0 ? (
+                <p className="px-4 py-3 text-sm text-gray-400">Keine Ergebnisse</p>
+              ) : (
+                filtered.map((opt) => {
+                  const isSelected = selected.includes(opt.value)
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        toggleOption(opt.value)
+                        setSearch("")
+                      }}
+                      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
+                        isSelected
+                          ? "bg-teal-50 text-teal-700 font-medium"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                          isSelected ? "border-teal-500 bg-teal-500 text-white" : "border-gray-300"
+                        }`}
+                      >
+                        {isSelected && (
+                          <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
+                            <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </span>
+                      {opt.label}
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Selected tags */}
+      {selected.length > 0 && !isEgal && (
+        <div className="flex flex-wrap gap-2">
+          {selected.filter((v) => v !== "__any__").map((val) => {
+            const opt = options.find((o) => o.value === val)
+            return (
+              <span
+                key={val}
+                className="inline-flex items-center gap-1.5 rounded-full bg-teal-100 px-3 py-1.5 text-xs font-medium text-teal-700"
+              >
+                {opt?.label || val}
+                <button
+                  type="button"
+                  onClick={() => removeOption(val)}
+                  className="ml-0.5 rounded-full p-0.5 hover:bg-teal-200 transition-colors"
+                  aria-label={`${opt?.label || val} entfernen`}
+                >
+                  <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
+                    <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </span>
+            )
+          })}
+          <button
+            type="button"
+            onClick={() => onChange([])}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors px-2 py-1.5"
+          >
+            Alle entfernen
+          </button>
+        </div>
+      )}
+
+      {/* Count */}
+      {selected.length > 0 && !isEgal && (
+        <p className="text-xs text-teal-600">
+          {selected.filter((v) => v !== "__any__").length} ausgewaehlt
+        </p>
+      )}
+    </div>
+  )
 }
 
 // --- Components ---
@@ -542,49 +792,16 @@ function QuestionCard({
   if (question.type === "multi-choice") {
     const q = question as typeof question & { options: { label: string; value: string }[] }
     const selected: string[] = value || []
+    const isEgal = selected.includes("__any__")
     return (
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-100 text-teal-600">
-            <Icon className="h-6 w-6" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">{question.title}</h3>
-            <p className="text-sm text-gray-500">{question.subtitle}</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {q.options.map((opt) => {
-            const isSelected = selected.includes(opt.value)
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  if (opt.value === "__any__") {
-                    // "Egal" toggles: select only "__any__" or deselect it
-                    onChange(isSelected ? [] : ["__any__"])
-                  } else if (isSelected) {
-                    onChange(selected.filter((v) => v !== opt.value))
-                  } else {
-                    // Remove "__any__" when selecting a specific option
-                    onChange([...selected.filter((v) => v !== "__any__"), opt.value])
-                  }
-                }}
-                className={`rounded-xl border-2 px-4 py-3 text-sm font-medium transition-all ${isSelected
-                  ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
-                  : "border-gray-200 bg-white text-gray-600 hover:border-teal-200 hover:bg-teal-50/50"
-                  }`}
-              >
-                {opt.label}
-              </button>
-            )
-          })}
-        </div>
-        {selected.length > 0 && (
-          <p className="text-xs text-teal-600">{selected.length} Thema{selected.length > 1 ? "en" : ""} ausgewählt</p>
-        )}
-      </div>
+      <MultiChoiceQuestion
+        question={question}
+        Icon={Icon}
+        options={q.options}
+        selected={selected}
+        isEgal={isEgal}
+        onChange={onChange}
+      />
     )
   }
 
@@ -593,28 +810,29 @@ function QuestionCard({
 
 function useTranslatedDescription(description: string | undefined, gameId: string) {
   const [translated, setTranslated] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const fetchedRef = useRef(false)
 
   useEffect(() => {
-    if (!description || translated || loading) return
-    setLoading(true)
+    if (!description || fetchedRef.current) return
+    fetchedRef.current = true
     fetch("/api/brettspiel-o-mat/translate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: description, gameId }),
     })
       .then((res) => res.ok ? res.json() : null)
-      .then((data) => setTranslated(data?.translation || description))
-      .catch(() => setTranslated(description))
-      .finally(() => setLoading(false))
-  }, [description, gameId, translated, loading])
+      .then((data) => { if (data?.translation) setTranslated(data.translation) })
+      .catch(() => { /* keep showing original */ })
+  }, [description, gameId])
 
-  return { translated, loading }
+  // Show translated text if available, otherwise show original English text immediately
+  return { text: translated || description || "", translating: !!description && !translated }
 }
 
 function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
   const [expanded, setExpanded] = useState(false)
-  const { translated: translatedDesc, loading: descLoading } = useTranslatedDescription(result.game.description, result.game.id)
+  const [descExpanded, setDescExpanded] = useState(false)
+  const { text: translatedDesc } = useTranslatedDescription(result.game.description, result.game.id)
   const scoreColor = result.score >= 80 ? "text-green-600" : result.score >= 50 ? "text-orange-500" : "text-red-500"
   const barColor = result.score >= 80 ? "bg-green-500" : result.score >= 50 ? "bg-orange-400" : "bg-red-500"
 
@@ -672,14 +890,14 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
           {result.game.description && (
             <div className="border-t border-gray-100 px-4 py-3">
               <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Beschreibung</h4>
-              {descLoading ? (
-                <div className="space-y-1.5">
-                  <div className="h-3 w-full animate-pulse rounded bg-gray-100" />
-                  <div className="h-3 w-4/5 animate-pulse rounded bg-gray-100" />
-                  <div className="h-3 w-3/5 animate-pulse rounded bg-gray-100" />
-                </div>
-              ) : (
-                <p className="text-xs leading-relaxed text-gray-500">{translatedDesc}</p>
+              <p className={`text-xs leading-relaxed text-gray-500 text-justify ${!descExpanded ? "line-clamp-3" : ""}`}>{translatedDesc}</p>
+              {translatedDesc && translatedDesc.length > 150 && (
+                <button
+                  onClick={() => setDescExpanded(!descExpanded)}
+                  className="mt-1 text-[11px] font-medium text-teal-500 hover:text-teal-700 transition-colors"
+                >
+                  {descExpanded ? "Weniger anzeigen" : "Mehr anzeigen"}
+                </button>
               )}
             </div>
           )}
@@ -752,11 +970,12 @@ export default function BrettspielOMatPage() {
   const [calculating, setCalculating] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const [bestMatchExpanded, setBestMatchExpanded] = useState(false)
+  const [bestMatchDescExpanded, setBestMatchDescExpanded] = useState(false)
   const [editingAnswers, setEditingAnswers] = useState(false)
 
   // Auto-translate best match description
   const bestMatch = results.length > 0 ? results[0] : null
-  const { translated: bestMatchDesc, loading: bestMatchDescLoading } = useTranslatedDescription(
+  const { text: bestMatchDesc } = useTranslatedDescription(
     bestMatch?.game.description,
     bestMatch?.game.id || ""
   )
@@ -1131,14 +1350,14 @@ export default function BrettspielOMatPage() {
                       {results[0].game.description && (
                         <div className="mt-4 border-t border-teal-100 pt-3">
                           <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Beschreibung</h4>
-                          {bestMatchDescLoading ? (
-                            <div className="space-y-1.5">
-                              <div className="h-3 w-full animate-pulse rounded bg-teal-50" />
-                              <div className="h-3 w-4/5 animate-pulse rounded bg-teal-50" />
-                              <div className="h-3 w-3/5 animate-pulse rounded bg-teal-50" />
-                            </div>
-                          ) : (
-                            <p className="text-xs leading-relaxed text-gray-600">{bestMatchDesc}</p>
+                          <p className={`text-xs leading-relaxed text-gray-600 text-justify ${!bestMatchDescExpanded ? "line-clamp-3" : ""}`}>{bestMatchDesc}</p>
+                          {bestMatchDesc && bestMatchDesc.length > 150 && (
+                            <button
+                              onClick={() => setBestMatchDescExpanded(!bestMatchDescExpanded)}
+                              className="mt-1 text-[11px] font-medium text-teal-500 hover:text-teal-700 transition-colors"
+                            >
+                              {bestMatchDescExpanded ? "Weniger anzeigen" : "Mehr anzeigen"}
+                            </button>
                           )}
                         </div>
                       )}
