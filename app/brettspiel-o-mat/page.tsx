@@ -116,6 +116,7 @@ const QUESTIONS = [
     icon: FaChild,
     type: "choice" as const,
     options: [
+      { label: "Egal", value: 0, icon: "any" },
       { label: "Kinder (6+)", value: 6, icon: "kids" },
       { label: "Familie (8+)", value: 8, icon: "family" },
       { label: "Jugendliche (12+)", value: 12, icon: "teens" },
@@ -291,20 +292,25 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   const targetAge = answers.age || 10
   const ageWeight = QUESTIONS.find((q) => q.id === "age")!.weight
   maxScore += ageWeight * 100
-  if (game.age && game.age <= targetAge) {
+  if (targetAge === 0) {
+    // "Egal" selected
     totalScore += ageWeight * 100
-    reasons.push(`Ab ${game.age} Jahren geeignet`)
-  } else if (game.age && game.age <= targetAge + 2) {
-    totalScore += ageWeight * 60
   } else {
-    totalScore += ageWeight * 20
+    if (game.age && game.age <= targetAge) {
+      totalScore += ageWeight * 100
+      reasons.push(`Ab ${game.age} Jahren geeignet`)
+    } else if (game.age && game.age <= targetAge + 2) {
+      totalScore += ageWeight * 60
+    } else {
+      totalScore += ageWeight * 20
+    }
+    comparisons.push({
+      label: "Altersempfehlung",
+      userValue: `Ab ${targetAge} Jahren`,
+      gameValue: game.age ? `Ab ${game.age} Jahren` : "Unbekannt",
+      match: game.age && game.age <= targetAge ? "good" : game.age && game.age <= targetAge + 2 ? "okay" : "bad",
+    })
   }
-  comparisons.push({
-    label: "Altersempfehlung",
-    userValue: `Ab ${targetAge} Jahren`,
-    gameValue: game.age ? `Ab ${game.age} Jahren` : "Unbekannt",
-    match: game.age && game.age <= targetAge ? "good" : game.age && game.age <= targetAge + 2 ? "okay" : "bad",
-  })
 
   // 5. Genres match (weight: 1.5)
   const selectedGenres: string[] = answers.genres || []
@@ -384,20 +390,25 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   const minRating = answers.rating || 6.5
   const ratingWeight = QUESTIONS.find((q) => q.id === "rating")!.weight
   maxScore += ratingWeight * 100
-  if (game.rating >= minRating) {
+  if (minRating <= 5) {
+    // "Egal" selected
     totalScore += ratingWeight * 100
-    if (game.rating >= 7.5) reasons.push(`Top-Bewertung: ${game.rating.toFixed(1)}/10`)
-    else if (game.rating >= 6.5) reasons.push(`Gute Bewertung: ${game.rating.toFixed(1)}/10`)
   } else {
-    const ratingDiff = minRating - game.rating
-    totalScore += ratingWeight * Math.max(0, 100 - ratingDiff * 50)
+    if (game.rating >= minRating) {
+      totalScore += ratingWeight * 100
+      if (game.rating >= 7.5) reasons.push(`Top-Bewertung: ${game.rating.toFixed(1)}/10`)
+      else if (game.rating >= 6.5) reasons.push(`Gute Bewertung: ${game.rating.toFixed(1)}/10`)
+    } else {
+      const ratingDiff = minRating - game.rating
+      totalScore += ratingWeight * Math.max(0, 100 - ratingDiff * 50)
+    }
+    comparisons.push({
+      label: "Bewertung",
+      userValue: `Mind. ${minRating}/10`,
+      gameValue: game.rating > 0 ? `${game.rating.toFixed(1)}/10` : "Unbekannt",
+      match: game.rating >= minRating ? "good" : game.rating >= minRating - 1 ? "okay" : "bad",
+    })
   }
-  comparisons.push({
-    label: "Bewertung",
-    userValue: `Mind. ${minRating}/10`,
-    gameValue: game.rating > 0 ? `${game.rating.toFixed(1)}/10` : "Unbekannt",
-    match: game.rating >= minRating ? "good" : game.rating >= minRating - 1 ? "okay" : "bad",
-  })
 
   const score = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0
 
@@ -406,8 +417,8 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     if (game.min_players && game.max_players) {
       reasons.push(`${game.min_players}-${game.max_players} Spieler`)
     }
-    if (gameDuration > 0) {
-      reasons.push(`~${gameDuration} Min. Spieldauer`)
+    if (game.playing_time > 0) {
+      reasons.push(`~${game.playing_time} Min. Spieldauer`)
     }
     if (game.rating >= 6) {
       reasons.push(`Bewertung: ${game.rating.toFixed(1)}/10`)
