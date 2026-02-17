@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { translateCategory, translateMechanic } from "@/lib/bgg-translations"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -169,8 +170,8 @@ function parseGameDetails(xml: string): any[] {
           minAge: minAge ? Number.parseInt(minAge) : null,
           image: image || thumbnail,
           publishers: publishers.slice(0, 3), // Limit to first 3 publishers
-          categories: categories.slice(0, 5), // Limit to first 5 categories
-          mechanics: mechanics.slice(0, 5), // Limit to first 5 mechanics
+          categories: categories.slice(0, 5).map(translateCategory),
+          mechanics: mechanics.slice(0, 5).map(translateMechanic),
         }
         games.push(gameData)
         console.log("[v0] Added game to results:", gameData.name)
