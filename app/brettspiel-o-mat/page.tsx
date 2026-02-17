@@ -943,9 +943,31 @@ function QuestionCard({
   return null
 }
 
+function useTranslatedDescription(description: string | undefined, gameId: string) {
+  const [translated, setTranslated] = useState<string | null>(null)
+  const fetchedRef = useRef(false)
+
+  useEffect(() => {
+    if (!description || fetchedRef.current) return
+    fetchedRef.current = true
+    fetch("/api/brettspiel-o-mat/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: description, gameId }),
+    })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => { if (data?.translation) setTranslated(data.translation) })
+      .catch(() => { /* keep showing original */ })
+  }, [description, gameId])
+
+  // Show translated text if available, otherwise show original English text immediately
+  return { text: translated || description || "", translating: !!description && !translated }
+}
+
 function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
   const [expanded, setExpanded] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
+  const { text: translatedDesc } = useTranslatedDescription(result.game.description, result.game.id)
   const scoreColor = result.score >= 80 ? "text-green-600" : result.score >= 50 ? "text-orange-500" : "text-red-500"
   const barColor = result.score >= 80 ? "bg-green-500" : result.score >= 50 ? "bg-orange-400" : "bg-red-500"
 
@@ -1003,8 +1025,8 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
           {result.game.description && (
             <div className="border-t border-gray-100 px-4 py-3">
               <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Beschreibung</h4>
-              <p className={`text-xs leading-relaxed text-gray-500 text-justify ${!descExpanded ? "line-clamp-3" : ""}`}>{result.game.description}</p>
-              {result.game.description && result.game.description.length > 150 && (
+              <p className={`text-xs leading-relaxed text-gray-500 text-justify ${!descExpanded ? "line-clamp-3" : ""}`}>{translatedDesc}</p>
+              {translatedDesc && translatedDesc.length > 150 && (
                 <button
                   onClick={() => setDescExpanded(!descExpanded)}
                   className="mt-1 text-[11px] font-medium text-teal-500 hover:text-teal-700 transition-colors"
@@ -1086,7 +1108,12 @@ export default function BrettspielOMatPage() {
   const [bestMatchDescExpanded, setBestMatchDescExpanded] = useState(false)
   const [editingAnswers, setEditingAnswers] = useState(false)
 
-
+  // Auto-translate best match description
+  const bestMatch = results.length > 0 ? results[0] : null
+  const { text: bestMatchDesc } = useTranslatedDescription(
+    bestMatch?.game.description,
+    bestMatch?.game.id || ""
+  )
 
   // Load games from BGG
   const loadGames = useCallback(async () => {
@@ -1138,35 +1165,6 @@ export default function BrettspielOMatPage() {
     const matched = gamesToUse
       .map((game) => calculateMatch(game, answers))
       .sort((a, b) => b.score - a.score)
-
-    // Batch-translate top 20 descriptions before showing results
-    const top20 = matched.slice(0, 20)
-    const toTranslate = top20
-      .filter((r) => r.game.description && r.game.description.length > 0)
-      .map((r) => ({ gameId: r.game.id, text: r.game.description }))
-
-    if (toTranslate.length > 0) {
-      try {
-        const res = await fetch("/api/brettspiel-o-mat/translate-batch", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items: toTranslate }),
-        })
-        if (res.ok) {
-          const { translations } = await res.json()
-          if (translations && typeof translations === "object") {
-            for (const r of matched) {
-              if (translations[r.game.id]) {
-                r.game.description = translations[r.game.id]
-              }
-            }
-          }
-        }
-      } catch {
-        // show original English descriptions if translation fails
-      }
-    }
-
     setResults(matched)
     setCalculating(false)
     setStep(QUESTIONS.length)
@@ -1402,31 +1400,10 @@ export default function BrettspielOMatPage() {
                                 return null
                               })}
                               <Button
-                                onClick={async () => {
+                                onClick={() => {
                                   const matched = games
                                     .map((game) => calculateMatch(game, answers))
                                     .sort((a, b) => b.score - a.score)
-                                  // Batch translate top 20
-                                  const toTranslate = matched.slice(0, 20)
-                                    .filter((r) => r.game.description)
-                                    .map((r) => ({ gameId: r.game.id, text: r.game.description }))
-                                  if (toTranslate.length > 0) {
-                                    try {
-                                      const res = await fetch("/api/brettspiel-o-mat/translate-batch", {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ items: toTranslate }),
-                                      })
-                                      if (res.ok) {
-                                        const { translations } = await res.json()
-                                        if (translations) {
-                                          for (const r of matched) {
-                                            if (translations[r.game.id]) r.game.description = translations[r.game.id]
-                                          }
-                                        }
-                                      }
-                                    } catch { /* use originals */ }
-                                  }
                                   setResults(matched)
                                   setEditingAnswers(false)
                                   setShowAll(false)
@@ -1488,8 +1465,8 @@ export default function BrettspielOMatPage() {
                       {results[0].game.description && (
                         <div className="mt-4 border-t border-teal-100 pt-3">
                           <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Beschreibung</h4>
-                          <p className={`text-xs leading-relaxed text-gray-600 text-justify ${!bestMatchDescExpanded ? "line-clamp-3" : ""}`}>{results[0].game.description}</p>
-                          {results[0].game.description && results[0].game.description.length > 150 && (
+                          <p className={`text-xs leading-relaxed text-gray-600 text-justify ${!bestMatchDescExpanded ? "line-clamp-3" : ""}`}>{bestMatchDesc}</p>
+                          {bestMatchDesc && bestMatchDesc.length > 150 && (
                             <button
                               onClick={() => setBestMatchDescExpanded(!bestMatchDescExpanded)}
                               className="mt-1 text-[11px] font-medium text-teal-500 hover:text-teal-700 transition-colors"
