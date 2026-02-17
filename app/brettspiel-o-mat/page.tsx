@@ -614,6 +614,7 @@ function useTranslatedDescription(description: string | undefined, gameId: strin
 
 function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
   const [expanded, setExpanded] = useState(false)
+  const [descExpanded, setDescExpanded] = useState(false)
   const { translated: translatedDesc, loading: descLoading } = useTranslatedDescription(result.game.description, result.game.id)
   const scoreColor = result.score >= 80 ? "text-green-600" : result.score >= 50 ? "text-orange-500" : "text-red-500"
   const barColor = result.score >= 80 ? "bg-green-500" : result.score >= 50 ? "bg-orange-400" : "bg-red-500"
@@ -679,7 +680,17 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
                   <div className="h-3 w-3/5 animate-pulse rounded bg-gray-100" />
                 </div>
               ) : (
-                <p className="text-xs leading-relaxed text-gray-500">{translatedDesc}</p>
+                <>
+                  <p className={`text-xs leading-relaxed text-gray-500 ${!descExpanded ? "line-clamp-3" : ""}`}>{translatedDesc}</p>
+                  {translatedDesc && translatedDesc.length > 150 && (
+                    <button
+                      onClick={() => setDescExpanded(!descExpanded)}
+                      className="mt-1 text-[11px] font-medium text-teal-500 hover:text-teal-700 transition-colors"
+                    >
+                      {descExpanded ? "Weniger anzeigen" : "Mehr anzeigen"}
+                    </button>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -752,6 +763,7 @@ export default function BrettspielOMatPage() {
   const [calculating, setCalculating] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const [bestMatchExpanded, setBestMatchExpanded] = useState(false)
+  const [bestMatchDescExpanded, setBestMatchDescExpanded] = useState(false)
   const [editingAnswers, setEditingAnswers] = useState(false)
 
   // Auto-translate best match description
@@ -1138,7 +1150,17 @@ export default function BrettspielOMatPage() {
                               <div className="h-3 w-3/5 animate-pulse rounded bg-teal-50" />
                             </div>
                           ) : (
-                            <p className="text-xs leading-relaxed text-gray-600">{bestMatchDesc}</p>
+                            <>
+                              <p className={`text-xs leading-relaxed text-gray-600 ${!bestMatchDescExpanded ? "line-clamp-3" : ""}`}>{bestMatchDesc}</p>
+                              {bestMatchDesc && bestMatchDesc.length > 150 && (
+                                <button
+                                  onClick={() => setBestMatchDescExpanded(!bestMatchDescExpanded)}
+                                  className="mt-1 text-[11px] font-medium text-teal-500 hover:text-teal-700 transition-colors"
+                                >
+                                  {bestMatchDescExpanded ? "Weniger anzeigen" : "Mehr anzeigen"}
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                       )}
