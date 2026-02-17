@@ -422,10 +422,10 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
       match: "good",
     })
   } else {
-    const gameMechanicsLower = [...(game.mechanics || [])].map((t) => t.toLowerCase())
+    const allGameTermsLower = [...(game.mechanics || []), ...(game.categories || [])].map((t) => t.toLowerCase())
     const matchedGenreLabels: string[] = []
     for (const genreValue of selectedGenres) {
-      const hit = gameMechanicsLower.some((gm) => gm === genreValue.toLowerCase())
+      const hit = allGameTermsLower.some((gt) => gt === genreValue.toLowerCase() || gt.includes(genreValue.toLowerCase()) || genreValue.toLowerCase().includes(gt))
       if (hit) {
         matchedGenreLabels.push(genreValue)
       }
@@ -436,10 +436,13 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     } else {
       totalScore += genreWeight * 20
     }
+    const gameGenreDisplay = matchedGenreLabels.length > 0
+      ? matchedGenreLabels.join(", ")
+      : [...(game.mechanics || [])].slice(0, 3).join(", ") || "Keine Angabe"
     comparisons.push({
       label: "Genre",
       userValue: selectedGenres.join(", "),
-      gameValue: matchedGenreLabels.length > 0 ? matchedGenreLabels.join(", ") : "Keine Treffer",
+      gameValue: gameGenreDisplay,
       match: matchedGenreLabels.length === selectedGenres.length ? "good" : matchedGenreLabels.length > 0 ? "okay" : "bad",
     })
   }
@@ -460,10 +463,10 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
       match: "good",
     })
   } else {
-    const gameCategoriesLower = [...(game.categories || [])].map((t) => t.toLowerCase())
+    const allThemeTermsLower = [...(game.categories || []), ...(game.mechanics || [])].map((t) => t.toLowerCase())
     const matchedLabels: string[] = []
     for (const themeValue of selectedThemes) {
-      const hit = gameCategoriesLower.some((gc) => gc === themeValue.toLowerCase())
+      const hit = allThemeTermsLower.some((gt) => gt === themeValue.toLowerCase() || gt.includes(themeValue.toLowerCase()) || themeValue.toLowerCase().includes(gt))
       if (hit) {
         matchedLabels.push(themeValue)
       }
@@ -474,10 +477,13 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     } else {
       totalScore += categoryWeight * 20
     }
+    const gameThemeDisplay = matchedLabels.length > 0
+      ? matchedLabels.join(", ")
+      : [...(game.categories || [])].slice(0, 3).join(", ") || "Keine Angabe"
     comparisons.push({
       label: "Thema",
       userValue: selectedThemes.join(", "),
-      gameValue: matchedLabels.length > 0 ? matchedLabels.join(", ") : "Keine Treffer",
+      gameValue: gameThemeDisplay,
       match: matchedLabels.length === selectedThemes.length ? "good" : matchedLabels.length > 0 ? "okay" : "bad",
     })
   }
@@ -704,6 +710,135 @@ function MultiChoiceQuestion({
         <p className="text-xs text-teal-600">
           {selected.filter((v) => v !== "__any__").length} ausgewaehlt
         </p>
+      )}
+    </div>
+  )
+}
+
+// --- Compact Searchable Multi-Choice for Edit Mode ---
+function EditMultiChoice({
+  options,
+  selected,
+  isEgal,
+  onChange,
+}: {
+  options: { label: string; value: string }[]
+  selected: string[]
+  isEgal: boolean
+  onChange: (val: string[]) => void
+}) {
+  const [search, setSearch] = useState("")
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const specificOptions = options.filter((o) => o.value !== "__any__")
+  const filtered = search
+    ? specificOptions.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
+    : specificOptions
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
+
+  return (
+    <div className="space-y-2">
+      {/* Egal toggle */}
+      <button
+        type="button"
+        onClick={() => onChange(isEgal ? [] : ["__any__"])}
+        className={`w-full rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+          isEgal
+            ? "border-teal-500 bg-teal-50 text-teal-700"
+            : "border-gray-200 text-gray-500 hover:border-teal-200"
+        }`}
+      >
+        Egal
+      </button>
+
+      {!isEgal && (
+        <div ref={ref} className="relative">
+          <div className="relative">
+            <FaSearch className="pointer-events-none absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setOpen(true) }}
+              onFocus={() => setOpen(true)}
+              placeholder="Suche..."
+              className="w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-8 pr-3 text-xs text-gray-700 outline-none transition-colors focus:border-teal-400 focus:ring-1 focus:ring-teal-100"
+            />
+          </div>
+          {open && (
+            <div className="absolute z-30 mt-1 max-h-44 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+              {filtered.length === 0 ? (
+                <p className="px-3 py-2 text-xs text-gray-400">Keine Ergebnisse</p>
+              ) : (
+                filtered.map((opt) => {
+                  const isSel = selected.includes(opt.value)
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        if (isSel) {
+                          onChange(selected.filter((v) => v !== opt.value))
+                        } else {
+                          onChange([...selected.filter((v) => v !== "__any__"), opt.value])
+                        }
+                        setSearch("")
+                      }}
+                      className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${
+                        isSel ? "bg-teal-50 text-teal-700 font-medium" : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                        isSel ? "border-teal-500 bg-teal-500 text-white" : "border-gray-300"
+                      }`}>
+                        {isSel && (
+                          <svg className="h-2.5 w-2.5" viewBox="0 0 12 12" fill="none">
+                            <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </span>
+                      {opt.label}
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Selected tags */}
+      {!isEgal && selected.filter((v) => v !== "__any__").length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selected.filter((v) => v !== "__any__").map((val) => {
+            const opt = options.find((o) => o.value === val)
+            return (
+              <span key={val} className="inline-flex items-center gap-1 rounded-full bg-teal-100 px-2 py-1 text-[11px] font-medium text-teal-700">
+                {opt?.label || val}
+                <button
+                  type="button"
+                  onClick={() => onChange(selected.filter((v) => v !== val))}
+                  className="rounded-full p-0.5 hover:bg-teal-200 transition-colors"
+                  aria-label={`${opt?.label || val} entfernen`}
+                >
+                  <svg className="h-2.5 w-2.5" viewBox="0 0 12 12" fill="none">
+                    <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </span>
+            )
+          })}
+          <button type="button" onClick={() => onChange([])} className="text-[11px] text-gray-400 hover:text-red-500 transition-colors px-1.5 py-1">
+            Alle entfernen
+          </button>
+        </div>
       )}
     </div>
   )
@@ -1246,39 +1381,19 @@ export default function BrettspielOMatPage() {
                                 if (q.type === "multi-choice") {
                                   const mq = q as typeof q & { options: { label: string; value: string }[] }
                                   const selected: string[] = answers[q.id] || []
+                                  const isEgal = selected.includes("__any__")
                                   return (
                                     <div key={q.id}>
                                       <div className="flex items-center gap-2 mb-2">
                                         <Icon className="h-3.5 w-3.5 text-teal-500" />
                                         <span className="text-xs font-semibold text-gray-700">{q.title}</span>
                                       </div>
-                                      <div className="flex flex-wrap gap-1.5">
-                                        {mq.options.map((opt) => {
-                                          const isSelected = selected.includes(opt.value)
-                                          return (
-                                            <button
-                                              key={opt.value}
-                                              onClick={() => {
-                                                let next: string[]
-                                                if (opt.value === "__any__") {
-                                                  next = isSelected ? [] : ["__any__"]
-                                                } else if (isSelected) {
-                                                  next = selected.filter((v) => v !== opt.value)
-                                                } else {
-                                                  next = [...selected.filter((v) => v !== "__any__"), opt.value]
-                                                }
-                                                setAnswers((prev) => ({ ...prev, [q.id]: next }))
-                                              }}
-                                              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${isSelected
-                                                ? "border-teal-500 bg-teal-50 text-teal-700"
-                                                : "border-gray-200 text-gray-500 hover:border-teal-200"
-                                                }`}
-                                            >
-                                              {opt.label}
-                                            </button>
-                                          )
-                                        })}
-                                      </div>
+                                      <EditMultiChoice
+                                        options={mq.options}
+                                        selected={selected}
+                                        isEgal={isEgal}
+                                        onChange={(next) => setAnswers((prev) => ({ ...prev, [q.id]: next }))}
+                                      />
                                     </div>
                                   )
                                 }
