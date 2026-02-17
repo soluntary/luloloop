@@ -591,8 +591,30 @@ function QuestionCard({
   return null
 }
 
+function useTranslatedDescription(description: string | undefined, gameId: string) {
+  const [translated, setTranslated] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!description || translated || loading) return
+    setLoading(true)
+    fetch("/api/brettspiel-o-mat/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: description, gameId }),
+    })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => setTranslated(data?.translation || description))
+      .catch(() => setTranslated(description))
+      .finally(() => setLoading(false))
+  }, [description, gameId, translated, loading])
+
+  return { translated, loading }
+}
+
 function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
   const [expanded, setExpanded] = useState(false)
+  const { translated: translatedDesc, loading: descLoading } = useTranslatedDescription(result.game.description, result.game.id)
   const scoreColor = result.score >= 80 ? "text-green-600" : result.score >= 50 ? "text-orange-500" : "text-red-500"
   const barColor = result.score >= 80 ? "bg-green-500" : result.score >= 50 ? "bg-orange-400" : "bg-red-500"
 
@@ -646,6 +668,22 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
             </div>
           </div>
 
+          {/* Beschreibung */}
+          {result.game.description && (
+            <div className="border-t border-gray-100 px-4 py-3">
+              <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Beschreibung</h4>
+              {descLoading ? (
+                <div className="space-y-1.5">
+                  <div className="h-3 w-full animate-pulse rounded bg-gray-100" />
+                  <div className="h-3 w-4/5 animate-pulse rounded bg-gray-100" />
+                  <div className="h-3 w-3/5 animate-pulse rounded bg-gray-100" />
+                </div>
+              ) : (
+                <p className="text-xs leading-relaxed text-gray-500">{translatedDesc}</p>
+              )}
+            </div>
+          )}
+
           {/* Warum passt es? - comparison table */}
           {result.comparisons.length > 0 && (
             <div className="border-t border-gray-100">
@@ -693,6 +731,7 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
               </AnimatePresence>
             </div>
           )}
+
         </CardContent>
       </Card>
     </motion.div>
@@ -714,6 +753,13 @@ export default function BrettspielOMatPage() {
   const [showAll, setShowAll] = useState(false)
   const [bestMatchExpanded, setBestMatchExpanded] = useState(false)
   const [editingAnswers, setEditingAnswers] = useState(false)
+
+  // Auto-translate best match description
+  const bestMatch = results.length > 0 ? results[0] : null
+  const { translated: bestMatchDesc, loading: bestMatchDescLoading } = useTranslatedDescription(
+    bestMatch?.game.description,
+    bestMatch?.game.id || ""
+  )
 
   // Load games from BGG
   const loadGames = useCallback(async () => {
@@ -1080,6 +1126,22 @@ export default function BrettspielOMatPage() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Beschreibung */}
+                      {results[0].game.description && (
+                        <div className="mt-4 border-t border-teal-100 pt-3">
+                          <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Beschreibung</h4>
+                          {bestMatchDescLoading ? (
+                            <div className="space-y-1.5">
+                              <div className="h-3 w-full animate-pulse rounded bg-teal-50" />
+                              <div className="h-3 w-4/5 animate-pulse rounded bg-teal-50" />
+                              <div className="h-3 w-3/5 animate-pulse rounded bg-teal-50" />
+                            </div>
+                          ) : (
+                            <p className="text-xs leading-relaxed text-gray-600">{bestMatchDesc}</p>
+                          )}
+                        </div>
+                      )}
 
                       {/* Warum passt es? - comparison table */}
                       <div className="mt-4 border-t border-teal-100">

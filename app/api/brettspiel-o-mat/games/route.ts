@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { translateCategory, translateMechanic } from "@/lib/bgg-translations"
 
 // BGG Top 500 ranked board games (stable IDs, updated periodically)
 // Covers: Strategy, Family, Party, Cooperative, Economic, Adventure, War, Card, Abstract, Thematic
@@ -171,6 +172,7 @@ function parseGames(xml: string): any[] {
       const yearPublished = toNum(extractVal(c, /<yearpublished[^>]*value="([^"]*)"/))
       const avgRating = toFloat(extractVal(c, /<average[^>]*value="([^"]*)"/))
       const complexity = toFloat(extractVal(c, /<averageweight[^>]*value="([^"]*)"/))
+      const descriptionRaw = extractVal(c, /<description[^>]*>([\s\S]*?)<\/description>/)
       const categories = extractMulti(c, /<link[^>]*type="boardgamecategory"[^>]*value="([^"]*)"/)
       const mechanics = extractMulti(c, /<link[^>]*type="boardgamemechanic"[^>]*value="([^"]*)"/)
       const publishers = extractMulti(c, /<link[^>]*type="boardgamepublisher"[^>]*value="([^"]*)"/)
@@ -179,7 +181,7 @@ function parseGames(xml: string): any[] {
         id: `bgg-${bggId}`,
         bgg_id: Number(bggId),
         title: decode(title),
-        description: "",
+        description: descriptionRaw ? decode(descriptionRaw).replace(/&#10;/g, "\n").replace(/<[^>]+>/g, "").trim() : "",
         image: image || thumbnail || "",
         thumbnail: thumbnail || image || "",
         min_players: minPlayers ?? 1,
@@ -192,8 +194,8 @@ function parseGames(xml: string): any[] {
         publisher: publishers.length > 0 ? decode(publishers[0]) : null,
         complexity: complexity ?? 2.5,
         rating: avgRating ?? 6.0,
-        categories: categories.map(decode),
-        mechanics: mechanics.map(decode),
+        categories: categories.map((c) => translateCategory(decode(c))),
+        mechanics: mechanics.map((m) => translateMechanic(decode(m))),
         language: null,
         source: "bgg" as const,
       })
