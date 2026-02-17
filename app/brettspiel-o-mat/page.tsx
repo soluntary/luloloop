@@ -1068,10 +1068,10 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
                         <tbody>
                           {result.comparisons.map((c, i) => (
                             <tr key={i} className="border-b border-gray-50 last:border-0">
-                              <td className="py-1.5 pr-2 font-semibold text-gray-700">{c.label}</td>
-                              <td className="py-1.5 pr-2 text-gray-500">{c.userValue}</td>
-                              <td className="py-1.5 pr-2 text-gray-700">{c.gameValue}</td>
-                              <td className="py-1.5 text-center">
+                              <td className="py-1.5 pr-2 align-top font-semibold text-gray-700">{c.label}</td>
+                              <td className="py-1.5 pr-2 align-top text-gray-500">{c.userValue}</td>
+                              <td className="py-1.5 pr-2 align-top text-gray-700">{c.gameValue}</td>
+                              <td className="py-1.5 align-top text-center">
                                 <span className={`inline-block h-2.5 w-2.5 rounded-full ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
                               </td>
                             </tr>
@@ -1507,10 +1507,10 @@ export default function BrettspielOMatPage() {
                                 <tbody>
                                   {results[0].comparisons.map((c, i) => (
                                     <tr key={i} className="border-b border-teal-50 last:border-0">
-                                      <td className="py-2 pr-2 font-semibold text-gray-700">{c.label}</td>
-                                      <td className="py-2 pr-2 text-gray-500">{c.userValue}</td>
-                                      <td className="py-2 pr-2 text-gray-700">{c.gameValue}</td>
-                                      <td className="py-2 text-center">
+                                      <td className="py-2 pr-2 align-top font-semibold text-gray-700">{c.label}</td>
+                                      <td className="py-2 pr-2 align-top text-gray-500">{c.userValue}</td>
+                                      <td className="py-2 pr-2 align-top text-gray-700">{c.gameValue}</td>
+                                      <td className="py-2 align-top text-center">
                                         <span className={`inline-block h-2.5 w-2.5 rounded-full ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
                                       </td>
                                     </tr>
