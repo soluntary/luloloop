@@ -593,29 +593,8 @@ function QuestionCard({
 
 function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
   const [expanded, setExpanded] = useState(false)
-  const [translatedDesc, setTranslatedDesc] = useState<string | null>(null)
-  const [translating, setTranslating] = useState(false)
   const scoreColor = result.score >= 80 ? "text-green-600" : result.score >= 50 ? "text-orange-500" : "text-red-500"
   const barColor = result.score >= 80 ? "bg-green-500" : result.score >= 50 ? "bg-orange-400" : "bg-red-500"
-
-  const loadTranslation = useCallback(async () => {
-    if (translatedDesc || translating || !result.game.description) return
-    setTranslating(true)
-    try {
-      const res = await fetch("/api/brettspiel-o-mat/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: result.game.description, gameId: result.game.id }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setTranslatedDesc(data.translation || result.game.description)
-      }
-    } catch {
-      setTranslatedDesc(result.game.description)
-    }
-    setTranslating(false)
-  }, [result.game.description, result.game.id, translatedDesc, translating])
 
   return (
     <motion.div
@@ -667,6 +646,14 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
             </div>
           </div>
 
+          {/* Beschreibung */}
+          {result.game.description && (
+            <div className="border-t border-gray-100 px-4 py-3">
+              <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Beschreibung</h4>
+              <p className="text-xs leading-relaxed text-gray-500 line-clamp-3">{result.game.description}</p>
+            </div>
+          )}
+
           {/* Warum passt es? - comparison table */}
           {result.comparisons.length > 0 && (
             <div className="border-t border-gray-100">
@@ -715,32 +702,6 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
             </div>
           )}
 
-          {/* Description */}
-          {result.game.description && (
-            <div className="border-t border-gray-100">
-              {translatedDesc ? (
-                <p className="px-4 py-3 text-xs leading-relaxed text-gray-500 line-clamp-4">{translatedDesc}</p>
-              ) : (
-                <button
-                  onClick={loadTranslation}
-                  disabled={translating}
-                  className="flex w-full items-center justify-center gap-1.5 px-4 py-2.5 text-xs text-gray-400 hover:text-teal-600 transition-colors disabled:opacity-60"
-                >
-                  {translating ? (
-                    <>
-                      <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Wird uebersetzt...
-                    </>
-                  ) : (
-                    "Beschreibung anzeigen"
-                  )}
-                </button>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
     </motion.div>
@@ -762,8 +723,6 @@ export default function BrettspielOMatPage() {
   const [showAll, setShowAll] = useState(false)
   const [bestMatchExpanded, setBestMatchExpanded] = useState(false)
   const [editingAnswers, setEditingAnswers] = useState(false)
-  const [bestMatchDesc, setBestMatchDesc] = useState<string | null>(null)
-  const [bestMatchDescLoading, setBestMatchDescLoading] = useState(false)
 
   // Load games from BGG
   const loadGames = useCallback(async () => {
@@ -1131,6 +1090,14 @@ export default function BrettspielOMatPage() {
                         </div>
                       </div>
 
+                      {/* Beschreibung */}
+                      {results[0].game.description && (
+                        <div className="mt-4 border-t border-teal-100 pt-3">
+                          <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Beschreibung</h4>
+                          <p className="text-xs leading-relaxed text-gray-600 line-clamp-4">{results[0].game.description}</p>
+                        </div>
+                      )}
+
                       {/* Warum passt es? - comparison table */}
                       <div className="mt-4 border-t border-teal-100">
                         <button
@@ -1175,50 +1142,6 @@ export default function BrettspielOMatPage() {
                           )}
                         </AnimatePresence>
                       </div>
-
-                      {/* Description */}
-                      {results[0].game.description && (
-                        <div className="mt-3 border-t border-teal-100">
-                          {bestMatchDesc ? (
-                            <p className="pt-3 text-xs leading-relaxed text-gray-600 line-clamp-4">{bestMatchDesc}</p>
-                          ) : (
-                            <button
-                              onClick={async () => {
-                                if (bestMatchDescLoading) return
-                                setBestMatchDescLoading(true)
-                                try {
-                                  const res = await fetch("/api/brettspiel-o-mat/translate", {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ text: results[0].game.description, gameId: results[0].game.id }),
-                                  })
-                                  if (res.ok) {
-                                    const data = await res.json()
-                                    setBestMatchDesc(data.translation || results[0].game.description)
-                                  }
-                                } catch {
-                                  setBestMatchDesc(results[0].game.description)
-                                }
-                                setBestMatchDescLoading(false)
-                              }}
-                              disabled={bestMatchDescLoading}
-                              className="flex w-full items-center justify-center gap-1.5 py-2.5 text-xs text-teal-500 hover:text-teal-700 transition-colors disabled:opacity-60"
-                            >
-                              {bestMatchDescLoading ? (
-                                <>
-                                  <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                  </svg>
-                                  Wird uebersetzt...
-                                </>
-                              ) : (
-                                "Beschreibung anzeigen"
-                              )}
-                            </button>
-                          )}
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
 
