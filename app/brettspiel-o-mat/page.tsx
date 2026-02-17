@@ -180,7 +180,7 @@ const QUESTIONS = [
     icon: FaStar,
     type: "choice" as const,
     options: [
-      { label: "Egal", value: 5, icon: "all" },
+      { label: "Egal", value: 0, icon: "all" },
       { label: "Gut (6+)", value: 6, icon: "good" },
       { label: "Sehr gut (7+)", value: 7, icon: "great" },
       { label: "Top (8+)", value: 8, icon: "top" },
@@ -381,23 +381,28 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   }
 
   // 7. Rating match (weight: 0.5)
-  const minRating = answers.rating || 6.5
+  const minRating = answers.rating ?? 6
   const ratingWeight = QUESTIONS.find((q) => q.id === "rating")!.weight
   maxScore += ratingWeight * 100
-  if (game.rating >= minRating) {
+  if (minRating === 0) {
+    // "Egal" selected
     totalScore += ratingWeight * 100
-    if (game.rating >= 7.5) reasons.push(`Top-Bewertung: ${game.rating.toFixed(1)}/10`)
-    else if (game.rating >= 6.5) reasons.push(`Gute Bewertung: ${game.rating.toFixed(1)}/10`)
   } else {
-    const ratingDiff = minRating - game.rating
-    totalScore += ratingWeight * Math.max(0, 100 - ratingDiff * 50)
+    if (game.rating >= minRating) {
+      totalScore += ratingWeight * 100
+      if (game.rating >= 7.5) reasons.push(`Top-Bewertung: ${game.rating.toFixed(1)}/10`)
+      else if (game.rating >= 6.5) reasons.push(`Gute Bewertung: ${game.rating.toFixed(1)}/10`)
+    } else {
+      const ratingDiff = minRating - game.rating
+      totalScore += ratingWeight * Math.max(0, 100 - ratingDiff * 50)
+    }
+    comparisons.push({
+      label: "Bewertung",
+      userValue: `Mind. ${minRating}/10`,
+      gameValue: game.rating > 0 ? `${game.rating.toFixed(1)}/10` : "Unbekannt",
+      match: game.rating >= minRating ? "good" : game.rating >= minRating - 1 ? "okay" : "bad",
+    })
   }
-  comparisons.push({
-    label: "Bewertung",
-    userValue: `Mind. ${minRating}/10`,
-    gameValue: game.rating > 0 ? `${game.rating.toFixed(1)}/10` : "Unbekannt",
-    match: game.rating >= minRating ? "good" : game.rating >= minRating - 1 ? "okay" : "bad",
-  })
 
   const score = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0
 
@@ -406,8 +411,9 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     if (game.min_players && game.max_players) {
       reasons.push(`${game.min_players}-${game.max_players} Spieler`)
     }
-    if (gameDuration > 0) {
-      reasons.push(`~${gameDuration} Min. Spieldauer`)
+    const fallbackDuration = game.playing_time || game.max_playtime || game.min_playtime || 0
+    if (fallbackDuration > 0) {
+      reasons.push(`~${fallbackDuration} Min. Spieldauer`)
     }
     if (game.rating >= 6) {
       reasons.push(`Bewertung: ${game.rating.toFixed(1)}/10`)
