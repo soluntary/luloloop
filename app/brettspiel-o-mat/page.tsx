@@ -1060,7 +1060,7 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
                         <thead>
                           <tr className="border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                             <th className="w-[35%] pb-2 text-left font-semibold"></th>
-                            <th className="w-[50%] pb-2 text-left font-semibold">Spiel</th>
+                            <th className="w-[50%] pb-2 text-left font-semibold"></th>
                             <th className="w-[15%] pb-2 text-center font-semibold"></th>
                           </tr>
                         </thead>
@@ -1497,7 +1497,7 @@ export default function BrettspielOMatPage() {
                                 <thead>
                                   <tr className="border-b border-teal-100 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                                     <th className="w-[35%] pb-2 text-left font-semibold"></th>
-                                    <th className="w-[50%] pb-2 text-left font-semibold">Spiel</th>
+                                    <th className="w-[50%] pb-2 text-left font-semibold"></th>
                                     <th className="w-[15%] pb-2 text-center font-semibold"></th>
                                   </tr>
                                 </thead>
