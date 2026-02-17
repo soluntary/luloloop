@@ -226,6 +226,16 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   if (targetDuration === 0) {
     // "Egal" selected
     totalScore += durationWeight * 100
+    const egalDuration = game.playing_time || game.max_playtime || game.min_playtime || 0
+    const egalMinPlay = game.min_playtime || egalDuration
+    const egalMaxPlay = game.max_playtime || egalDuration
+    const egalDurDisplay = egalMinPlay === egalMaxPlay ? `${egalMinPlay} Min.` : `${egalMinPlay}-${egalMaxPlay} Min.`
+    comparisons.push({
+      label: "Spieldauer",
+      userValue: "Egal",
+      gameValue: egalDuration > 0 ? egalDurDisplay : "Unbekannt",
+      match: "good",
+    })
   } else {
     const gameDuration = game.playing_time || game.max_playtime || game.min_playtime || 60
     const durationDiff = Math.abs(gameDuration - targetDuration)
@@ -260,6 +270,12 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   if (targetComplexity === 0) {
     // "Egal" selected
     totalScore += complexityWeight * 100
+    comparisons.push({
+      label: "Schwierigkeit",
+      userValue: "Egal",
+      gameValue: game.complexity ? `${game.complexity.toFixed(1)}/5` : "Unbekannt",
+      match: "good",
+    })
   } else {
     if (game.complexity) {
       const complexDiff = Math.abs(game.complexity - targetComplexity)
@@ -312,6 +328,13 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   maxScore += genreWeight * 100
   if (selectedGenres.length === 0 || selectedGenres.includes("__any__")) {
     totalScore += genreWeight * 100
+    const gameGenreTerms = [...(game.categories || [])].slice(0, 3)
+    comparisons.push({
+      label: "Genre",
+      userValue: "Egal",
+      gameValue: gameGenreTerms.length > 0 ? gameGenreTerms.join(", ") : "Unbekannt",
+      match: "good",
+    })
   } else {
     const gameTermsForGenre = [...(game.categories || []), ...(game.mechanics || [])].map((t) => t.toLowerCase())
     const genreOptions = QUESTIONS.find((q) => q.id === "genres")?.options as { label: string; value: string }[] | undefined
@@ -349,7 +372,14 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   const categoryWeight = QUESTIONS.find((q) => q.id === "categories")!.weight
   maxScore += categoryWeight * 100
   if (selectedThemes.length === 0 || selectedThemes.includes("__any__")) {
-    totalScore += categoryWeight * 100 // no filter = all match
+    totalScore += categoryWeight * 100
+    const gameMechanics = [...(game.mechanics || [])].slice(0, 3)
+    comparisons.push({
+      label: "Thema",
+      userValue: "Egal",
+      gameValue: gameMechanics.length > 0 ? gameMechanics.join(", ") : "Unbekannt",
+      match: "good",
+    })
   } else {
     const gameTerms = [...(game.categories || []), ...(game.mechanics || [])].map((t) => t.toLowerCase())
     const matchedLabels: string[] = []
@@ -387,6 +417,12 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   if (minRating === 0) {
     // "Egal" selected
     totalScore += ratingWeight * 100
+    comparisons.push({
+      label: "Bewertung",
+      userValue: "Egal",
+      gameValue: game.rating > 0 ? `${game.rating.toFixed(1)}/10` : "Unbekannt",
+      match: "good",
+    })
   } else {
     if (game.rating >= minRating) {
       totalScore += ratingWeight * 100
