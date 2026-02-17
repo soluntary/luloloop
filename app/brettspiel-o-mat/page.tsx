@@ -980,14 +980,14 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
       <Card className="overflow-hidden border-gray-100 transition-shadow hover:shadow-md">
         <CardContent className="p-4">
           {/* Top section: Image + Title + Score */}
-          <div className="flex items-start gap-3 sm:gap-4">
+          <div className="flex items-start gap-4">
             {/* Rank */}
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-500 sm:h-10 sm:w-10 sm:text-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-500">
               {rank}
             </div>
 
             {/* Game Image */}
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-50 sm:h-24 sm:w-24">
+            <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-50">
               {result.game.thumbnail || result.game.image ? (
                 <Image
                   src={result.game.thumbnail || result.game.image}
@@ -1056,29 +1056,13 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
                     className="overflow-hidden"
                   >
                     <div className="px-4 pb-4">
-                      {/* Mobile: stacked cards */}
-                      <div className="flex flex-col gap-2 sm:hidden">
-                        {result.comparisons.map((c, i) => (
-                          <div key={i} className="flex items-start gap-2 rounded-lg border border-gray-100 px-3 py-2">
-                            <span className={`mt-1 inline-block h-2.5 w-2.5 shrink-0 rounded-full ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
-                            <div className="min-w-0 flex-1">
-                              <div className="text-[11px] font-semibold text-gray-700">{c.label}</div>
-                              <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]">
-                                <span className="text-gray-400">Du: <span className="text-gray-600">{c.userValue}</span></span>
-                                <span className="text-gray-400">Spiel: <span className="text-gray-700 font-medium">{c.gameValue}</span></span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {/* Desktop: table */}
-                      <table className="hidden w-full text-[11px] sm:table">
+                      <table className="w-full text-[11px]">
                         <thead>
                           <tr className="border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                            <th className="w-[24%] pb-2 text-left font-semibold"></th>
+                            <th className="w-[28%] pb-2 text-left font-semibold"></th>
                             <th className="w-[30%] pb-2 text-left font-semibold">Deine Auswahl</th>
                             <th className="w-[30%] pb-2 text-left font-semibold">Spiel</th>
-                            <th className="w-[16%] pb-2 text-center font-semibold"></th>
+                            <th className="w-[12%] pb-2 text-center font-semibold"></th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1511,29 +1495,13 @@ export default function BrettspielOMatPage() {
                               transition={{ duration: 0.2 }}
                               className="overflow-hidden px-4 pb-4"
                             >
-                              {/* Mobile: stacked cards */}
-                              <div className="flex flex-col gap-2 sm:hidden">
-                                {results[0].comparisons.map((c, i) => (
-                                  <div key={i} className="flex items-start gap-2 rounded-lg border border-teal-100 px-3 py-2">
-                                    <span className={`mt-1 inline-block h-2.5 w-2.5 shrink-0 rounded-full ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
-                                    <div className="min-w-0 flex-1">
-                                      <div className="text-xs font-semibold text-gray-700">{c.label}</div>
-                                      <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
-                                        <span className="text-gray-400">Du: <span className="text-gray-600">{c.userValue}</span></span>
-                                        <span className="text-gray-400">Spiel: <span className="text-gray-700 font-medium">{c.gameValue}</span></span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                              {/* Desktop: table */}
-                              <table className="hidden w-full text-xs sm:table">
+                              <table className="w-full text-xs">
                                 <thead>
                                   <tr className="border-b border-teal-100 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                                    <th className="w-[24%] pb-2 text-left font-semibold"></th>
+                                    <th className="w-[28%] pb-2 text-left font-semibold"></th>
                                     <th className="w-[30%] pb-2 text-left font-semibold">Deine Auswahl</th>
                                     <th className="w-[30%] pb-2 text-left font-semibold">Spiel</th>
-                                    <th className="w-[16%] pb-2 text-center font-semibold"></th>
+                                    <th className="w-[12%] pb-2 text-center font-semibold"></th>
                                   </tr>
                                 </thead>
                                 <tbody>
