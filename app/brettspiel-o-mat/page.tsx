@@ -132,21 +132,65 @@ const QUESTIONS = [
     type: "multi-choice" as const,
     options: [
       { label: "Egal", value: "__any__" },
-      { label: "Aktions- und Reaktionsspiel", value: "Action / Dexterity" },
-      { label: "Brettspiel", value: "Board Game" },
-      { label: "Escape-Spiel", value: "Escape Room,Puzzle" },
-      { label: "Geschicklichkeitsspiel", value: "Action / Dexterity,Flicking" },
-      { label: "Glücksspiel", value: "Dice,Press Your Luck" },
-      { label: "Kartenspiel", value: "Card Game" },
-      { label: "Krimi- und Detektivspiel", value: "Murder,Mystery,Deduction,Spies" },
-      { label: "Legespiel", value: "Tile Placement,Pattern Building" },
-      { label: "Merkspiel", value: "Memory" },
-      { label: "Outdoor-Spiel", value: "Outdoor,Sports" },
-      { label: "Partyspiel", value: "Party Game" },
-      { label: "Wissens- und Quizspiel", value: "Trivia" },
-      { label: "Rollenspiel", value: "Role Playing,Adventure" },
-      { label: "Trinkspiel", value: "Party Game,Drinking" },
-      { label: "Würfelspiel", value: "Dice,Dice Rolling" },
+      { label: "Abstimmung", value: "Abstimmung" },
+      { label: "Aktion/Ereignis", value: "Aktion/Ereignis" },
+      { label: "Aktionspunkte", value: "Aktionspunkte" },
+      { label: "Aktionswahl", value: "Aktionswahl" },
+      { label: "Allianzen", value: "Allianzen" },
+      { label: "Arbeitereinsatz", value: "Arbeitereinsatz" },
+      { label: "Aufnehmen und Liefern", value: "Aufnehmen und Liefern" },
+      { label: "Auktion / Bieten", value: "Auktion / Bieten" },
+      { label: "Auslegen und Faechern", value: "Auslegen und Faechern" },
+      { label: "Bingo", value: "Bingo" },
+      { label: "Deckbau", value: "Deckbau" },
+      { label: "Deck-/Beutel-/Pool-Bau", value: "Deck-/Beutel-/Pool-Bau" },
+      { label: "Deduktion", value: "Deduktion" },
+      { label: "Draften", value: "Draften" },
+      { label: "Echtzeit", value: "Echtzeit" },
+      { label: "Einkommen", value: "Einkommen" },
+      { label: "Endspiel-Boni", value: "Endspiel-Boni" },
+      { label: "Gebietsbewegung", value: "Gebietsbewegung" },
+      { label: "Gebietsmehrheit / Einfluss", value: "Gebietsmehrheit / Einfluss" },
+      { label: "Gebietsaufbau", value: "Gebietsaufbau" },
+      { label: "Gedaechtnis", value: "Gedaechtnis" },
+      { label: "Geschichtenerzaehlen", value: "Geschichtenerzaehlen" },
+      { label: "Gleichzeitige Aktionswahl", value: "Gleichzeitige Aktionswahl" },
+      { label: "Glueck herausfordern", value: "Glueck herausfordern" },
+      { label: "Handkarten-Management", value: "Handkarten-Management" },
+      { label: "Handeln", value: "Handeln" },
+      { label: "Kooperativ", value: "Kooperativ" },
+      { label: "Legacy-Spiel", value: "Legacy-Spiel" },
+      { label: "Markt", value: "Markt" },
+      { label: "Mehrzweck-Karten", value: "Mehrzweck-Karten" },
+      { label: "Modulares Spielfeld", value: "Modulares Spielfeld" },
+      { label: "Musterbau", value: "Musterbau" },
+      { label: "Netzwerk- und Routenbau", value: "Netzwerk- und Routenbau" },
+      { label: "Offenes Draften", value: "Offenes Draften" },
+      { label: "Plaettchen legen", value: "Plaettchen legen" },
+      { label: "Punkt-zu-Punkt-Bewegung", value: "Punkt-zu-Punkt-Bewegung" },
+      { label: "Rasterbewegung", value: "Rasterbewegung" },
+      { label: "Rennen", value: "Rennen" },
+      { label: "Rollenspiel", value: "Rollenspiel" },
+      { label: "Rondell", value: "Rondell" },
+      { label: "Schere-Stein-Papier", value: "Schere-Stein-Papier" },
+      { label: "Schnippen", value: "Schnippen" },
+      { label: "Semi-Kooperativ", value: "Semi-Kooperativ" },
+      { label: "Set-Sammlung", value: "Set-Sammlung" },
+      { label: "Simulation", value: "Simulation" },
+      { label: "Solospiel", value: "Solospiel" },
+      { label: "Spielerausscheidung", value: "Spielerausscheidung" },
+      { label: "Stichspiel", value: "Stichspiel" },
+      { label: "Szenario / Mission / Kampagne", value: "Szenario / Mission / Kampagne" },
+      { label: "Technologiebaeume", value: "Technologiebaeume" },
+      { label: "Variable Spielerfaehigkeiten", value: "Variable Spielerfaehigkeiten" },
+      { label: "Verhandlung", value: "Verhandlung" },
+      { label: "Verraeter-Spiel", value: "Verraeter-Spiel" },
+      { label: "Versteckte Bewegung", value: "Versteckte Bewegung" },
+      { label: "Versteckte Rollen", value: "Versteckte Rollen" },
+      { label: "Wetten und Bluffen", value: "Wetten und Bluffen" },
+      { label: "Wuerfeln", value: "Wuerfeln" },
+      { label: "Wuerfeln und Ziehen", value: "Wuerfeln und Ziehen" },
+      { label: "Zuordnen", value: "Zuordnen" },
     ],
     defaultValue: [],
     weight: 1.5,
@@ -159,16 +203,57 @@ const QUESTIONS = [
     type: "multi-choice" as const,
     options: [
       { label: "Egal", value: "__any__" },
-      { label: "Fantasie", value: "Fantasy" },
-      { label: "Science-Fiction", value: "Science Fiction" },
-      { label: "Bluffen / Deduktion", value: "Bluffing,Deduction" },
-      { label: "Mittelalter", value: "Medieval" },
-      { label: "Wirtschaft / Handel", value: "Economic,Negotiation" },
-      { label: "Natur / Tiere", value: "Animals,Environmental" },
-      { label: "Geschichte", value: "Ancient,Civilization" },
-      { label: "Krimi", value: "Murder,Mystery,Spies" },
-      { label: "Horror", value: "Horror,Zombies" },
-      { label: "Humor", value: "Humor,Party Game" },
+      { label: "Abenteuer", value: "Abenteuer" },
+      { label: "Abstrakte Strategie", value: "Abstrakte Strategie" },
+      { label: "Aktion / Geschicklichkeit", value: "Aktion / Geschicklichkeit" },
+      { label: "Antike", value: "Antike" },
+      { label: "Bluffen", value: "Bluffen" },
+      { label: "Comic", value: "Comic" },
+      { label: "Deduktion", value: "Deduktion" },
+      { label: "Echtzeit", value: "Echtzeit" },
+      { label: "Eisenbahn", value: "Eisenbahn" },
+      { label: "Erkundung", value: "Erkundung" },
+      { label: "Erweiterung", value: "Erweiterung" },
+      { label: "Fantasy", value: "Fantasy" },
+      { label: "Film / TV / Radio", value: "Film / TV / Radio" },
+      { label: "Gebietsaufbau", value: "Gebietsaufbau" },
+      { label: "Horror", value: "Horror" },
+      { label: "Humor", value: "Humor" },
+      { label: "Kampf", value: "Kampf" },
+      { label: "Kartenspiel", value: "Kartenspiel" },
+      { label: "Kinderspiel", value: "Kinderspiel" },
+      { label: "Kriegsspiel", value: "Kriegsspiel" },
+      { label: "Krimi / Raetsel", value: "Krimi / Raetsel" },
+      { label: "Labyrinth", value: "Labyrinth" },
+      { label: "Landwirtschaft", value: "Landwirtschaft" },
+      { label: "Lernspiel", value: "Lernspiel" },
+      { label: "Mathematik", value: "Mathematik" },
+      { label: "Medizin", value: "Medizin" },
+      { label: "Miniaturen", value: "Miniaturen" },
+      { label: "Mittelalter", value: "Mittelalter" },
+      { label: "Musik", value: "Musik" },
+      { label: "Mythologie", value: "Mythologie" },
+      { label: "Partyspiel", value: "Partyspiel" },
+      { label: "Piraten", value: "Piraten" },
+      { label: "Politik", value: "Politik" },
+      { label: "Puzzle", value: "Puzzle" },
+      { label: "Renaissance", value: "Renaissance" },
+      { label: "Rennen", value: "Rennen" },
+      { label: "Science-Fiction", value: "Science-Fiction" },
+      { label: "Seefahrt", value: "Seefahrt" },
+      { label: "Spione / Geheimagenten", value: "Spione / Geheimagenten" },
+      { label: "Sport", value: "Sport" },
+      { label: "Staedtebau", value: "Staedtebau" },
+      { label: "Tiere", value: "Tiere" },
+      { label: "Verhandlung", value: "Verhandlung" },
+      { label: "Weltraumforschung", value: "Weltraumforschung" },
+      { label: "Wirtschaft", value: "Wirtschaft" },
+      { label: "Wissensquiz", value: "Wissensquiz" },
+      { label: "Wortspiel", value: "Wortspiel" },
+      { label: "Wuerfel", value: "Wuerfel" },
+      { label: "Zahlen", value: "Zahlen" },
+      { label: "Zivilisation", value: "Zivilisation" },
+      { label: "Zombies", value: "Zombies" },
     ],
     defaultValue: [],
     weight: 1,
@@ -336,15 +421,12 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
       match: "good",
     })
   } else {
-    const gameTermsForGenre = [...(game.categories || []), ...(game.mechanics || [])].map((t) => t.toLowerCase())
-    const genreOptions = QUESTIONS.find((q) => q.id === "genres")?.options as { label: string; value: string }[] | undefined
+    const gameMechanicsLower = [...(game.mechanics || [])].map((t) => t.toLowerCase())
     const matchedGenreLabels: string[] = []
     for (const genreValue of selectedGenres) {
-      const keywords = genreValue.split(",").map((k) => k.trim().toLowerCase())
-      const hit = keywords.some((kw) => gameTermsForGenre.some((gt) => gt.includes(kw) || kw.includes(gt)))
+      const hit = gameMechanicsLower.some((gm) => gm === genreValue.toLowerCase())
       if (hit) {
-        const label = genreOptions?.find((o) => o.value === genreValue)?.label || genreValue
-        matchedGenreLabels.push(label)
+        matchedGenreLabels.push(genreValue)
       }
     }
     if (matchedGenreLabels.length > 0) {
@@ -353,13 +435,9 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     } else {
       totalScore += genreWeight * 20
     }
-    const genreUserLabels = selectedGenres.map((v) => {
-      const opt = (QUESTIONS.find((q) => q.id === "genres")?.options as { label: string; value: string }[])?.find((o) => o.value === v)
-      return opt?.label || v
-    })
     comparisons.push({
       label: "Genre",
-      userValue: genreUserLabels.join(", "),
+      userValue: selectedGenres.join(", "),
       gameValue: matchedGenreLabels.length > 0 ? matchedGenreLabels.join(", ") : "Keine Treffer",
       match: matchedGenreLabels.length === selectedGenres.length ? "good" : matchedGenreLabels.length > 0 ? "okay" : "bad",
     })
@@ -381,15 +459,12 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
       match: "good",
     })
   } else {
-    const gameTerms = [...(game.categories || []), ...(game.mechanics || [])].map((t) => t.toLowerCase())
+    const gameCategoriesLower = [...(game.categories || [])].map((t) => t.toLowerCase())
     const matchedLabels: string[] = []
-    const themeOptions = QUESTIONS.find((q) => q.id === "categories")?.options as { label: string; value: string }[] | undefined
     for (const themeValue of selectedThemes) {
-      const keywords = themeValue.split(",").map((k) => k.trim().toLowerCase())
-      const hit = keywords.some((kw) => gameTerms.some((gt) => gt.includes(kw) || kw.includes(gt)))
+      const hit = gameCategoriesLower.some((gc) => gc === themeValue.toLowerCase())
       if (hit) {
-        const label = themeOptions?.find((o) => o.value === themeValue)?.label || themeValue
-        matchedLabels.push(label)
+        matchedLabels.push(themeValue)
       }
     }
     if (matchedLabels.length > 0) {
@@ -398,13 +473,9 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     } else {
       totalScore += categoryWeight * 20
     }
-    const catUserLabels = selectedThemes.map((v) => {
-      const opt = (QUESTIONS.find((q) => q.id === "categories")?.options as { label: string; value: string }[])?.find((o) => o.value === v)
-      return opt?.label || v
-    })
     comparisons.push({
       label: "Thema",
-      userValue: catUserLabels.join(", "),
+      userValue: selectedThemes.join(", "),
       gameValue: matchedLabels.length > 0 ? matchedLabels.join(", ") : "Keine Treffer",
       match: matchedLabels.length === selectedThemes.length ? "good" : matchedLabels.length > 0 ? "okay" : "bad",
     })
