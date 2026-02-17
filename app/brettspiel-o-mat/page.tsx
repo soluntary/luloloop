@@ -20,6 +20,7 @@ import {
   FaRedo,
   FaChevronDown,
   FaSlidersH,
+  FaSearch,
 } from "react-icons/fa"
 import { GiTreasureMap } from "react-icons/gi"
 import Image from "next/image"
@@ -530,6 +531,184 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   return { game, score, reasons, comparisons }
 }
 
+// --- Searchable Multi-Choice Component ---
+function MultiChoiceQuestion({
+  question,
+  Icon,
+  options,
+  selected,
+  isEgal,
+  onChange,
+}: {
+  question: { title: string; subtitle: string }
+  Icon: React.ElementType
+  options: { label: string; value: string }[]
+  selected: string[]
+  isEgal: boolean
+  onChange: (val: string[]) => void
+}) {
+  const [search, setSearch] = useState("")
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const specificOptions = options.filter((o) => o.value !== "__any__")
+  const filtered = search
+    ? specificOptions.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
+    : specificOptions
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
+
+  const toggleOption = (val: string) => {
+    if (selected.includes(val)) {
+      onChange(selected.filter((v) => v !== val))
+    } else {
+      onChange([...selected.filter((v) => v !== "__any__"), val])
+    }
+  }
+
+  const removeOption = (val: string) => {
+    onChange(selected.filter((v) => v !== val))
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center gap-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-100 text-teal-600">
+          <Icon className="h-6 w-6" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">{question.title}</h3>
+          <p className="text-sm text-gray-500">{question.subtitle}</p>
+        </div>
+      </div>
+
+      {/* "Egal" toggle */}
+      <button
+        type="button"
+        onClick={() => onChange(isEgal ? [] : ["__any__"])}
+        className={`w-full rounded-xl border-2 px-4 py-3 text-sm font-medium transition-all ${
+          isEgal
+            ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
+            : "border-gray-200 bg-white text-gray-600 hover:border-teal-200 hover:bg-teal-50/50"
+        }`}
+      >
+        Egal - alle anzeigen
+      </button>
+
+      {/* Search + Dropdown */}
+      {!isEgal && (
+        <div ref={containerRef} className="relative">
+          <div className="relative">
+            <FaSearch className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setDropdownOpen(true)
+              }}
+              onFocus={() => setDropdownOpen(true)}
+              placeholder="Suche..."
+              className="w-full rounded-xl border-2 border-gray-200 bg-white py-3 pl-9 pr-4 text-sm text-gray-700 outline-none transition-colors focus:border-teal-400 focus:ring-2 focus:ring-teal-100"
+            />
+          </div>
+
+          {/* Dropdown list */}
+          {dropdownOpen && (
+            <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+              {filtered.length === 0 ? (
+                <p className="px-4 py-3 text-sm text-gray-400">Keine Ergebnisse</p>
+              ) : (
+                filtered.map((opt) => {
+                  const isSelected = selected.includes(opt.value)
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        toggleOption(opt.value)
+                        setSearch("")
+                      }}
+                      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
+                        isSelected
+                          ? "bg-teal-50 text-teal-700 font-medium"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                          isSelected ? "border-teal-500 bg-teal-500 text-white" : "border-gray-300"
+                        }`}
+                      >
+                        {isSelected && (
+                          <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
+                            <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </span>
+                      {opt.label}
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Selected tags */}
+      {selected.length > 0 && !isEgal && (
+        <div className="flex flex-wrap gap-2">
+          {selected.filter((v) => v !== "__any__").map((val) => {
+            const opt = options.find((o) => o.value === val)
+            return (
+              <span
+                key={val}
+                className="inline-flex items-center gap-1.5 rounded-full bg-teal-100 px-3 py-1.5 text-xs font-medium text-teal-700"
+              >
+                {opt?.label || val}
+                <button
+                  type="button"
+                  onClick={() => removeOption(val)}
+                  className="ml-0.5 rounded-full p-0.5 hover:bg-teal-200 transition-colors"
+                  aria-label={`${opt?.label || val} entfernen`}
+                >
+                  <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
+                    <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </span>
+            )
+          })}
+          <button
+            type="button"
+            onClick={() => onChange([])}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors px-2 py-1.5"
+          >
+            Alle entfernen
+          </button>
+        </div>
+      )}
+
+      {/* Count */}
+      {selected.length > 0 && !isEgal && (
+        <p className="text-xs text-teal-600">
+          {selected.filter((v) => v !== "__any__").length} ausgewaehlt
+        </p>
+      )}
+    </div>
+  )
+}
+
 // --- Components ---
 function QuestionCard({
   question,
@@ -613,49 +792,16 @@ function QuestionCard({
   if (question.type === "multi-choice") {
     const q = question as typeof question & { options: { label: string; value: string }[] }
     const selected: string[] = value || []
+    const isEgal = selected.includes("__any__")
     return (
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-100 text-teal-600">
-            <Icon className="h-6 w-6" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">{question.title}</h3>
-            <p className="text-sm text-gray-500">{question.subtitle}</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {q.options.map((opt) => {
-            const isSelected = selected.includes(opt.value)
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  if (opt.value === "__any__") {
-                    // "Egal" toggles: select only "__any__" or deselect it
-                    onChange(isSelected ? [] : ["__any__"])
-                  } else if (isSelected) {
-                    onChange(selected.filter((v) => v !== opt.value))
-                  } else {
-                    // Remove "__any__" when selecting a specific option
-                    onChange([...selected.filter((v) => v !== "__any__"), opt.value])
-                  }
-                }}
-                className={`rounded-xl border-2 px-4 py-3 text-sm font-medium transition-all ${isSelected
-                  ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
-                  : "border-gray-200 bg-white text-gray-600 hover:border-teal-200 hover:bg-teal-50/50"
-                  }`}
-              >
-                {opt.label}
-              </button>
-            )
-          })}
-        </div>
-        {selected.length > 0 && (
-          <p className="text-xs text-teal-600">{selected.length} Thema{selected.length > 1 ? "en" : ""} ausgewählt</p>
-        )}
-      </div>
+      <MultiChoiceQuestion
+        question={question}
+        Icon={Icon}
+        options={q.options}
+        selected={selected}
+        isEgal={isEgal}
+        onChange={onChange}
+      />
     )
   }
 
