@@ -422,10 +422,10 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
       match: "good",
     })
   } else {
-    const gameMechanicsLower = [...(game.mechanics || [])].map((t) => t.toLowerCase())
+    const allGameTermsLower = [...(game.mechanics || []), ...(game.categories || [])].map((t) => t.toLowerCase())
     const matchedGenreLabels: string[] = []
     for (const genreValue of selectedGenres) {
-      const hit = gameMechanicsLower.some((gm) => gm === genreValue.toLowerCase())
+      const hit = allGameTermsLower.some((gt) => gt === genreValue.toLowerCase() || gt.includes(genreValue.toLowerCase()) || genreValue.toLowerCase().includes(gt))
       if (hit) {
         matchedGenreLabels.push(genreValue)
       }
@@ -436,10 +436,13 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     } else {
       totalScore += genreWeight * 20
     }
+    const gameGenreDisplay = matchedGenreLabels.length > 0
+      ? matchedGenreLabels.join(", ")
+      : [...(game.mechanics || [])].slice(0, 3).join(", ") || "Keine Angabe"
     comparisons.push({
       label: "Genre",
       userValue: selectedGenres.join(", "),
-      gameValue: matchedGenreLabels.length > 0 ? matchedGenreLabels.join(", ") : "Keine Treffer",
+      gameValue: gameGenreDisplay,
       match: matchedGenreLabels.length === selectedGenres.length ? "good" : matchedGenreLabels.length > 0 ? "okay" : "bad",
     })
   }
@@ -460,10 +463,10 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
       match: "good",
     })
   } else {
-    const gameCategoriesLower = [...(game.categories || [])].map((t) => t.toLowerCase())
+    const allThemeTermsLower = [...(game.categories || []), ...(game.mechanics || [])].map((t) => t.toLowerCase())
     const matchedLabels: string[] = []
     for (const themeValue of selectedThemes) {
-      const hit = gameCategoriesLower.some((gc) => gc === themeValue.toLowerCase())
+      const hit = allThemeTermsLower.some((gt) => gt === themeValue.toLowerCase() || gt.includes(themeValue.toLowerCase()) || themeValue.toLowerCase().includes(gt))
       if (hit) {
         matchedLabels.push(themeValue)
       }
@@ -474,10 +477,13 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     } else {
       totalScore += categoryWeight * 20
     }
+    const gameThemeDisplay = matchedLabels.length > 0
+      ? matchedLabels.join(", ")
+      : [...(game.categories || [])].slice(0, 3).join(", ") || "Keine Angabe"
     comparisons.push({
       label: "Thema",
       userValue: selectedThemes.join(", "),
-      gameValue: matchedLabels.length > 0 ? matchedLabels.join(", ") : "Keine Treffer",
+      gameValue: gameThemeDisplay,
       match: matchedLabels.length === selectedThemes.length ? "good" : matchedLabels.length > 0 ? "okay" : "bad",
     })
   }
