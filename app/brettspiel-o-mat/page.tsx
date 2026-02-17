@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -323,13 +323,16 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     })
   } else {
     const gameDuration = game.playing_time || game.max_playtime || game.min_playtime || 60
+    const minPlay = game.min_playtime || gameDuration
+    const maxPlay = game.max_playtime || gameDuration
+    const gameDurationDisplay = minPlay === maxPlay ? `${minPlay} Min.` : `${minPlay}-${maxPlay} Min.`
     const durationDiff = Math.abs(gameDuration - targetDuration)
     if (durationDiff <= 15) {
       totalScore += durationWeight * 100
-      reasons.push(`Spieldauer passt (${gameDuration} Min.)`)
+      reasons.push(`Spieldauer passt (${gameDurationDisplay})`)
     } else if (durationDiff <= 30) {
       totalScore += durationWeight * 75
-      reasons.push(`Spieldauer: ~${gameDuration} Min.`)
+      reasons.push(`Spieldauer: ${gameDurationDisplay}`)
     } else if (durationDiff <= 60) {
       totalScore += durationWeight * 40
     } else {
@@ -337,9 +340,6 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
     }
     const durationLabel = QUESTIONS.find((q) => q.id === "duration")?.options as { label: string; value: number }[] | undefined
     const durationUserLabel = durationLabel?.find((o) => o.value === targetDuration)?.label || `${targetDuration} Min.`
-    const minPlay = game.min_playtime || gameDuration
-    const maxPlay = game.max_playtime || gameDuration
-    const gameDurationDisplay = minPlay === maxPlay ? `${minPlay} Min.` : `${minPlay}-${maxPlay} Min.`
     comparisons.push({
       label: "Spieldauer",
       userValue: durationUserLabel,
@@ -664,29 +664,29 @@ function QuestionCard({
 
 function useTranslatedDescription(description: string | undefined, gameId: string) {
   const [translated, setTranslated] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const fetchedRef = useRef(false)
 
   useEffect(() => {
-    if (!description || translated || loading) return
-    setLoading(true)
+    if (!description || fetchedRef.current) return
+    fetchedRef.current = true
     fetch("/api/brettspiel-o-mat/translate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: description, gameId }),
     })
       .then((res) => res.ok ? res.json() : null)
-      .then((data) => setTranslated(data?.translation || description))
-      .catch(() => setTranslated(description))
-      .finally(() => setLoading(false))
-  }, [description, gameId, translated, loading])
+      .then((data) => { if (data?.translation) setTranslated(data.translation) })
+      .catch(() => { /* keep showing original */ })
+  }, [description, gameId])
 
-  return { translated, loading }
+  // Show translated text if available, otherwise show original English text immediately
+  return { text: translated || description || "", translating: !!description && !translated }
 }
 
 function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
   const [expanded, setExpanded] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
-  const { translated: translatedDesc, loading: descLoading } = useTranslatedDescription(result.game.description, result.game.id)
+  const { text: translatedDesc } = useTranslatedDescription(result.game.description, result.game.id)
   const scoreColor = result.score >= 80 ? "text-green-600" : result.score >= 50 ? "text-orange-500" : "text-red-500"
   const barColor = result.score >= 80 ? "bg-green-500" : result.score >= 50 ? "bg-orange-400" : "bg-red-500"
 
@@ -744,24 +744,14 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
           {result.game.description && (
             <div className="border-t border-gray-100 px-4 py-3">
               <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Beschreibung</h4>
-              {descLoading ? (
-                <div className="space-y-1.5">
-                  <div className="h-3 w-full animate-pulse rounded bg-gray-100" />
-                  <div className="h-3 w-4/5 animate-pulse rounded bg-gray-100" />
-                  <div className="h-3 w-3/5 animate-pulse rounded bg-gray-100" />
-                </div>
-              ) : (
-                <>
-                  <p className={`text-xs leading-relaxed text-gray-500 ${!descExpanded ? "line-clamp-3" : ""}`}>{translatedDesc}</p>
-                  {translatedDesc && translatedDesc.length > 150 && (
-                    <button
-                      onClick={() => setDescExpanded(!descExpanded)}
-                      className="mt-1 text-[11px] font-medium text-teal-500 hover:text-teal-700 transition-colors"
-                    >
-                      {descExpanded ? "Weniger anzeigen" : "Mehr anzeigen"}
-                    </button>
-                  )}
-                </>
+              <p className={`text-xs leading-relaxed text-gray-500 text-justify ${!descExpanded ? "line-clamp-3" : ""}`}>{translatedDesc}</p>
+              {translatedDesc && translatedDesc.length > 150 && (
+                <button
+                  onClick={() => setDescExpanded(!descExpanded)}
+                  className="mt-1 text-[11px] font-medium text-teal-500 hover:text-teal-700 transition-colors"
+                >
+                  {descExpanded ? "Weniger anzeigen" : "Mehr anzeigen"}
+                </button>
               )}
             </div>
           )}
@@ -839,7 +829,7 @@ export default function BrettspielOMatPage() {
 
   // Auto-translate best match description
   const bestMatch = results.length > 0 ? results[0] : null
-  const { translated: bestMatchDesc, loading: bestMatchDescLoading } = useTranslatedDescription(
+  const { text: bestMatchDesc } = useTranslatedDescription(
     bestMatch?.game.description,
     bestMatch?.game.id || ""
   )
@@ -1214,24 +1204,14 @@ export default function BrettspielOMatPage() {
                       {results[0].game.description && (
                         <div className="mt-4 border-t border-teal-100 pt-3">
                           <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Beschreibung</h4>
-                          {bestMatchDescLoading ? (
-                            <div className="space-y-1.5">
-                              <div className="h-3 w-full animate-pulse rounded bg-teal-50" />
-                              <div className="h-3 w-4/5 animate-pulse rounded bg-teal-50" />
-                              <div className="h-3 w-3/5 animate-pulse rounded bg-teal-50" />
-                            </div>
-                          ) : (
-                            <>
-                              <p className={`text-xs leading-relaxed text-gray-600 ${!bestMatchDescExpanded ? "line-clamp-3" : ""}`}>{bestMatchDesc}</p>
-                              {bestMatchDesc && bestMatchDesc.length > 150 && (
-                                <button
-                                  onClick={() => setBestMatchDescExpanded(!bestMatchDescExpanded)}
-                                  className="mt-1 text-[11px] font-medium text-teal-500 hover:text-teal-700 transition-colors"
-                                >
-                                  {bestMatchDescExpanded ? "Weniger anzeigen" : "Mehr anzeigen"}
-                                </button>
-                              )}
-                            </>
+                          <p className={`text-xs leading-relaxed text-gray-600 text-justify ${!bestMatchDescExpanded ? "line-clamp-3" : ""}`}>{bestMatchDesc}</p>
+                          {bestMatchDesc && bestMatchDesc.length > 150 && (
+                            <button
+                              onClick={() => setBestMatchDescExpanded(!bestMatchDescExpanded)}
+                              className="mt-1 text-[11px] font-medium text-teal-500 hover:text-teal-700 transition-colors"
+                            >
+                              {bestMatchDescExpanded ? "Weniger anzeigen" : "Mehr anzeigen"}
+                            </button>
                           )}
                         </div>
                       )}
