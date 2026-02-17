@@ -650,7 +650,7 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
           {result.game.description && (
             <div className="border-t border-gray-100 px-4 py-3">
               <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Beschreibung</h4>
-              <p className="text-xs leading-relaxed text-gray-500">{result.game.description}</p>
+              <p className="text-xs leading-relaxed text-gray-500 line-clamp-3">{result.game.description}</p>
             </div>
           )}
 
@@ -1094,7 +1094,7 @@ export default function BrettspielOMatPage() {
                       {results[0].game.description && (
                         <div className="mt-4 border-t border-teal-100 pt-3">
                           <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Beschreibung</h4>
-                          <p className="text-xs leading-relaxed text-gray-600">{results[0].game.description}</p>
+                          <p className="text-xs leading-relaxed text-gray-600 line-clamp-4">{results[0].game.description}</p>
                         </div>
                       )}
 
