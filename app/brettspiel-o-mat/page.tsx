@@ -220,7 +220,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   })
 
   // 2. Duration match (weight: 2)
-  const targetDuration = answers.duration || 60
+  const targetDuration = answers.duration !== undefined ? answers.duration : 60
   const durationWeight = QUESTIONS.find((q) => q.id === "duration")!.weight
   maxScore += durationWeight * 100
   if (targetDuration === 0) {
@@ -254,7 +254,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   }
 
   // 3. Complexity match (weight: 1.5)
-  const targetComplexity = answers.complexity || 2.5
+  const targetComplexity = answers.complexity !== undefined ? answers.complexity : 2.5
   const complexityWeight = QUESTIONS.find((q) => q.id === "complexity")!.weight
   maxScore += complexityWeight * 100
   if (targetComplexity === 0) {
@@ -381,7 +381,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   }
 
   // 7. Rating match (weight: 0.5)
-  const minRating = answers.rating || 6.5
+  const minRating = answers.rating !== undefined ? answers.rating : 6.5
   const ratingWeight = QUESTIONS.find((q) => q.id === "rating")!.weight
   maxScore += ratingWeight * 100
   if (game.rating >= minRating) {
