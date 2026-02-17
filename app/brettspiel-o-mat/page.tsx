@@ -1059,17 +1059,15 @@ function ResultCard({ result, rank }: { result: MatchResult; rank: number }) {
                       <table className="w-full text-[11px]">
                         <thead>
                           <tr className="border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                            <th className="w-[28%] pb-2 text-left font-semibold"></th>
-                            <th className="w-[30%] pb-2 text-left font-semibold">Deine Auswahl</th>
-                            <th className="w-[30%] pb-2 text-left font-semibold">Spiel</th>
-                            <th className="w-[12%] pb-2 text-center font-semibold"></th>
+                            <th className="w-[35%] pb-2 text-left font-semibold"></th>
+                            <th className="w-[50%] pb-2 text-left font-semibold">Spiel</th>
+                            <th className="w-[15%] pb-2 text-center font-semibold"></th>
                           </tr>
                         </thead>
                         <tbody>
                           {result.comparisons.map((c, i) => (
                             <tr key={i} className="border-b border-gray-50 last:border-0">
                               <td className="py-1.5 pr-2 align-top font-semibold text-gray-700">{c.label}</td>
-                              <td className="py-1.5 pr-2 align-top text-gray-500">{c.userValue}</td>
                               <td className="py-1.5 pr-2 align-top text-gray-700">{c.gameValue}</td>
                               <td className="py-1.5 align-top text-center">
                                 <span className={`inline-block h-2.5 w-2.5 rounded-full ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
@@ -1498,17 +1496,15 @@ export default function BrettspielOMatPage() {
                               <table className="w-full text-xs">
                                 <thead>
                                   <tr className="border-b border-teal-100 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                                    <th className="w-[28%] pb-2 text-left font-semibold"></th>
-                                    <th className="w-[30%] pb-2 text-left font-semibold">Deine Auswahl</th>
-                                    <th className="w-[30%] pb-2 text-left font-semibold">Spiel</th>
-                                    <th className="w-[12%] pb-2 text-center font-semibold"></th>
+                                    <th className="w-[35%] pb-2 text-left font-semibold"></th>
+                                    <th className="w-[50%] pb-2 text-left font-semibold">Spiel</th>
+                                    <th className="w-[15%] pb-2 text-center font-semibold"></th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {results[0].comparisons.map((c, i) => (
                                     <tr key={i} className="border-b border-teal-50 last:border-0">
                                       <td className="py-2 pr-2 align-top font-semibold text-gray-700">{c.label}</td>
-                                      <td className="py-2 pr-2 align-top text-gray-500">{c.userValue}</td>
                                       <td className="py-2 pr-2 align-top text-gray-700">{c.gameValue}</td>
                                       <td className="py-2 align-top text-center">
                                         <span className={`inline-block h-2.5 w-2.5 rounded-full ${c.match === "good" ? "bg-green-500" : c.match === "okay" ? "bg-orange-400" : "bg-red-500"}`} />
