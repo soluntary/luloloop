@@ -220,7 +220,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   })
 
   // 2. Duration match (weight: 2)
-  const targetDuration = answers.duration || 60
+  const targetDuration = answers.duration !== undefined ? answers.duration : 60
   const durationWeight = QUESTIONS.find((q) => q.id === "duration")!.weight
   maxScore += durationWeight * 100
   if (targetDuration === 0) {
@@ -254,7 +254,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   }
 
   // 3. Complexity match (weight: 1.5)
-  const targetComplexity = answers.complexity || 2.5
+  const targetComplexity = answers.complexity !== undefined ? answers.complexity : 2.5
   const complexityWeight = QUESTIONS.find((q) => q.id === "complexity")!.weight
   maxScore += complexityWeight * 100
   if (targetComplexity === 0) {
@@ -381,7 +381,7 @@ function calculateMatch(game: GameCatalogEntry, answers: Record<string, any>): M
   }
 
   // 7. Rating match (weight: 0.5)
-  const minRating = answers.rating || 6.5
+  const minRating = answers.rating !== undefined ? answers.rating : 6.5
   const ratingWeight = QUESTIONS.find((q) => q.id === "rating")!.weight
   maxScore += ratingWeight * 100
   if (game.rating >= minRating) {
@@ -951,17 +951,17 @@ export default function BrettspielOMatPage() {
                                           return (
                                             <button
                                               key={opt.value}
-  onClick={() => {
-  let next: string[]
-  if (opt.value === "__any__") {
-    next = isSelected ? [] : ["__any__"]
-  } else if (isSelected) {
-    next = selected.filter((v) => v !== opt.value)
-  } else {
-    next = [...selected.filter((v) => v !== "__any__"), opt.value]
-  }
-  setAnswers((prev) => ({ ...prev, [q.id]: next }))
-  }}
+                                              onClick={() => {
+                                                let next: string[]
+                                                if (opt.value === "__any__") {
+                                                  next = isSelected ? [] : ["__any__"]
+                                                } else if (isSelected) {
+                                                  next = selected.filter((v) => v !== opt.value)
+                                                } else {
+                                                  next = [...selected.filter((v) => v !== "__any__"), opt.value]
+                                                }
+                                                setAnswers((prev) => ({ ...prev, [q.id]: next }))
+                                              }}
                                               className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${isSelected
                                                 ? "border-teal-500 bg-teal-50 text-teal-700"
                                                 : "border-gray-200 text-gray-500 hover:border-teal-200"
@@ -1000,7 +1000,7 @@ export default function BrettspielOMatPage() {
                   {/* Top Match Highlight */}
                   <Card className="mb-6 overflow-hidden border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
                     <CardContent className="p-6">
-                      <div className="mb-2 text-sm font-medium uppercase tracking-wider text-teal-600">
+                      <div className="mb-2 text-sm font-bold uppercase tracking-wider text-teal-600">
                         Beste Übereinstimmung
                       </div>
                       <div className="flex items-center gap-5">
