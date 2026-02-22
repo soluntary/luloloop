@@ -12,6 +12,7 @@ import { MessageCircle, Send, Search, ArrowLeft } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
+import { useMessages } from "@/contexts/messages-context"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { de } from "date-fns/locale"
@@ -38,6 +39,7 @@ interface Conversation {
 
 export default function MessagesPage() {
   const { user, loading: authLoading } = useAuth()
+  const { markAsRead: markAsReadContext, refreshMessages: refreshMessagesContext } = useMessages()
   const { toast } = useToast()
   const [messagesLoading, setMessagesLoading] = useState(true)
   const [messages, setMessages] = useState<Message[]>([])
@@ -197,6 +199,52 @@ export default function MessagesPage() {
       setInitialConversationSet(true)
     }
   }, [conversations, searchParams, initialConversationSet, messagesLoading, supabase, user])
+
+  // Mark unread messages as read when opening a conversation
+  useEffect(() => {
+    if (!selectedConversation || !user) return
+
+    const unreadMessages = messages.filter(
+      (msg) => msg.from_user_id === selectedConversation && msg.to_user_id === user.id && !msg.read
+    )
+
+    if (unreadMessages.length === 0) return
+
+    const markAllRead = async () => {
+      // Update in database
+      const { error } = await supabase
+        .from("messages")
+        .update({ read: true })
+        .eq("from_user_id", selectedConversation)
+        .eq("to_user_id", user.id)
+        .eq("read", false)
+
+      if (!error) {
+        // Update local page state
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.from_user_id === selectedConversation && msg.to_user_id === user.id && !msg.read
+              ? { ...msg, read: true }
+              : msg
+          )
+        )
+        // Update conversation unread count
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.odtnerId === selectedConversation ? { ...conv, unreadCount: 0 } : conv
+          )
+        )
+        // Also mark as read in the global messages context (updates nav badge)
+        for (const msg of unreadMessages) {
+          await markAsReadContext(msg.id)
+        }
+        // Refresh the global context to update the badge count
+        await refreshMessagesContext()
+      }
+    }
+
+    markAllRead()
+  }, [selectedConversation, user])
 
   useEffect(() => {
     if (messagesContainerRef.current && selectedConversation) {
