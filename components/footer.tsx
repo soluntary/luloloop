@@ -14,11 +14,7 @@ export function Footer() {
                   Spielehandel
                 </Link>
               </li>
-              <li>
-                <Link href="/spielarena" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
-                  Spielarena
-                </Link>
-              </li>
+
               <li>
                 <Link href="/ludo-events" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
                   Events
@@ -29,16 +25,7 @@ export function Footer() {
                   Spielgruppen
                 </Link>
               </li>
-              <li>
-                <Link href="/spielhilfen" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
-                  Spielhilfen
-                </Link>
-              </li>
-              <li>
-                <Link href="/ludo-forum" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
-                  Forum
-                </Link>
-              </li>
+
               <li>
                 <Link href="/about" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
                   Über uns

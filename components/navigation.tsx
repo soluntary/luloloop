@@ -20,13 +20,9 @@ import {
   FaCalendarAlt,
   FaUserCheck,
   FaDice,
-  FaToolbox,
 } from "react-icons/fa"
-import { GiMeepleCircle } from "react-icons/gi"
-import { GiMeepleArmy } from "react-icons/gi"
 import { LiaUsersSolid } from "react-icons/lia"
 import { IoLibrary } from "react-icons/io5"
-import { MdForum } from "react-icons/md"
 import { RiUserCommunityFill } from "react-icons/ri"
 import { GiGamepad } from "react-icons/gi"
 import { useAuth } from "@/contexts/auth-context"
@@ -84,23 +80,11 @@ function Navigation({ currentPage }: NavigationProps) {
           { href: "/ludo-gruppen", label: "Spielgruppen", icon: LiaUsersSolid, key: "ludo-gruppen" },
           { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
           { href: "/ludo-events", label: "Events", icon: FaCalendarAlt, key: "ludo-events" },
-          { href: "/ludo-forum", label: "Forum", icon: MdForum, key: "ludo-forum" },
         ],
       },
     },
     { href: "/marketplace", label: "Spielehandel", icon: FaStore, key: "spielemarkt" },
-    {
-      label: "Spielplatz",
-      icon: GiMeepleArmy,
-      key: "spielplatz",
-      dropdown: {
-        items: [
-          { href: "/spielhilfen", label: "Spielhilfen", icon: FaToolbox, key: "spielhilfen" },
-          { href: "/spielarena", label: "Spielarena", icon: GiMeepleCircle, key: "spielarena" },
-          { href: "/brettspiel-o-mat", label: "Ludo-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
-        ],
-      },
-    },
+    { href: "/brettspiel-o-mat", label: "Ludo-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
     { href: "/messages", label: "Nachrichten", icon: FaComments, key: "messages" },
     { href: "/about", label: "Über uns", icon: FaInfoCircle, key: "about" },
   ]
@@ -116,23 +100,11 @@ function Navigation({ currentPage }: NavigationProps) {
           { href: "/ludo-gruppen", label: "Spielgruppen", icon: FaUsers, key: "ludo-gruppen" },
           { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
           { href: "/ludo-events", label: "Events & Spieletreffs", icon: FaCalendarAlt, key: "ludo-events" },
-          { href: "/ludo-forum", label: "Forum", icon: MdForum, key: "ludo-forum" },
         ],
       },
     },
     { href: "/marketplace", label: "Spielemarkt", icon: FaStore, key: "spielemarkt" },
-    {
-      label: "Spielplatz",
-      icon: FaDice,
-      key: "spielplatz",
-      dropdown: {
-        items: [
-          { href: "/spielhilfen", label: "Spielhilfen", icon: FaToolbox, key: "spielhilfen" },
-          { href: "/spielarena", label: "Spielarena", icon: GiMeepleCircle, key: "spielarena" },
-          { href: "/brettspiel-o-mat", label: "Ludo-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
-        ],
-      },
-    },
+    { href: "/brettspiel-o-mat", label: "Ludo-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
     { href: "/about", label: "Über uns", icon: FaInfoCircle, key: "about" },
   ]
 
@@ -153,9 +125,7 @@ function Navigation({ currentPage }: NavigationProps) {
         (item.key === "community" &&
           (pathname.startsWith("/ludo-gruppen") ||
             pathname.startsWith("/ludo-mitglieder") ||
-            pathname.startsWith("/ludo-events") ||
-            pathname.startsWith("/ludo-forum"))) ||
-        (item.key === "spielplatz" && (pathname.startsWith("/spielhilfen") || pathname.startsWith("/spielarena"))),
+            pathname.startsWith("/ludo-events"))),
     )
   }
 
