@@ -35,11 +35,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/ludo-forum" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
-                  Forum
-                </Link>
-              </li>
-              <li>
                 <Link href="/about" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
                   Über uns
                 </Link>
