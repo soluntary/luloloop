@@ -20,9 +20,7 @@ import {
   FaCalendarAlt,
   FaUserCheck,
   FaDice,
-  FaToolbox,
 } from "react-icons/fa"
-import { GiMeepleCircle } from "react-icons/gi"
 import { LiaUsersSolid } from "react-icons/lia"
 import { IoLibrary } from "react-icons/io5"
 import { RiUserCommunityFill } from "react-icons/ri"
@@ -82,8 +80,6 @@ function Navigation({ currentPage }: NavigationProps) {
           { href: "/ludo-gruppen", label: "Spielgruppen", icon: LiaUsersSolid, key: "ludo-gruppen" },
           { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
           { href: "/ludo-events", label: "Events", icon: FaCalendarAlt, key: "ludo-events" },
-          { href: "/spielhilfen", label: "Spielhilfen", icon: FaToolbox, key: "spielhilfen" },
-          { href: "/spielarena", label: "Spielarena", icon: GiMeepleCircle, key: "spielarena" },
         ],
       },
     },
@@ -104,8 +100,6 @@ function Navigation({ currentPage }: NavigationProps) {
           { href: "/ludo-gruppen", label: "Spielgruppen", icon: FaUsers, key: "ludo-gruppen" },
           { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
           { href: "/ludo-events", label: "Events & Spieletreffs", icon: FaCalendarAlt, key: "ludo-events" },
-          { href: "/spielhilfen", label: "Spielhilfen", icon: FaToolbox, key: "spielhilfen" },
-          { href: "/spielarena", label: "Spielarena", icon: GiMeepleCircle, key: "spielarena" },
         ],
       },
     },
@@ -131,9 +125,7 @@ function Navigation({ currentPage }: NavigationProps) {
         (item.key === "community" &&
           (pathname.startsWith("/ludo-gruppen") ||
             pathname.startsWith("/ludo-mitglieder") ||
-            pathname.startsWith("/ludo-events") ||
-            pathname.startsWith("/spielhilfen") ||
-            pathname.startsWith("/spielarena"))),
+            pathname.startsWith("/ludo-events"))),
     )
   }
 
