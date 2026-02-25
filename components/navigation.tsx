@@ -85,7 +85,6 @@ function Navigation({ currentPage }: NavigationProps) {
     },
     { href: "/marketplace", label: "Spielehandel", icon: FaStore, key: "spielemarkt" },
     { href: "/brettspiel-o-mat", label: "Ludo-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
-    { href: "/messages", label: "Nachrichten", icon: FaComments, key: "messages" },
     { href: "/about", label: "Über uns", icon: FaInfoCircle, key: "about" },
   ]
 
@@ -215,18 +214,28 @@ function Navigation({ currentPage }: NavigationProps) {
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>
-                  {item.key === "messages" && unreadCount > 0 && (
-                    <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse text-xs">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </div>
-                  )}
                 </Link>
               )
             })}
           </div>
 
           {/* User Menu / Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3">
+            {user && (
+              <Link
+                href="/messages"
+                prefetch={true}
+                className="relative p-2 rounded-lg text-gray-600 hover:bg-teal-50 hover:text-teal-600 transition-all"
+                aria-label="Nachrichten"
+              >
+                <FaComments className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white rounded-full h-4 w-4 flex items-center justify-center text-[10px] font-bold animate-pulse">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
             {user && <NotificationBell />}
 
             {user ? (
@@ -281,6 +290,21 @@ function Navigation({ currentPage }: NavigationProps) {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-2">
+            {user && (
+              <Link
+                href="/messages"
+                prefetch={true}
+                className="relative p-2 rounded-lg text-gray-600 hover:bg-teal-50 hover:text-teal-600 transition-all"
+                aria-label="Nachrichten"
+              >
+                <FaComments className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white rounded-full h-4 w-4 flex items-center justify-center text-[10px] font-bold animate-pulse">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
             {user && <NotificationBell />}
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2">
               {isMobileMenuOpen ? <FaTimes className="w-6 h-6" /> : <FaBars className="w-6 h-6" />}
