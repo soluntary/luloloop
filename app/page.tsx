@@ -469,10 +469,10 @@ export default function HomePage() {
               rotation: "rotate-1",
             },
             {
-              icon: FaDice,
+              icon: GiChoice,
               title: "Ludo-O-Mat",
               description:
-                "Finde in wenigen Klicks das perfekte Spiel für dich anhand deiner Vorlieben.",
+                "Finde in wenigen Klicks das perfekte Spiel für dich basierend auf deine Vorlieben.",
               link: "/brettspiel-o-mat",
               linkText: "Zum Ludo-O-Mat",
               color: "purple",
