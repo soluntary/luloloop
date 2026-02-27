@@ -29,7 +29,7 @@ const mclaren = McLaren({
 })
 
 export const metadata: Metadata = {
-  title: "LudoLoop - Deine Spiele-Community",
+  title: "LudoLoop - Die All-in-One Plattform für Brettspielfans",
   description: "Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde neue Mitspieler und entdecke grossartige Spiele!",
   generator: "v0.dev",
   manifest: "/manifest.json",
