@@ -83,7 +83,7 @@ function Navigation({ currentPage }: NavigationProps) {
         ],
       },
     },
-    { href: "/marketplace", label: "Spielehandel", icon: FaStore, key: "spielemarkt" },
+    { href: "/marketplace", label: "Spielehandel", icon: FaStore, key: "spielehandel" },
     { href: "/brettspiel-o-mat", label: "Ludo-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
     { href: "/about", label: "Über uns", icon: FaInfoCircle, key: "about" },
   ]
@@ -168,11 +168,10 @@ function Navigation({ currentPage }: NavigationProps) {
                   <DropdownMenu key={item.key}>
                     <DropdownMenuTrigger asChild>
                       <button
-                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${
-                          active
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${active
                             ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
                             : "text-gray-700 hover:bg-teal-400 hover:text-white"
-                        }`}
+                          }`}
                       >
                         <Icon className="w-5 h-5" />
                         <span>{item.label}</span>
@@ -206,11 +205,10 @@ function Navigation({ currentPage }: NavigationProps) {
                   key={item.href}
                   href={item.href!}
                   prefetch={true}
-                  className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${
-                    active
+                  className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${active
                       ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
                       : "text-gray-700 hover:bg-teal-400 hover:text-white"
-                  }`}
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>
@@ -337,11 +335,10 @@ function Navigation({ currentPage }: NavigationProps) {
                             key={dropdownItem.key}
                             href={dropdownItem.href}
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className={`w-full flex items-center space-x-3 px-8 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${
-                              active
+                            className={`w-full flex items-center space-x-3 px-8 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${active
                                 ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
                                 : "text-gray-700 hover:bg-teal-400 hover:text-white"
-                            }`}
+                              }`}
                           >
                             <DropdownIcon className="w-5 h-5" />
                             <span>{dropdownItem.label}</span>
@@ -358,11 +355,10 @@ function Navigation({ currentPage }: NavigationProps) {
                     key={item.href}
                     href={item.href!}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${
-                      active
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${active
                         ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
                         : "text-gray-700 hover:bg-teal-400 hover:text-white"
-                    }`}
+                      }`}
                   >
                     <Icon className="w-5 h-5" />
                     <span>{item.label}</span>
