@@ -21,7 +21,7 @@ import {
   FaUserCheck,
   FaDice,
 } from "react-icons/fa"
-import { LiaUsersSolid } from "react-icons/lia"
+
 import { IoLibrary } from "react-icons/io5"
 import { RiUserCommunityFill } from "react-icons/ri"
 import { GiGamepad } from "react-icons/gi"
@@ -77,7 +77,6 @@ function Navigation({ currentPage }: NavigationProps) {
       key: "community",
       dropdown: {
         items: [
-          { href: "/ludo-gruppen", label: "Spielgruppen", icon: LiaUsersSolid, key: "ludo-gruppen" },
           { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
           { href: "/ludo-events", label: "Events", icon: FaCalendarAlt, key: "ludo-events" },
         ],
@@ -96,7 +95,6 @@ function Navigation({ currentPage }: NavigationProps) {
       key: "community",
       dropdown: {
         items: [
-          { href: "/ludo-gruppen", label: "Spielgruppen", icon: FaUsers, key: "ludo-gruppen" },
           { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
           { href: "/ludo-events", label: "Events & Spieletreffs", icon: FaCalendarAlt, key: "ludo-events" },
         ],
@@ -122,8 +120,7 @@ function Navigation({ currentPage }: NavigationProps) {
       (dropdownItem) =>
         isActive(dropdownItem.href, dropdownItem.key) ||
         (item.key === "community" &&
-          (pathname.startsWith("/ludo-gruppen") ||
-            pathname.startsWith("/ludo-mitglieder") ||
+          (pathname.startsWith("/ludo-mitglieder") ||
             pathname.startsWith("/ludo-events"))),
     )
   }

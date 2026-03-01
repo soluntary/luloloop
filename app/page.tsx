@@ -462,8 +462,8 @@ export default function HomePage() {
               icon: RiUserCommunityFill,
               title: "Community & Events",
               description:
-                "Tritt Spielgruppen bei oder gründe deine eigene Community. Organisiere Spielrunden oder schliesse dich Events an und vernetze dich mit Gleichgesinnten.",
-              link: "/ludo-gruppen",
+                "Organisiere Spielrunden oder schliesse dich Events an und vernetze dich mit Gleichgesinnten.",
+              link: "/ludo-events",
               linkText: "Zur Community",
               color: "pink",
               rotation: "rotate-1",
