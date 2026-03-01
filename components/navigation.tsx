@@ -21,7 +21,7 @@ import {
   FaUserCheck,
   FaDice,
 } from "react-icons/fa"
-import { LiaUsersSolid } from "react-icons/lia"
+
 import { IoLibrary } from "react-icons/io5"
 import { RiUserCommunityFill } from "react-icons/ri"
 import { GiGamepad } from "react-icons/gi"
@@ -77,13 +77,12 @@ function Navigation({ currentPage }: NavigationProps) {
       key: "community",
       dropdown: {
         items: [
-          { href: "/ludo-gruppen", label: "Spielgruppen", icon: LiaUsersSolid, key: "ludo-gruppen" },
           { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
           { href: "/ludo-events", label: "Events", icon: FaCalendarAlt, key: "ludo-events" },
         ],
       },
     },
-    { href: "/marketplace", label: "Spielehandel", icon: FaStore, key: "spielehandel" },
+    { href: "/marketplace", label: "Spielehandel", icon: FaStore, key: "spielemarkt" },
     { href: "/brettspiel-o-mat", label: "Ludo-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
     { href: "/about", label: "Über uns", icon: FaInfoCircle, key: "about" },
   ]
@@ -96,13 +95,12 @@ function Navigation({ currentPage }: NavigationProps) {
       key: "community",
       dropdown: {
         items: [
-          { href: "/ludo-gruppen", label: "Spielgruppen", icon: FaUsers, key: "ludo-gruppen" },
           { href: "/ludo-mitglieder", label: "Mitglieder", icon: FaUserCheck, key: "ludo-mitglieder" },
           { href: "/ludo-events", label: "Events & Spieletreffs", icon: FaCalendarAlt, key: "ludo-events" },
         ],
       },
     },
-    { href: "/marketplace", label: "Spielemarkt", icon: FaStore, key: "spielemarkt" },
+    { href: "/marketplace", label: "Spielehandel", icon: FaStore, key: "spielemarkt" },
     { href: "/brettspiel-o-mat", label: "Ludo-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
     { href: "/about", label: "Über uns", icon: FaInfoCircle, key: "about" },
   ]
@@ -122,8 +120,7 @@ function Navigation({ currentPage }: NavigationProps) {
       (dropdownItem) =>
         isActive(dropdownItem.href, dropdownItem.key) ||
         (item.key === "community" &&
-          (pathname.startsWith("/ludo-gruppen") ||
-            pathname.startsWith("/ludo-mitglieder") ||
+          (pathname.startsWith("/ludo-mitglieder") ||
             pathname.startsWith("/ludo-events"))),
     )
   }
@@ -169,8 +166,8 @@ function Navigation({ currentPage }: NavigationProps) {
                     <DropdownMenuTrigger asChild>
                       <button
                         className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${active
-                            ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
-                            : "text-gray-700 hover:bg-teal-400 hover:text-white"
+                          ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
+                          : "text-gray-700 hover:bg-teal-400 hover:text-white"
                           }`}
                       >
                         <Icon className="w-5 h-5" />
@@ -206,8 +203,8 @@ function Navigation({ currentPage }: NavigationProps) {
                   href={item.href!}
                   prefetch={true}
                   className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all font-handwritten text-sm transform hover:scale-105 hover:rotate-1 ${active
-                      ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
-                      : "text-gray-700 hover:bg-teal-400 hover:text-white"
+                    ? "bg-teal-400 text-white shadow-lg rotate-1 border-2 border-teal-500"
+                    : "text-gray-700 hover:bg-teal-400 hover:text-white"
                     }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -336,8 +333,8 @@ function Navigation({ currentPage }: NavigationProps) {
                             href={dropdownItem.href}
                             onClick={() => setIsMobileMenuOpen(false)}
                             className={`w-full flex items-center space-x-3 px-8 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${active
-                                ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
-                                : "text-gray-700 hover:bg-teal-400 hover:text-white"
+                              ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
+                              : "text-gray-700 hover:bg-teal-400 hover:text-white"
                               }`}
                           >
                             <DropdownIcon className="w-5 h-5" />
@@ -356,8 +353,8 @@ function Navigation({ currentPage }: NavigationProps) {
                     href={item.href!}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-handwritten text-sm transform hover:scale-105 hover:rotate-1 transition-all ${active
-                        ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
-                        : "text-gray-700 hover:bg-teal-400 hover:text-white"
+                      ? "bg-teal-400 text-white rotate-1 border-2 border-teal-500 shadow-lg"
+                      : "text-gray-700 hover:bg-teal-400 hover:text-white"
                       }`}
                   >
                     <Icon className="w-5 h-5" />

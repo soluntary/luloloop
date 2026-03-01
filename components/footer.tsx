@@ -21,12 +21,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/ludo-gruppen" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
-                  Spielgruppen
-                </Link>
-              </li>
-
-              <li>
                 <Link href="/about" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
                   Über uns
                 </Link>
