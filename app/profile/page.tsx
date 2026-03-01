@@ -2303,18 +2303,6 @@ const loadEventInstances = async (eventId: string) => {
                       </CardContent>
                     </Card>
 
-                    <Card className="border-pink-200 bg-pink-50">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs text-gray-600">Meine Gruppen</p>
-                            <p className="text-2xl font-bold text-pink-600">{myGroups.length}</p>
-                          </div>
-                          <LiaUsersSolid className="w-8 h-8 text-pink-400" />
-                        </div>
-                      </CardContent>
-                    </Card>
-
                     <Card className="border-orange-200 bg-orange-50">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
@@ -2903,7 +2891,7 @@ const loadEventInstances = async (eventId: string) => {
                 <CardHeader>
                   <CardTitle className="font-handwritten text-teal-700 text-base">Meine Aktivitäten</CardTitle>
                   <p className="text-xs text-gray-500">
-                    Übersicht über Event-Teilnahmen, Anfragen, Spielgruppen und Spielemarkt-Angebote
+                    Übersicht über Event-Teilnahmen, Anfragen und Spielemarkt-Angebote
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -2914,7 +2902,7 @@ const loadEventInstances = async (eventId: string) => {
                     className="w-full"
                   >
                     {/* Changed TabsList to grid with 4 columns for better layout */}
-                    <TabsList className="grid grid-cols-4 w-full gap-1 bg-gray-50">
+                    <TabsList className="grid grid-cols-3 sm:grid-cols-5 w-full gap-1 bg-gray-50">
                       <TabsTrigger value="events-member" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
                         <PiUserCircleCheck className="w-3 h-3 mr-1" />
                         Events (Teilnehmer)
@@ -2922,14 +2910,6 @@ const loadEventInstances = async (eventId: string) => {
                       <TabsTrigger value="my-events" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
                         <PiUserCircleGear className="w-3 h-3 mr-1" />
                         Meine Events
-                      </TabsTrigger>
-                      <TabsTrigger value="groups-member" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
-                        <PiUserCircleCheck className="w-3 h-3 mr-1" />
-                        Spielgruppe (Mitglied)
-                      </TabsTrigger>
-                      <TabsTrigger value="my-groups" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
-                        <PiUserCircleGear className="w-3 h-3 mr-1" />
-                        Meine Spielgruppen
                       </TabsTrigger>
                       <TabsTrigger value="requests" className="data-[state=active]:bg-teal-100 text-[10px] py-1.5">
                         <PiUserCirclePlus className="w-3 h-3 mr-1" />
@@ -3173,160 +3153,6 @@ const loadEventInstances = async (eventId: string) => {
                             })
                           ) : (
                             <p className="text-xs text-gray-400 text-center py-4">Du hast noch keine Events erstellt</p>
-                          )}
-                        </div>
-                      </TabsContent>
-
-                      {/* Spielgruppe (Mitglied) Tab */}
-                      <TabsContent value="groups-member" className="mt-0">
-                        <div className="space-y-2">
-                          {activityData.communityMemberships.length > 0 ? (
-                            activityData.communityMemberships.map((membership) => {
-                              const community = membership.community
-                              if (!community) return null
-
-                              const isInactive = community.active === false
-
-                              const memberCount = community.community_members?.length || 0
-                              const joinedDate = new Date(membership.joined_at).toLocaleDateString("de-DE", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              })
-
-                              return (
-                                <div
-                                  key={membership.id}
-                                  className="flex items-center justify-between p-2 bg-teal-50 rounded-lg border border-teal-100 cursor-pointer hover:bg-teal-100 transition-colors"
-                                  onClick={() => router.push(`/ludo-gruppen?view=${community.id}`)}
-                                >
-                                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                                    {community.image && (
-                                      <img
-                                        src={community.image || "/placeholder.svg"}
-                                        alt={community.name}
-                                        className="w-8 h-8 rounded object-cover"
-                                      />
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-xs font-medium text-gray-900 truncate">{community.name}</p>
-                                      <p className="text-[10px] text-gray-500">
-                                        Mitglied seit {joinedDate} • {community.location} • {memberCount} Mitglieder
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        openMembershipPolls(community)
-                                      }}
-                                      title="Abstimmungen"
-                                    >
-                                      <BarChart3 className="w-3.5 h-3.5 text-teal-600" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleLeaveCommunity(membership.id)
-                                      }}
-                                      title="Austreten"
-                                    >
-                                      <LogOut className="w-3 h-3 text-red-600" />
-                                    </Button>
-                                  </div>
-                                  {isInactive && (
-                                    <Badge className="ml-1 h-4 px-1 text-[8px] bg-gray-100 text-gray-600">
-                                      Inaktiv
-                                    </Badge>
-                                  )}
-                                </div>
-                              )
-                            })
-                          ) : (
-                            <p className="text-xs text-gray-400 text-center py-4">
-                              Du bist in keiner Spielgruppe Mitglied
-                            </p>
-                          )}
-                        </div>
-                      </TabsContent>
-
-                      {/* Meine Spielgruppen Tab */}
-                      <TabsContent value="my-groups" className="mt-0">
-                        <div className="space-y-2">
-                          {activityData.createdCommunities.length > 0 ? (
-                            activityData.createdCommunities.map((community) => {
-                              const isInactive = community.active === false
-
-                              const memberCount = community.community_members?.length || 0
-                              const createdDate = new Date(community.created_at).toLocaleDateString("de-DE", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              })
-
-                              return (
-                                <div
-                                  key={community.id}
-                                  className="flex items-center justify-between p-2 bg-teal-50 rounded-lg border border-teal-100 cursor-pointer hover:bg-teal-100 transition-colors"
-                                  onClick={() => router.push(`/ludo-gruppen?view=${community.id}`)}
-                                >
-                                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                                    {community.image && (
-                                      <img
-                                        src={community.image || "/placeholder.svg"}
-                                        alt={community.name}
-                                        className="w-8 h-8 rounded object-cover"
-                                      />
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-xs font-medium text-gray-900 truncate">{community.name}</p>
-                                      <p className="text-[10px] text-gray-500">
-                                        Erstellt am {createdDate} • {community.location} • {memberCount} Mitglieder
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => openGroupManagement(community)}
-                                      className="h-7 text-xs px-2"
-                                    >
-                                      <Settings className="w-3 h-3 mr-1" />
-                                      Gruppe verwalten
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleDeleteCommunity(community.id)
-                                      }}
-                                      title="Löschen"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                                    </Button>
-                                  </div>
-                                  {isInactive && (
-                                    <Badge className="ml-1 h-4 px-1 text-[8px] bg-gray-100 text-gray-600">
-                                      Inaktiv
-                                    </Badge>
-                                  )}
-                                </div>
-                              )
-                            })
-                          ) : (
-                            <p className="text-xs text-gray-400 text-center py-4">
-                              Du hast noch keine Spielgruppen erstellt
-                            </p>
                           )}
                         </div>
                       </TabsContent>
