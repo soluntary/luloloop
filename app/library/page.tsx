@@ -27,6 +27,7 @@ import {
   FaTags,
   FaEllipsisH,
   FaTimes,
+  FaCalendarPlus,
 } from "react-icons/fa"
 import { MdOutlineManageSearch } from "react-icons/md"
 import { GiReceiveMoney, GiBackForth } from "react-icons/gi"
@@ -43,6 +44,7 @@ import { useGames } from "@/contexts/games-context"
 import { useAuth } from "@/contexts/auth-context"
 import { GameSearchDialog } from "@/components/game-search-dialog"
 import { CreateMarketplaceOfferForm } from "@/components/create-marketplace-offer-form"
+import { CreateLudoEventFormDialog } from "@/components/forms/create-ludo-event-form-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { de } from "date-fns/locale"
@@ -428,6 +430,7 @@ function LibraryContent() {
 
   // Spiel anbieten Dialog States
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false)
+  const [isEventDialogOpen, setIsEventDialogOpen] = useState(false)
   const [offerGame, setOfferGame] = useState<(typeof games)[0] | null>(null)
   const [offerType, setOfferType] = useState("")
   const [price, setPrice] = useState("")
@@ -2504,6 +2507,11 @@ function LibraryContent() {
                           <GiReceiveMoney className="w-3.5 h-3.5 mr-2 text-pink-500" />
                           Verkaufen
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setIsEventDialogOpen(true)} className="text-xs font-handwritten cursor-pointer">
+                          <FaCalendarPlus className="w-3.5 h-3.5 mr-2 text-green-500" />
+                          Spielrunde planen
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -2547,6 +2555,29 @@ function LibraryContent() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Event Dialog */}
+      {isEventDialogOpen && selectedGame && (
+        <CreateLudoEventFormDialog
+          event={{
+            games: [
+              {
+                id: selectedGame.bgg_id || selectedGame.id,
+                title: selectedGame.title,
+                image: selectedGame.image || "",
+              },
+            ],
+          }}
+          onClose={() => setIsEventDialogOpen(false)}
+          onSuccess={() => {
+            setIsEventDialogOpen(false)
+            toast({
+              title: "Event erstellt",
+              description: `Spielrunde für "${selectedGame.title}" wurde erfolgreich erstellt.`,
+            })
+          }}
+        />
+      )}
 
       {/* Edit Game Dialog */}
       <Dialog open={isEditGameDialogOpen} onOpenChange={setIsEditGameDialogOpen}>
