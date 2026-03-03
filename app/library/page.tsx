@@ -29,6 +29,7 @@ import {
   FaTimes,
   FaCalendarPlus,
 } from "react-icons/fa"
+import { GiTabletopPlayers } from "react-icons/gi"
 import { MdOutlineManageSearch } from "react-icons/md"
 import { GiReceiveMoney, GiBackForth } from "react-icons/gi"
 import { TbExchange } from "react-icons/tb"
@@ -2509,7 +2510,7 @@ function LibraryContent() {
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => setIsEventDialogOpen(true)} className="text-xs font-handwritten cursor-pointer">
-                          <FaCalendarPlus className="w-3.5 h-3.5 mr-2 text-green-500" />
+                          <GiTabletopPlayers className="w-3.5 h-3.5 mr-2 text-green-500" />
                           Spielrunde planen
                         </DropdownMenuItem>
                       </DropdownMenuContent>
