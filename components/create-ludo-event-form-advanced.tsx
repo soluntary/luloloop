@@ -2626,26 +2626,14 @@ export default function CreateLudoEventForm({
                   const isRequested = friendGameRequests[showFriendGameDialog?.friendId || ""]?.some(
                     (g) => g.id === game.id,
                   )
-                  const isAvailable = game.available?.includes("available")
                   const isSelected = selectedGames.some((g) => g.id === game.id)
 
                   return (
                     <div
                       key={game.id}
-                      className={`border-2 rounded-lg p-4 relative transition-all ${
-                        isAvailable ? "hover:shadow-lg cursor-pointer" : "opacity-60 cursor-not-allowed bg-gray-50"
-                      } ${isSelected ? "border-teal-500 bg-teal-50 shadow-md" : "border-gray-200 hover:border-teal-400"}`}
-                      onClick={() => isAvailable && handleGameShelfSelection(game)}
+                      className={`border-2 rounded-lg p-4 relative transition-all hover:shadow-lg cursor-pointer ${isSelected ? "border-teal-500 bg-teal-50 shadow-md" : "border-gray-200 hover:border-teal-400"}`}
+                      onClick={() => handleGameShelfSelection(game)}
                     >
-                      <div className="absolute top-3 left-3 z-10">
-                        <div
-                          className={`w-3 h-3 rounded-full border-2 border-white shadow-sm ${
-                            isAvailable ? "bg-green-500" : "bg-red-500"
-                          }`}
-                          title={isAvailable ? "Verfügbar" : "Nicht verfügbar"}
-                        />
-                      </div>
-
                       <div className="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
                         <img
                           src={game.image || "/placeholder.svg"}
@@ -2653,18 +2641,14 @@ export default function CreateLudoEventForm({
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <h4
-                        className={`font-semibold text-sm truncate ${isAvailable ? "text-gray-900" : "text-gray-500"}`}
-                      >
+                      <h4 className="font-semibold text-sm truncate text-gray-900">
                         {game.title}
                       </h4>
                       {game.publisher && (
-                        <p className={`text-xs truncate ${isAvailable ? "text-gray-500" : "text-gray-400"}`}>
+                        <p className="text-xs truncate text-gray-500">
                           {game.publisher}
                         </p>
                       )}
-
-                      {!isAvailable && <p className="text-xs text-red-500 mt-1">Nicht verfügbar</p>}
                     </div>
                   )
                 })}
@@ -2682,43 +2666,6 @@ export default function CreateLudoEventForm({
           </DialogHeader>
 
           <div className="space-y-5 pt-4">
-            <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setAvailabilityFilter("all")}
-                  className={`px-4 py-2 text-xs rounded-full font-medium transition-colors ${
-                    availabilityFilter === "all"
-                      ? "bg-teal-600 text-white shadow-md"
-                      : "bg-white text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  Alle
-                </button>
-                <button
-                  onClick={() => setAvailabilityFilter("available")}
-                  className={`px-4 py-2 text-xs rounded-full font-medium transition-colors flex items-center gap-1 ${
-                    availabilityFilter === "available"
-                      ? "bg-green-500 text-white shadow-md"
-                      : "bg-white text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  Verfügbar
-                </button>
-                <button
-                  onClick={() => setAvailabilityFilter("unavailable")}
-                  className={`px-4 py-2 text-xs rounded-full font-medium transition-colors flex items-center gap-1 ${
-                    availabilityFilter === "unavailable"
-                      ? "bg-red-500 text-white shadow-md"
-                      : "bg-white text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  Nicht verfügbar
-                </button>
-              </div>
-            </div>
-
             {userGames.length === 0 ? (
               <div className="text-center py-16 text-gray-500">
                 <Gamepad2 className="w-20 h-20 mx-auto mb-5 opacity-20" />
@@ -2727,34 +2674,15 @@ export default function CreateLudoEventForm({
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-                {userGames
-                  .filter((game) => {
-                    const isAvailable = game.available?.includes("available")
-                    if (availabilityFilter === "available") return isAvailable
-                    if (availabilityFilter === "unavailable") return !isAvailable
-                    return true // 'all' shows everything
-                  })
-                  .map((game) => {
-                    const isAvailable = game.available?.includes("available")
+                {userGames.map((game) => {
                     const isSelected = selectedGames.some((g) => g.id === game.id)
 
                     return (
                       <div
                         key={game.id}
-                        className={`border-2 rounded-lg p-4 relative transition-all ${
-                          isAvailable ? "hover:shadow-lg cursor-pointer" : "opacity-60 cursor-not-allowed bg-gray-50"
-                        } ${isSelected ? "border-teal-500 bg-teal-50 shadow-md" : "border-gray-200 hover:border-teal-400"}`}
-                        onClick={() => isAvailable && handleGameShelfSelection(game)}
+                        className={`border-2 rounded-lg p-4 relative transition-all hover:shadow-lg cursor-pointer ${isSelected ? "border-teal-500 bg-teal-50 shadow-md" : "border-gray-200 hover:border-teal-400"}`}
+                        onClick={() => handleGameShelfSelection(game)}
                       >
-                        <div className="absolute top-3 left-3 z-10">
-                          <div
-                            className={`w-3 h-3 rounded-full border-2 border-white shadow-sm ${
-                              isAvailable ? "bg-green-500" : "bg-red-500"
-                            }`}
-                            title={isAvailable ? "Verfügbar" : "Nicht verfügbar"}
-                          />
-                        </div>
-
                         <div className="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
                           <img
                             src={game.image || "/placeholder.svg"}
@@ -2762,18 +2690,14 @@ export default function CreateLudoEventForm({
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        <h4
-                          className={`font-semibold text-sm truncate ${isAvailable ? "text-gray-900" : "text-gray-500"}`}
-                        >
+                        <h4 className="font-semibold text-sm truncate text-gray-900">
                           {game.title}
                         </h4>
                         {game.publisher && (
-                          <p className={`text-xs truncate ${isAvailable ? "text-gray-500" : "text-gray-400"}`}>
+                          <p className="text-xs truncate text-gray-500">
                             {game.publisher}
                           </p>
                         )}
-
-                        {!isAvailable && <p className="text-xs text-red-500 mt-1">Nicht verfügbar</p>}
                       </div>
                     )
                   })}
