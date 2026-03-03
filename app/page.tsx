@@ -441,7 +441,7 @@ export default function HomePage() {
               icon: IoLibrary,
               title: "Digitales Spielregal",
               description:
-                "Lege deine Brettspielesammlung digital an, behalte den Überblick und plane direkt Spielrunden für deine Spiele.",
+                "Lege im Handumdrehen deine gesamte Brettspielesammlung digital an und behalte den Überblick.",
               link: "/library",
               linkText: "Zum Spielregal",
               color: "teal",
@@ -452,7 +452,7 @@ export default function HomePage() {
               icon: FaStore,
               title: "Spielehandel",
               description:
-                "Entdecke Spiele anderer Mitglieder zum Mieten, Kaufen oder Tauschen - oder biete deine eigenen an.",
+                "Entdecke tolle Spiele anderer Mitglieder zum Mieten, Kaufen oder Tauschen oder biete deine eigenen an.",
               link: "/marketplace",
               linkText: "Zum Spielehandel",
               color: "orange",
@@ -462,7 +462,7 @@ export default function HomePage() {
               icon: RiUserCommunityFill,
               title: "Community & Events",
               description:
-                "Erstelle Spielrunden, nimm an Events teil und vernetze dich mit anderen Brettspiel-Fans in deiner Nähe.",
+                "Erstelle Spielrunden, nimm an Events teil und vernetze dich mit Gleichgesinnten.",
               link: "/ludo-events",
               linkText: "Zu den Events",
               color: "pink",
@@ -472,7 +472,7 @@ export default function HomePage() {
               icon: GiChoice,
               title: "Ludo-O-Mat",
               description:
-                "Beantworte wenige Fragen zu deinen Vorlieben und finde dein perfektes Brettspiel per Matching.",
+                "Beantworte wenige Fragen zu deinen Vorlieben und finde dein perfektes Brettspiel.",
               link: "/brettspiel-o-mat",
               linkText: "Zum Ludo-O-Mat",
               color: "purple",
