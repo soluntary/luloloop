@@ -263,7 +263,7 @@ export function CreateMarketplaceOfferForm({
     if (editMode && editData?.pickup_address) {
       return
     }
-    
+
     if (deliveryPickup && user) {
       console.log("[v0] User profile data:", {
         address: user.address,
@@ -930,11 +930,10 @@ export function CreateMarketplaceOfferForm({
               {[1, 2, 3].map((step) => (
                 <div key={step} className="flex items-center">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                      step <= currentStep
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${step <= currentStep
                         ? "bg-teal-600 text-white"
                         : "bg-gray-100 text-gray-400 border border-gray-300"
-                    }`}
+                      }`}
                   >
                     {step < currentStep ? <Check className="w-4 h-4" /> : step}
                   </div>
@@ -960,7 +959,7 @@ export function CreateMarketplaceOfferForm({
                     {/* Update input focus colors to teal */}
                     <Select value={selectedGame} onValueChange={handleGameSelection}>
                       <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500 rounded-lg bg-white">
-                        <SelectValue placeholder="Spiel aus deiner Ludothek wählen..." />
+                        <SelectValue placeholder="Spiel aus deinem Spieleregal wählen..." />
                       </SelectTrigger>
                       <SelectContent className="rounded-lg border-gray-200">
                         {games.map((game) => (
@@ -1775,11 +1774,10 @@ export function CreateMarketplaceOfferForm({
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-xs">In</span>
                           <span
-                            className={`px-2 py-1 rounded text-xs ${
-                              pickupAddress.includes("unvollständig") || pickupAddress.includes("vervollständigen")
+                            className={`px-2 py-1 rounded text-xs ${pickupAddress.includes("unvollständig") || pickupAddress.includes("vervollständigen")
                                 ? "bg-red-100 text-red-700"
                                 : "bg-blue-100 text-blue-700"
-                            }`}
+                              }`}
                           >
                             {pickupAddress
                               ? showFullAddress
