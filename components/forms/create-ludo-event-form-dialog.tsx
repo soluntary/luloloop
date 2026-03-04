@@ -15,7 +15,7 @@ export function CreateLudoEventFormDialog({ event, onClose, onSuccess }: CreateL
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-4 border-b border-gray-100">
           <DialogTitle className="text-2xl font-semibold text-gray-900">
-            {event ? "Event bearbeiten" : "Neues Event erstellen"}
+            {event?.id ? "Event bearbeiten" : "Neues Event erstellen"}
           </DialogTitle>
           <DialogDescription className="text-sm text-gray-600">
             Erstelle ein Event und verbinde dich mit anderen Spiel-Enthusiasten
