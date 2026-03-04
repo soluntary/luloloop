@@ -441,7 +441,7 @@ export default function HomePage() {
               icon: IoLibrary,
               title: "Digitales Spielregal",
               description:
-                "Lege im Handumdrehen deine gesamte Brettspielesammlung digital an und behalte jederzeit den Überblick.",
+                "Lege im Handumdrehen deine gesamte Brettspielesammlung digital an und behalte den Überblick.",
               link: "/library",
               linkText: "Zum Spielregal",
               color: "teal",
@@ -452,7 +452,7 @@ export default function HomePage() {
               icon: FaStore,
               title: "Spielehandel",
               description:
-                "Stöbere durch Angebote anderer Mitglieder und entdecke tolle Spiele zum Mieten, Kaufen oder Tauschen oder biete deine eigenen an.",
+                "Entdecke tolle Spiele anderer Mitglieder zum Mieten, Kaufen oder Tauschen oder biete deine eigenen an.",
               link: "/marketplace",
               linkText: "Zum Spielehandel",
               color: "orange",
@@ -462,9 +462,9 @@ export default function HomePage() {
               icon: RiUserCommunityFill,
               title: "Community & Events",
               description:
-                "Organisiere Spielrunden oder schliesse dich Events an und vernetze dich mit Gleichgesinnten.",
+                "Erstelle Spielrunden, nimm an Events teil und vernetze dich mit Gleichgesinnten.",
               link: "/ludo-events",
-              linkText: "Zur Community",
+              linkText: "Zu den Events",
               color: "pink",
               rotation: "rotate-1",
             },
@@ -472,7 +472,7 @@ export default function HomePage() {
               icon: GiChoice,
               title: "Ludo-O-Mat",
               description:
-                "Finde in wenigen Klicks das perfekte Spiel für dich basierend auf deine Vorlieben.",
+                "Beantworte wenige Fragen zu deinen Vorlieben und finde dein perfektes Brettspiel.",
               link: "/brettspiel-o-mat",
               linkText: "Zum Ludo-O-Mat",
               color: "purple",
