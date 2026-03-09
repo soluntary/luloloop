@@ -1613,28 +1613,55 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                   </div>
                 </div>
 
-                {/* Key Details - compact inline */}
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-500">
+                {/* Key Details - 2 columns */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
                   {selectedOfferDetails.condition && (
-                    <span>Zustand: <span className="text-gray-700">{selectedOfferDetails.condition}</span></span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Zustand</span>
+                      <span className="text-gray-700 text-right">{selectedOfferDetails.condition}</span>
+                    </div>
+                  )}
+                  {selectedOfferDetails.publisher && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Verlag</span>
+                      <span className="text-gray-700 text-right">{selectedOfferDetails.publisher}</span>
+                    </div>
                   )}
                   {selectedOfferDetails.players && (
-                    <span>Spieler: <span className="text-gray-700">{selectedOfferDetails.players}</span></span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Spieler</span>
+                      <span className="text-gray-700 text-right">{selectedOfferDetails.players}</span>
+                    </div>
                   )}
                   {selectedOfferDetails.duration && (
-                    <span>Dauer: <span className="text-gray-700">{selectedOfferDetails.duration}</span></span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Spieldauer</span>
+                      <span className="text-gray-700 text-right">{selectedOfferDetails.duration}</span>
+                    </div>
                   )}
                   {selectedOfferDetails.age && (
-                    <span>Alter: <span className="text-gray-700">{selectedOfferDetails.age}</span></span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Alter</span>
+                      <span className="text-gray-700 text-right">{selectedOfferDetails.age}</span>
+                    </div>
                   )}
                   {selectedOfferDetails.language && (
-                    <span>Sprache: <span className="text-gray-700">{selectedOfferDetails.language}</span></span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Sprache</span>
+                      <span className="text-gray-700 text-right">{selectedOfferDetails.language}</span>
+                    </div>
                   )}
                   {selectedOfferDetails.category && (
-                    <span>Kategorie: <span className="text-gray-700">{selectedOfferDetails.category}</span></span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Kategorie</span>
+                      <span className="text-gray-700 text-right">{selectedOfferDetails.category}</span>
+                    </div>
                   )}
                   {(selectedOfferDetails.game_types || selectedOfferDetails.style) && (
-                    <span>Typ: <span className="text-gray-700">{selectedOfferDetails.game_types || selectedOfferDetails.style}</span></span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Typ</span>
+                      <span className="text-gray-700 text-right">{selectedOfferDetails.game_types || selectedOfferDetails.style}</span>
+                    </div>
                   )}
                 </div>
 
