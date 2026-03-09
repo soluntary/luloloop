@@ -1608,29 +1608,37 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 </div>
               </div>
 
-              {/* Price and Condition */}
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
-                  <p className="mb-2 text-sm text-slate-950">
-                    {selectedOfferDetails.type === "lend"
-                      ? "Mietgebühr"
-                      : selectedOfferDetails.type === "sell"
-                        ? "Preis"
-                        : selectedOfferDetails.type === "trade"
-                          ? "Gegen"
-                          : "Preis"}
-                  </p>
-                  <div className="text-xs font-bold text-slate-900">
-                    {formatDailyRates(selectedOfferDetails.price) || (
-                      <span className="font-bold text-slate-900 text-xs">Auf Anfrage</span>
-                    )}
+              {/* Angebot & Anbieter */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                <h2 className="font-bold mb-4 text-sm">Angebot</h2>
+                <div className="divide-y divide-slate-100">
+                  <div className="flex items-center justify-between py-2.5">
+                    <span className="text-xs text-slate-500">
+                      {selectedOfferDetails.type === "lend"
+                        ? "Mietgebühr"
+                        : selectedOfferDetails.type === "sell"
+                          ? "Preis"
+                          : selectedOfferDetails.type === "trade"
+                            ? "Gegen"
+                            : "Preis"}
+                    </span>
+                    <span className="text-xs font-medium text-slate-900">
+                      {formatDailyRates(selectedOfferDetails.price) || "Auf Anfrage"}
+                    </span>
                   </div>
-                </div>
-                <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
-                  <p className="mb-2 text-sm text-slate-950">Zustand</p>
-                  <p className="text-xs font-normal text-slate-500">
-                    {selectedOfferDetails.condition || "Nicht angegeben"}
-                  </p>
+                  <div className="flex items-center justify-between py-2.5">
+                    <span className="text-xs text-slate-500">Zustand</span>
+                    <span className="text-xs font-medium text-slate-900">{selectedOfferDetails.condition || "Nicht angegeben"}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2.5">
+                    <span className="text-xs text-slate-500">Anbieter</span>
+                    <UserLink
+                      userId={selectedOfferDetails.user_id}
+                      className="text-xs font-medium text-slate-900 hover:text-teal-600"
+                    >
+                      {selectedOfferDetails.users?.username || selectedOfferDetails.owner || "Unbekannter Nutzer"}
+                    </UserLink>
+                  </div>
                 </div>
               </div>
 
@@ -1663,53 +1671,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 </div>
               )}
 
-              {/* Provider */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                <h3 className="font-semibold mb-4 text-black text-sm">Anbieter</h3>
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200">
-                    <img
-                      src={
-                        selectedOfferDetails.users?.avatar ||
-                        selectedOfferDetails.avatar ||
-                        `/placeholder.svg?height=64&width=64&query=avatar+${encodeURIComponent(selectedOfferDetails.users?.username || selectedOfferDetails.owner || "User")}`
-                      }
-                      alt={`${selectedOfferDetails.users?.username || selectedOfferDetails.owner || "User"} Avatar`}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        target.style.display = "none"
-                        const fallback = target.nextElementSibling as HTMLElement
-                        if (fallback) fallback.style.display = "flex"
-                      }}
-                    />
-                    <div
-                      className="w-full h-full bg-slate-200 rounded-full flex items-center justify-center"
-                      style={{ display: "none" }}
-                    >
-                      <span className="text-slate-600 font-bold text-xl">
-                        {(selectedOfferDetails.users?.username || selectedOfferDetails.owner || "U")
-                          .charAt(0)
-                          .toUpperCase()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex-1 font-normal font-normal font-normal font-normal text-xs text-slate-500">
-                    <UserLink
-                      userId={selectedOfferDetails.user_id}
-                      className="text-slate-900 text-xs block hover:text-teal-600"
-                    >
-                      {selectedOfferDetails.users?.username || selectedOfferDetails.owner || "Unbekannter Nutzer"}
-                    </UserLink>
-                    {selectedOfferDetails.rating && (
-                      <div className="flex items-center mt-2">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                        <span className="text-xs text-slate-600 ml-1 font-medium">{selectedOfferDetails.rating}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+
 
               {/* Delivery Options */}
               {(selectedOfferDetails.pickup_available || selectedOfferDetails.shipping_available) && (
