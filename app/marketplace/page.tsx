@@ -1636,50 +1636,22 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
               {/* Game Details */}
               <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                <h2 className="font-bold mb-6 text-sm">Spieldetails</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 rounded-xl bg-slate-50">
-                    <p className="mb-2 font-normal text-xs text-slate-950">Verlag</p>
-                    <p className="text-xs font-thin text-slate-500 bg-slate-50">
-                      {selectedOfferDetails.publisher || "Nicht angegeben"}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-xs mb-2 text-slate-950">Sprache</p>
-                    <p className="text-xs font-thin text-slate-500">
-                      {selectedOfferDetails.language || "Nicht angegeben"}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-xs mb-2 text-slate-950">Spieleranzahl</p>
-                    <p className="text-xs text-slate-500 font-normal">
-                      {selectedOfferDetails.players || "Nicht angegeben"}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-xs mb-2 text-slate-950">Spieldauer</p>
-                    <p className="text-xs font-thin text-slate-500">
-                      {selectedOfferDetails.duration || "Nicht angegeben"}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-xs mb-2 text-slate-950">Altersempfehlung</p>
-                    <p className="text-xs font-extralight text-slate-500">
-                      {selectedOfferDetails.age || "Nicht angegeben"}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-xs mb-2 text-gray-950">Kategorie</p>
-                    <p className="text-xs font-thin text-slate-500">
-                      {selectedOfferDetails.category || "Nicht angegeben"}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-xs mb-2 text-slate-950">Typus</p>
-                    <p className="text-xs text-slate-500 font-normal">
-                      {selectedOfferDetails.game_types || selectedOfferDetails.style || "Nicht angegeben"}
-                    </p>
-                  </div>
+                <h2 className="font-bold mb-4 text-sm">Spieldetails</h2>
+                <div className="divide-y divide-slate-100">
+                  {[
+                    { label: "Verlag", value: selectedOfferDetails.publisher },
+                    { label: "Sprache", value: selectedOfferDetails.language },
+                    { label: "Spieleranzahl", value: selectedOfferDetails.players },
+                    { label: "Spieldauer", value: selectedOfferDetails.duration },
+                    { label: "Altersempfehlung", value: selectedOfferDetails.age },
+                    { label: "Kategorie", value: selectedOfferDetails.category },
+                    { label: "Typus", value: selectedOfferDetails.game_types || selectedOfferDetails.style },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex items-center justify-between py-2.5">
+                      <span className="text-xs text-slate-500">{label}</span>
+                      <span className="text-xs font-medium text-slate-900">{value || "Nicht angegeben"}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
