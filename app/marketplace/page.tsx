@@ -1632,12 +1632,27 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                   </div>
                   <div className="flex items-center justify-between py-2.5">
                     <span className="text-xs text-slate-500">Anbieter</span>
-                    <UserLink
-                      userId={selectedOfferDetails.user_id}
-                      className="text-xs font-medium text-slate-900 hover:text-teal-600"
-                    >
-                      {selectedOfferDetails.users?.username || selectedOfferDetails.owner || "Unbekannter Nutzer"}
-                    </UserLink>
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={
+                          selectedOfferDetails.users?.avatar ||
+                          selectedOfferDetails.avatar ||
+                          `/placeholder.svg?height=24&width=24&query=avatar+${encodeURIComponent(selectedOfferDetails.users?.username || selectedOfferDetails.owner || "User")}`
+                        }
+                        alt={selectedOfferDetails.users?.username || selectedOfferDetails.owner || "User"}
+                        className="w-5 h-5 rounded-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.style.display = "none"
+                        }}
+                      />
+                      <UserLink
+                        userId={selectedOfferDetails.user_id}
+                        className="text-xs font-medium text-slate-900 hover:text-teal-600"
+                      >
+                        {selectedOfferDetails.users?.username || selectedOfferDetails.owner || "Unbekannter Nutzer"}
+                      </UserLink>
+                    </div>
                   </div>
                 </div>
               </div>
