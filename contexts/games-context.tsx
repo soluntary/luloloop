@@ -107,29 +107,20 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const testDatabaseConnection = async () => {
-    if (!supabase) {
-      console.log("[v0] testDatabaseConnection: supabase client not ready")
-      return false
-    }
+    if (!supabase) return false
     try {
-      console.log("[v0] testDatabaseConnection: testing connection...")
-      const { count, error } = await supabase.from("marketplace_offers").select("*", { count: "exact", head: true })
-
-      console.log("[v0] testDatabaseConnection result:", { count, error })
+      const { error } = await supabase.from("marketplace_offers").select("count", { count: "exact", head: true })
 
       if (error) {
-        console.error("[v0] Database connection error:", error)
         setError(`Datenbank-Verbindung fehlgeschlagen: ${error.message}`)
         setDatabaseConnected(false)
         return false
       }
 
-      console.log("[v0] Database connected successfully, offers count:", count)
       setDatabaseConnected(true)
       setError(null)
       return true
     } catch (err) {
-      console.error("[v0] Database connection exception:", err)
       setError("Datenbank-Verbindung fehlgeschlagen. Bitte überprüfe deine Supabase-Konfiguration.")
       setDatabaseConnected(false)
       return false
@@ -172,31 +163,31 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const loadMarketplaceOffers = useCallback(
     async (forceConnected = false) => {
-      if (!supabase) {
-        console.log("[v0] loadMarketplaceOffers: supabase client not ready")
-        return
-      }
+      if (!supabase) return
       try {
-        console.log("[v0] loadMarketplaceOffers: fetching offers...")
         const { data, error } = await supabase
           .from("marketplace_offers")
-          .select("*, users!marketplace_offers_user_id_fkey(username, avatar)")
+          .select("*, users(username, avatar), games(players, duration, age, language, category, style)")
           .eq("active", true)
           .order("created_at", { ascending: false })
 
-        console.log("[v0] loadMarketplaceOffers result:", { dataCount: data?.length, error })
-
         if (error) {
-          console.error("[v0] Error loading marketplace offers:", error)
+          console.error("Error loading marketplace offers:", error)
           setMarketplaceOffers([])
           return
         }
 
-        const offersWithFallback = (data || []).map((offer: any) => ({
+        const offersWithFallback = (data || []).map((offer) => ({
           ...offer,
           image: offer.image || FALLBACK_IMAGE,
           avatar: offer.users?.avatar,
           owner: offer.users?.username,
+          players: offer.games?.players,
+          duration: offer.games?.duration,
+          age: offer.games?.age,
+          language: offer.games?.language,
+          category: offer.games?.category,
+          style: offer.games?.style,
         }))
 
         setMarketplaceOffers(offersWithFallback)
