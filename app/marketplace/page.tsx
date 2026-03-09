@@ -1637,7 +1637,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               {/* Game Details */}
               <div className="bg-white border border-slate-200 rounded-2xl p-6">
                 <h2 className="font-bold mb-6 text-sm">Spieldetails</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-4 rounded-xl bg-slate-50">
                     <p className="mb-2 font-normal text-xs text-slate-950">Verlag</p>
                     <p className="text-xs font-thin text-slate-500 bg-slate-50">
