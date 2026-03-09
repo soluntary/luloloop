@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card, CardContent } from "@/components/ui/card"
-import { FaSearch, FaTimes, FaExclamationCircle, FaBook, FaDatabase, FaKeyboard } from "react-icons/fa"
+import { Badge } from "@/components/ui/badge"
+import { FaSearch, FaTimes, FaExclamationCircle, FaBook, FaDatabase, FaKeyboard, FaCheckCircle, FaMapMarkerAlt, FaEnvelope } from "react-icons/fa"
 import { IoLibrary } from "react-icons/io5"
 import { useAuth } from "@/contexts/auth-context"
 import { useGames } from "@/contexts/games-context"
@@ -57,6 +58,8 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess, editMode = fals
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  const [matchingOffers, setMatchingOffers] = useState<any[]>([])
+  const [showMatchingOffers, setShowMatchingOffers] = useState(false)
 
   const supabase = createClient()
 
@@ -193,6 +196,40 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess, editMode = fals
           ? "Deine Änderungen wurden erfolgreich gespeichert."
           : "Deine Suchanzeige wurde erfolgreich erstellt.",
       })
+
+      // Search for matching offers from other members (only on create, not edit)
+      if (!editMode) {
+        try {
+          const searchTitle = title.trim().toLowerCase()
+          const { data: offers } = await supabase
+            .from("marketplace_offers")
+            .select("id, title, type, price, condition, location, image, user_id, users!marketplace_offers_user_id_fkey(name, avatar)")
+            .neq("user_id", user.id)
+            .eq("active", true)
+            .ilike("title", `%${searchTitle}%`)
+            .limit(10)
+
+          if (offers && offers.length > 0) {
+            // Filter by matching type if possible
+            const typeMap: Record<string, string> = { buy: "sell", rent: "lend", trade: "trade" }
+            const matchType = typeMap[type]
+            const filtered = matchType
+              ? offers.filter((o: any) => o.type === matchType || o.type === type)
+              : offers
+            const results = filtered.length > 0 ? filtered : offers
+            
+            if (results.length > 0) {
+              setMatchingOffers(results)
+              setShowMatchingOffers(true)
+              // Don't close the dialog yet - show matches first
+              onSuccess()
+              return
+            }
+          }
+        } catch {
+          // Silently ignore matching errors
+        }
+      }
 
       setTitle("")
       setDescription("")
@@ -571,6 +608,137 @@ export function CreateSearchAdForm({ isOpen, onClose, onSuccess, editMode = fals
           setIsGameSearchOpen(false)
         }}
       />
+
+      {/* Matching Offers Dialog */}
+      <Dialog open={showMatchingOffers} onOpenChange={(open) => {
+        if (!open) {
+          setShowMatchingOffers(false)
+          setMatchingOffers([])
+          setTitle("")
+          setDescription("")
+          setType("")
+          setRentalDuration("")
+          setIsFlexibleRental(false)
+          setMaxPrice("")
+          setTradeGameTitle("")
+          setSelectedTradeGame(null)
+          setTradeGameSelectionMethod("library")
+          setImage(null)
+          setImagePreview(null)
+          setErrors({})
+          onClose()
+        }
+      }}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto bg-white border border-gray-200">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <FaCheckCircle className="w-5 h-5 text-green-500" />
+              Treffer gefunden!
+            </DialogTitle>
+            <p className="text-sm text-gray-600 mt-1">
+              Das Spiel <span className="font-semibold">"{title}"</span> wird bereits von anderen Mitgliedern angeboten:
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-3 mt-4">
+            {matchingOffers.map((offer: any) => {
+              const typeLabels: Record<string, string> = {
+                sell: "Verkaufen",
+                lend: "Vermieten",
+                trade: "Tauschen",
+              }
+              return (
+                <div
+                  key={offer.id}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-teal-300 hover:bg-teal-50/50 transition-all cursor-pointer"
+                  onClick={() => {
+                    window.open(`/marketplace?offer=${offer.id}`, "_blank")
+                  }}
+                >
+                  <div className="w-14 h-14 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
+                    {offer.image ? (
+                      <img
+                        src={offer.image}
+                        alt={offer.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <FaBook className="w-6 h-6" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-gray-900 truncate">{offer.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        {typeLabels[offer.type] || offer.type}
+                      </Badge>
+                      {offer.price && (
+                        <span className="text-xs font-medium text-teal-600">CHF {offer.price}</span>
+                      )}
+                      {offer.condition && (
+                        <span className="text-[10px] text-gray-500">{offer.condition}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      {offer.users?.avatar && (
+                        <img src={offer.users.avatar} alt="" className="w-4 h-4 rounded-full" />
+                      )}
+                      <span className="text-[10px] text-gray-500">{offer.users?.name || "Mitglied"}</span>
+                      {offer.location && (
+                        <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                          <FaMapMarkerAlt className="w-2.5 h-2.5" />
+                          {offer.location}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <FaEnvelope className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="flex gap-3 mt-4 pt-4 border-t border-gray-200">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowMatchingOffers(false)
+                setMatchingOffers([])
+                setTitle("")
+                setDescription("")
+                setType("")
+                setRentalDuration("")
+                setIsFlexibleRental(false)
+                setMaxPrice("")
+                setTradeGameTitle("")
+                setSelectedTradeGame(null)
+                setTradeGameSelectionMethod("library")
+                setImage(null)
+                setImagePreview(null)
+                setErrors({})
+                onClose()
+              }}
+              className="flex-1 h-10 rounded-lg"
+            >
+              Schliessen
+            </Button>
+            <Button
+              onClick={() => {
+                window.open(`/marketplace?search=${encodeURIComponent(title)}`, "_blank")
+                setShowMatchingOffers(false)
+                setMatchingOffers([])
+                onClose()
+              }}
+              className="flex-1 h-10 bg-teal-600 hover:bg-teal-700 text-white rounded-lg"
+            >
+              <FaSearch className="w-3.5 h-3.5 mr-2" />
+              Alle Angebote ansehen
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }
