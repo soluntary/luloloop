@@ -1565,99 +1565,144 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
         </DialogContent>
       </Dialog>
 
-      {/* Detailed Offer View Modal - Minimalist */}
+      {/* Detailed Offer View Modal */}
+      {/* Redesigned the offer details dialog with a cleaner, more cohesive design */}
       <Dialog open={isOfferDetailsOpen} onOpenChange={setIsOfferDetailsOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto p-0 gap-0">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-handwritten text-base text-gray-800 mb-2">
+              {selectedOfferDetails?.type === "sell" && "Verkaufen "}
+              {selectedOfferDetails?.type === "trade" && "Biete "}
+              {selectedOfferDetails?.type === "lend" && "Vermiete "}
+              {selectedOfferDetails?.title}
+            </DialogTitle>
+          </DialogHeader>
+
           {selectedOfferDetails && (
-            <>
-              {/* Image */}
-              <div className="relative bg-slate-50 aspect-square max-h-72 overflow-hidden">
-                <img
-                  src={selectedOfferDetails.image || "/images/ludoloop-placeholder.png"}
-                  alt={selectedOfferDetails.title}
-                  className="w-full h-full object-contain"
-                />
-                <div className="absolute top-3 right-3">
-                  <Badge
-                    className={`${getTypeColor(selectedOfferDetails.type)} text-white border-0 px-2.5 py-1 text-[10px] font-medium`}
-                  >
-                    {getTypeText(selectedOfferDetails.type)}
-                  </Badge>
-                </div>
-                <div className="absolute top-3 left-3">
-                  <ShareButton
-                    title={selectedOfferDetails.title}
-                    url={`${typeof window !== "undefined" ? window.location.origin : ""}/marketplace?offer=${selectedOfferDetails.id}`}
-                    description={`${getTypeText(selectedOfferDetails.type)} - ${selectedOfferDetails.price} - ${selectedOfferDetails.description || ""}`}
-                    className="bg-white/80 hover:bg-white h-8 w-8"
-                  />
+            <div className="space-y-8">
+              {/* Hero Section */}
+              <div className="relative">
+                <div className="relative h-56 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl overflow-hidden border border-slate-200">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <img
+                      src={selectedOfferDetails.image || "/images/ludoloop-placeholder.png"}
+                      alt={selectedOfferDetails.title}
+                      className="h-44 w-auto object-contain rounded-xl shadow-lg"
+                    />
+                  </div>
+                  <div className="absolute top-6 right-6">
+                    <Badge
+                      className={`${getTypeColor(selectedOfferDetails.type)} text-white border-0 px-4 py-2 text-xs font-medium shadow-sm`}
+                    >
+                      {getTypeText(selectedOfferDetails.type)}
+                    </Badge>
+                  </div>
+                  <div className="absolute top-6 left-6">
+                    <ShareButton
+                      title={selectedOfferDetails.title}
+                      url={`${typeof window !== "undefined" ? window.location.origin : ""}/marketplace?offer=${selectedOfferDetails.id}`}
+                      description={`${getTypeText(selectedOfferDetails.type)} - ${selectedOfferDetails.price} - ${selectedOfferDetails.description || ""}`}
+                      className="bg-white/90 hover:bg-white"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="px-5 pb-5 pt-4 space-y-4">
-                {/* Title + Price */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <h2 className="font-semibold text-gray-900 text-sm leading-tight">{selectedOfferDetails.title}</h2>
-                    {selectedOfferDetails.publisher && (
-                      <p className="text-[11px] text-gray-400 mt-0.5">{selectedOfferDetails.publisher}</p>
+              {/* Price and Condition */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
+                  <p className="mb-2 text-sm text-slate-950">
+                    {selectedOfferDetails.type === "lend"
+                      ? "Mietgebühr"
+                      : selectedOfferDetails.type === "sell"
+                        ? "Preis"
+                        : selectedOfferDetails.type === "trade"
+                          ? "Gegen"
+                          : "Preis"}
+                  </p>
+                  <div className="text-xs font-bold text-slate-900">
+                    {formatDailyRates(selectedOfferDetails.price) || (
+                      <span className="font-bold text-slate-900 text-xs">Auf Anfrage</span>
                     )}
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">
-                      {selectedOfferDetails.type === "lend" ? "Miete" : selectedOfferDetails.type === "trade" ? "Gegen" : "Preis"}
+                </div>
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
+                  <p className="mb-2 text-sm text-slate-950">Zustand</p>
+                  <p className="text-xs font-normal text-slate-500">
+                    {selectedOfferDetails.condition || "Nicht angegeben"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Game Details */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                <h2 className="font-bold mb-6 text-sm">Spieldetails</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  <div className="text-center p-4 rounded-xl bg-slate-50">
+                    <p className="mb-2 font-normal text-xs text-slate-950">Verlag</p>
+                    <p className="text-xs font-thin text-slate-500 bg-slate-50">
+                      {selectedOfferDetails.publisher || "Nicht angegeben"}
                     </p>
-                    <p className="text-sm font-bold text-gray-900">
-                      {formatDailyRates(selectedOfferDetails.price) || "Auf Anfrage"}
+                  </div>
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <p className="text-xs mb-2 text-slate-950">Sprache</p>
+                    <p className="text-xs font-thin text-slate-500">
+                      {selectedOfferDetails.language || "Nicht angegeben"}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <p className="text-xs mb-2 text-slate-950">Spieleranzahl</p>
+                    <p className="text-xs text-slate-500 font-normal">
+                      {selectedOfferDetails.players || "Nicht angegeben"}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <p className="text-xs mb-2 text-slate-950">Spieldauer</p>
+                    <p className="text-xs font-thin text-slate-500">
+                      {selectedOfferDetails.duration || "Nicht angegeben"}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <p className="text-xs mb-2 text-slate-950">Altersempfehlung</p>
+                    <p className="text-xs font-extralight text-slate-500">
+                      {selectedOfferDetails.age || "Nicht angegeben"}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <p className="text-xs mb-2 text-gray-950">Kategorie</p>
+                    <p className="text-xs font-thin text-slate-500">
+                      {selectedOfferDetails.category || "Nicht angegeben"}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <p className="text-xs mb-2 text-slate-950">Typus</p>
+                    <p className="text-xs text-slate-500 font-normal">
+                      {selectedOfferDetails.game_types || selectedOfferDetails.style || "Nicht angegeben"}
                     </p>
                   </div>
                 </div>
+              </div>
 
-                {/* Key Details - compact inline */}
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-500">
-                  {selectedOfferDetails.condition && (
-                    <span>Zustand: <span className="text-gray-700">{selectedOfferDetails.condition}</span></span>
-                  )}
-                  {selectedOfferDetails.players && (
-                    <span>Spieler: <span className="text-gray-700">{selectedOfferDetails.players}</span></span>
-                  )}
-                  {selectedOfferDetails.duration && (
-                    <span>Dauer: <span className="text-gray-700">{selectedOfferDetails.duration}</span></span>
-                  )}
-                  {selectedOfferDetails.age && (
-                    <span>Alter: <span className="text-gray-700">{selectedOfferDetails.age}</span></span>
-                  )}
-                  {selectedOfferDetails.language && (
-                    <span>Sprache: <span className="text-gray-700">{selectedOfferDetails.language}</span></span>
-                  )}
-                  {selectedOfferDetails.category && (
-                    <span>Kategorie: <span className="text-gray-700">{selectedOfferDetails.category}</span></span>
-                  )}
-                  {(selectedOfferDetails.game_types || selectedOfferDetails.style) && (
-                    <span>Typ: <span className="text-gray-700">{selectedOfferDetails.game_types || selectedOfferDetails.style}</span></span>
-                  )}
+              {/* Description */}
+              {selectedOfferDetails.description && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                  <h3 className="font-semibold mb-4 text-black text-sm">Beschreibung</h3>
+                  <ExpandableDescription text={selectedOfferDetails.description} />
                 </div>
+              )}
 
-                {/* Description */}
-                {selectedOfferDetails.description && (
-                  <div className="text-xs text-gray-600 leading-relaxed">
-                    <ExpandableDescription text={selectedOfferDetails.description} />
-                  </div>
-                )}
-
-                {/* Divider */}
-                <div className="border-t border-gray-100" />
-
-                {/* Provider - compact */}
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+              {/* Provider */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                <h3 className="font-semibold mb-4 text-black text-sm">Anbieter</h3>
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200">
                     <img
                       src={
                         selectedOfferDetails.users?.avatar ||
                         selectedOfferDetails.avatar ||
-                        `/placeholder.svg?height=32&width=32&query=avatar`
+                        `/placeholder.svg?height=64&width=64&query=avatar+${encodeURIComponent(selectedOfferDetails.users?.username || selectedOfferDetails.owner || "User")}`
                       }
-                      alt=""
+                      alt={`${selectedOfferDetails.users?.username || selectedOfferDetails.owner || "User"} Avatar`}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement
@@ -1666,141 +1711,177 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                         if (fallback) fallback.style.display = "flex"
                       }}
                     />
-                    <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center" style={{ display: "none" }}>
-                      <span className="text-gray-500 font-medium text-xs">
-                        {(selectedOfferDetails.users?.username || selectedOfferDetails.owner || "U").charAt(0).toUpperCase()}
+                    <div
+                      className="w-full h-full bg-slate-200 rounded-full flex items-center justify-center"
+                      style={{ display: "none" }}
+                    >
+                      <span className="text-slate-600 font-bold text-xl">
+                        {(selectedOfferDetails.users?.username || selectedOfferDetails.owner || "U")
+                          .charAt(0)
+                          .toUpperCase()}
                       </span>
                     </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <UserLink userId={selectedOfferDetails.user_id} className="text-xs font-medium text-gray-900 hover:text-teal-600 block truncate">
+                  <div className="flex-1 font-normal font-normal font-normal font-normal text-xs text-slate-500">
+                    <UserLink
+                      userId={selectedOfferDetails.user_id}
+                      className="text-slate-900 text-xs block hover:text-teal-600"
+                    >
                       {selectedOfferDetails.users?.username || selectedOfferDetails.owner || "Unbekannter Nutzer"}
                     </UserLink>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {selectedOfferDetails.rating && (
-                        <div className="flex items-center">
-                          <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                          <span className="text-[10px] text-gray-500 ml-0.5">{selectedOfferDetails.rating}</span>
-                        </div>
-                      )}
-                    </div>
+                    {selectedOfferDetails.rating && (
+                      <div className="flex items-center mt-2">
+                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                        <span className="text-xs text-slate-600 ml-1 font-medium">{selectedOfferDetails.rating}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
+              </div>
 
-                {/* Delivery - compact inline */}
-                {(selectedOfferDetails.pickup_available || selectedOfferDetails.shipping_available) && (
-                  <div className="flex flex-wrap gap-2">
+              {/* Delivery Options */}
+              {(selectedOfferDetails.pickup_available || selectedOfferDetails.shipping_available) && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                  <h4 className="font-semibold mb-4 text-foreground text-sm">
+                    Der Spielanbieter bietet folgende Option(en) an:
+                  </h4>
+                  <div className="space-y-3">
                     {selectedOfferDetails.pickup_available && (
-                      <div className="flex items-center gap-1.5 text-[11px] text-gray-600 bg-gray-50 px-2.5 py-1.5 rounded-full">
-                        <FaLocationDot className="w-3 h-3 text-gray-400" />
-                        <span>Abholung</span>
+                      <div className="bg-slate-50 p-4 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2 text-xs">
+                          <FaLocationDot className="w-4 h-4 text-slate-700" />
+                          <span className="font-normal text-xs text-slate-950">Abholung</span>
+                        </div>
                         {selectedOfferDetails.pickup_address && (
-                          <span className="text-gray-400">
-                            ({selectedOfferDetails.show_full_address
+                          <p className="font-normal text-xs text-slate-500">
+                            In:{" "}
+                            {selectedOfferDetails.show_full_address
                               ? selectedOfferDetails.pickup_address
-                              : getPostalCodeAndCity(selectedOfferDetails.pickup_address)})
-                          </span>
+                              : getPostalCodeAndCity(selectedOfferDetails.pickup_address)}
+                          </p>
                         )}
                       </div>
                     )}
+                    {selectedOfferDetails.pickup_available && selectedOfferDetails.shipping_available && (
+                      <div className="text-center py-2">
+                        <span className="text-slate-500 font-medium text-xs">oder</span>
+                      </div>
+                    )}
                     {selectedOfferDetails.shipping_available && (
-                      <div className="flex items-center gap-1.5 text-[11px] text-gray-600 bg-gray-50 px-2.5 py-1.5 rounded-full">
-                        <FaShippingFast className="w-3 h-3 text-gray-400" />
-                        <span>Versand</span>
+                      <div className="bg-slate-50 p-4 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FaShippingFast className="w-4 h-4 text-slate-700" />
+                          <span className="text-slate-900 font-normal text-xs">Postversand</span>
+                        </div>
+                        <p className="text-slate-600 text-xs">
+                          Kosten zu deinen Lasten. Weitere Details mit dem/der Spielanbieter/-in besprechen.
+                        </p>
                       </div>
                     )}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Map */}
-                <LocationMap
-                  location={
-                    selectedOfferDetails.pickup_address
-                      ? selectedOfferDetails.show_full_address
-                        ? selectedOfferDetails.pickup_address
-                        : getPostalCodeAndCity(selectedOfferDetails.pickup_address)
-                      : selectedOfferDetails.location
-                  }
-                  className="h-40 w-full rounded-lg"
-                />
-
-                {/* Rental Period for Lending */}
-                {selectedOfferDetails.type === "lend" && (
-                  <div className="space-y-3">
-                    <p className="text-xs font-medium text-gray-700 flex items-center gap-1.5">
-                      <CalendarDaysIcon className="w-3.5 h-3.5" />
-                      Mietdauer
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] text-gray-400 mb-1 block">Von</label>
-                        <input
-                          type="date"
-                          value={rentalStartDate}
-                          onChange={(e) => setRentalStartDate(e.target.value)}
-                          min={new Date().toISOString().split("T")[0]}
-                          className="w-full px-2.5 py-2 border border-gray-200 rounded-lg text-xs focus:border-teal-400 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-gray-400 mb-1 block">Bis</label>
-                        <input
-                          type="date"
-                          value={rentalEndDate}
-                          onChange={(e) => setRentalEndDate(e.target.value)}
-                          min={rentalStartDate || new Date().toISOString().split("T")[0]}
-                          className="w-full px-2.5 py-2 border border-gray-200 rounded-lg text-xs focus:border-teal-400 focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                    {calculatedPrice && (
-                      <div className="flex items-center justify-between bg-teal-50 px-3 py-2 rounded-lg">
-                        <span className="text-xs text-teal-700">Gesamt:</span>
-                        <span className="text-xs font-bold text-teal-800">{calculatedPrice}</span>
-                      </div>
-                    )}
-                    {rentalStartDate && rentalEndDate && !calculatedPrice && (
-                      <div className="flex items-start gap-2 bg-orange-50 px-3 py-2 rounded-lg">
-                        <AlertCircle className="w-3.5 h-3.5 text-orange-500 mt-0.5 flex-shrink-0" />
-                        <p className="text-[11px] text-orange-700">Preis wird vom Anbieter individuell berechnet.</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-2">
-                  {selectedOfferDetails.user_id !== user?.id && (
-                    <Button
-                      onClick={() => {
-                        setIsOfferDetailsOpen(false)
-                        if (selectedOfferDetails.itemType === "offer" || selectedOfferDetails.type) {
-                          handleContactSeller(selectedOfferDetails)
-                        }
-                      }}
-                      disabled={selectedOfferDetails.type === "lend" && (!rentalStartDate || !rentalEndDate)}
-                      className="flex-1 bg-teal-600 hover:bg-teal-700 text-white h-9 rounded-lg text-xs font-medium disabled:bg-gray-200 disabled:text-gray-400"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
-                      {selectedOfferDetails.type === "lend"
-                        ? rentalStartDate && rentalEndDate
-                          ? "Miete anfragen"
-                          : "Zeitraum wählen"
-                        : selectedOfferDetails.itemType === "offer"
-                          ? "Anfragen"
-                          : "Antworten"}
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsOfferDetailsOpen(false)}
-                    className="px-4 h-9 rounded-lg border-gray-200 text-xs"
-                  >
-                    Schliessen
-                  </Button>
+              <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                <div className="space-y-4">
+                  <LocationMap
+                    location={
+                      selectedOfferDetails.pickup_address
+                        ? selectedOfferDetails.show_full_address
+                          ? selectedOfferDetails.pickup_address
+                          : getPostalCodeAndCity(selectedOfferDetails.pickup_address)
+                        : selectedOfferDetails.location
+                    }
+                    className="h-64 w-full rounded-lg"
+                  />
                 </div>
               </div>
-            </>
+
+              {/* Rental Period Selection for Lending */}
+              {selectedOfferDetails.type === "lend" && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                  <h3 className="mb-4 flex items-center gap-2 text-black text-sm font-semibold">
+                    <CalendarDaysIcon className="w-5 h-5" />
+                    Mietdauer auswählen
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="mb-2 block text-foreground font-normal text-xs">Von</label>
+                      <input
+                        type="date"
+                        value={rentalStartDate}
+                        onChange={(e) => setRentalStartDate(e.target.value)}
+                        min={new Date().toISOString().split("T")[0]}
+                        className="w-full p-3 border rounded-xl focus:border-orange-400 focus:outline-none bg-white text-sm border-slate-200"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-foreground font-normal text-xs">Bis</label>
+                      <input
+                        type="date"
+                        value={rentalEndDate}
+                        onChange={(e) => setRentalEndDate(e.target.value)}
+                        min={rentalStartDate || new Date().toISOString().split("T")[0]}
+                        className="w-full p-3 border rounded-xl focus:border-orange-400 focus:outline-none bg-white text-sm border-slate-200"
+                      />
+                    </div>
+                  </div>
+
+                  {calculatedPrice && (
+                    <div className="bg-white p-4 rounded-xl border border-orange-200 mb-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-orange-800 font-semibold">Gesamt-Mietgebühr:</span>
+                        <span className="text-orange-900 text-xs font-semibold">{calculatedPrice}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {rentalStartDate && rentalEndDate && !calculatedPrice && (
+                    <div className="bg-orange-100 p-4 rounded-xl border border-orange-200 mb-4">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-orange-700" />
+                        <p className="text-xs text-orange-800">
+                          Für den gewählten Zeitraum ist keine automatische Preisberechnung möglich. Der Anbieter wird
+                          Ihnen ein individuelles Angebot unterbreiten.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-4 pt-6 border-t border-slate-200">
+                {selectedOfferDetails.user_id !== user?.id && (
+                  <Button
+                    onClick={() => {
+                      setIsOfferDetailsOpen(false)
+                      // When closing details, check if it's a valid offer to then proceed to contact
+                      if (selectedOfferDetails.itemType === "offer" || selectedOfferDetails.type) {
+                        handleContactSeller(selectedOfferDetails)
+                      }
+                    }}
+                    disabled={selectedOfferDetails.type === "lend" && (!rentalStartDate || !rentalEndDate)}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-xl font-medium shadow-sm hover:shadow-md transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
+                  >
+                    <MessageCircle className="w-5 h-5 mr-2" />
+                    {selectedOfferDetails.type === "lend"
+                      ? rentalStartDate && rentalEndDate
+                        ? "Miete anfragen"
+                        : "Zeitraum wählen"
+                      : selectedOfferDetails.itemType === "offer"
+                        ? "Anfragen"
+                        : "Antworten"}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => setIsOfferDetailsOpen(false)}
+                  className="ml-auto px-8 py-3 rounded-xl border-slate-300 hover:bg-slate-50 font-medium"
+                >
+                  Schliessen
+                </Button>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
