@@ -472,7 +472,7 @@ export default function HomePage() {
               icon: GiChoice,
               title: "Ludo-O-Mat",
               description:
-                "Beantworte wenige Fragen zu deinen Vorlieben und finde dein perfektes Brettspiel.",
+                "Beantworte ein paar Fragen und wir finden das perfekte Spiel, die deine Vorlieben entsprechen.",
               link: "/brettspiel-o-mat",
               linkText: "Zum Ludo-O-Mat",
               color: "purple",
