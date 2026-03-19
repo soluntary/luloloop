@@ -120,7 +120,7 @@ export default function LudoMitgliederPage() {
             username: user.username || user.name || null,
             name: user.name || null,
             avatar: user.avatar || null,
-          }, { onConflict: "id" }).then(() => {})
+          }, { onConflict: "id" }).then(() => { })
         }
       }
 
@@ -400,7 +400,7 @@ export default function LudoMitgliederPage() {
             <FaSignInAlt className="h-16 w-16 text-teal-500 mx-auto mb-4" />
             <h3 className="font-handwritten font-semibold text-gray-800 mb-2 text-base">Anmeldung erforderlich</h3>
             <p className="text-gray-600 mb-6 text-xs">
-              Um die Mitglieder zu sehen und Freundschaftsanfragen zu senden, musst du dich anmelden.
+              Falls Sie noch keinen Account haben, müssen Sie sich zuerst registrieren, um Mitgliederprofile zu sehen und Freundschaftsanfragen zu senden.
             </p>
             <div className="flex gap-3 justify-center">
               <Button
