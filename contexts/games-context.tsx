@@ -472,7 +472,10 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     }
 
     isRefreshingRef.current = true
-    setLoading(true)
+    // Only show loading state on initial load, not on subsequent refreshes
+    if (!initialLoadDoneRef.current) {
+      setLoading(true)
+    }
     setError(null)
 
     try {
@@ -485,12 +488,12 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       if (currentUser && connected) {
         await loadGames(connected, currentUser)
         userIdRef.current = currentUser.id
-        initialLoadDoneRef.current = true
       } else if (currentUser === null && !authLoading) {
         setGames([])
         userIdRef.current = null
-        initialLoadDoneRef.current = false
       }
+      // Mark initial load as done after marketplace offers are loaded
+      initialLoadDoneRef.current = true
     } catch (err) {
       console.error("Error refreshing data:", err)
       setError("Fehler beim Laden der Daten")
