@@ -128,7 +128,6 @@ export function MessageComposerModal({
               maxLength={1000}
             />
             <div className="flex justify-between items-center text-xs text-gray-500">
-              <span>Tipp: Sei höflich</span>
               <span>{message.length}/1000</span>
             </div>
           </div>
