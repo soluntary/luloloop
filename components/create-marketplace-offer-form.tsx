@@ -188,6 +188,8 @@ export function CreateMarketplaceOfferForm({
   const [description, setDescription] = useState("")
   const [image, setImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>("")
+  const [additionalImages, setAdditionalImages] = useState<string[]>([])
+  const MAX_IMAGES = 5
   const [dailyRate1Day, setDailyRate1Day] = useState("")
   const [dailyRate2To6Days, setDailyRate2To6Days] = useState("")
   const [dailyRate7To30Days, setDailyRate7To30Days] = useState("")
@@ -586,6 +588,69 @@ export function CreateMarketplaceOfferForm({
     setErrors((prev) => ({ ...prev, image: "" }))
   }
 
+  const [isUploadingAdditionalImage, setIsUploadingAdditionalImage] = useState(false)
+
+  const handleAdditionalImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Check max images limit
+    const totalImages = (imagePreview ? 1 : 0) + additionalImages.length
+    if (totalImages >= MAX_IMAGES) {
+      setErrors((prev) => ({ ...prev, image: `Maximal ${MAX_IMAGES} Bilder erlaubt.` }))
+      return
+    }
+
+    // Validate file type
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+    if (!validTypes.includes(file.type)) {
+      setErrors((prev) => ({ ...prev, image: "Nur JPG, PNG und WebP Dateien sind erlaubt." }))
+      return
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      setErrors((prev) => ({ ...prev, image: "Die Datei ist zu groß. Maximum 5MB erlaubt." }))
+      return
+    }
+
+    setErrors((prev) => ({ ...prev, image: "" }))
+    setIsUploadingAdditionalImage(true)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload-offer-image", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Upload fehlgeschlagen")
+      }
+
+      const { url } = await response.json()
+      setAdditionalImages((prev) => [...prev, url])
+    } catch (error) {
+      console.error("[v0] Additional image upload error:", error)
+      setErrors((prev) => ({
+        ...prev,
+        image: error instanceof Error ? error.message : "Fehler beim Hochladen des Bildes",
+      }))
+    } finally {
+      setIsUploadingAdditionalImage(false)
+      // Reset file input
+      event.target.value = ""
+    }
+  }
+
+  const removeAdditionalImage = (index: number) => {
+    setAdditionalImages((prev) => prev.filter((_, i) => i !== index))
+  }
+
   const validateStep = (step: number): boolean => {
     console.log("[v0] validateStep called for step:", step)
     let newErrors: Record<string, string> = {}
@@ -823,6 +888,7 @@ export function CreateMarketplaceOfferForm({
         price: finalPrice,
         description,
         image: imageUrl,
+        additional_images: additionalImages.length > 0 ? additionalImages : null,
         active: true,
         location: finalPickupAddress,
         distance: "", // Default empty distance
@@ -1893,7 +1959,12 @@ export function CreateMarketplaceOfferForm({
 
               {/* Image Upload */}
               <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">Bild</h4>
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
+                  Bilder
+                  <span className="text-gray-500 font-normal">({(imagePreview ? 1 : 0) + additionalImages.length}/{MAX_IMAGES})</span>
+                </h4>
+                
+                {/* Main Image */}
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-colors">
                   {isUploadingImage ? (
                     <div className="text-center py-8">
@@ -1919,12 +1990,13 @@ export function CreateMarketplaceOfferForm({
                       >
                         <Trash2 className="w-4 h-4 text-gray-700" />
                       </Button>
+                      <span className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded">Hauptbild</span>
                     </div>
                   ) : (
                     <div className="text-center">
                       <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600 font-medium mb-2">
-                        {selectedGame ? "Zusätzliches Bild hochladen" : "Bild hochladen"}
+                        {selectedGame ? "Zusatzliches Bild hochladen" : "Bild hochladen"}
                       </p>
 
                       <input
@@ -1953,7 +2025,7 @@ export function CreateMarketplaceOfferForm({
                         ) : (
                           <>
                             <FaUpload className="w-4 h-4 mr-2" />
-                            Bild auswählen
+                            Bild auswahlen
                           </>
                         )}
                       </Button>
@@ -1961,6 +2033,34 @@ export function CreateMarketplaceOfferForm({
                     </div>
                   )}
                 </div>
+
+                {/* Additional Images Grid */}
+                {additionalImages.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-600 mb-2">Weitere Bilder:</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {additionalImages.map((img, index) => (
+                        <div key={index} className="relative aspect-square">
+                          <img
+                            src={img}
+                            alt={`Bild ${index + 2}`}
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-1 right-1 rounded-full w-6 h-6 p-0 bg-white hover:bg-gray-100 shadow-md border border-gray-200"
+                            onClick={() => removeAdditionalImage(index)}
+                          >
+                            <Trash2 className="w-3 h-3 text-gray-700" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {errors.image && (
                   <div className="flex items-center space-x-2 text-red-600 text-sm mt-3 bg-red-50 p-2 rounded-lg">
                     <AlertCircle className="w-4 h-4" />
@@ -1968,6 +2068,42 @@ export function CreateMarketplaceOfferForm({
                   </div>
                 )}
               </div>
+
+              {/* Additional Image Upload Button - Outside the box */}
+              {imagePreview && (imagePreview ? 1 : 0) + additionalImages.length < MAX_IMAGES && (
+                <div className="mt-4">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    onChange={handleAdditionalImageUpload}
+                    className="hidden"
+                    id="additional-image-upload"
+                    disabled={isUploadingAdditionalImage}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById("additional-image-upload")?.click()}
+                    className="w-full h-11 border-gray-300 text-gray-800 hover:bg-gray-100 hover:border-gray-900 transition-colors rounded-lg font-medium"
+                    disabled={isUploadingAdditionalImage}
+                  >
+                    {isUploadingAdditionalImage ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Wird hochgeladen...
+                      </>
+                    ) : (
+                      <>
+                        <FaUpload className="w-4 h-4 mr-2" />
+                        Weiteres Bild hinzufugen ({(imagePreview ? 1 : 0) + additionalImages.length}/{MAX_IMAGES})
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
