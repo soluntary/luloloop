@@ -7,7 +7,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Navigation */}
           <div>
-            <h3 className="font-semibold mb-4 text-orange-400 text-sm">Navigation</h3>
+            <h3 className="font-semibold mb-4 text-orange-400 text-sm font-handwritten">Navigation</h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/marketplace" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
@@ -30,7 +30,7 @@ export function Footer() {
 
           {/* Support */}
           <div>
-            <h3 className="font-semibold mb-4 text-orange-400 text-sm">Support</h3>
+            <h3 className="font-semibold mb-4 text-orange-400 text-sm font-handwritten">Support</h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/help" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
@@ -47,7 +47,7 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h3 className="font-semibold mb-4 text-orange-400 text-sm">Rechtliches</h3>
+            <h3 className="font-semibold mb-4 text-orange-400 text-sm font-handwritten">Rechtliches</h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/privacy" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
