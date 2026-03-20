@@ -1996,7 +1996,7 @@ export function CreateMarketplaceOfferForm({
                     <div className="text-center">
                       <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600 font-medium mb-2">
-                        {selectedGame ? "Zusatzliches Bild hochladen" : "Bild hochladen"}
+                        {selectedGame ? "Bild hochladen"}
                       </p>
 
                       <input
