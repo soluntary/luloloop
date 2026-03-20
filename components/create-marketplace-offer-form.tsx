@@ -2037,7 +2037,7 @@ export function CreateMarketplaceOfferForm({
                 {/* Additional Images Grid */}
                 {additionalImages.length > 0 && (
                   <div className="mt-4">
-                    <p className="text-sm text-gray-600 mb-2">Weitere Bilder:</p>
+                    <p className="text-sm text-gray-600 mb-2">Weitere Bilder</p>
                     <div className="grid grid-cols-4 gap-2">
                       {additionalImages.map((img, index) => (
                         <div key={index} className="relative aspect-square">
