@@ -1024,8 +1024,8 @@ export function CreateMarketplaceOfferForm({
                 <div key={step} className="flex items-center">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${step <= currentStep
-                      ? "bg-teal-600 text-white"
-                      : "bg-gray-100 text-gray-400 border border-gray-300"
+                        ? "bg-teal-600 text-white"
+                        : "bg-gray-100 text-gray-400 border border-gray-300"
                       }`}
                   >
                     {step < currentStep ? <Check className="w-4 h-4" /> : step}
@@ -1868,8 +1868,8 @@ export function CreateMarketplaceOfferForm({
                           <span className="text-xs">In</span>
                           <span
                             className={`px-2 py-1 rounded text-xs ${pickupAddress.includes("unvollständig") || pickupAddress.includes("vervollständigen")
-                              ? "bg-red-100 text-red-700"
-                              : "bg-blue-100 text-blue-700"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-blue-100 text-blue-700"
                               }`}
                           >
                             {pickupAddress
@@ -1945,13 +1945,25 @@ export function CreateMarketplaceOfferForm({
                 />
               </div>
 
+              {selectedGame && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <div className="flex items-start gap-2">
+                    <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-blue-800 text-xs">
+                      Das Spiel-Cover wird automatisch für die Anzeige verwendet. Gerne darfst du hier ein anderes Bild
+                      hochladen.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Image Upload */}
               <div className="bg-white rounded-lg p-6 border border-gray-200">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
                   Bilder
                   <span className="text-gray-500 font-normal">({(imagePreview ? 1 : 0) + additionalImages.length}/{MAX_IMAGES})</span>
                 </h4>
-
+                
                 {/* Main Image */}
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-colors">
                   {isUploadingImage ? (
@@ -2013,7 +2025,7 @@ export function CreateMarketplaceOfferForm({
                         ) : (
                           <>
                             <FaUpload className="w-4 h-4 mr-2" />
-                            Bild auswählen
+                            Bild auswahlen
                           </>
                         )}
                       </Button>
@@ -2025,7 +2037,7 @@ export function CreateMarketplaceOfferForm({
                 {/* Additional Images Grid */}
                 {additionalImages.length > 0 && (
                   <div className="mt-4">
-                    <p className="text-sm text-gray-600 mb-2">Weitere Bilder</p>
+                    <p className="text-sm text-gray-600 mb-2">Weitere Bilder:</p>
                     <div className="grid grid-cols-4 gap-2">
                       {additionalImages.map((img, index) => (
                         <div key={index} className="relative aspect-square">
@@ -2086,7 +2098,7 @@ export function CreateMarketplaceOfferForm({
                     ) : (
                       <>
                         <FaUpload className="w-4 h-4 mr-2" />
-                        Weitere Bilder hinzufügen ({(imagePreview ? 1 : 0) + additionalImages.length}/{MAX_IMAGES})
+                        Weiteres Bild hinzufugen ({(imagePreview ? 1 : 0) + additionalImages.length}/{MAX_IMAGES})
                       </>
                     )}
                   </Button>
