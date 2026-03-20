@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Galindo, McLaren } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
@@ -33,7 +33,6 @@ export const metadata: Metadata = {
   description: "Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde neue Mitspieler und entdecke grossartige Spiele!",
   generator: "v0.dev",
   manifest: "/manifest.json",
-  themeColor: "#f97316",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -49,6 +48,10 @@ export const metadata: Metadata = {
     title: "LudoLoop - Deine Spiele-Community",
     description: "Tausche, verleihe und verkaufe deine Lieblingsspiele. Finde neue Mitspieler und entdecke grossartige Spiele!",
   },
+}
+
+export const viewport: Viewport = {
+  themeColor: "#f97316",
 }
 
 export default function RootLayout({
