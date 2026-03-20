@@ -521,7 +521,9 @@ export function CreateMarketplaceOfferForm({
     setIsManualEntry(false) // Reset manual entry state on form reset
   }
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
@@ -541,13 +543,41 @@ export function CreateMarketplaceOfferForm({
 
     setImage(file)
     setErrors((prev) => ({ ...prev, image: "" }))
+    setIsUploadingImage(true)
 
-    // Create preview
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string)
+    try {
+      // Upload to Vercel Blob
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload-offer-image", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Upload fehlgeschlagen")
+      }
+
+      const { url } = await response.json()
+      setImagePreview(url)
+      console.log("[v0] Image uploaded to Blob:", url)
+    } catch (error) {
+      console.error("[v0] Image upload error:", error)
+      setErrors((prev) => ({
+        ...prev,
+        image: error instanceof Error ? error.message : "Fehler beim Hochladen des Bildes",
+      }))
+      // Create local preview as fallback
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    } finally {
+      setIsUploadingImage(false)
     }
-    reader.readAsDataURL(file)
   }
 
   const removeImage = () => {
@@ -756,14 +786,11 @@ export function CreateMarketplaceOfferForm({
         console.log("[v0] Found game:", { gameTitle, gamePublisher })
       }
 
-      // Convert image to blob URL if present
+      // Use already uploaded Blob URL or existing image preview
       let imageUrl = ""
-      if (image) {
-        imageUrl = URL.createObjectURL(image)
-        console.log("[v0] Created image blob URL:", imageUrl)
-      } else if (imagePreview) {
+      if (imagePreview) {
         imageUrl = imagePreview
-        console.log("[v0] Using existing image preview:", imageUrl)
+        console.log("[v0] Using image URL:", imageUrl)
       }
 
       let finalPrice = ""
@@ -1868,7 +1895,15 @@ export function CreateMarketplaceOfferForm({
               <div className="bg-white rounded-lg p-6 border border-gray-200">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">Bild</h4>
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-colors">
-                  {imagePreview ? (
+                  {isUploadingImage ? (
+                    <div className="text-center py-8">
+                      <svg className="animate-spin h-12 w-12 mx-auto mb-4 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <p className="text-gray-600 font-medium">Bild wird hochgeladen...</p>
+                    </div>
+                  ) : imagePreview ? (
                     <div className="relative">
                       <img
                         src={imagePreview || "/placeholder.svg"}
@@ -1898,15 +1933,29 @@ export function CreateMarketplaceOfferForm({
                         onChange={handleImageUpload}
                         className="hidden"
                         id="image-upload"
+                        disabled={isUploadingImage}
                       />
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => document.getElementById("image-upload")?.click()}
                         className="w-full h-11 border-gray-300 text-gray-800 hover:bg-gray-100 hover:border-gray-900 transition-colors rounded-lg font-medium"
+                        disabled={isUploadingImage}
                       >
-                        <FaUpload className="w-4 h-4 mr-2" />
-                        Bild auswählen
+                        {isUploadingImage ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Wird hochgeladen...
+                          </>
+                        ) : (
+                          <>
+                            <FaUpload className="w-4 h-4 mr-2" />
+                            Bild auswählen
+                          </>
+                        )}
                       </Button>
                       <p className="text-xs text-gray-500 mt-3">JPG, PNG, WebP (max. 5MB)</p>
                     </div>
@@ -2111,16 +2160,17 @@ export function CreateMarketplaceOfferForm({
             <Button
               type="button"
               onClick={handleNext}
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-8 py-2 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              disabled={isUploadingImage}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-8 py-2 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Weiter
-              <ArrowRight className="w-4 h-4 ml-2" />
+              {isUploadingImage ? "Bild wird hochgeladen..." : "Weiter"}
+              {!isUploadingImage && <ArrowRight className="w-4 h-4 ml-2" />}
             </Button>
           ) : (
             <Button
               type="button"
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploadingImage}
               className="bg-blue-600 hover:bg-blue-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg px-8 py-2 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
             >
               {isSubmitting ? (
