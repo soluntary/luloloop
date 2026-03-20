@@ -1024,8 +1024,8 @@ export function CreateMarketplaceOfferForm({
                 <div key={step} className="flex items-center">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${step <= currentStep
-                        ? "bg-teal-600 text-white"
-                        : "bg-gray-100 text-gray-400 border border-gray-300"
+                      ? "bg-teal-600 text-white"
+                      : "bg-gray-100 text-gray-400 border border-gray-300"
                       }`}
                   >
                     {step < currentStep ? <Check className="w-4 h-4" /> : step}
@@ -1868,8 +1868,8 @@ export function CreateMarketplaceOfferForm({
                           <span className="text-xs">In</span>
                           <span
                             className={`px-2 py-1 rounded text-xs ${pickupAddress.includes("unvollständig") || pickupAddress.includes("vervollständigen")
-                                ? "bg-red-100 text-red-700"
-                                : "bg-blue-100 text-blue-700"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-blue-100 text-blue-700"
                               }`}
                           >
                             {pickupAddress
@@ -1963,7 +1963,7 @@ export function CreateMarketplaceOfferForm({
                   Bilder
                   <span className="text-gray-500 font-normal">({(imagePreview ? 1 : 0) + additionalImages.length}/{MAX_IMAGES})</span>
                 </h4>
-                
+
                 {/* Main Image */}
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-colors">
                   {isUploadingImage ? (
@@ -1996,7 +1996,7 @@ export function CreateMarketplaceOfferForm({
                     <div className="text-center">
                       <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600 font-medium mb-2">
-                        {selectedGame ? "Zusatzliches Bild hochladen" : "Bild hochladen"}
+                        {selectedGame ? "Bild hochladen"}
                       </p>
 
                       <input
@@ -2098,7 +2098,7 @@ export function CreateMarketplaceOfferForm({
                     ) : (
                       <>
                         <FaUpload className="w-4 h-4 mr-2" />
-                        Weiteres Bild hinzufugen ({(imagePreview ? 1 : 0) + additionalImages.length}/{MAX_IMAGES})
+                        Weitere Bilder hinzufügen ({(imagePreview ? 1 : 0) + additionalImages.length}/{MAX_IMAGES})
                       </>
                     )}
                   </Button>
