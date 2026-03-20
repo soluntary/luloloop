@@ -23,6 +23,8 @@ import {
   Store,
   AlertCircle,
   CalendarDaysIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { FaLocationDot } from "react-icons/fa6" // Changed from Search to FaSearch
 import { MdOutlineSavedSearch, MdOutlineManageSearch } from "react-icons/md"
@@ -137,6 +139,7 @@ export default function MarketplacePage() {
   const [showLocationResults, setShowLocationResults] = useState(false)
 
   const [rentalStartDate, setRentalStartDate] = useState("")
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [rentalEndDate, setRentalEndDate] = useState("")
   const [calculatedPrice, setCalculatedPrice] = useState<string>("")
 
@@ -550,10 +553,12 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
         console.error("[v0] Error fetching game details:", error)
         setSelectedOfferDetails(item)
       }
+      setCurrentImageIndex(0)
       setIsOfferDetailsOpen(true)
     } else {
       // Fallback for items that are not offers or search ads, or have no game_id
       setSelectedOfferDetails(item)
+      setCurrentImageIndex(0)
       setIsOfferDetailsOpen(true)
     }
   }
@@ -1585,32 +1590,74 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
           {selectedOfferDetails && (
             <div className="space-y-8">
-              {/* Hero Section */}
+              {/* Hero Section with Image Carousel */}
               <div className="relative">
-                <div className="relative h-56 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl overflow-hidden border border-slate-200">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <img
-                      src={selectedOfferDetails.image || "/images/ludoloop-placeholder.png"}
-                      alt={selectedOfferDetails.title}
-                      className="h-44 w-auto object-contain rounded-xl shadow-lg"
-                    />
-                  </div>
-                  <div className="absolute top-6 right-6">
-                    <Badge
-                      className={`${getTypeColor(selectedOfferDetails.type)} text-white border-0 px-4 py-2 text-xs font-medium shadow-sm`}
-                    >
-                      {getTypeText(selectedOfferDetails.type)}
-                    </Badge>
-                  </div>
-                  <div className="absolute top-6 left-6">
-                    <ShareButton
-                      title={selectedOfferDetails.title}
-                      url={`${typeof window !== "undefined" ? window.location.origin : ""}/marketplace?offer=${selectedOfferDetails.id}`}
-                      description={`${getTypeText(selectedOfferDetails.type)} - ${selectedOfferDetails.price} - ${selectedOfferDetails.description || ""}`}
-                      className="bg-white/90 hover:bg-white"
-                    />
-                  </div>
-                </div>
+                {(() => {
+                  const allImages = [
+                    selectedOfferDetails.image || "/images/ludoloop-placeholder.png",
+                    ...(selectedOfferDetails.additional_images || []),
+                  ]
+                  const hasMultipleImages = allImages.length > 1
+
+                  return (
+                    <div className="relative h-56 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl overflow-hidden border border-slate-200">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <img
+                          src={allImages[currentImageIndex] || "/images/ludoloop-placeholder.png"}
+                          alt={`${selectedOfferDetails.title} - Bild ${currentImageIndex + 1}`}
+                          className="h-44 w-auto object-contain rounded-xl shadow-lg"
+                        />
+                      </div>
+
+                      {/* Navigation Arrows */}
+                      {hasMultipleImages && (
+                        <>
+                          <button
+                            onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1))}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+                          >
+                            <ChevronLeft className="w-5 h-5 text-slate-700" />
+                          </button>
+                          <button
+                            onClick={() => setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1))}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+                          >
+                            <ChevronRight className="w-5 h-5 text-slate-700" />
+                          </button>
+
+                          {/* Dots Indicator */}
+                          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                            {allImages.map((_, index) => (
+                              <button
+                                key={index}
+                                onClick={() => setCurrentImageIndex(index)}
+                                className={`w-2 h-2 rounded-full transition-colors ${
+                                  index === currentImageIndex ? "bg-slate-700" : "bg-slate-300 hover:bg-slate-400"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      <div className="absolute top-6 right-6">
+                        <Badge
+                          className={`${getTypeColor(selectedOfferDetails.type)} text-white border-0 px-4 py-2 text-xs font-medium shadow-sm`}
+                        >
+                          {getTypeText(selectedOfferDetails.type)}
+                        </Badge>
+                      </div>
+                      <div className="absolute top-6 left-6">
+                        <ShareButton
+                          title={selectedOfferDetails.title}
+                          url={`${typeof window !== "undefined" ? window.location.origin : ""}/marketplace?offer=${selectedOfferDetails.id}`}
+                          description={`${getTypeText(selectedOfferDetails.type)} - ${selectedOfferDetails.price} - ${selectedOfferDetails.description || ""}`}
+                          className="bg-white/90 hover:bg-white"
+                        />
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* Angebot & Anbieter */}
