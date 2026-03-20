@@ -43,6 +43,7 @@ interface MarketplaceOffer {
   location: string
   distance: string
   image?: string
+  additional_images?: string[] | null
   game_id?: string
   user_id?: string
   description?: string
