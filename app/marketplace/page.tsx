@@ -255,16 +255,21 @@ export default function MarketplacePage() {
 
   // FilteredItems are now processed based on whether location results are shown or not.
   // If location results are shown, only those are considered. Otherwise, all offers and search ads are considered.
+  // Filter out own offers - it doesn't make sense to see your own offers in the marketplace
   const allItems = showLocationResults
-    ? (Array.isArray(locationSearchResults) ? locationSearchResults : []).map((item) => ({
-        ...item,
-        itemType: "offer",
-      }))
+    ? (Array.isArray(locationSearchResults) ? locationSearchResults : [])
+        .filter((item) => !user || item.user_id !== user.id)
+        .map((item) => ({
+          ...item,
+          itemType: "offer",
+        }))
     : [
         ...marketplaceOffers
-          .filter((offer) => offer.active !== false)
+          .filter((offer) => offer.active !== false && (!user || offer.user_id !== user.id))
           .map((offer) => ({ ...offer, itemType: "offer" })),
-        ...searchAds.filter((ad) => ad.active !== false).map((ad) => ({ ...ad, itemType: "search" })),
+        ...searchAds
+          .filter((ad) => ad.active !== false && (!user || ad.user_id !== user.id))
+          .map((ad) => ({ ...ad, itemType: "search" })),
       ]
 
   const filteredItems = allItems
