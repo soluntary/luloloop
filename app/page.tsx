@@ -644,7 +644,7 @@ export default function HomePage() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="font-bold text-white mb-6 transform rotate-1 font-handwritten text-2xl"
+              className="font-bold text-white mb-6 transform rotate-1 text-2xl"
             >
               Bereit für dein Spiele-Abenteuer?
             </motion.h3>
