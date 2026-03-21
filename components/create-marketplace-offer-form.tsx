@@ -1945,18 +1945,6 @@ export function CreateMarketplaceOfferForm({
                 />
               </div>
 
-              {selectedGame && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                  <div className="flex items-start gap-2">
-                    <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-blue-800 text-xs">
-                      Das Spiel-Cover wird automatisch für die Anzeige verwendet. Gerne darfst du hier ein anderes Bild
-                      hochladen.
-                    </p>
-                  </div>
-                </div>
-              )}
-
               {/* Image Upload */}
               <div className="bg-white rounded-lg p-6 border border-gray-200">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
@@ -1996,7 +1984,7 @@ export function CreateMarketplaceOfferForm({
                     <div className="text-center">
                       <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600 font-medium mb-2">
-                        {selectedGame ? "Zusatzliches Bild hochladen" : "Bild hochladen"}
+                        Bild hochladen
                       </p>
 
                       <input
