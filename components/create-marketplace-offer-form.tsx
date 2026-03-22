@@ -1790,11 +1790,10 @@ export function CreateMarketplaceOfferForm({
                         onChange={(e) => setOpenToSuggestions(e.target.checked)}
                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                       />
-                      <Label htmlFor="openToSuggestions" className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Label htmlFor="openToSuggestions" className="flex items-center gap-2 text-xs cursor-pointer">
                         Offen für Vorschläge
                       </Label>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1 ml-7">Ich bin offen für Tauschvorschläge</p>
                   </div>
 
                   {!openToSuggestions && (
