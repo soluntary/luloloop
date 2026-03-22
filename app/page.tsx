@@ -423,126 +423,106 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features - Eye-Catching Section */}
-      <AnimatedSection className="relative py-20 mb-16 overflow-hidden">
-        {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-600" />
-        <div className="absolute inset-0 bg-[url('/images/pattern-dots.svg')] opacity-10" />
-        
-        {/* Decorative Elements */}
-        <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 right-10 w-40 h-40 bg-yellow-400/20 rounded-full blur-3xl" />
-        
-        <div className="container mx-auto px-4 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            <span className="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-white/90 text-sm font-medium mb-4">
-              Entdecke alle Funktionen
-            </span>
-            <h2 className="font-handwritten text-white text-4xl md:text-5xl mb-4 drop-shadow-lg">
-              Was dich erwartet
-            </h2>
-            <p className="text-white/80 text-lg max-w-2xl mx-auto">
-              Alles, was du brauchst, um deine Brettspiel-Leidenschaft voll auszuleben
-            </p>
-          </motion.div>
+      {/* Features */}
+      <AnimatedSection className="container mx-auto px-4 py-12 bg-white/50 rounded-3xl mx-4 mb-16 relative">
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="font-handwritten text-center text-gray-800 mb-8 text-2xl"
+        >
+          Was dich erwartet
+        </motion.h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-            {[
-              {
-                icon: IoLibrary,
-                title: "Digitales Spielregal",
-                description:
-                  "Lege im Handumdrehen deine gesamte Brettspielesammlung digital an und behalte den Überblick.",
-                link: "/library",
-                linkText: "Zum Spielregal",
-                color: "teal",
-                bgGradient: "from-teal-400 to-teal-600",
-                requiresAuth: true,
-              },
-              {
-                icon: FaStore,
-                title: "Spielehandel",
-                description:
-                  "Entdecke tolle Spiele anderer Mitglieder zum Mieten, Kaufen oder Tauschen oder biete deine eigenen an.",
-                link: "/marketplace",
-                linkText: "Zum Spielehandel",
-                color: "orange",
-                bgGradient: "from-orange-400 to-orange-600",
-              },
-              {
-                icon: RiUserCommunityFill,
-                title: "Community & Events",
-                description:
-                  "Erstelle Spielrunden, nimm an Events teil und vernetze dich mit Gleichgesinnten.",
-                link: "/ludo-events",
-                linkText: "Zu den Events",
-                color: "pink",
-                bgGradient: "from-pink-400 to-pink-600",
-              },
-              {
-                icon: GiChoice,
-                title: "Ludo-O-Mat",
-                description:
-                  "Beantworte ein paar Fragen und wir finden das perfekte Spiel, das deinen Vorlieben entspricht.",
-                link: "/brettspiel-o-mat",
-                linkText: "Zum Ludo-O-Mat",
-                color: "purple",
-                bgGradient: "from-purple-400 to-purple-600",
-              },
-            ].map((feature, index) => {
-              const colors = getColorClasses(feature.color)
-              return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
+          {[
+            {
+              icon: IoLibrary,
+              title: "Digitales Spielregal",
+              description:
+                "Lege im Handumdrehen deine gesamte Brettspielesammlung digital an und behalte den Überblick.",
+              link: "/library",
+              linkText: "Zum Spielregal",
+              color: "teal",
+              rotation: "rotate-1",
+              requiresAuth: true,
+            },
+            {
+              icon: FaStore,
+              title: "Spielehandel",
+              description:
+                "Entdecke tolle Spiele anderer Mitglieder zum Mieten, Kaufen oder Tauschen oder biete deine eigenen an.",
+              link: "/marketplace",
+              linkText: "Zum Spielehandel",
+              color: "orange",
+              rotation: "-rotate-1",
+            },
+            {
+              icon: RiUserCommunityFill,
+              title: "Community & Events",
+              description:
+                "Erstelle Spielrunden, nimm an Events teil und vernetze dich mit Gleichgesinnten.",
+              link: "/ludo-events",
+              linkText: "Zu den Events",
+              color: "pink",
+              rotation: "rotate-1",
+            },
+            {
+              icon: GiChoice,
+              title: "Ludo-O-Mat",
+              description:
+                "Beantworte ein paar Fragen und wir finden das perfekte Spiel, das deinen Vorlieben entspricht.",
+              link: "/brettspiel-o-mat",
+              linkText: "Zum Ludo-O-Mat",
+              color: "purple",
+              rotation: "-rotate-1",
+            },
+          ].map((feature, index) => {
+            const colors = getColorClasses(feature.color)
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.08 }}
+              >
                 <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  transition={{ type: "tween", duration: 0.15 }}
+                  className="relative h-full"
                 >
-                  <motion.div
-                    whileHover={{ scale: 1.03, y: -8 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className="relative h-full group"
-                  >
-                    <Card className="bg-white/95 backdrop-blur-sm border-0 h-full shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-2xl overflow-hidden">
-                      {/* Top Gradient Bar */}
-                      <div className={`h-2 bg-gradient-to-r ${feature.bgGradient}`} />
-                      
-                      <CardContent className="p-6 text-center relative">
-                        {/* Icon with gradient background */}
-                        <div className={`w-16 h-16 bg-gradient-to-br ${feature.bgGradient} rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
-                          <feature.icon className="w-8 h-8 text-white" />
-                        </div>
-                        
-                        <h3 className="font-bold text-gray-800 mb-2 font-handwritten text-lg">{feature.title}</h3>
-                        <p className="text-gray-600 font-body mb-4 text-sm leading-relaxed">{feature.description}</p>
-                        
-                        <Button
-                          asChild
-                          className={`bg-gradient-to-r ${feature.bgGradient} text-white border-0 font-handwritten group/btn transition-all hover:shadow-lg hover:scale-105 active:scale-95 rounded-full px-6`}
+                  <Card className={`transform ${feature.rotation} transition-all border-2 ${colors.border} h-full hover:shadow-lg hover:rotate-0 rounded-xl`}>
+                    <CardContent className="p-5 text-center relative">
+                      <div
+                        className={`w-12 h-12 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-3 transform -rotate-6`}
+                      >
+                        <feature.icon className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="font-bold text-gray-800 mb-1.5 font-handwritten text-sm">{feature.title}</h3>
+                      <p className="text-gray-600 font-body mb-3 text-xs leading-relaxed">{feature.description}</p>
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className={`${colors.border} ${colors.text} ${colors.hover} hover:text-white font-handwritten bg-transparent group transition-transform hover:scale-105 active:scale-95 rounded-full`}
+                      >
+                        <Link
+                          href={feature.requiresAuth && !user ? `/login?redirect=${feature.link}` : feature.link}
+                          prefetch={true}
+                          className="flex items-center text-xs justify-center gap-2"
                         >
-                          <Link
-                            href={feature.requiresAuth && !user ? `/login?redirect=${feature.link}` : feature.link}
-                            prefetch={true}
-                            className="flex items-center text-sm justify-center gap-2"
-                          >
-                            {feature.linkText}
-                            <FaArrowRight className="w-3 h-3 group-hover/btn:translate-x-1 transition-transform" />
-                          </Link>
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
+                          {feature.linkText}
+                          <FaArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
                 </motion.div>
-              )
-            })}
-          </div>
+              </motion.div>
+            )
+          })}
         </div>
       </AnimatedSection>
 
