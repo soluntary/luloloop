@@ -401,9 +401,9 @@ export function CreateMarketplaceOfferForm({
       .filter((t) => t.days && t.price)
       .sort((a, b) => Number.parseInt(a.days) - Number.parseInt(b.days))
 
-    let lastDays = 1
+    const minDays = Number.parseInt(minRentalDays) || 1
     previews.push({
-      range: sortedTiers.length > 0 ? `1-${Number.parseInt(sortedTiers[0].days) - 1} Tage` : "Pro Tag",
+      range: sortedTiers.length > 0 ? `${minDays}-${Number.parseInt(sortedTiers[0].days) - 1} Tage` : "Pro Tag",
       pricePerDay: `${basePriceNum.toFixed(2)} CHF/Tag`,
     })
 
