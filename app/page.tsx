@@ -423,93 +423,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Catch-Eye Banner - Tauschen, Vermieten, Verkaufen */}
-      <section className="container mx-auto px-4 py-8 mb-8">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-teal-500 via-orange-400 to-pink-500 p-1"
-        >
-          <div className="bg-white/95 backdrop-blur-sm rounded-xl py-6 px-4 relative overflow-hidden">
-            {/* Animated background shimmer */}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-              animate={{ x: ["-100%", "100%"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            />
-            
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
-              <motion.div
-                className="flex items-center gap-3"
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 400 }}
-              >
-                <div className="w-12 h-12 bg-teal-500 rounded-full flex items-center justify-center shadow-lg">
-                  <TbExchange className="w-6 h-6 text-white" />
-                </div>
-                <span className="font-handwritten text-xl md:text-2xl text-teal-600 font-bold">Tauschen</span>
-              </motion.div>
-
-              <motion.span
-                className="hidden md:block text-3xl text-gray-300"
-                animate={{ opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                •
-              </motion.span>
-
-              <motion.div
-                className="flex items-center gap-3"
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 400 }}
-              >
-                <div className="w-12 h-12 bg-orange-400 rounded-full flex items-center justify-center shadow-lg">
-                  <GiReceiveMoney className="w-6 h-6 text-white" />
-                </div>
-                <span className="font-handwritten text-xl md:text-2xl text-orange-500 font-bold">Vermieten</span>
-              </motion.div>
-
-              <motion.span
-                className="hidden md:block text-3xl text-gray-300"
-                animate={{ opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-              >
-                •
-              </motion.span>
-
-              <motion.div
-                className="flex items-center gap-3"
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 400 }}
-              >
-                <div className="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center shadow-lg">
-                  <FaCoins className="w-6 h-6 text-white" />
-                </div>
-                <span className="font-handwritten text-xl md:text-2xl text-pink-500 font-bold">Verkaufen</span>
-              </motion.div>
-            </div>
-
-            {/* Subtle pulsing border effect */}
-            <motion.div
-              className="absolute inset-0 rounded-xl border-2 border-teal-400/30"
-              animate={{ opacity: [0.3, 0.6, 0.3] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          </div>
-        </motion.div>
-
-        {/* Subtext */}
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="text-center text-gray-600 mt-4 font-body text-sm"
-        >
-          Gib deinen Brettspielen ein zweites Leben und entdecke neue Schätze
-        </motion.p>
-      </section>
-
       {/* Features */}
       <AnimatedSection className="container mx-auto px-4 py-12 bg-white/50 rounded-3xl mx-4 mb-16 relative">
         <motion.h2
@@ -528,7 +441,7 @@ export default function HomePage() {
               icon: IoLibrary,
               title: "Digitales Spielregal",
               description:
-                "Lege im Handumdrehen deine gesamte Brettspielesammlung digital an und behalte den Überblick.",
+                "Lege im Handumdrehen deine gesamte Brettspielesammlung digital an, verwalte sie ganz einfach und behalte jederzeit den Überblick.",
               link: "/library",
               linkText: "Zum Spielregal",
               color: "teal",
