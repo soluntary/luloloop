@@ -2188,7 +2188,7 @@ export function CreateMarketplaceOfferForm({
 
                   {/* Delivery Options */}
                   <div className="md:col-span-2 bg-white rounded-xl p-4 border border-gray-200">
-                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Zustellungsoptionen</h4>
+                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Übergabeart</h4>
                     <div className="space-y-3">
                       {deliveryPickup && (
                         <div className="flex items-start gap-2">
