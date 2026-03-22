@@ -1796,6 +1796,7 @@ export function CreateMarketplaceOfferForm({
 
                     {/* Basispreis */}
                     <div>
+                      <Label className="text-xs text-gray-600 mb-1 block">Basispreis pro Tag <span className="text-red-500">*</span></Label>
                       <div className="max-w-xs">
                         <div className="relative">
                           <Input
