@@ -2323,7 +2323,7 @@ export function CreateMarketplaceOfferForm({
                           </div>
                         </div>
                         <div>
-                          <span className="text-sm text-gray-600 block mb-2">Preise:</span>
+                          <span className="text-sm text-gray-600 block mb-2">Tagespreise:</span>
                           <div className="space-y-1 text-sm">
                             {(() => {
                               const sortedTiers = tieredPricingEnabled
