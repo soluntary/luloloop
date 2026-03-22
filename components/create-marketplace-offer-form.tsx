@@ -2232,14 +2232,31 @@ export function CreateMarketplaceOfferForm({
                 )}
 
                 {/* Image Preview */}
-                {imagePreview && (
+                {(imagePreview || additionalImages.length > 0) && (
                   <div className="mt-6 bg-white rounded-xl p-4 border border-gray-200">
-                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Bilder</h4>
-                    <img
-                      src={imagePreview || "/placeholder.svg"}
-                      alt="Vorschau"
-                      className="w-48 h-48 object-cover rounded-xl border border-gray-200"
-                    />
+                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                      Bilder ({(imagePreview ? 1 : 0) + additionalImages.length})
+                    </h4>
+                    <div className="flex flex-wrap gap-3">
+                      {imagePreview && (
+                        <div className="relative">
+                          <img
+                            src={imagePreview || "/placeholder.svg"}
+                            alt="Hauptbild"
+                            className="w-32 h-32 object-cover rounded-xl border border-gray-200"
+                          />
+                          <span className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">Hauptbild</span>
+                        </div>
+                      )}
+                      {additionalImages.map((img, index) => (
+                        <img
+                          key={index}
+                          src={img}
+                          alt={`Bild ${index + 2}`}
+                          className="w-32 h-32 object-cover rounded-xl border border-gray-200"
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
