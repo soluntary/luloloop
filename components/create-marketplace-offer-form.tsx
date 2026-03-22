@@ -984,8 +984,8 @@ export function CreateMarketplaceOfferForm({
           base_price: Number.parseFloat(basePrice) || 0,
           price_tiers: tieredPricingEnabled && priceTiers.length > 0
             ? priceTiers
-                .filter((t) => t.days && t.price)
-                .map((t) => ({ days: Number.parseInt(t.days), price: Number.parseFloat(t.price) }))
+              .filter((t) => t.days && t.price)
+              .map((t) => ({ days: Number.parseInt(t.days), price: Number.parseFloat(t.price) }))
             : null,
         }),
       }
@@ -1763,7 +1763,7 @@ export function CreateMarketplaceOfferForm({
                           )}
                         </div>
                         <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">Hoechstmietdauer (Tage)</Label>
+                          <Label className="text-xs text-gray-600 mb-1 block">Höchstmietdauer (Tage)</Label>
                           <div className="flex items-center gap-2">
                             <Input
                               placeholder="z.B. 30"
@@ -1819,7 +1819,7 @@ export function CreateMarketplaceOfferForm({
                     {/* 3. Staffelpreise */}
                     <div>
                       <div className="flex items-center gap-3 mb-3">
-                        <Label className="text-xs font-semibold text-gray-700">3. Tagespreis fuer laengere Mieten aktivieren?</Label>
+                        <Label className="text-xs font-semibold text-gray-700">Tagespreis fuer längere Mieten einstellen?</Label>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
@@ -1873,7 +1873,7 @@ export function CreateMarketplaceOfferForm({
                             className="flex items-center gap-2 text-teal-600 hover:text-teal-700 text-sm font-medium"
                           >
                             <Plus className="w-4 h-4" />
-                            Weitere Staffel hinzufuegen
+                            Weitere Preisstufe hinzufügen
                           </button>
                           {errors.priceTiers && (
                             <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
@@ -2003,7 +2003,7 @@ export function CreateMarketplaceOfferForm({
                         }}
                         className="border-gray-400 data-[state=checked]:bg-blue-600"
                       />
-                      <Label htmlFor="pickup" className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Label htmlFor="pickup" className="flex items-center gap-2 text-xs cursor-pointer">
                         <FaLocationDot className="w-4 h-4" />
                         Abholung
                       </Label>
@@ -2042,7 +2042,7 @@ export function CreateMarketplaceOfferForm({
                             onCheckedChange={(checked) => setShowFullAddress(checked === true)}
                             className="border-gray-400 data-[state=checked]:bg-blue-600"
                           />
-                          <Label htmlFor="showFullAddress" className="text-sm cursor-pointer text-gray-700">
+                          <Label htmlFor="showFullAddress" className="text-xs cursor-pointer text-gray-700">
                             Vollständige Adresse anzeigen
                           </Label>
                         </div>
@@ -2069,7 +2069,7 @@ export function CreateMarketplaceOfferForm({
                       />
                       <Label
                         htmlFor="shipping"
-                        className="flex items-center gap-2 text-sm cursor-pointer flex items-center gap-2"
+                        className="flex items-center gap-2 text-xs cursor-pointer flex items-center gap-2"
                       >
                         <FaTruckFast className="w-4 h-4" />
                         Postversand (Kosten zu Lasten der{" "}
