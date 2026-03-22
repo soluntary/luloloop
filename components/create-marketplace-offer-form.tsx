@@ -755,7 +755,7 @@ export function CreateMarketplaceOfferForm({
       }
 
       if (!deliveryPickup && !deliveryShipping) {
-        newErrors.delivery = "Bitte wähle mindestens eine Zustellungsoption."
+        newErrors.delivery = "Bitte wähle mindestens eine Übergabeart."
       }
 
       if (offerType === "lend") {
@@ -1024,8 +1024,8 @@ export function CreateMarketplaceOfferForm({
                 <div key={step} className="flex items-center">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${step <= currentStep
-                        ? "bg-teal-600 text-white"
-                        : "bg-gray-100 text-gray-400 border border-gray-300"
+                      ? "bg-teal-600 text-white"
+                      : "bg-gray-100 text-gray-400 border border-gray-300"
                       }`}
                   >
                     {step < currentStep ? <Check className="w-4 h-4" /> : step}
@@ -1827,7 +1827,7 @@ export function CreateMarketplaceOfferForm({
 
               <div className="bg-white rounded-lg p-6 border border-gray-200">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
-                  Welche Zustelloption bietest du an? <span className="text-red-500">*</span>
+                  Welche Übergabeart bietest du an? <span className="text-red-500">*</span>
                 </h4>
 
                 <div className="space-y-4">
@@ -1868,8 +1868,8 @@ export function CreateMarketplaceOfferForm({
                           <span className="text-xs">In</span>
                           <span
                             className={`px-2 py-1 rounded text-xs ${pickupAddress.includes("unvollständig") || pickupAddress.includes("vervollständigen")
-                                ? "bg-red-100 text-red-700"
-                                : "bg-blue-100 text-blue-700"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-blue-100 text-blue-700"
                               }`}
                           >
                             {pickupAddress
@@ -1951,7 +1951,7 @@ export function CreateMarketplaceOfferForm({
                   Bilder
                   <span className="text-gray-500 font-normal">({(imagePreview ? 1 : 0) + additionalImages.length}/{MAX_IMAGES})</span>
                 </h4>
-                
+
                 {/* Main Image */}
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-colors">
                   {isUploadingImage ? (
@@ -2086,7 +2086,7 @@ export function CreateMarketplaceOfferForm({
                     ) : (
                       <>
                         <FaUpload className="w-4 h-4 mr-2" />
-                        Weiteres Bild hinzufugen ({(imagePreview ? 1 : 0) + additionalImages.length}/{MAX_IMAGES})
+                        Weitere Bilder hinzufügen ({(imagePreview ? 1 : 0) + additionalImages.length}/{MAX_IMAGES})
                       </>
                     )}
                   </Button>
@@ -2105,7 +2105,7 @@ export function CreateMarketplaceOfferForm({
                   {/* Game Information */}
                   <div className="bg-white rounded-xl p-4 border border-gray-200">
                     <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2 justify-start text-sm">
-                      Spiel-Informationen
+                      Spieldetails
                     </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
@@ -2188,7 +2188,7 @@ export function CreateMarketplaceOfferForm({
 
                   {/* Delivery Options */}
                   <div className="md:col-span-2 bg-white rounded-xl p-4 border border-gray-200">
-                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Zustellungsoptionen</h4>
+                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Übergabeart</h4>
                     <div className="space-y-3">
                       {deliveryPickup && (
                         <div className="flex items-start gap-2">
@@ -2234,7 +2234,7 @@ export function CreateMarketplaceOfferForm({
                 {/* Image Preview */}
                 {imagePreview && (
                   <div className="mt-6 bg-white rounded-xl p-4 border border-gray-200">
-                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Bild</h4>
+                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Bilder</h4>
                     <img
                       src={imagePreview || "/placeholder.svg"}
                       alt="Vorschau"
