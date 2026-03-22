@@ -261,27 +261,27 @@ export default function MarketplacePage() {
   // Filter out own offers - it doesn't make sense to see your own offers in the marketplace
   const allItems = showLocationResults
     ? (Array.isArray(locationSearchResults) ? locationSearchResults : [])
-        .filter((item) => !user || item.user_id !== user.id)
-        .map((item) => ({
-          ...item,
-          itemType: "offer",
-        }))
+      .filter((item) => !user || item.user_id !== user.id)
+      .map((item) => ({
+        ...item,
+        itemType: "offer",
+      }))
     : [
-        ...marketplaceOffers
-          .filter((offer) => offer.active !== false && (!user || offer.user_id !== user.id))
-          .map((offer) => ({ ...offer, itemType: "offer" })),
-        ...searchAds
-          .filter((ad) => ad.active !== false && (!user || ad.user_id !== user.id))
-          .map((ad) => ({ ...ad, itemType: "search" })),
-      ]
+      ...marketplaceOffers
+        .filter((offer) => offer.active !== false && (!user || offer.user_id !== user.id))
+        .map((offer) => ({ ...offer, itemType: "offer" })),
+      ...searchAds
+        .filter((ad) => ad.active !== false && (!user || ad.user_id !== user.id))
+        .map((ad) => ({ ...ad, itemType: "search" })),
+    ]
 
   const filteredItems = allItems
     .filter((item) => {
       const matchesSearch =
         item.itemType === "offer"
           ? item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.publisher?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.owner?.toLowerCase().includes(searchTerm.toLowerCase())
+          item.publisher?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.owner?.toLowerCase().includes(searchTerm.toLowerCase())
           : item.title.toLowerCase().includes(searchTerm.toLowerCase())
 
       const matchesType =
@@ -472,7 +472,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
 
     const hasBothOptions = selectedOffer.pickup_available && selectedOffer.shipping_available
     if (hasBothOptions && !selectedDeliveryOption) {
-      toast.warning("Bitte wähle eine Zustellungsoption aus.")
+      toast.warning("Bitte wähle eine Übergabeart aus.")
       return
     }
 
@@ -1631,9 +1631,8 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                               <button
                                 key={index}
                                 onClick={() => setCurrentImageIndex(index)}
-                                className={`w-2 h-2 rounded-full transition-colors ${
-                                  index === currentImageIndex ? "bg-slate-700" : "bg-slate-300 hover:bg-slate-400"
-                                }`}
+                                className={`w-2 h-2 rounded-full transition-colors ${index === currentImageIndex ? "bg-slate-700" : "bg-slate-300 hover:bg-slate-400"
+                                  }`}
                               />
                             ))}
                           </div>
