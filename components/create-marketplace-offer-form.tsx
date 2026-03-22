@@ -2234,7 +2234,7 @@ export function CreateMarketplaceOfferForm({
                 {/* Image Preview */}
                 {imagePreview && (
                   <div className="mt-6 bg-white rounded-xl p-4 border border-gray-200">
-                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Bild</h4>
+                    <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Bilder</h4>
                     <img
                       src={imagePreview || "/placeholder.svg"}
                       alt="Vorschau"
