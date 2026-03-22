@@ -411,10 +411,10 @@ export function CreateMarketplaceOfferForm({
       const days = Number.parseInt(tier.days)
       const price = Number.parseFloat(tier.price)
       const nextTier = sortedTiers[index + 1]
-      const endDays = nextTier ? Number.parseInt(nextTier.days) - 1 : "+"
+      const endDays = nextTier ? Number.parseInt(nextTier.days) - 1 : undefined
 
       previews.push({
-        range: `Ab ${days} Tage${endDays !== "+" ? ` bis ${endDays}` : ""}`,
+        range: endDays ? `Ab ${days} bis ${endDays} Tage` : `Ab ${days} Tage`,
         pricePerDay: `${price.toFixed(2)} CHF/Tag`,
       })
     })
@@ -1819,7 +1819,7 @@ export function CreateMarketplaceOfferForm({
                     {/* 3. Staffelpreise */}
                     <div>
                       <div className="flex items-center gap-3 mb-3">
-                        <Label className="text-xs font-semibold text-gray-700">Tagespreis fuer längere Mieten einstellen?</Label>
+                        <Label className="text-xs font-semibold text-gray-700">Tagespreis für längere Mieten einstellen?</Label>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
@@ -1897,9 +1897,6 @@ export function CreateMarketplaceOfferForm({
                             </div>
                           ))}
                         </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                          Basispreis gilt bis zur ersten Staffel. Staffelpreise muessen sinken.
-                        </p>
                       </div>
                     )}
                   </div>
@@ -2326,21 +2323,41 @@ export function CreateMarketplaceOfferForm({
                           </div>
                         </div>
                         <div>
-                          <span className="text-sm text-gray-600 block mb-2">Preise:</span>
+                          <span className="text-sm text-gray-600 block mb-2">Tagespreise:</span>
                           <div className="space-y-1 text-sm">
-                            <p className="font-medium">Basispreis: CHF {basePrice}/Tag</p>
-                            {tieredPricingEnabled && priceTiers.length > 0 && (
-                              <>
-                                {priceTiers
+                            {(() => {
+                              const sortedTiers = tieredPricingEnabled
+                                ? priceTiers
                                   .filter((t) => t.days && t.price)
                                   .sort((a, b) => Number.parseInt(a.days) - Number.parseInt(b.days))
-                                  .map((tier, index) => (
-                                    <p key={index} className="text-gray-600">
-                                      Ab {tier.days} Tagen: CHF {tier.price}/Tag
-                                    </p>
-                                  ))}
-                              </>
-                            )}
+                                : []
+
+                              const firstTierDay = sortedTiers.length > 0 ? Number.parseInt(sortedTiers[0].days) - 1 : null
+                              const minDay = Number.parseInt(minRentalDays) || 1
+
+                              const baseLabel = firstTierDay
+                                ? `${minDay} bis ${firstTierDay} Tage`
+                                : `Ab ${minDay} Tage`
+
+                              return (
+                                <>
+                                  <p className="font-medium">{baseLabel}: CHF {basePrice}/Tag</p>
+                                  {sortedTiers.map((tier, index) => {
+                                    const fromDay = Number.parseInt(tier.days)
+                                    const nextTier = sortedTiers[index + 1]
+                                    const toDay = nextTier ? Number.parseInt(nextTier.days) - 1 : null
+                                    const label = toDay
+                                      ? `${fromDay} bis ${toDay} Tage`
+                                      : `Ab ${fromDay} Tage`
+                                    return (
+                                      <p key={index} className="text-gray-600">
+                                        {label}: {tier.price} CHF/Tag
+                                      </p>
+                                    )
+                                  })}
+                                </>
+                              )
+                            })()}
                           </div>
                         </div>
                       </div>
