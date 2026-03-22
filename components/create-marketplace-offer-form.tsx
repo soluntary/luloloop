@@ -755,7 +755,7 @@ export function CreateMarketplaceOfferForm({
       }
 
       if (!deliveryPickup && !deliveryShipping) {
-        newErrors.delivery = "Bitte wähle mindestens eine Zustellungsoption."
+        newErrors.delivery = "Bitte wähle mindestens eine Übergabeart."
       }
 
       if (offerType === "lend") {
@@ -1827,7 +1827,7 @@ export function CreateMarketplaceOfferForm({
 
               <div className="bg-white rounded-lg p-6 border border-gray-200">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
-                  Welche Zustelloption bietest du an? <span className="text-red-500">*</span>
+                  Welche Übergabeart bietest du an? <span className="text-red-500">*</span>
                 </h4>
 
                 <div className="space-y-4">
