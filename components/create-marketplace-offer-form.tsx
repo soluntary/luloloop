@@ -2105,7 +2105,7 @@ export function CreateMarketplaceOfferForm({
                   {/* Game Information */}
                   <div className="bg-white rounded-xl p-4 border border-gray-200">
                     <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2 justify-start text-sm">
-                      Spiel-Informationen
+                      Spieldetails
                     </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
