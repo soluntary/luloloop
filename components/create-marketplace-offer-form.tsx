@@ -411,10 +411,10 @@ export function CreateMarketplaceOfferForm({
       const days = Number.parseInt(tier.days)
       const price = Number.parseFloat(tier.price)
       const nextTier = sortedTiers[index + 1]
-      const endDays = nextTier ? Number.parseInt(nextTier.days) - 1 : "+"
+      const endDays = nextTier ? Number.parseInt(nextTier.days) - 1 : undefined
 
       previews.push({
-        range: `Ab ${days} Tage${endDays !== "+" ? ` bis ${endDays}` : ""}`,
+        range: endDays ? `Ab ${days} bis ${endDays} Tage` : `Ab ${days} Tage`,
         pricePerDay: `${price.toFixed(2)} CHF/Tag`,
       })
     })
