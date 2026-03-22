@@ -1745,9 +1745,8 @@ export function CreateMarketplaceOfferForm({
                   <h4 className="font-semibold text-gray-900 mb-4 text-sm">Mietkonditionen <span className="text-red-500">*</span></h4>
 
                   <div className="space-y-6">
-                    {/* 1. Mietdauer */}
+                    {/* Mietdauer */}
                     <div>
-                      <Label className="text-xs font-semibold text-gray-700 mb-3 block">1. Mietdauer festlegen</Label>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <Label className="text-xs text-gray-600 mb-1 block">Mindestmietdauer (Tage) <span className="text-red-500">*</span></Label>
@@ -1795,9 +1794,8 @@ export function CreateMarketplaceOfferForm({
                       </div>
                     </div>
 
-                    {/* 2. Basispreis */}
+                    {/* Basispreis */}
                     <div>
-                      <Label className="text-xs font-semibold text-gray-700 mb-3 block">2. Basispreis pro Tag festlegen</Label>
                       <div className="max-w-xs">
                         <div className="relative">
                           <Input
