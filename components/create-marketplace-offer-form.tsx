@@ -1819,7 +1819,7 @@ export function CreateMarketplaceOfferForm({
                     {/* 3. Staffelpreise */}
                     <div>
                       <div className="flex items-center gap-3 mb-3">
-                        <Label className="text-xs font-semibold text-gray-700">Tagespreis fuer längere Mieten einstellen?</Label>
+                        <Label className="text-xs font-semibold text-gray-700">Tagespreis für längere Mieten einstellen?</Label>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
@@ -1897,9 +1897,6 @@ export function CreateMarketplaceOfferForm({
                             </div>
                           ))}
                         </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                          Basispreis gilt bis zur ersten Staffel. Staffelpreise muessen sinken.
-                        </p>
                       </div>
                     )}
                   </div>
