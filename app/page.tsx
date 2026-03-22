@@ -441,7 +441,7 @@ export default function HomePage() {
               icon: IoLibrary,
               title: "Digitales Spielregal",
               description:
-                "Lege im Handumdrehen deine gesamte Brettspielesammlung digital an und behalte den Überblick.",
+                "Lege im Handumdrehen deine gesamte Brettspielesammlung digital an, verwalte deine Spiele ganz einfach und behalte jederzeit den Überblick.",
               link: "/library",
               linkText: "Zum Spielregal",
               color: "teal",
