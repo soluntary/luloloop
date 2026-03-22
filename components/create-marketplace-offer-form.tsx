@@ -1891,9 +1891,8 @@ export function CreateMarketplaceOfferForm({
                         <h5 className="text-xs font-semibold text-gray-700 mb-2">Preisvorschau</h5>
                         <div className="space-y-1">
                           {getPricePreview().map((preview, index) => (
-                            <div key={index} className="flex justify-between text-sm">
-                              <span className="text-gray-600">{preview.range}</span>
-                              <span className="font-medium text-gray-800">{preview.pricePerDay}</span>
+                            <div key={index} className="text-sm text-gray-600">
+                              {preview.range}
                             </div>
                           ))}
                         </div>
