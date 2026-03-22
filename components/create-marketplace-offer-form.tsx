@@ -2003,7 +2003,7 @@ export function CreateMarketplaceOfferForm({
                         }}
                         className="border-gray-400 data-[state=checked]:bg-blue-600"
                       />
-                      <Label htmlFor="pickup" className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Label htmlFor="pickup" className="flex items-center gap-2 text-xs cursor-pointer">
                         <FaLocationDot className="w-4 h-4" />
                         Abholung
                       </Label>
@@ -2042,7 +2042,7 @@ export function CreateMarketplaceOfferForm({
                             onCheckedChange={(checked) => setShowFullAddress(checked === true)}
                             className="border-gray-400 data-[state=checked]:bg-blue-600"
                           />
-                          <Label htmlFor="showFullAddress" className="text-sm cursor-pointer text-gray-700">
+                          <Label htmlFor="showFullAddress" className="text-xs cursor-pointer text-gray-700">
                             Vollständige Adresse anzeigen
                           </Label>
                         </div>
@@ -2069,7 +2069,7 @@ export function CreateMarketplaceOfferForm({
                       />
                       <Label
                         htmlFor="shipping"
-                        className="flex items-center gap-2 text-sm cursor-pointer flex items-center gap-2"
+                        className="flex items-center gap-2 text-xs cursor-pointer flex items-center gap-2"
                       >
                         <FaTruckFast className="w-4 h-4" />
                         Postversand (Kosten zu Lasten der{" "}
