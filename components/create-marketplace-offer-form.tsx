@@ -361,7 +361,7 @@ export function CreateMarketplaceOfferForm({
       }
 
       if (days <= lastDays) {
-        return `Staffel ${i + 1}: Tageszahl muss groesser als ${lastDays} sein.`
+        return `Staffel ${i + 1}: Tageszahl muss grösser als ${lastDays} sein.`
       }
 
       if (price >= lastPrice) {
@@ -372,7 +372,7 @@ export function CreateMarketplaceOfferForm({
       if (!maxRentalFlexible && maxRentalDays) {
         const maxDays = Number.parseInt(maxRentalDays)
         if (!Number.isNaN(maxDays) && days > maxDays) {
-          return `Staffel ${i + 1}: Tageszahl (${days}) liegt ueber der Hoechstmietdauer (${maxDays}).`
+          return `Staffel ${i + 1}: Tageszahl (${days}) liegt über der Höchstmietdauer (${maxDays}).`
         }
       }
 
