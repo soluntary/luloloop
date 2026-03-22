@@ -190,13 +190,13 @@ export function CreateMarketplaceOfferForm({
   const [imagePreview, setImagePreview] = useState<string>("")
   const [additionalImages, setAdditionalImages] = useState<string[]>([])
   const MAX_IMAGES = 5
-  const [dailyRate1Day, setDailyRate1Day] = useState("")
-  const [dailyRate2To6Days, setDailyRate2To6Days] = useState("")
-  const [dailyRate7To30Days, setDailyRate7To30Days] = useState("")
-  const [dailyRateOver30Days, setDailyRateOver30Days] = useState("")
-  const [depositAmount, setDepositAmount] = useState("")
+  const [basePrice, setBasePrice] = useState("")
   const [minRentalDays, setMinRentalDays] = useState("")
   const [maxRentalDays, setMaxRentalDays] = useState("")
+  const [maxRentalFlexible, setMaxRentalFlexible] = useState(false)
+  const [tieredPricingEnabled, setTieredPricingEnabled] = useState(false)
+  const [priceTiers, setPriceTiers] = useState<Array<{ days: string; price: string }>>([])
+  const [depositAmount, setDepositAmount] = useState("")
   const [salePrice, setSalePrice] = useState("")
   const [deliveryPickup, setDeliveryPickup] = useState(false)
   const [deliveryShipping, setDeliveryShipping] = useState(false)
@@ -327,6 +327,99 @@ export function CreateMarketplaceOfferForm({
       setCustomGameLanguage(customGameCustomLanguage.trim())
       setCustomGameCustomLanguage("")
     }
+  }
+
+  // Tiered pricing functions
+  const addPriceTier = () => {
+    setPriceTiers((prev) => [...prev, { days: "", price: "" }])
+  }
+
+  const removePriceTier = (index: number) => {
+    setPriceTiers((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const updatePriceTier = (index: number, field: "days" | "price", value: string) => {
+    setPriceTiers((prev) => prev.map((tier, i) => (i === index ? { ...tier, [field]: value } : tier)))
+  }
+
+  const validatePriceTiers = (): string | null => {
+    if (!tieredPricingEnabled || priceTiers.length === 0) return null
+
+    const basePriceNum = Number.parseFloat(basePrice)
+    if (Number.isNaN(basePriceNum)) return null
+
+    let lastDays = 0
+    let lastPrice = basePriceNum
+
+    for (let i = 0; i < priceTiers.length; i++) {
+      const tier = priceTiers[i]
+      const days = Number.parseInt(tier.days)
+      const price = Number.parseFloat(tier.price)
+
+      if (Number.isNaN(days) || Number.isNaN(price)) {
+        return `Staffel ${i + 1}: Bitte Tage und Preis angeben.`
+      }
+
+      if (days <= lastDays) {
+        return `Staffel ${i + 1}: Tageszahl muss groesser als ${lastDays} sein.`
+      }
+
+      if (price >= lastPrice) {
+        return `Staffel ${i + 1}: Preis muss niedriger als ${lastPrice.toFixed(2)} CHF sein.`
+      }
+
+      // Check if tier is within max rental days
+      if (!maxRentalFlexible && maxRentalDays) {
+        const maxDays = Number.parseInt(maxRentalDays)
+        if (!Number.isNaN(maxDays) && days > maxDays) {
+          return `Staffel ${i + 1}: Tageszahl (${days}) liegt ueber der Hoechstmietdauer (${maxDays}).`
+        }
+      }
+
+      lastDays = days
+      lastPrice = price
+    }
+
+    return null
+  }
+
+  const getPricePreview = () => {
+    if (!basePrice) return []
+
+    const basePriceNum = Number.parseFloat(basePrice)
+    if (Number.isNaN(basePriceNum)) return []
+
+    const previews: Array<{ range: string; pricePerDay: string; total?: string }> = []
+
+    if (!tieredPricingEnabled || priceTiers.length === 0) {
+      previews.push({ range: "Pro Tag", pricePerDay: `${basePriceNum.toFixed(2)} CHF` })
+      return previews
+    }
+
+    // Sort tiers by days
+    const sortedTiers = [...priceTiers]
+      .filter((t) => t.days && t.price)
+      .sort((a, b) => Number.parseInt(a.days) - Number.parseInt(b.days))
+
+    let lastDays = 1
+    previews.push({
+      range: sortedTiers.length > 0 ? `1-${Number.parseInt(sortedTiers[0].days) - 1} Tage` : "Pro Tag",
+      pricePerDay: `${basePriceNum.toFixed(2)} CHF/Tag`,
+    })
+
+    sortedTiers.forEach((tier, index) => {
+      const days = Number.parseInt(tier.days)
+      const price = Number.parseFloat(tier.price)
+      const nextTier = sortedTiers[index + 1]
+      const endDays = nextTier ? Number.parseInt(nextTier.days) - 1 : "+"
+
+      previews.push({
+        range: `Ab ${days} Tage${endDays !== "+" ? ` bis ${endDays}` : ""}`,
+        pricePerDay: `${price.toFixed(2)} CHF/Tag`,
+      })
+    })
+
+    return previews
   }
 
   const handleCustomGameImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -714,39 +807,38 @@ export function CreateMarketplaceOfferForm({
       }
 
       if (offerType === "lend") {
-        // Check if any daily rate is provided
-        const hasAnyDailyRate = dailyRate1Day || dailyRate2To6Days || dailyRate7To30Days || dailyRateOver30Days
-
-        // Only require price field if no daily rates are provided
-        if (!price && !hasAnyDailyRate) {
-          newErrors.price = "Bitte gib Preis/Bedingungen oder Mietgebühren an."
+        // Validate base price
+        if (!basePrice) {
+          newErrors.basePrice = "Bitte gib den Basispreis pro Tag an."
         }
 
-        console.log("[v0] Validating lend-specific fields - dailyRates:", {
-          dailyRate1Day,
-          dailyRate2To6Days,
-          dailyRate7To30Days,
-          dailyRateOver30Days,
-        })
-
-        // Only show daily rates error if no price and no daily rates
-        if (!price && !hasAnyDailyRate) {
-          newErrors.dailyRates = "Bitte gib mindestens eine Mietgebühr an."
+        // Validate min rental days
+        if (!minRentalDays) {
+          newErrors.minRentalDays = "Bitte gib die Mindestmietdauer an."
+        } else if (Number.parseInt(minRentalDays) < 1) {
+          newErrors.minRentalDays = "Mindestmietdauer muss mindestens 1 Tag sein."
         }
 
-        if (minRentalDays && maxRentalDays) {
-          const minDays = Number.parseInt(minRentalDays)
-          const maxDays = Number.parseInt(maxRentalDays)
+        // Validate max rental days (only if not flexible)
+        if (!maxRentalFlexible) {
+          if (!maxRentalDays) {
+            newErrors.maxRentalDays = "Bitte gib die Hoechstmietdauer an oder waehle 'Flexibel'."
+          } else {
+            const minDays = Number.parseInt(minRentalDays)
+            const maxDays = Number.parseInt(maxRentalDays)
+            if (maxDays < 1) {
+              newErrors.maxRentalDays = "Hoechstmietdauer muss mindestens 1 Tag sein."
+            }
+            if (minDays > maxDays) {
+              newErrors.maxRentalDays = "Hoechstmietdauer muss groesser als Mindestmietdauer sein."
+            }
+          }
+        }
 
-          if (minDays < 1) {
-            newErrors.minRentalDays = "Mindestmietdauer muss mindestens 1 Tag sein."
-          }
-          if (maxDays < 1) {
-            newErrors.maxRentalDays = "Maximalmietdauer muss mindestens 1 Tag sein."
-          }
-          if (minDays > maxDays) {
-            newErrors.maxRentalDays = "Maximalmietdauer muss größer als Mindestmietdauer sein."
-          }
+        // Validate tiered pricing
+        const tierError = validatePriceTiers()
+        if (tierError) {
+          newErrors.priceTiers = tierError
         }
       }
 
@@ -758,20 +850,8 @@ export function CreateMarketplaceOfferForm({
         newErrors.delivery = "Bitte wähle mindestens eine Übergabeart."
       }
 
-      if (offerType === "lend") {
-        console.log("[v0] Validating lend-specific fields - dailyRates:", {
-          dailyRate1Day,
-          dailyRate2To6Days,
-          dailyRate7To30Days,
-          dailyRateOver30Days,
-        })
-        if (!dailyRate1Day && !dailyRate2To6Days && !dailyRate7To30Days && !dailyRateOver30Days) {
-          newErrors.dailyRates = "Bitte gib mindestens eine Mietgebühr an."
-        }
-        // REMOVED: shipping option validation
-        if (deliveryPickup && !pickupAddress) {
-          newErrors.pickupAddress = "Bitte gib die Abholadresse an."
-        }
+      if (offerType === "lend" && deliveryPickup && !pickupAddress) {
+        newErrors.pickupAddress = "Bitte gib die Abholadresse an."
       }
 
       if (offerType === "sell") {
@@ -895,11 +975,19 @@ export function CreateMarketplaceOfferForm({
         pickup_available: deliveryPickup,
         shipping_available: deliveryShipping,
         pickup_address: finalPickupAddress,
-        show_full_address: showFullAddress, // ADDED
-        // REMOVED: shipping_options: deliveryShipping ? { option: shippingOption } : null,
-        shipping_options: null, // Set to null as shipping details are no longer collected
-        ...(offerType === "lend" && minRentalDays && { min_rental_days: Number.parseInt(minRentalDays) }),
-        ...(offerType === "lend" && maxRentalDays && { max_rental_days: Number.parseInt(maxRentalDays) }),
+        show_full_address: showFullAddress,
+        shipping_options: null,
+        ...(offerType === "lend" && {
+          min_rental_days: Number.parseInt(minRentalDays) || 1,
+          max_rental_days: maxRentalFlexible ? null : Number.parseInt(maxRentalDays) || null,
+          max_rental_flexible: maxRentalFlexible,
+          base_price: Number.parseFloat(basePrice) || 0,
+          price_tiers: tieredPricingEnabled && priceTiers.length > 0
+            ? priceTiers
+                .filter((t) => t.days && t.price)
+                .map((t) => ({ days: Number.parseInt(t.days), price: Number.parseFloat(t.price) }))
+            : null,
+        }),
       }
 
       console.log("[v0] Offer data to be submitted:", offerData)
@@ -1656,74 +1744,13 @@ export function CreateMarketplaceOfferForm({
                 <div className="bg-white rounded-lg p-6 border border-gray-200">
                   <h4 className="font-semibold text-gray-900 mb-4 text-sm">Mietkonditionen <span className="text-red-500">*</span></h4>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Daily Rates */}
+                  <div className="space-y-6">
+                    {/* 1. Mietdauer */}
                     <div>
-                      <Label className="text-xs font-semibold text-gray-700 mb-2 block">Tagespreise (CHF) *</Label>
-                      <div className="space-y-3">
+                      <Label className="text-xs font-semibold text-gray-700 mb-3 block">1. Mietdauer festlegen</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">1 Tag</Label>
-                          <Input
-                            placeholder="z.B. 5.00"
-                            value={dailyRate1Day}
-                            onChange={(e) => setDailyRate1Day(e.target.value)}
-                            className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">2-6 Tage</Label>
-                          <Input
-                            placeholder="z.B. 4.00"
-                            value={dailyRate2To6Days}
-                            onChange={(e) => setDailyRate2To6Days(e.target.value)}
-                            className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">7-30 Tage</Label>
-                          <Input
-                            placeholder="z.B. 3.00"
-                            value={dailyRate7To30Days}
-                            onChange={(e) => setDailyRate7To30Days(e.target.value)}
-                            className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">Über 30 Tage</Label>
-                          <Input
-                            placeholder="z.B. 2.00"
-                            value={dailyRateOver30Days}
-                            onChange={(e) => setDailyRateOver30Days(e.target.value)}
-                            className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                          />
-                        </div>
-                      </div>
-                      {errors.dailyRates && (
-                        <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
-                          <AlertCircle className="w-4 h-4" />
-                          <span className="text-xs">{errors.dailyRates}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Rental Duration */}
-                    <div>
-                      <Label className="text-xs font-semibold text-gray-700 mb-2 block">Mietzeit</Label>
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">Mindestmietzeit (Tage)</Label>
+                          <Label className="text-xs text-gray-600 mb-1 block">Mindestmietdauer (Tage) <span className="text-red-500">*</span></Label>
                           <Input
                             placeholder="z.B. 1"
                             value={minRentalDays}
@@ -1732,20 +1759,150 @@ export function CreateMarketplaceOfferForm({
                             type="number"
                             min="1"
                           />
+                          {errors.minRentalDays && (
+                            <p className="text-red-600 text-xs mt-1">{errors.minRentalDays}</p>
+                          )}
                         </div>
                         <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">Maximalmietzeit (Tage)</Label>
-                          <Input
-                            placeholder="z.B. 30"
-                            value={maxRentalDays}
-                            onChange={(e) => setMaxRentalDays(e.target.value)}
-                            className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white"
-                            type="number"
-                            min="1"
-                          />
+                          <Label className="text-xs text-gray-600 mb-1 block">Hoechstmietdauer (Tage)</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              placeholder="z.B. 30"
+                              value={maxRentalDays}
+                              onChange={(e) => setMaxRentalDays(e.target.value)}
+                              className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white flex-1"
+                              type="number"
+                              min="1"
+                              disabled={maxRentalFlexible}
+                            />
+                            <label className="flex items-center gap-2 text-xs text-gray-600 whitespace-nowrap">
+                              <input
+                                type="checkbox"
+                                checked={maxRentalFlexible}
+                                onChange={(e) => {
+                                  setMaxRentalFlexible(e.target.checked)
+                                  if (e.target.checked) setMaxRentalDays("")
+                                }}
+                                className="rounded border-gray-300"
+                              />
+                              Flexibel
+                            </label>
+                          </div>
+                          {errors.maxRentalDays && (
+                            <p className="text-red-600 text-xs mt-1">{errors.maxRentalDays}</p>
+                          )}
                         </div>
                       </div>
                     </div>
+
+                    {/* 2. Basispreis */}
+                    <div>
+                      <Label className="text-xs font-semibold text-gray-700 mb-3 block">2. Basispreis pro Tag festlegen</Label>
+                      <div className="max-w-xs">
+                        <div className="relative">
+                          <Input
+                            placeholder="z.B. 5.00"
+                            value={basePrice}
+                            onChange={(e) => setBasePrice(e.target.value)}
+                            className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white pr-16"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">CHF/Tag</span>
+                        </div>
+                        {errors.basePrice && (
+                          <p className="text-red-600 text-xs mt-1">{errors.basePrice}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 3. Staffelpreise */}
+                    <div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <Label className="text-xs font-semibold text-gray-700">3. Tagespreis fuer laengere Mieten aktivieren?</Label>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={tieredPricingEnabled}
+                            onChange={(e) => {
+                              setTieredPricingEnabled(e.target.checked)
+                              if (!e.target.checked) setPriceTiers([])
+                            }}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
+                        </label>
+                      </div>
+
+                      {tieredPricingEnabled && (
+                        <div className="space-y-3 pl-4 border-l-2 border-teal-200">
+                          {priceTiers.map((tier, index) => (
+                            <div key={index} className="flex items-center gap-3">
+                              <span className="text-xs text-gray-600">Ab</span>
+                              <Input
+                                placeholder="Tage"
+                                value={tier.days}
+                                onChange={(e) => updatePriceTier(index, "days", e.target.value)}
+                                className="h-9 w-20 border-gray-300 focus:border-teal-500 rounded-lg bg-white text-sm"
+                                type="number"
+                                min="1"
+                              />
+                              <span className="text-xs text-gray-600">Tage:</span>
+                              <Input
+                                placeholder="Preis"
+                                value={tier.price}
+                                onChange={(e) => updatePriceTier(index, "price", e.target.value)}
+                                className="h-9 w-24 border-gray-300 focus:border-teal-500 rounded-lg bg-white text-sm"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                              />
+                              <span className="text-xs text-gray-500">CHF/Tag</span>
+                              <button
+                                type="button"
+                                onClick={() => removePriceTier(index)}
+                                className="text-red-500 hover:text-red-700 p-1"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={addPriceTier}
+                            className="flex items-center gap-2 text-teal-600 hover:text-teal-700 text-sm font-medium"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Weitere Staffel hinzufuegen
+                          </button>
+                          {errors.priceTiers && (
+                            <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
+                              <AlertCircle className="w-4 h-4" />
+                              <span className="text-xs">{errors.priceTiers}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Preisvorschau */}
+                    {basePrice && (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <h5 className="text-xs font-semibold text-gray-700 mb-2">Preisvorschau</h5>
+                        <div className="space-y-1">
+                          {getPricePreview().map((preview, index) => (
+                            <div key={index} className="flex justify-between text-sm">
+                              <span className="text-gray-600">{preview.range}</span>
+                              <span className="font-medium text-gray-800">{preview.pricePerDay}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Basispreis gilt bis zur ersten Staffel. Staffelpreise muessen sinken.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -2163,22 +2320,28 @@ export function CreateMarketplaceOfferForm({
                       <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Mietkonditionen</h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <span className="text-sm text-gray-600 block mb-2">Tagespreise:</span>
+                          <span className="text-sm text-gray-600 block mb-2">Mietdauer:</span>
                           <div className="space-y-1 text-sm">
-                            {dailyRate1Day && <p>1 Tag: CHF {dailyRate1Day}</p>}
-                            {dailyRate2To6Days && <p>2-6 Tage: CHF {dailyRate2To6Days}</p>}
-                            {dailyRate7To30Days && <p>7-30 Tage: CHF {dailyRate7To30Days}</p>}
-                            {dailyRateOver30Days && <p>Über 30 Tage: CHF {dailyRateOver30Days}</p>}
-                            {!dailyRate1Day && !dailyRate2To6Days && !dailyRate7To30Days && !dailyRateOver30Days && (
-                              <p className="text-orange-600 font-medium">Kostenlose Miete</p>
-                            )}
+                            <p>Min: {minRentalDays} Tag{Number.parseInt(minRentalDays) !== 1 ? "e" : ""}</p>
+                            <p>Max: {maxRentalFlexible ? "Flexibel / auf Anfrage" : `${maxRentalDays} Tage`}</p>
                           </div>
                         </div>
                         <div>
-                          <span className="text-sm text-gray-600 block mb-2">Mietzeit:</span>
+                          <span className="text-sm text-gray-600 block mb-2">Preise:</span>
                           <div className="space-y-1 text-sm">
-                            {minRentalDays && <p>Min: {minRentalDays} Tage</p>}
-                            {maxRentalDays && <p>Max: {maxRentalDays} Tage</p>}
+                            <p className="font-medium">Basispreis: CHF {basePrice}/Tag</p>
+                            {tieredPricingEnabled && priceTiers.length > 0 && (
+                              <>
+                                {priceTiers
+                                  .filter((t) => t.days && t.price)
+                                  .sort((a, b) => Number.parseInt(a.days) - Number.parseInt(b.days))
+                                  .map((tier, index) => (
+                                    <p key={index} className="text-gray-600">
+                                      Ab {tier.days} Tagen: CHF {tier.price}/Tag
+                                    </p>
+                                  ))}
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
