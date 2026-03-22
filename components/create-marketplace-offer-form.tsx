@@ -984,8 +984,8 @@ export function CreateMarketplaceOfferForm({
           base_price: Number.parseFloat(basePrice) || 0,
           price_tiers: tieredPricingEnabled && priceTiers.length > 0
             ? priceTiers
-                .filter((t) => t.days && t.price)
-                .map((t) => ({ days: Number.parseInt(t.days), price: Number.parseFloat(t.price) }))
+              .filter((t) => t.days && t.price)
+              .map((t) => ({ days: Number.parseInt(t.days), price: Number.parseFloat(t.price) }))
             : null,
         }),
       }
@@ -1763,7 +1763,7 @@ export function CreateMarketplaceOfferForm({
                           )}
                         </div>
                         <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">Hoechstmietdauer (Tage)</Label>
+                          <Label className="text-xs text-gray-600 mb-1 block">Höchstmietdauer (Tage)</Label>
                           <div className="flex items-center gap-2">
                             <Input
                               placeholder="z.B. 30"
