@@ -1819,7 +1819,7 @@ export function CreateMarketplaceOfferForm({
                     {/* 3. Staffelpreise */}
                     <div>
                       <div className="flex items-center gap-3 mb-3">
-                        <Label className="text-xs font-semibold text-gray-700">3. Tagespreis fuer laengere Mieten aktivieren?</Label>
+                        <Label className="text-xs font-semibold text-gray-700">Tagespreis fuer längere Mieten einstellen?</Label>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
@@ -1873,7 +1873,7 @@ export function CreateMarketplaceOfferForm({
                             className="flex items-center gap-2 text-teal-600 hover:text-teal-700 text-sm font-medium"
                           >
                             <Plus className="w-4 h-4" />
-                            Weitere Staffel hinzufuegen
+                            Weitere Preisstufe hinzufügen
                           </button>
                           {errors.priceTiers && (
                             <div className="flex items-center space-x-2 text-red-600 text-sm mt-2 bg-red-50 p-2 rounded-lg">
