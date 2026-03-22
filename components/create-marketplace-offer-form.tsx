@@ -2328,8 +2328,8 @@ export function CreateMarketplaceOfferForm({
                             {(() => {
                               const sortedTiers = tieredPricingEnabled
                                 ? priceTiers
-                                    .filter((t) => t.days && t.price)
-                                    .sort((a, b) => Number.parseInt(a.days) - Number.parseInt(b.days))
+                                  .filter((t) => t.days && t.price)
+                                  .sort((a, b) => Number.parseInt(a.days) - Number.parseInt(b.days))
                                 : []
 
                               const firstTierDay = sortedTiers.length > 0 ? Number.parseInt(sortedTiers[0].days) - 1 : null
@@ -2351,7 +2351,7 @@ export function CreateMarketplaceOfferForm({
                                       : `Ab ${fromDay} Tage`
                                     return (
                                       <p key={index} className="text-gray-600">
-                                        {label}: CHF {tier.price}/Tag
+                                        {label}: {tier.price} CHF/Tag
                                       </p>
                                     )
                                   })}
