@@ -392,7 +392,7 @@ export function CreateMarketplaceOfferForm({
     const previews: Array<{ range: string; pricePerDay: string; total?: string }> = []
 
     if (!tieredPricingEnabled || priceTiers.length === 0) {
-      previews.push({ range: "Pro Tag", pricePerDay: `${basePriceNum.toFixed(2)} CHF` })
+      previews.push({ range: "Tagespreis", pricePerDay: `${basePriceNum.toFixed(2)} CHF/Tag` })
       return previews
     }
 
