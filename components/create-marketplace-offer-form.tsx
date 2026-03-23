@@ -2487,7 +2487,10 @@ export function CreateMarketplaceOfferForm({
           ) : (
             <Button
               type="button"
-              onClick={handleSubmit}
+              onClick={() => {
+                console.log("[v0] Button clicked! isSubmitting:", isSubmitting, "isUploadingImage:", isUploadingImage)
+                handleSubmit()
+              }}
               disabled={isSubmitting || isUploadingImage}
               className="bg-blue-600 hover:bg-blue-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg px-8 py-2 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
             >
