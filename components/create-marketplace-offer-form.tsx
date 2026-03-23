@@ -192,6 +192,7 @@ export function CreateMarketplaceOfferForm({
   const MAX_IMAGES = 5
   const [basePrice, setBasePrice] = useState("")
   const [minRentalDays, setMinRentalDays] = useState("")
+  const [minRentalFlexible, setMinRentalFlexible] = useState(false)
   const [maxRentalDays, setMaxRentalDays] = useState("")
   const [maxRentalFlexible, setMaxRentalFlexible] = useState(false)
   const [tieredPricingEnabled, setTieredPricingEnabled] = useState(false)
@@ -812,11 +813,13 @@ export function CreateMarketplaceOfferForm({
           newErrors.basePrice = "Bitte gib den Basispreis pro Tag an."
         }
 
-        // Validate min rental days
-        if (!minRentalDays) {
-          newErrors.minRentalDays = "Bitte gib die Mindestmietdauer an."
-        } else if (Number.parseInt(minRentalDays) < 1) {
-          newErrors.minRentalDays = "Mindestmietdauer muss mindestens 1 Tag sein."
+        // Validate min rental days (only if not flexible)
+        if (!minRentalFlexible) {
+          if (!minRentalDays) {
+            newErrors.minRentalDays = "Bitte gib die Mindestmietdauer an oder waehle 'Egal'."
+          } else if (Number.parseInt(minRentalDays) < 1) {
+            newErrors.minRentalDays = "Mindestmietdauer muss mindestens 1 Tag sein."
+          }
         }
 
         // Validate max rental days (only if not flexible)
@@ -824,12 +827,12 @@ export function CreateMarketplaceOfferForm({
           if (!maxRentalDays) {
             newErrors.maxRentalDays = "Bitte gib die Hoechstmietdauer an oder waehle 'Flexibel'."
           } else {
-            const minDays = Number.parseInt(minRentalDays)
+            const minDays = minRentalFlexible ? 1 : Number.parseInt(minRentalDays) || 1
             const maxDays = Number.parseInt(maxRentalDays)
             if (maxDays < 1) {
               newErrors.maxRentalDays = "Hoechstmietdauer muss mindestens 1 Tag sein."
             }
-            if (minDays > maxDays) {
+            if (!minRentalFlexible && minDays > maxDays) {
               newErrors.maxRentalDays = "Hoechstmietdauer muss groesser als Mindestmietdauer sein."
             }
           }
@@ -977,7 +980,8 @@ export function CreateMarketplaceOfferForm({
         show_full_address: showFullAddress,
         shipping_options: null,
         ...(offerType === "lend" && {
-          min_rental_days: Number.parseInt(minRentalDays) || 1,
+          min_rental_days: minRentalFlexible ? null : Number.parseInt(minRentalDays) || 1,
+          min_rental_flexible: minRentalFlexible,
           max_rental_days: maxRentalFlexible ? null : Number.parseInt(maxRentalDays) || null,
           max_rental_flexible: maxRentalFlexible,
           base_price: Number.parseFloat(basePrice) || 0,
@@ -1749,15 +1753,30 @@ export function CreateMarketplaceOfferForm({
                     <div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">Mindestmietdauer (Tage) <span className="text-red-500">*</span></Label>
-                          <Input
-                            placeholder="z.B. 1"
-                            value={minRentalDays}
-                            onChange={(e) => setMinRentalDays(e.target.value)}
-                            className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white"
-                            type="number"
-                            min="1"
-                          />
+                          <Label className="text-xs text-gray-600 mb-1 block">Mindestmietdauer (Tage)</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              placeholder="z.B. 1"
+                              value={minRentalDays}
+                              onChange={(e) => setMinRentalDays(e.target.value)}
+                              className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white flex-1"
+                              type="number"
+                              min="1"
+                              disabled={minRentalFlexible}
+                            />
+                            <label className="flex items-center gap-2 text-xs text-gray-600 whitespace-nowrap">
+                              <input
+                                type="checkbox"
+                                checked={minRentalFlexible}
+                                onChange={(e) => {
+                                  setMinRentalFlexible(e.target.checked)
+                                  if (e.target.checked) setMinRentalDays("")
+                                }}
+                                className="rounded border-gray-300"
+                              />
+                              Egal
+                            </label>
+                          </div>
                           {errors.minRentalDays && (
                             <p className="text-red-600 text-xs mt-1">{errors.minRentalDays}</p>
                           )}
@@ -2318,7 +2337,7 @@ export function CreateMarketplaceOfferForm({
                         <div>
                           <span className="text-sm text-gray-600 block mb-2">Mietdauer:</span>
                           <div className="space-y-1 text-sm">
-                            <p>Min: {minRentalDays} Tag{Number.parseInt(minRentalDays) !== 1 ? "e" : ""}</p>
+                            <p>Min: {minRentalFlexible ? "Egal" : `${minRentalDays} Tag${Number.parseInt(minRentalDays) !== 1 ? "e" : ""}`}</p>
                             <p>Max: {maxRentalFlexible ? "Flexibel / auf Anfrage" : `${maxRentalDays} Tage`}</p>
                           </div>
                         </div>
