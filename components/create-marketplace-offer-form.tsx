@@ -192,6 +192,7 @@ export function CreateMarketplaceOfferForm({
   const MAX_IMAGES = 5
   const [basePrice, setBasePrice] = useState("")
   const [minRentalDays, setMinRentalDays] = useState("")
+  const [minRentalFlexible, setMinRentalFlexible] = useState(false)
   const [maxRentalDays, setMaxRentalDays] = useState("")
   const [maxRentalFlexible, setMaxRentalFlexible] = useState(false)
   const [tieredPricingEnabled, setTieredPricingEnabled] = useState(false)
@@ -392,7 +393,7 @@ export function CreateMarketplaceOfferForm({
     const previews: Array<{ range: string; pricePerDay: string; total?: string }> = []
 
     if (!tieredPricingEnabled || priceTiers.length === 0) {
-      previews.push({ range: "Pro Tag", pricePerDay: `${basePriceNum.toFixed(2)} CHF` })
+      previews.push({ range: "Tagespreis", pricePerDay: `${basePriceNum.toFixed(2)} CHF/Tag` })
       return previews
     }
 
@@ -812,11 +813,13 @@ export function CreateMarketplaceOfferForm({
           newErrors.basePrice = "Bitte gib den Basispreis pro Tag an."
         }
 
-        // Validate min rental days
-        if (!minRentalDays) {
-          newErrors.minRentalDays = "Bitte gib die Mindestmietdauer an."
-        } else if (Number.parseInt(minRentalDays) < 1) {
-          newErrors.minRentalDays = "Mindestmietdauer muss mindestens 1 Tag sein."
+        // Validate min rental days (only if not flexible)
+        if (!minRentalFlexible) {
+          if (!minRentalDays) {
+            newErrors.minRentalDays = "Bitte gib die Mindestmietdauer an oder waehle 'Egal'."
+          } else if (Number.parseInt(minRentalDays) < 1) {
+            newErrors.minRentalDays = "Mindestmietdauer muss mindestens 1 Tag sein."
+          }
         }
 
         // Validate max rental days (only if not flexible)
@@ -824,12 +827,12 @@ export function CreateMarketplaceOfferForm({
           if (!maxRentalDays) {
             newErrors.maxRentalDays = "Bitte gib die Hoechstmietdauer an oder waehle 'Flexibel'."
           } else {
-            const minDays = Number.parseInt(minRentalDays)
+            const minDays = minRentalFlexible ? 1 : Number.parseInt(minRentalDays) || 1
             const maxDays = Number.parseInt(maxRentalDays)
             if (maxDays < 1) {
               newErrors.maxRentalDays = "Hoechstmietdauer muss mindestens 1 Tag sein."
             }
-            if (minDays > maxDays) {
+            if (!minRentalFlexible && minDays > maxDays) {
               newErrors.maxRentalDays = "Hoechstmietdauer muss groesser als Mindestmietdauer sein."
             }
           }
@@ -887,15 +890,19 @@ export function CreateMarketplaceOfferForm({
   }
 
   const handleSubmit = async () => {
-    console.log("[v0] handleSubmit called - user:", user?.id, "validateStep(2):", validateStep(2))
-    if (!validateStep(2) || !user) {
-      console.log("[v0] handleSubmit early return - validation failed or no user")
-      return
-    }
-
-    console.log("[v0] Starting form submission...")
-    setIsSubmitting(true)
     try {
+      console.log("[v0] =====  handleSubmit STARTED =====")
+      console.log("[v0] handleSubmit called - user:", user?.id)
+      console.log("[v0] Current errors state:", errors)
+      console.log("[v0] Form state:", { offerType, basePrice, minRentalDays, maxRentalDays, maxRentalFlexible, selectedGame, isManualEntry, customGameTitle })
+
+      if (!user) {
+        console.log("[v0] handleSubmit early return - no user")
+        return
+      }
+
+      console.log("[v0] Starting form submission...")
+      setIsSubmitting(true)
       let gameTitle = ""
       let gamePublisher = ""
       let gameId = selectedGame
@@ -942,13 +949,8 @@ export function CreateMarketplaceOfferForm({
       if (offerType === "sell") {
         finalPrice = salePrice ? `${salePrice} CHF` : ""
       } else if (offerType === "lend") {
-        // Construct price from daily rates
-        const rates = []
-        if (dailyRate1Day) rates.push(`1 Tag: ${dailyRate1Day}CHF`)
-        if (dailyRate2To6Days) rates.push(`2-6 Tage: ${dailyRate2To6Days}CHF`)
-        if (dailyRate7To30Days) rates.push(`7-30 Tage: ${dailyRate7To30Days}CHF`)
-        if (dailyRateOver30Days) rates.push(`>30 Tage: ${dailyRateOver30Days}CHF`)
-        finalPrice = rates.length > 0 ? rates.join(", ") : price
+        // Use base price for display
+        finalPrice = basePrice ? `${basePrice} CHF/Tag` : ""
       } else if (offerType === "trade") {
         finalPrice = openToSuggestions ? "Offen für Vorschläge" : price
       }
@@ -960,7 +962,7 @@ export function CreateMarketplaceOfferForm({
         : ""
 
       const offerData = {
-        game_id: gameId,
+        game_id: gameId || null,
         title: gameTitle,
         publisher: gamePublisher,
         condition,
@@ -978,7 +980,8 @@ export function CreateMarketplaceOfferForm({
         show_full_address: showFullAddress,
         shipping_options: null,
         ...(offerType === "lend" && {
-          min_rental_days: Number.parseInt(minRentalDays) || 1,
+          min_rental_days: minRentalFlexible ? null : Number.parseInt(minRentalDays) || 1,
+          min_rental_flexible: minRentalFlexible,
           max_rental_days: maxRentalFlexible ? null : Number.parseInt(maxRentalDays) || null,
           max_rental_flexible: maxRentalFlexible,
           base_price: Number.parseFloat(basePrice) || 0,
@@ -1013,16 +1016,17 @@ export function CreateMarketplaceOfferForm({
         }
         console.log("[v0] Marketplace offer updated successfully")
         toast({
-          title: "Angebot aktualisiert",
+          title: "Inserat aktualisiert",
           description: "Deine Änderungen wurden erfolgreich gespeichert.",
         })
       } else {
         // Create new offer
-        await addMarketplaceOffer(offerData)
-        console.log("[v0] Marketplace offer created successfully")
+        console.log("[v0] About to create new offer with data:", JSON.stringify(offerData, null, 2))
+        const result = await addMarketplaceOffer(offerData)
+        console.log("[v0] Marketplace offer created successfully, result:", result)
         toast({
-          title: "Angebot erstellt",
-          description: "Dein Angebot wurde erfolgreich im Marktplatz erstellt.",
+          title: "Spiel inseriert",
+          description: "Dein Inserat wurde erfolgreich erstellt.",
         })
       }
 
@@ -1055,11 +1059,11 @@ export function CreateMarketplaceOfferForm({
     if (editMode) {
       switch (currentStep) {
         case 2:
-          return "Angebot bearbeiten"
+          return "Inserat bearbeiten"
         case 3:
           return "Zusammenfassung"
         default:
-          return "Angebot bearbeiten"
+          return "Inserat bearbeiten"
       }
     }
     switch (currentStep) {
@@ -1070,7 +1074,7 @@ export function CreateMarketplaceOfferForm({
       case 3:
         return "Schritt 3: Zusammenfassung"
       default:
-        return "Angebot erstellen"
+        return "Spiel inserieren"
     }
   }
 
@@ -1749,7 +1753,7 @@ export function CreateMarketplaceOfferForm({
                     <div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">Mindestmietdauer (Tage) <span className="text-red-500">*</span></Label>
+                          <Label className="text-xs text-gray-600 mb-1 block">Mindestmietdauer (Tage)</Label>
                           <Input
                             placeholder="z.B. 1"
                             value={minRentalDays}
@@ -1757,36 +1761,47 @@ export function CreateMarketplaceOfferForm({
                             className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white"
                             type="number"
                             min="1"
+                            disabled={minRentalFlexible}
                           />
+                          <label className="flex items-center gap-2 text-xs text-gray-600 mt-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={minRentalFlexible}
+                              onChange={(e) => {
+                                setMinRentalFlexible(e.target.checked)
+                                if (e.target.checked) setMinRentalDays("")
+                              }}
+                              className="rounded border-gray-300"
+                            />
+                            Egal
+                          </label>
                           {errors.minRentalDays && (
                             <p className="text-red-600 text-xs mt-1">{errors.minRentalDays}</p>
                           )}
                         </div>
                         <div>
                           <Label className="text-xs text-gray-600 mb-1 block">Höchstmietdauer (Tage)</Label>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              placeholder="z.B. 30"
-                              value={maxRentalDays}
-                              onChange={(e) => setMaxRentalDays(e.target.value)}
-                              className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white flex-1"
-                              type="number"
-                              min="1"
-                              disabled={maxRentalFlexible}
+                          <Input
+                            placeholder="z.B. 30"
+                            value={maxRentalDays}
+                            onChange={(e) => setMaxRentalDays(e.target.value)}
+                            className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white"
+                            type="number"
+                            min="1"
+                            disabled={maxRentalFlexible}
+                          />
+                          <label className="flex items-center gap-2 text-xs text-gray-600 mt-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={maxRentalFlexible}
+                              onChange={(e) => {
+                                setMaxRentalFlexible(e.target.checked)
+                                if (e.target.checked) setMaxRentalDays("")
+                              }}
+                              className="rounded border-gray-300"
                             />
-                            <label className="flex items-center gap-2 text-xs text-gray-600 whitespace-nowrap">
-                              <input
-                                type="checkbox"
-                                checked={maxRentalFlexible}
-                                onChange={(e) => {
-                                  setMaxRentalFlexible(e.target.checked)
-                                  if (e.target.checked) setMaxRentalDays("")
-                                }}
-                                className="rounded border-gray-300"
-                              />
-                              Flexibel
-                            </label>
-                          </div>
+                            Flexibel
+                          </label>
                           {errors.maxRentalDays && (
                             <p className="text-red-600 text-xs mt-1">{errors.maxRentalDays}</p>
                           )}
@@ -2318,7 +2333,7 @@ export function CreateMarketplaceOfferForm({
                         <div>
                           <span className="text-sm text-gray-600 block mb-2">Mietdauer:</span>
                           <div className="space-y-1 text-sm">
-                            <p>Min: {minRentalDays} Tag{Number.parseInt(minRentalDays) !== 1 ? "e" : ""}</p>
+                            <p>Min: {minRentalFlexible ? "Egal" : `${minRentalDays} Tag${Number.parseInt(minRentalDays) !== 1 ? "e" : ""}`}</p>
                             <p>Max: {maxRentalFlexible ? "Flexibel / auf Anfrage" : `${maxRentalDays} Tage`}</p>
                           </div>
                         </div>
@@ -2341,7 +2356,7 @@ export function CreateMarketplaceOfferForm({
 
                               return (
                                 <>
-                                  <p className="font-medium">{baseLabel}: CHF {basePrice}/Tag</p>
+                                  <p className="font-medium text-gray-600">{baseLabel}: {basePrice} CHF/Tag</p>
                                   {sortedTiers.map((tier, index) => {
                                     const fromDay = Number.parseInt(tier.days)
                                     const nextTier = sortedTiers[index + 1]
@@ -2488,7 +2503,10 @@ export function CreateMarketplaceOfferForm({
           ) : (
             <Button
               type="button"
-              onClick={handleSubmit}
+              onClick={() => {
+                console.log("[v0] Button clicked! isSubmitting:", isSubmitting, "isUploadingImage:", isUploadingImage)
+                handleSubmit()
+              }}
               disabled={isSubmitting || isUploadingImage}
               className="bg-blue-600 hover:bg-blue-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg px-8 py-2 font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
             >
@@ -2500,7 +2518,7 @@ export function CreateMarketplaceOfferForm({
               ) : (
                 <>
                   <Check className="w-4 h-4 mr-2" />
-                  Angebot erstellen
+                  Spiel inserieren
                 </>
               )}
             </Button>
@@ -2519,7 +2537,7 @@ export function CreateMarketplaceOfferForm({
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-gray-200">
           <DialogHeader>
             <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">
-              Angebot bearbeiten
+              Inserat bearbeiten
             </DialogTitle>
           </DialogHeader>
           {formContent}
