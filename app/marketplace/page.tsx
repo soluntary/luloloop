@@ -909,7 +909,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                 className="bg-orange-400 hover:bg-orange-500 text-white font-handwritten text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 transform hover:scale-105 hover:rotate-1 transition-all"
               >
                 <Store className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Angebot erstellen
+                Spiel inserieren
               </Button>
               <Button
                 onClick={() => setIsCreateSearchAdOpen(true)}
