@@ -1022,7 +1022,7 @@ export function CreateMarketplaceOfferForm({
         console.log("[v0] Marketplace offer created successfully, result:", result)
         toast({
           title: "Spiel inseriert",
-          description: "Dein Angebot wurde erfolgreich im Marktplatz erstellt.",
+          description: "Dein Inseart wurde erfolgreich erstellt.",
         })
       }
 
@@ -1055,11 +1055,11 @@ export function CreateMarketplaceOfferForm({
     if (editMode) {
       switch (currentStep) {
         case 2:
-          return "Angebot bearbeiten"
+          return "Inserat bearbeiten"
         case 3:
           return "Zusammenfassung"
         default:
-          return "Angebot bearbeiten"
+          return "Inserat bearbeiten"
       }
     }
     switch (currentStep) {
@@ -1070,7 +1070,7 @@ export function CreateMarketplaceOfferForm({
       case 3:
         return "Schritt 3: Zusammenfassung"
       default:
-        return "Angebot erstellen"
+        return "Spiel inserieren"
     }
   }
 
@@ -2503,7 +2503,7 @@ export function CreateMarketplaceOfferForm({
               ) : (
                 <>
                   <Check className="w-4 h-4 mr-2" />
-                  Angebot erstellen
+                  Spiel inserieren
                 </>
               )}
             </Button>
@@ -2522,7 +2522,7 @@ export function CreateMarketplaceOfferForm({
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-gray-200">
           <DialogHeader>
             <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">
-              Angebot bearbeiten
+              Inserat bearbeiten
             </DialogTitle>
           </DialogHeader>
           {formContent}
