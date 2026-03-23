@@ -1017,8 +1017,9 @@ export function CreateMarketplaceOfferForm({
         })
       } else {
         // Create new offer
-        await addMarketplaceOffer(offerData)
-        console.log("[v0] Marketplace offer created successfully")
+        console.log("[v0] About to create new offer with data:", JSON.stringify(offerData, null, 2))
+        const result = await addMarketplaceOffer(offerData)
+        console.log("[v0] Marketplace offer created successfully, result:", result)
         toast({
           title: "Angebot erstellt",
           description: "Dein Angebot wurde erfolgreich im Marktplatz erstellt.",
