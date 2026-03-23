@@ -892,7 +892,7 @@ export function CreateMarketplaceOfferForm({
       console.log("[v0] handleSubmit called - user:", user?.id)
       console.log("[v0] Current errors state:", errors)
       console.log("[v0] Form state:", { offerType, basePrice, minRentalDays, maxRentalDays, maxRentalFlexible, selectedGame, isManualEntry, customGameTitle })
-      
+
       if (!user) {
         console.log("[v0] handleSubmit early return - no user")
         return
@@ -1012,7 +1012,7 @@ export function CreateMarketplaceOfferForm({
         }
         console.log("[v0] Marketplace offer updated successfully")
         toast({
-          title: "Angebot aktualisiert",
+          title: "Inserat aktualisiert",
           description: "Deine Änderungen wurden erfolgreich gespeichert.",
         })
       } else {
@@ -1021,7 +1021,7 @@ export function CreateMarketplaceOfferForm({
         const result = await addMarketplaceOffer(offerData)
         console.log("[v0] Marketplace offer created successfully, result:", result)
         toast({
-          title: "Angebot erstellt",
+          title: "Spiel inseriert",
           description: "Dein Angebot wurde erfolgreich im Marktplatz erstellt.",
         })
       }
