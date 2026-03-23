@@ -2356,7 +2356,7 @@ export function CreateMarketplaceOfferForm({
 
                               return (
                                 <>
-                                  <p className="font-medium">{baseLabel}: {basePrice} CHF/Tag</p>
+                                  <p className="font-medium text-gray-600">{baseLabel}: {basePrice} CHF/Tag</p>
                                   {sortedTiers.map((tier, index) => {
                                     const fromDay = Number.parseInt(tier.days)
                                     const nextTier = sortedTiers[index + 1]
