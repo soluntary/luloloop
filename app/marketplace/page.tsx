@@ -717,6 +717,49 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
     return <span className="text-xs my-[px]x font-normal text-slate-500">{priceString}</span>
   }
 
+  const formatRentalPrices = (offer: any) => {
+    // New format for rental offers with base_price and price_tiers
+    if (offer.type === "lend" && offer.base_price) {
+      const rates = []
+      const minDays = offer.min_rental_flexible ? 1 : (offer.min_rental_days || 1)
+      const priceTiers = offer.price_tiers && Array.isArray(offer.price_tiers) ? offer.price_tiers : []
+
+      // Add base price range
+      if (priceTiers.length > 0) {
+        const firstTierDays = priceTiers[0].days
+        const endDay = firstTierDays - 1
+        rates.push(`${minDays}${minDays === endDay ? "" : `-${endDay}`} Tage: ${offer.base_price.toFixed(2)} CHF/Tag`)
+      } else {
+        rates.push(`Ab ${minDays} Tage: ${offer.base_price.toFixed(2)} CHF/Tag`)
+      }
+
+      // Add tiered prices
+      priceTiers.forEach((tier, index) => {
+        const nextTier = priceTiers[index + 1]
+        const endDay = nextTier ? nextTier.days - 1 : null
+        const label = endDay ? `${tier.days}-${endDay} Tage` : `Ab ${tier.days} Tage`
+        rates.push(`${label}: ${tier.price.toFixed(2)} CHF/Tag`)
+      })
+
+      return (
+        <div className="w-full space-y-0.5">
+          {rates.map((rate, index) => {
+            const [period, price] = rate.split(": ")
+            return (
+              <div key={index} className="flex items-center justify-between w-full text-xs">
+                <span className="font-medium text-gray-700">{period}</span>
+                <span className="font-bold text-foreground">{price}</span>
+              </div>
+            )
+          })}
+        </div>
+      )
+    }
+
+    // Fallback to old format if new fields not available
+    return formatDailyRates(offer.price)
+  }
+
   useEffect(() => {
     // Initial load of marketplace offers and search ads
     // This effect now only handles the search parameters and doesn't fetch data itself.
@@ -1343,7 +1386,9 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                                   ? item.price === "Offen für Vorschläge"
                                     ? "Offen für Vorschläge" // Lowercase as requested
                                     : `gegen ${item.price}` // Changed from "Tausch gegen" to "gegen"
-                                  : formatDailyRates(item.price)}
+                                  : item.type === "lend" && item.base_price
+                                    ? formatRentalPrices(item)
+                                    : formatDailyRates(item.price)}
                               </p>
                             </div>
                           </div>
@@ -1674,7 +1719,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                             : "Preis"}
                     </span>
                     <span className="text-xs font-medium text-slate-900">
-                      {formatDailyRates(selectedOfferDetails.price) || "Auf Anfrage"}
+                      {formatRentalPrices(selectedOfferDetails) || "Auf Anfrage"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-2.5">

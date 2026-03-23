@@ -544,7 +544,6 @@ export default function HomePage() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-gray-600 text-center mb-12 font-body transform rotate-1 text-base"
         >
-          Warum LudoLoop die perfekte Wahl für Brettspiel-Liebhaber ist
         </motion.p>
 
         <motion.div
