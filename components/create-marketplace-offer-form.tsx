@@ -942,13 +942,8 @@ export function CreateMarketplaceOfferForm({
       if (offerType === "sell") {
         finalPrice = salePrice ? `${salePrice} CHF` : ""
       } else if (offerType === "lend") {
-        // Construct price from daily rates
-        const rates = []
-        if (dailyRate1Day) rates.push(`1 Tag: ${dailyRate1Day}CHF`)
-        if (dailyRate2To6Days) rates.push(`2-6 Tage: ${dailyRate2To6Days}CHF`)
-        if (dailyRate7To30Days) rates.push(`7-30 Tage: ${dailyRate7To30Days}CHF`)
-        if (dailyRateOver30Days) rates.push(`>30 Tage: ${dailyRateOver30Days}CHF`)
-        finalPrice = rates.length > 0 ? rates.join(", ") : price
+        // Use base price for display
+        finalPrice = basePrice ? `${basePrice} CHF/Tag` : ""
       } else if (offerType === "trade") {
         finalPrice = openToSuggestions ? "Offen für Vorschläge" : price
       }
