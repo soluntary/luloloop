@@ -2331,14 +2331,14 @@ export function CreateMarketplaceOfferForm({
                       <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">Mietkonditionen</h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <span className="text-sm text-gray-600 block mb-2">Mietdauer:</span>
-                          <div className="space-y-1 text-sm">
+                          <span className="text-sm block mb-2">Mietdauer:</span>
+                          <div className="space-y-1 text-sm text-gray-600">
                             <p>Min: {minRentalFlexible ? "Egal" : `${minRentalDays} Tag${Number.parseInt(minRentalDays) !== 1 ? "e" : ""}`}</p>
                             <p>Max: {maxRentalFlexible ? "Flexibel / auf Anfrage" : `${maxRentalDays} Tage`}</p>
                           </div>
                         </div>
                         <div>
-                          <span className="text-sm text-gray-600 block mb-2">Tagespreise:</span>
+                          <span className="text-sm block mb-2">Tagespreise:</span>
                           <div className="space-y-1 text-sm">
                             {(() => {
                               const sortedTiers = tieredPricingEnabled
