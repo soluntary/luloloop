@@ -949,14 +949,14 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
             <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
               <Button
                 onClick={() => setIsCreateOfferOpen(true)}
-                className="bg-orange-400 hover:bg-orange-500 text-white font-handwritten text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 transform hover:scale-105 hover:rotate-1 transition-all"
+                className="bg-orange-400 hover:bg-orange-500 text-white text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 transform hover:scale-105 hover:rotate-1 transition-all"
               >
                 <Store className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Spiel inserieren
               </Button>
               <Button
                 onClick={() => setIsCreateSearchAdOpen(true)}
-                className="bg-amber-400 hover:bg-amber-500 text-white font-handwritten text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 transform hover:scale-105 hover:-rotate-1 transition-all"
+                className="bg-amber-400 hover:bg-amber-500 text-white text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 transform hover:scale-105 hover:-rotate-1 transition-all"
               >
                 <Search className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Suchanzeige erstellen
