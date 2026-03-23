@@ -1754,58 +1754,54 @@ export function CreateMarketplaceOfferForm({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <Label className="text-xs text-gray-600 mb-1 block">Mindestmietdauer (Tage)</Label>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              placeholder="z.B. 1"
-                              value={minRentalDays}
-                              onChange={(e) => setMinRentalDays(e.target.value)}
-                              className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white flex-1"
-                              type="number"
-                              min="1"
-                              disabled={minRentalFlexible}
+                          <Input
+                            placeholder="z.B. 1"
+                            value={minRentalDays}
+                            onChange={(e) => setMinRentalDays(e.target.value)}
+                            className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white"
+                            type="number"
+                            min="1"
+                            disabled={minRentalFlexible}
+                          />
+                          <label className="flex items-center gap-2 text-xs text-gray-600 mt-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={minRentalFlexible}
+                              onChange={(e) => {
+                                setMinRentalFlexible(e.target.checked)
+                                if (e.target.checked) setMinRentalDays("")
+                              }}
+                              className="rounded border-gray-300"
                             />
-                            <label className="flex items-center gap-2 text-xs text-gray-600 whitespace-nowrap">
-                              <input
-                                type="checkbox"
-                                checked={minRentalFlexible}
-                                onChange={(e) => {
-                                  setMinRentalFlexible(e.target.checked)
-                                  if (e.target.checked) setMinRentalDays("")
-                                }}
-                                className="rounded border-gray-300"
-                              />
-                              Egal
-                            </label>
-                          </div>
+                            Egal
+                          </label>
                           {errors.minRentalDays && (
                             <p className="text-red-600 text-xs mt-1">{errors.minRentalDays}</p>
                           )}
                         </div>
                         <div>
                           <Label className="text-xs text-gray-600 mb-1 block">Höchstmietdauer (Tage)</Label>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              placeholder="z.B. 30"
-                              value={maxRentalDays}
-                              onChange={(e) => setMaxRentalDays(e.target.value)}
-                              className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white flex-1"
-                              type="number"
-                              min="1"
-                              disabled={maxRentalFlexible}
+                          <Input
+                            placeholder="z.B. 30"
+                            value={maxRentalDays}
+                            onChange={(e) => setMaxRentalDays(e.target.value)}
+                            className="h-10 border-gray-300 focus:border-teal-500 rounded-lg bg-white"
+                            type="number"
+                            min="1"
+                            disabled={maxRentalFlexible}
+                          />
+                          <label className="flex items-center gap-2 text-xs text-gray-600 mt-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={maxRentalFlexible}
+                              onChange={(e) => {
+                                setMaxRentalFlexible(e.target.checked)
+                                if (e.target.checked) setMaxRentalDays("")
+                              }}
+                              className="rounded border-gray-300"
                             />
-                            <label className="flex items-center gap-2 text-xs text-gray-600 whitespace-nowrap">
-                              <input
-                                type="checkbox"
-                                checked={maxRentalFlexible}
-                                onChange={(e) => {
-                                  setMaxRentalFlexible(e.target.checked)
-                                  if (e.target.checked) setMaxRentalDays("")
-                                }}
-                                className="rounded border-gray-300"
-                              />
-                              Flexibel
-                            </label>
-                          </div>
+                            Flexibel
+                          </label>
                           {errors.maxRentalDays && (
                             <p className="text-red-600 text-xs mt-1">{errors.maxRentalDays}</p>
                           )}
