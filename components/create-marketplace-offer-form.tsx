@@ -887,18 +887,19 @@ export function CreateMarketplaceOfferForm({
   }
 
   const handleSubmit = async () => {
-    console.log("[v0] handleSubmit called - user:", user?.id)
-    console.log("[v0] Current errors state:", errors)
-    console.log("[v0] Form state:", { offerType, basePrice, minRentalDays, maxRentalDays, maxRentalFlexible, selectedGame, isManualEntry, customGameTitle })
-    
-    if (!user) {
-      console.log("[v0] handleSubmit early return - no user")
-      return
-    }
-
-    console.log("[v0] Starting form submission...")
-    setIsSubmitting(true)
     try {
+      console.log("[v0] =====  handleSubmit STARTED =====")
+      console.log("[v0] handleSubmit called - user:", user?.id)
+      console.log("[v0] Current errors state:", errors)
+      console.log("[v0] Form state:", { offerType, basePrice, minRentalDays, maxRentalDays, maxRentalFlexible, selectedGame, isManualEntry, customGameTitle })
+      
+      if (!user) {
+        console.log("[v0] handleSubmit early return - no user")
+        return
+      }
+
+      console.log("[v0] Starting form submission...")
+      setIsSubmitting(true)
       let gameTitle = ""
       let gamePublisher = ""
       let gameId = selectedGame
