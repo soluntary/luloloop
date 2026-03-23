@@ -955,7 +955,7 @@ export function CreateMarketplaceOfferForm({
         : ""
 
       const offerData = {
-        game_id: gameId,
+        game_id: gameId || null,
         title: gameTitle,
         publisher: gamePublisher,
         condition,
