@@ -2042,9 +2042,9 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
       <Dialog open={isCreateOfferOpen} onOpenChange={setIsCreateOfferOpen}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <div className="sticky top-0 bg-white border-b border-gray-200 p-6 -m-6 mb-6 z-10">
-            <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">Angebot erstellen</DialogTitle>
+            <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">Spiel inserieren</DialogTitle>
             <p className="text-sm text-gray-600">
-              Erstelle ein Angebot zum Verkaufen, Vermieten oder Tauschen deiner Spiele
+              Biete deine Spiele ganz einfach zum Verkauf, zur Vermietung oder zum Tausch an
             </p>
           </div>
           <CreateMarketplaceOfferForm
