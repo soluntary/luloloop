@@ -1022,7 +1022,7 @@ export function CreateMarketplaceOfferForm({
         console.log("[v0] Marketplace offer created successfully, result:", result)
         toast({
           title: "Spiel inseriert",
-          description: "Dein Inseart wurde erfolgreich erstellt.",
+          description: "Dein Inserat wurde erfolgreich erstellt.",
         })
       }
 
