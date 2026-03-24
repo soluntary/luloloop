@@ -1357,7 +1357,7 @@ function LibraryContent() {
                 Neues Spiel hinzufügen
               </DialogTitle>
               <p className="text-gray-500 text-center font-body text-xs">
-                Füge ein neues Spiel zu deiner Spielesammlung hinzu
+                Füge ein neues Spiel zu deinem Spieleregal hinzu
               </p>
             </DialogHeader>
             <form onSubmit={handleAddGameSubmit} className="space-y-6">
@@ -1383,8 +1383,8 @@ function LibraryContent() {
               </div>
 
               {inputMode === "auto" && (
-                <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
-                  <h3 className="font-handwritten text-green-700 mb-3 flex items-center gap-2 text-sm">
+                <div className="p-4 rounded-xl border border-gray-200 bg-white">
+                  <h3 className="text-gray-700 mb-3 flex items-center gap-2 text-sm">
                     <MdOutlineManageSearch className="w-5 h-5" />
                     Spiel automatisch suchen
                   </h3>
@@ -1394,7 +1394,7 @@ function LibraryContent() {
                   <Button
                     type="button"
                     onClick={() => setIsGameSearchDialogOpen(true)}
-                    className="bg-green-400 hover:bg-green-500 text-white font-handwritten"
+                    className="bg-green-400 hover:bg-green-500 text-white"
                   >
                     <MdOutlineManageSearch className="w-4 h-4 mr-2" />
                     Spiel suchen
@@ -1404,7 +1404,7 @@ function LibraryContent() {
 
               {(inputMode === "manual" || newGameTitle) && (
                 <>
-                  <div className="bg-gradient-to-br from-teal-50 to-teal-100 p-4 rounded-xl border border-teal-200">
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white">
                     <h3 className="font-handwritten text-sm text-teal-700 mb-3 flex items-center gap-2">
                       <FaImage className="w-5 h-5" />
                       Spiel Cover
@@ -1445,8 +1445,8 @@ function LibraryContent() {
                   </div>
 
                   {/* Grundinformationen Sektion */}
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
-                    <h3 className="font-handwritten text-sm text-blue-700 mb-4 flex items-center gap-2">
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white">
+                    <h3 className="font-handwritten text-sm text-gray-700 mb-4 flex items-center gap-2">
                       <FaInfoCircle className="w-5 h-5" />
                       Grundinformationen
                     </h3>
@@ -1589,8 +1589,8 @@ function LibraryContent() {
                   </div>
 
                   {/* Spieldetails Sektion */}
-                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-xl border border-orange-200">
-                    <h3 className="font-handwritten text-sm text-orange-700 mb-4 flex items-center gap-2">
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white">
+                    <h3 className="font-handwritten text-sm text-gray-700 mb-4 flex items-center gap-2">
                       <FaUsers className="w-5 h-5" />
                       Spieldetails
                     </h3>
@@ -1651,8 +1651,8 @@ function LibraryContent() {
                   </div>
 
                   {/* Kategorien Sektion */}
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border border-purple-200">
-                    <h3 className="font-handwritten text-sm text-purple-700 mb-4 flex items-center gap-2">
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white">
+                    <h3 className="font-handwritten text-sm text-gray-700 mb-4 flex items-center gap-2">
                       <FaTag className="w-5 h-5" />
                       Kategorien & Typus
                     </h3>
@@ -1837,13 +1837,13 @@ function LibraryContent() {
                   type="button"
                   variant="outline"
                   onClick={() => setIsAddGameDialogOpen(false)}
-                  className="flex-1 font-handwritten border-2 border-gray-300 hover:bg-gray-100 transition-all duration-200"
+                  className="flex-1 border-2 border-gray-300 hover:bg-gray-100 transition-all duration-200"
                 >
                   Abbrechen
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-teal-400 hover:bg-teal-500 text-white font-handwritten transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="flex-1 bg-teal-400 hover:bg-teal-500 text-white transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   <FaPlus className="w-4 h-4 mr-2" />
                   Hinzufügen
@@ -2487,29 +2487,29 @@ function LibraryContent() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="center" className="w-56">
-                        <DropdownMenuItem onClick={() => handleEditGame(selectedGame)} className="text-xs font-handwritten cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleEditGame(selectedGame)} className="text-xs cursor-pointer">
                           <FaEdit className="w-3.5 h-3.5 mr-2 text-blue-500" />
                           Bearbeiten
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setIsTrackingDialogOpen(true)} className="text-xs font-handwritten cursor-pointer">
+                        <DropdownMenuItem onClick={() => setIsTrackingDialogOpen(true)} className="text-xs cursor-pointer">
                           <FaTags className="w-3.5 h-3.5 mr-2 text-purple-500" />
                           Status
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "lend")} className="text-xs font-handwritten cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "lend")} className="text-xs cursor-pointer">
                           <TbExchange className="w-3.5 h-3.5 mr-2 text-teal-500" />
                           Vermieten
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "trade")} className="text-xs font-handwritten cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "trade")} className="text-xs cursor-pointer">
                           <GiBackForth className="w-3.5 h-3.5 mr-2 text-orange-500" />
                           Zum Tausch anbieten
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "sell")} className="text-xs font-handwritten cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "sell")} className="text-xs cursor-pointer">
                           <GiReceiveMoney className="w-3.5 h-3.5 mr-2 text-pink-500" />
                           Verkaufen
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setIsEventDialogOpen(true)} className="text-xs font-handwritten cursor-pointer">
+                        <DropdownMenuItem onClick={() => setIsEventDialogOpen(true)} className="text-xs cursor-pointer">
                           <GiTabletopPlayers className="w-3.5 h-3.5 mr-2 text-green-500" />
                           Spielrunde planen
                         </DropdownMenuItem>

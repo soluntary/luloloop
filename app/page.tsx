@@ -535,7 +535,7 @@ export default function HomePage() {
           transition={{ duration: 0.6 }}
           className="font-handwritten text-center text-gray-800 mb-4 transform -rotate-1 text-2xl"
         >
-          Deine Vorteile auf einen Blick
+          Warum Ludoloop?
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}

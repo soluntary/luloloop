@@ -833,7 +833,7 @@ export function CreateMarketplaceOfferForm({
               newErrors.maxRentalDays = "Hoechstmietdauer muss mindestens 1 Tag sein."
             }
             if (!minRentalFlexible && minDays > maxDays) {
-              newErrors.maxRentalDays = "Hoechstmietdauer muss groesser als Mindestmietdauer sein."
+              newErrors.maxRentalDays = "Höchstmietdauer muss grösser als Mindestmietdauer sein."
             }
           }
         }
@@ -1066,16 +1066,6 @@ export function CreateMarketplaceOfferForm({
           return "Inserat bearbeiten"
       }
     }
-    switch (currentStep) {
-      case 1:
-        return "Schritt 1: Spielauswahl"
-      case 2:
-        return "Schritt 2: Anzeigendetails"
-      case 3:
-        return "Schritt 3: Zusammenfassung"
-      default:
-        return "Spiel inserieren"
-    }
   }
 
   const getPriceLabel = () => {
@@ -1130,14 +1120,13 @@ export function CreateMarketplaceOfferForm({
                 </div>
               ))}
             </div>
-            <p className="text-center text-gray-600 text-xs mt-3">Schritt {currentStep} von 3</p>
           </div>
 
           {/* Step 1: Game Selection */}
           {currentStep === 1 && (
             <div className="space-y-6">
               <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <h3 className="text-gray-900 mb-4 font-normal text-xs">Spiel auswählen</h3>
+                <h3 className="text-gray-900 mb-4 font-bold text-sm">Spiel auswählen</h3>
 
                 <div className="space-y-4">
                   <div>
@@ -1192,7 +1181,7 @@ export function CreateMarketplaceOfferForm({
                         }}
                         className="border-gray-400 data-[state=checked]:bg-gray-900"
                       />
-                      <Label htmlFor="custom-game" className="font-medium text-sm text-gray-900 cursor-pointer">
+                      <Label htmlFor="custom-game" className="font-medium text-xs text-gray-900 cursor-pointer">
                         Neues Spiel erfassen
                       </Label>
                     </div>
@@ -1686,7 +1675,7 @@ export function CreateMarketplaceOfferForm({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Offer Type */}
                   <div>
-                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Angebotsart <span className="text-red-500">*</span></Label>
+                    <Label className="text-xs text-gray-700 mb-2 block">Angebotsart <span className="text-red-500">*</span></Label>
                     <Select value={offerType} onValueChange={(value: "lend" | "trade" | "sell") => setOfferType(value)}>
                       <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500 rounded-lg bg-white">
                         <SelectValue />
@@ -1713,7 +1702,7 @@ export function CreateMarketplaceOfferForm({
 
                   {/* Condition */}
                   <div>
-                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Zustand <span className="text-red-500">*</span></Label>
+                    <Label className="text-xs text-gray-700 mb-2 block">Zustand <span className="text-red-500">*</span></Label>
                     <Select value={condition} onValueChange={setCondition}>
                       <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500 rounded-lg bg-white">
                         <SelectValue placeholder="Zustand auswählen..." />
@@ -1753,7 +1742,7 @@ export function CreateMarketplaceOfferForm({
                     <div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">Mindestmietdauer (Tage)</Label>
+                          <Label className="text-xs mb-1 block">Mindestmietdauer (Tage)</Label>
                           <Input
                             placeholder="z.B. 1"
                             value={minRentalDays}
@@ -1780,7 +1769,7 @@ export function CreateMarketplaceOfferForm({
                           )}
                         </div>
                         <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">Höchstmietdauer (Tage)</Label>
+                          <Label className="text-xs mb-1 block">Höchstmietdauer (Tage)</Label>
                           <Input
                             placeholder="z.B. 30"
                             value={maxRentalDays}
@@ -1811,7 +1800,7 @@ export function CreateMarketplaceOfferForm({
 
                     {/* Basispreis */}
                     <div>
-                      <Label className="text-xs text-gray-600 mb-1 block">Basispreis pro Tag <span className="text-red-500">*</span></Label>
+                      <Label className="text-xs mb-1 block">Basispreis pro Tag <span className="text-red-500">*</span></Label>
                       <div className="max-w-xs">
                         <div className="relative">
                           <Input
@@ -1834,7 +1823,7 @@ export function CreateMarketplaceOfferForm({
                     {/* 3. Staffelpreise */}
                     <div>
                       <div className="flex items-center gap-3 mb-3">
-                        <Label className="text-xs font-semibold text-gray-700">Tagespreis für längere Mieten einstellen?</Label>
+                        <Label className="text-xs text-gray-900">Tagespreis für längere Mieten einstellen?</Label>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
@@ -1924,7 +1913,7 @@ export function CreateMarketplaceOfferForm({
                   <h4 className="font-semibold text-gray-900 mb-4 text-sm">Verkaufsbedingungen</h4>
 
                   <div>
-                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Verkaufspreis (CHF) <span className="text-red-500">*</span></Label>
+                    <Label className="text-xs text-gray-700 mb-2 block">Verkaufspreis (CHF) <span className="text-red-500">*</span></Label>
                     <Input
                       placeholder="z.B. 25.00"
                       value={salePrice}

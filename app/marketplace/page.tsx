@@ -2089,7 +2089,7 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
           <div className="sticky top-0 bg-white border-b border-gray-200 p-6 -m-6 mb-6 z-10">
             <DialogTitle className="text-2xl font-semibold text-gray-900 mb-2">Spiel inserieren</DialogTitle>
             <p className="text-sm text-gray-600">
-              Biete deine Spiele ganz einfach zum Verkauf, zur Vermietung oder zum Tausch an
+              Inseriere deine Spiele ganz einfach und finde schnell interessierte Käufer, Mieter oder Tauschpartner!
             </p>
           </div>
           <CreateMarketplaceOfferForm
