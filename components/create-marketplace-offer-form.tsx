@@ -1675,7 +1675,7 @@ export function CreateMarketplaceOfferForm({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Offer Type */}
                   <div>
-                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Angebotsart <span className="text-red-500">*</span></Label>
+                    <Label className="text-xs text-gray-700 mb-2 block">Angebotsart <span className="text-red-500">*</span></Label>
                     <Select value={offerType} onValueChange={(value: "lend" | "trade" | "sell") => setOfferType(value)}>
                       <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500 rounded-lg bg-white">
                         <SelectValue />
@@ -1702,7 +1702,7 @@ export function CreateMarketplaceOfferForm({
 
                   {/* Condition */}
                   <div>
-                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Zustand <span className="text-red-500">*</span></Label>
+                    <Label className="text-xs text-gray-700 mb-2 block">Zustand <span className="text-red-500">*</span></Label>
                     <Select value={condition} onValueChange={setCondition}>
                       <SelectTrigger className="h-11 border-gray-300 focus:border-teal-500 rounded-lg bg-white">
                         <SelectValue placeholder="Zustand auswählen..." />
@@ -1913,7 +1913,7 @@ export function CreateMarketplaceOfferForm({
                   <h4 className="font-semibold text-gray-900 mb-4 text-sm">Verkaufsbedingungen</h4>
 
                   <div>
-                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Verkaufspreis (CHF) <span className="text-red-500">*</span></Label>
+                    <Label className="text-xs text-gray-700 mb-2 block">Verkaufspreis (CHF) <span className="text-red-500">*</span></Label>
                     <Input
                       placeholder="z.B. 25.00"
                       value={salePrice}
