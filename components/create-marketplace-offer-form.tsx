@@ -1066,16 +1066,6 @@ export function CreateMarketplaceOfferForm({
           return "Inserat bearbeiten"
       }
     }
-    switch (currentStep) {
-      case 1:
-        return "Schritt 1: Spielauswahl"
-      case 2:
-        return "Schritt 2: Anzeigendetails"
-      case 3:
-        return "Schritt 3: Zusammenfassung"
-      default:
-        return "Spiel inserieren"
-    }
   }
 
   const getPriceLabel = () => {
