@@ -1682,7 +1682,7 @@ export function CreateMarketplaceOfferForm({
                       </SelectTrigger>
                       <SelectContent className="rounded-lg">
                         <SelectItem value="lend" className="rounded-md">
-                          <div className="flex items-center gap-2">Mietangebot</div>
+                          <div className="flex items-center gap-2 text-xs">Mietangebot</div>
                         </SelectItem>
                         <SelectItem value="trade" className="rounded-md">
                           <div className="flex items-center gap-2">Tauschangebot</div>
