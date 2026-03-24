@@ -2487,29 +2487,29 @@ function LibraryContent() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="center" className="w-56">
-                        <DropdownMenuItem onClick={() => handleEditGame(selectedGame)} className="text-xs font-handwritten cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleEditGame(selectedGame)} className="text-xs cursor-pointer">
                           <FaEdit className="w-3.5 h-3.5 mr-2 text-blue-500" />
                           Bearbeiten
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setIsTrackingDialogOpen(true)} className="text-xs font-handwritten cursor-pointer">
+                        <DropdownMenuItem onClick={() => setIsTrackingDialogOpen(true)} className="text-xs cursor-pointer">
                           <FaTags className="w-3.5 h-3.5 mr-2 text-purple-500" />
                           Status
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "lend")} className="text-xs font-handwritten cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "lend")} className="text-xs cursor-pointer">
                           <TbExchange className="w-3.5 h-3.5 mr-2 text-teal-500" />
                           Vermieten
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "trade")} className="text-xs font-handwritten cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "trade")} className="text-xs cursor-pointer">
                           <GiBackForth className="w-3.5 h-3.5 mr-2 text-orange-500" />
                           Zum Tausch anbieten
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "sell")} className="text-xs font-handwritten cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleOfferGame(selectedGame, "sell")} className="text-xs cursor-pointer">
                           <GiReceiveMoney className="w-3.5 h-3.5 mr-2 text-pink-500" />
                           Verkaufen
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setIsEventDialogOpen(true)} className="text-xs font-handwritten cursor-pointer">
+                        <DropdownMenuItem onClick={() => setIsEventDialogOpen(true)} className="text-xs cursor-pointer">
                           <GiTabletopPlayers className="w-3.5 h-3.5 mr-2 text-green-500" />
                           Spielrunde planen
                         </DropdownMenuItem>
