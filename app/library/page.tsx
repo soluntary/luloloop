@@ -1357,7 +1357,7 @@ function LibraryContent() {
                 Neues Spiel hinzufügen
               </DialogTitle>
               <p className="text-gray-500 text-center font-body text-xs">
-                Füge ein neues Spiel zu deiner Spielesammlung hinzu
+                Füge ein neues Spiel zu deinem Spieleregal hinzu
               </p>
             </DialogHeader>
             <form onSubmit={handleAddGameSubmit} className="space-y-6">
@@ -1365,7 +1365,7 @@ function LibraryContent() {
                 <button
                   type="button"
                   onClick={() => setInputMode("auto")}
-                  className={`flex-1 py-2 px-4 rounded-md font-handwritten transition-all duration-200 text-sm ${inputMode === "auto" ? "bg-green-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
+                  className={`flex-1 py-2 px-4 rounded-md transition-all duration-200 text-sm ${inputMode === "auto" ? "bg-green-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
                     }`}
                 >
                   <MdOutlineManageSearch className="w-4 h-4 inline mr-2" />
@@ -1384,7 +1384,7 @@ function LibraryContent() {
 
               {inputMode === "auto" && (
                 <div className="p-4 rounded-xl border border-gray-200 bg-white">
-                  <h3 className="font-handwritten text-gray-700 mb-3 flex items-center gap-2 text-sm">
+                  <h3 className="text-gray-700 mb-3 flex items-center gap-2 text-sm">
                     <MdOutlineManageSearch className="w-5 h-5" />
                     Spiel automatisch suchen
                   </h3>
@@ -1394,7 +1394,7 @@ function LibraryContent() {
                   <Button
                     type="button"
                     onClick={() => setIsGameSearchDialogOpen(true)}
-                    className="bg-green-400 hover:bg-green-500 text-white font-handwritten"
+                    className="bg-green-400 hover:bg-green-500 text-white"
                   >
                     <MdOutlineManageSearch className="w-4 h-4 mr-2" />
                     Spiel suchen
@@ -1837,13 +1837,13 @@ function LibraryContent() {
                   type="button"
                   variant="outline"
                   onClick={() => setIsAddGameDialogOpen(false)}
-                  className="flex-1 font-handwritten border-2 border-gray-300 hover:bg-gray-100 transition-all duration-200"
+                  className="flex-1 border-2 border-gray-300 hover:bg-gray-100 transition-all duration-200"
                 >
                   Abbrechen
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-teal-400 hover:bg-teal-500 text-white font-handwritten transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="flex-1 bg-teal-400 hover:bg-teal-500 text-white transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   <FaPlus className="w-4 h-4 mr-2" />
                   Hinzufügen
