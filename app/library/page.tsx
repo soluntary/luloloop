@@ -1365,7 +1365,7 @@ function LibraryContent() {
                 <button
                   type="button"
                   onClick={() => setInputMode("auto")}
-                  className={`flex-1 py-2 px-4 rounded-md transition-all duration-200 text-sm ${inputMode === "auto" ? "bg-green-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
+                  className={`flex-1 py-2 px-4 rounded-md font-handwritten transition-all duration-200 text-sm ${inputMode === "auto" ? "bg-green-400 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
                     }`}
                 >
                   <MdOutlineManageSearch className="w-4 h-4 inline mr-2" />
