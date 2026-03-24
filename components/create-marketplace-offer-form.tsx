@@ -833,7 +833,7 @@ export function CreateMarketplaceOfferForm({
               newErrors.maxRentalDays = "Hoechstmietdauer muss mindestens 1 Tag sein."
             }
             if (!minRentalFlexible && minDays > maxDays) {
-              newErrors.maxRentalDays = "Hoechstmietdauer muss groesser als Mindestmietdauer sein."
+              newErrors.maxRentalDays = "Höchstmietdauer muss grösser als Mindestmietdauer sein."
             }
           }
         }
@@ -1742,7 +1742,7 @@ export function CreateMarketplaceOfferForm({
                     <div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">Mindestmietdauer (Tage)</Label>
+                          <Label className="text-xs mb-1 block">Mindestmietdauer (Tage)</Label>
                           <Input
                             placeholder="z.B. 1"
                             value={minRentalDays}
@@ -1769,7 +1769,7 @@ export function CreateMarketplaceOfferForm({
                           )}
                         </div>
                         <div>
-                          <Label className="text-xs text-gray-600 mb-1 block">Höchstmietdauer (Tage)</Label>
+                          <Label className="text-xs mb-1 block">Höchstmietdauer (Tage)</Label>
                           <Input
                             placeholder="z.B. 30"
                             value={maxRentalDays}
@@ -1800,7 +1800,7 @@ export function CreateMarketplaceOfferForm({
 
                     {/* Basispreis */}
                     <div>
-                      <Label className="text-xs text-gray-600 mb-1 block">Basispreis pro Tag <span className="text-red-500">*</span></Label>
+                      <Label className="text-xs mb-1 block">Basispreis pro Tag <span className="text-red-500">*</span></Label>
                       <div className="max-w-xs">
                         <div className="relative">
                           <Input
