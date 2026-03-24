@@ -1383,8 +1383,8 @@ function LibraryContent() {
               </div>
 
               {inputMode === "auto" && (
-                <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
-                  <h3 className="font-handwritten text-green-700 mb-3 flex items-center gap-2 text-sm">
+                <div className="p-4 rounded-xl border border-gray-200 bg-white">
+                  <h3 className="font-handwritten text-gray-700 mb-3 flex items-center gap-2 text-sm">
                     <MdOutlineManageSearch className="w-5 h-5" />
                     Spiel automatisch suchen
                   </h3>
@@ -1404,7 +1404,7 @@ function LibraryContent() {
 
               {(inputMode === "manual" || newGameTitle) && (
                 <>
-                  <div className="bg-gradient-to-br from-teal-50 to-teal-100 p-4 rounded-xl border border-teal-200">
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white">
                     <h3 className="font-handwritten text-sm text-teal-700 mb-3 flex items-center gap-2">
                       <FaImage className="w-5 h-5" />
                       Spiel Cover
@@ -1445,8 +1445,8 @@ function LibraryContent() {
                   </div>
 
                   {/* Grundinformationen Sektion */}
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
-                    <h3 className="font-handwritten text-sm text-blue-700 mb-4 flex items-center gap-2">
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white">
+                    <h3 className="font-handwritten text-sm text-gray-700 mb-4 flex items-center gap-2">
                       <FaInfoCircle className="w-5 h-5" />
                       Grundinformationen
                     </h3>
@@ -1589,8 +1589,8 @@ function LibraryContent() {
                   </div>
 
                   {/* Spieldetails Sektion */}
-                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-xl border border-orange-200">
-                    <h3 className="font-handwritten text-sm text-orange-700 mb-4 flex items-center gap-2">
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white">
+                    <h3 className="font-handwritten text-sm text-gray-700 mb-4 flex items-center gap-2">
                       <FaUsers className="w-5 h-5" />
                       Spieldetails
                     </h3>
@@ -1651,8 +1651,8 @@ function LibraryContent() {
                   </div>
 
                   {/* Kategorien Sektion */}
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border border-purple-200">
-                    <h3 className="font-handwritten text-sm text-purple-700 mb-4 flex items-center gap-2">
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white">
+                    <h3 className="font-handwritten text-sm text-gray-700 mb-4 flex items-center gap-2">
                       <FaTag className="w-5 h-5" />
                       Kategorien & Typus
                     </h3>
