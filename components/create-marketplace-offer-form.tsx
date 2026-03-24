@@ -1126,7 +1126,7 @@ export function CreateMarketplaceOfferForm({
           {currentStep === 1 && (
             <div className="space-y-6">
               <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <h3 className="text-gray-900 mb-4 font-bold text-xs">Spiel auswählen</h3>
+                <h3 className="text-gray-900 mb-4 font-bold text-sm">Spiel auswählen</h3>
 
                 <div className="space-y-4">
                   <div>
