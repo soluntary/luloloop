@@ -406,7 +406,7 @@ function Navigation({ currentPage }: NavigationProps) {
                   <Link
                     href="/login"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full flex items-center justify-center space-x-2 border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten bg-transparent px-4 py-2 rounded-lg text-sm"
+                    className="w-full flex items-center justify-center space-x-2 border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white bg-transparent px-4 py-2 rounded-lg text-sm"
                   >
                     <FaSignInAlt className="w-4 h-4" />
                     <span>Anmelden</span>
@@ -414,7 +414,7 @@ function Navigation({ currentPage }: NavigationProps) {
                   <Link
                     href="/register"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full flex items-center justify-center space-x-2 bg-teal-400 hover:bg-teal-500 text-white font-handwritten px-4 py-2 rounded-lg text-sm"
+                    className="w-full flex items-center justify-center space-x-2 bg-teal-400 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-sm"
                   >
                     <FaUserPlus className="w-4 h-4" />
                     <span>Registrieren</span>
