@@ -1130,7 +1130,6 @@ export function CreateMarketplaceOfferForm({
                 </div>
               ))}
             </div>
-            <p className="text-center text-gray-600 text-xs mt-3">Schritt {currentStep} von 3</p>
           </div>
 
           {/* Step 1: Game Selection */}
