@@ -1823,7 +1823,7 @@ export function CreateMarketplaceOfferForm({
                     {/* 3. Staffelpreise */}
                     <div>
                       <div className="flex items-center gap-3 mb-3">
-                        <Label className="text-xs font-semibold text-gray-700">Tagespreis für längere Mieten einstellen?</Label>
+                        <Label className="text-xs text-gray-900">Tagespreis für längere Mieten einstellen?</Label>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
