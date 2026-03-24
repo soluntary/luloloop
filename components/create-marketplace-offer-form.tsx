@@ -1181,7 +1181,7 @@ export function CreateMarketplaceOfferForm({
                         }}
                         className="border-gray-400 data-[state=checked]:bg-gray-900"
                       />
-                      <Label htmlFor="custom-game" className="font-medium text-sm text-gray-900 cursor-pointer">
+                      <Label htmlFor="custom-game" className="font-medium text-xs text-gray-900 cursor-pointer">
                         Neues Spiel erfassen
                       </Label>
                     </div>
