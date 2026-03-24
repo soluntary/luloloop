@@ -234,7 +234,7 @@ function Navigation({ currentPage }: NavigationProps) {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 font-handwritten text-sm transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent">
+                  <button className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-teal-50 hover:text-teal-600 text-sm transform hover:scale-105 hover:-rotate-1 transition-all bg-transparent">
                     <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-teal-400">
                       <img
                         src={avatarSrc || "/placeholder.svg"}
@@ -264,7 +264,7 @@ function Navigation({ currentPage }: NavigationProps) {
                 <Link
                   href="/login"
                   prefetch={true}
-                  className="border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all bg-white flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm"
+                  className="border-2 border-teal-400 text-teal-800 hover:bg-teal-400 hover:text-white transform hover:scale-105 hover:rotate-1 transition-all bg-white flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm"
                 >
                   <FaSignInAlt className="w-4 h-4" />
                   <span>Anmelden</span>
@@ -272,7 +272,7 @@ function Navigation({ currentPage }: NavigationProps) {
                 <Link
                   href="/register"
                   prefetch={true}
-                  className="bg-teal-400 hover:bg-teal-500 text-white font-handwritten transform hover:scale-105 hover:rotate-1 transition-all flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm"
+                  className="bg-teal-400 hover:bg-teal-500 text-white transform hover:scale-105 hover:rotate-1 transition-all flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm"
                 >
                   <FaUserPlus className="w-4 h-4" />
                   <span>Registrieren</span>
