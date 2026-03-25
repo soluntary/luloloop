@@ -38,7 +38,7 @@ import "@/styles/font-handwritten.css"
 import "@/styles/font-body.css"
 import { motion } from "framer-motion"
 import { useInView } from "framer-motion"
-import React, { useRef, useState, useMemo } from "react"
+import { useRef, useState, useMemo } from "react"
 import { useAuth } from "@/contexts/auth-context"
 
 // Floating Dice Component - 3D dice showing all faces
@@ -309,78 +309,6 @@ function ConfettiBurst({ trigger }: { trigger: boolean }) {
   )
 }
 
-// Animated Counter Component
-function AnimatedCounter({ end, duration = 2, suffix = "" }: { end: number; duration?: number; suffix?: string }) {
-  const [count, setCount] = useState(0)
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true })
-
-  React.useEffect(() => {
-    if (!isInView) return
-    
-    let startTime: number
-    const animate = (currentTime: number) => {
-      if (!startTime) startTime = currentTime
-      const progress = Math.min((currentTime - startTime) / (duration * 1000), 1)
-      setCount(Math.floor(progress * end))
-      if (progress < 1) {
-        requestAnimationFrame(animate)
-      }
-    }
-    requestAnimationFrame(animate)
-  }, [isInView, end, duration])
-
-  return <span ref={ref}>{count}{suffix}</span>
-}
-
-// Flip Card Component for Game Discovery
-function FlipCard({ front, back, isFlipped, onFlip }: { front: React.ReactNode; back: React.ReactNode; isFlipped: boolean; onFlip: () => void }) {
-  return (
-    <div 
-      className="relative w-full h-64 cursor-pointer perspective-1000"
-      onClick={onFlip}
-    >
-      <motion.div
-        className="w-full h-full relative"
-        style={{ transformStyle: "preserve-3d" }}
-        animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <div 
-          className="absolute w-full h-full backface-hidden"
-          style={{ backfaceVisibility: "hidden" }}
-        >
-          {front}
-        </div>
-        <div 
-          className="absolute w-full h-full backface-hidden"
-          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
-        >
-          {back}
-        </div>
-      </motion.div>
-    </div>
-  )
-}
-
-// Pulse Ring Animation Component
-function PulseRing() {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-      <motion.div
-        className="absolute w-full h-full rounded-full border-2 border-teal-400"
-        animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
-      />
-      <motion.div
-        className="absolute w-full h-full rounded-full border-2 border-teal-400"
-        animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut", delay: 0.5 }}
-      />
-    </div>
-  )
-}
-
 // Game Board Background Pattern
 function GameBoardPattern() {
   return (
@@ -492,54 +420,8 @@ export default function HomePage() {
             <span className="block">Entdecke und geniesse Brettspiele</span>
             <span className="block text-teal-600">wie nie zuvor</span>
           </motion.h2>
-          
-          {/* Interactive Dice in Hero */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="flex justify-center mb-8"
-          >
-            <div className="flex items-center gap-4">
-              <InteractiveDice />
-              <span className="text-gray-500 font-body text-sm">Klick den Wuerfel!</span>
-            </div>
-          </motion.div>
         </div>
       </section>
-
-      {/* Animated Stats Section */}
-      <AnimatedSection className="container mx-auto px-4 py-8 mb-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-          {[
-            { value: 1200, suffix: "+", label: "Brettspiele", icon: GiRollingDices, color: "teal" },
-            { value: 850, suffix: "+", label: "Mitglieder", icon: LiaUsersSolid, color: "orange" },
-            { value: 320, suffix: "+", label: "Aktive Angebote", icon: FaStore, color: "pink" },
-            { value: 45, suffix: "+", label: "Events/Monat", icon: FaCalendarAlt, color: "purple" },
-          ].map((stat, index) => {
-            const colors = getColorClasses(stat.color)
-            return (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ scale: 1.05, y: -5 }}
-                className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 text-center shadow-sm border border-gray-100 cursor-pointer"
-              >
-                <div className={`w-10 h-10 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-2`}>
-                  <stat.icon className="w-5 h-5 text-white" />
-                </div>
-                <div className="font-bold text-2xl text-gray-800 font-handwritten">
-                  <AnimatedCounter end={stat.value} suffix={stat.suffix} />
-                </div>
-                <div className="text-gray-500 text-xs font-body">{stat.label}</div>
-              </motion.div>
-            )
-          })}
-        </div>
-      </AnimatedSection>
 
       {/* Features */}
       <AnimatedSection className="container mx-auto px-4 py-12 bg-white/50 rounded-3xl mx-4 mb-16 relative">
@@ -748,118 +630,6 @@ export default function HomePage() {
             )
           })}
         </motion.div>
-      </AnimatedSection>
-
-      {/* Interactive Game Discovery Section */}
-      <AnimatedSection className="container mx-auto px-4 py-16 mb-8">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="font-handwritten text-center text-gray-800 mb-4 text-2xl"
-        >
-          Entdecke neue Spiele
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="text-center text-gray-500 font-body mb-8 text-sm"
-        >
-          Klicke auf eine Karte, um mehr zu erfahren
-        </motion.p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          {[
-            { 
-              title: "Strategie", 
-              icon: GiDiceTarget, 
-              color: "teal",
-              games: ["Catan", "Terraforming Mars", "Wingspan"],
-              description: "Plane voraus und ueberliste deine Gegner"
-            },
-            { 
-              title: "Kooperativ", 
-              icon: LiaUsersSolid, 
-              color: "orange",
-              games: ["Pandemic", "Spirit Island", "Gloomhaven"],
-              description: "Gemeinsam zum Sieg - Teamwork ist gefragt"
-            },
-            { 
-              title: "Party", 
-              icon: GiRollingDices, 
-              color: "pink",
-              games: ["Codenames", "Dixit", "Just One"],
-              description: "Spass und Lachen fuer die ganze Gruppe"
-            },
-          ].map((category, index) => {
-            const colors = getColorClasses(category.color)
-            const [isFlipped, setIsFlipped] = useState(false)
-            
-            return (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.15 }}
-              >
-                <div 
-                  className="relative h-48 cursor-pointer group"
-                  onClick={() => setIsFlipped(!isFlipped)}
-                  style={{ perspective: "1000px" }}
-                >
-                  <motion.div
-                    className="w-full h-full relative"
-                    style={{ transformStyle: "preserve-3d" }}
-                    animate={{ rotateY: isFlipped ? 180 : 0 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    {/* Front */}
-                    <div 
-                      className={`absolute w-full h-full rounded-2xl ${colors.icon} p-6 flex flex-col items-center justify-center text-white shadow-lg`}
-                      style={{ backfaceVisibility: "hidden" }}
-                    >
-                      <category.icon className="w-12 h-12 mb-3" />
-                      <h3 className="font-handwritten text-xl">{category.title}</h3>
-                      <p className="text-white/80 text-xs mt-2 font-body">{category.description}</p>
-                      <motion.div
-                        className="absolute bottom-4 text-xs opacity-60"
-                        animate={{ y: [0, -5, 0] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                      >
-                        Klick mich
-                      </motion.div>
-                    </div>
-                    
-                    {/* Back */}
-                    <div 
-                      className="absolute w-full h-full rounded-2xl bg-white border-2 border-gray-200 p-6 flex flex-col items-center justify-center shadow-lg"
-                      style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
-                    >
-                      <h4 className="font-handwritten text-gray-800 mb-3">Beliebte {category.title}-Spiele:</h4>
-                      <ul className="space-y-2">
-                        {category.games.map((game, i) => (
-                          <li key={i} className="flex items-center gap-2 text-gray-600 font-body text-sm">
-                            <FaDice className={`w-3 h-3 ${colors.text}`} />
-                            {game}
-                          </li>
-                        ))}
-                      </ul>
-                      <Link 
-                        href="/marketplace" 
-                        className={`mt-4 text-xs ${colors.text} hover:underline font-body flex items-center gap-1`}
-                      >
-                        Alle anzeigen <FaArrowRight className="w-3 h-3" />
-                      </Link>
-                    </div>
-                  </motion.div>
-                </div>
-              </motion.div>
-            )
-          })}
-        </div>
       </AnimatedSection>
 
       {/* CTA Section */}
