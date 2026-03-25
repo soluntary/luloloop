@@ -111,7 +111,7 @@ function FloatingDice({ delay = 0, duration = 18 }: { delay?: number; duration?:
 
   return (
     <motion.div
-      className="absolute opacity-30"
+      className="absolute opacity-40"
       style={{
         left: `${randomX}%`,
         top: "-100px",
@@ -189,7 +189,7 @@ function FloatingCard({ delay = 0, duration = 25 }: { delay?: number; duration?:
 
   return (
     <motion.div
-      className="absolute bg-white border-2 border-gray-300 rounded-lg opacity-20 shadow-xl"
+      className="absolute bg-white border-2 border-gray-300 rounded-lg opacity-35 shadow-xl"
       style={{
         left: `${randomX}%`,
         top: "-100px",
@@ -368,19 +368,19 @@ export default function HomePage() {
   const { user, loading } = useAuth()
 
   // useMemo must be called before any conditional returns to follow Rules of Hooks
-  // Reduced number of floating elements for better performance
+  // Increased number of floating elements for more lively feel
   const floatingElements = useMemo(
     () => (
       <div
         className="fixed inset-0 pointer-events-none"
         style={{ transform: "translateZ(0)", willChange: "transform" }}
       >
-        {Array.from({ length: 3 }).map((_, i) => (
-          <FloatingCard key={i} delay={i * 4} duration={25 + Math.random() * 10} />
+        {Array.from({ length: 6 }).map((_, i) => (
+          <FloatingCard key={i} delay={i * 3} duration={20 + Math.random() * 10} />
         ))}
 
-        {Array.from({ length: 2 }).map((_, i) => (
-          <FloatingDice key={`dice-${i}`} delay={i * 3} duration={22 + Math.random() * 6} />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <FloatingDice key={`dice-${i}`} delay={i * 2.5} duration={18 + Math.random() * 8} />
         ))}
       </div>
     ),
@@ -400,7 +400,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-100 relative overflow-hidden">
       <GameBoardPattern />
 
       {floatingElements}
@@ -409,31 +409,91 @@ export default function HomePage() {
       <Navigation currentPage="home" />
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 text-center relative my-0">
+      <section className="container mx-auto px-4 py-20 text-center relative my-0">
         <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="mb-6"
+          >
+            <span className="inline-block px-4 py-2 bg-gradient-to-r from-teal-100 to-orange-100 text-teal-700 rounded-full text-sm font-medium mb-4">
+              Die Brettspiel-Community der Schweiz
+            </span>
+          </motion.div>
           <motion.h2
             initial={{ opacity: 0, y: 30, rotate: -1 }}
             animate={{ opacity: 1, y: 0, rotate: -1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="font-bold text-gray-800 mb-6 transform -rotate-1 font-handwritten text-4xl"
+            className="font-bold text-gray-800 mb-6 transform -rotate-1 font-handwritten text-4xl md:text-5xl"
           >
             <span className="block">Entdecke und geniesse Brettspiele</span>
-            <span className="block text-teal-600">wie nie zuvor</span>
+            <motion.span 
+              className="block bg-gradient-to-r from-teal-500 via-orange-500 to-pink-500 bg-clip-text text-transparent"
+              animate={{ 
+                backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+              }}
+              transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+              style={{ backgroundSize: "200% 200%" }}
+            >
+              wie nie zuvor
+            </motion.span>
           </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="text-gray-600 text-lg max-w-2xl mx-auto font-body"
+          >
+            Verwalte deine Sammlung, tausche mit Gleichgesinnten und finde neue Spielpartner in deiner Naehe.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+            className="mt-8 flex flex-wrap justify-center gap-4"
+          >
+            <Button
+              asChild
+              size="lg"
+              className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white rounded-full px-8 py-6 text-lg font-handwritten shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+            >
+              <Link href={user ? "/library" : "/register"} className="flex items-center gap-2">
+                <FaPlus className="w-5 h-5" />
+                {user ? "Meine Bibliothek" : "Jetzt starten"}
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="border-2 border-orange-300 text-orange-600 hover:bg-orange-50 rounded-full px-8 py-6 text-lg font-handwritten"
+            >
+              <Link href="/marketplace" className="flex items-center gap-2">
+                <FaStore className="w-5 h-5" />
+                Marktplatz entdecken
+              </Link>
+            </Button>
+          </motion.div>
         </div>
       </section>
 
       {/* Features */}
-      <AnimatedSection className="container mx-auto px-4 py-12 bg-white/50 rounded-3xl mx-4 mb-16 relative">
-        <motion.h2
+      <AnimatedSection className="container mx-auto px-4 py-16 bg-white/70 backdrop-blur-sm rounded-3xl mx-4 mb-16 relative shadow-xl border border-white/50">
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="font-handwritten text-center text-gray-800 mb-8 text-2xl"
+          className="text-center mb-10"
         >
-          Was dich erwartet
-        </motion.h2>
+          <span className="inline-block px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs font-medium mb-3">
+            Funktionen
+          </span>
+          <h2 className="font-handwritten text-gray-800 text-3xl">
+            Was dich erwartet
+          </h2>
+        </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
           {[
@@ -527,24 +587,21 @@ export default function HomePage() {
       </AnimatedSection>
 
       {/* Benefits Section */}
-      <AnimatedSection className="container mx-auto px-4 py-16 bg-white/50 rounded-3xl mx-4 mb-16">
-        <motion.h2
+      <AnimatedSection className="container mx-auto px-4 py-16 bg-white/70 backdrop-blur-sm rounded-3xl mx-4 mb-16 shadow-xl border border-white/50">
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="font-handwritten text-center text-gray-800 mb-4 transform -rotate-1 text-2xl"
+          className="text-center mb-12"
         >
-          Warum Ludoloop?
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-gray-600 text-center mb-12 font-body transform rotate-1 text-base"
-        >
-        </motion.p>
+          <span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium mb-3">
+            Vorteile
+          </span>
+          <h2 className="font-handwritten text-gray-800 text-3xl transform -rotate-1">
+            Warum Ludoloop?
+          </h2>
+        </motion.div>
 
         <motion.div
           variants={staggerContainer}
@@ -634,25 +691,54 @@ export default function HomePage() {
 
       {/* CTA Section */}
       <AnimatedSection>
-        <section className="bg-gradient-to-r from-teal-400 via-orange-400 to-pink-400 py-16 relative overflow-hidden">
+        <section className="bg-gradient-to-r from-teal-500 via-orange-500 to-pink-500 py-20 relative overflow-hidden">
           <ConfettiBurst trigger={showConfetti} />
+          
+          {/* Animated background shapes */}
+          <div className="absolute inset-0 overflow-hidden">
+            <motion.div
+              className="absolute -top-20 -left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"
+              animate={{ 
+                x: [0, 50, 0],
+                y: [0, 30, 0],
+              }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="absolute -bottom-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"
+              animate={{ 
+                x: [0, -40, 0],
+                y: [0, -20, 0],
+              }}
+              transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </div>
 
           <div className="container mx-auto px-4 text-center relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 mb-6"
+            >
+              <FaDice className="w-4 h-4 text-white" />
+              <span className="text-white text-sm font-medium">Kostenlos starten</span>
+            </motion.div>
             <motion.h3
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="font-bold text-white mb-6 transform rotate-1 text-2xl"
+              className="font-bold text-white mb-6 transform rotate-1 text-3xl md:text-4xl font-handwritten"
             >
-              Bereit für dein Spiele-Abenteuer?
+              Bereit fuer dein Spiele-Abenteuer?
             </motion.h3>
             <motion.p
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-white mb-8 transform -rotate-1 font-body text-base"
+              className="text-white/90 mb-10 transform -rotate-1 font-body text-lg max-w-2xl mx-auto"
             >
               Schliesse dich tausenden von Brettspiel-Fans an und bringe deine Spielleidenschaft auf ein neues Level!
             </motion.p>
@@ -661,19 +747,21 @@ export default function HomePage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              whileHover={{ scale: 1.1 }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onHoverStart={() => setShowConfetti(true)}
               onHoverEnd={() => setShowConfetti(false)}
+              className="inline-block"
             >
               <Button
                 asChild
-                className="bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 text-lg transform rotate-1 transition-all font-handwritten shadow-lg hover:shadow-2xl"
+                size="lg"
+                className="bg-white text-gray-800 hover:bg-gray-50 px-10 py-6 text-xl transform rotate-1 transition-all font-handwritten shadow-2xl hover:shadow-3xl rounded-full"
               >
-                <Link href="/register" className="flex items-center gap-2">
-                  <FaPlus className="w-5 h-5" />
+                <Link href="/register" className="flex items-center gap-3">
+                  <FaPlus className="w-6 h-6" />
                   Jetzt loslegen
-                  <FaArrowRight className="w-5 h-5" />
+                  <FaArrowRight className="w-6 h-6" />
                 </Link>
               </Button>
             </motion.div>
@@ -687,46 +775,46 @@ export default function HomePage() {
 function getColorClasses(color: string) {
   const colorMap: { [key: string]: { border: string; text: string; hover: string; bg: string; icon: string } } = {
     pink: {
-      border: "border-pink-200",
+      border: "border-pink-300",
       text: "text-pink-600",
-      hover: "hover:bg-pink-400",
-      bg: "bg-pink-400",
-      icon: "bg-pink-400",
+      hover: "hover:bg-pink-500",
+      bg: "bg-pink-500",
+      icon: "bg-gradient-to-br from-pink-400 to-pink-600",
     },
     teal: {
-      border: "border-teal-200",
+      border: "border-teal-300",
       text: "text-teal-600",
-      hover: "hover:bg-teal-400",
-      bg: "bg-teal-400",
-      icon: "bg-teal-400",
+      hover: "hover:bg-teal-500",
+      bg: "bg-teal-500",
+      icon: "bg-gradient-to-br from-teal-400 to-teal-600",
     },
     orange: {
-      border: "border-orange-200",
+      border: "border-orange-300",
       text: "text-orange-600",
-      hover: "hover:bg-orange-400",
-      bg: "bg-orange-400",
-      icon: "bg-orange-400",
+      hover: "hover:bg-orange-500",
+      bg: "bg-orange-500",
+      icon: "bg-gradient-to-br from-orange-400 to-orange-600",
     },
     green: {
-      border: "border-green-200",
-      text: "text-green-600",
-      hover: "hover:bg-green-400",
-      bg: "bg-green-400",
-      icon: "bg-green-400",
+      border: "border-emerald-300",
+      text: "text-emerald-600",
+      hover: "hover:bg-emerald-500",
+      bg: "bg-emerald-500",
+      icon: "bg-gradient-to-br from-emerald-400 to-emerald-600",
     },
     purple: {
-      border: "border-purple-200",
-      text: "text-purple-600",
-      hover: "hover:bg-purple-400",
-      bg: "bg-purple-400",
-      icon: "bg-purple-400",
+      border: "border-violet-300",
+      text: "text-violet-600",
+      hover: "hover:bg-violet-500",
+      bg: "bg-violet-500",
+      icon: "bg-gradient-to-br from-violet-400 to-violet-600",
     },
     blue: {
-      border: "border-blue-200",
+      border: "border-blue-300",
       text: "text-blue-600",
-      hover: "hover:bg-blue-400",
-      bg: "bg-blue-400",
-      icon: "bg-blue-400",
+      hover: "hover:bg-blue-500",
+      bg: "bg-blue-500",
+      icon: "bg-gradient-to-br from-blue-400 to-blue-600",
     },
   }
   return colorMap[color] || colorMap.pink
