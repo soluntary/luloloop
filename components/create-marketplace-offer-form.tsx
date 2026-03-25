@@ -1685,10 +1685,10 @@ export function CreateMarketplaceOfferForm({
                           <div className="flex items-center gap-2 text-xs">Mietangebot</div>
                         </SelectItem>
                         <SelectItem value="trade" className="rounded-md">
-                          <div className="flex items-center gap-2">Tauschangebot</div>
+                          <div className="flex items-center gap-2 text-xs">Tauschangebot</div>
                         </SelectItem>
                         <SelectItem value="sell" className="rounded-md">
-                          <div className="flex items-center gap-2">Verkaufsangebot</div>
+                          <div className="flex items-center gap-2 text-xs">Verkaufsangebot</div>
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -1709,16 +1709,16 @@ export function CreateMarketplaceOfferForm({
                       </SelectTrigger>
                       <SelectContent className="rounded-lg">
                         <SelectItem value="Neu, ungeöffnet" className="rounded-md">
-                          <div className="flex items-center gap-2">Neu, ungeöffnet</div>
+                          <div className="flex items-center gap-2 text-xs">Neu, ungeöffnet</div>
                         </SelectItem>
                         <SelectItem value="Neuwertig" className="rounded-md">
-                          <div className="flex items-center gap-2">Neuwertig</div>
+                          <div className="flex items-center gap-2 text-xs">Neuwertig</div>
                         </SelectItem>
                         <SelectItem value="Gut" className="rounded-md">
-                          <div className="flex items-center gap-2">Gut</div>
+                          <div className="flex items-center gap-2 text-xs">Gut</div>
                         </SelectItem>
                         <SelectItem value="Gebraucht" className="rounded-md">
-                          <div className="flex items-center gap-2">Akzeptabel</div>
+                          <div className="flex items-center gap-2 text-xs">Akzeptabel</div>
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -1735,14 +1735,14 @@ export function CreateMarketplaceOfferForm({
               {/* Lending specific fields */}
               {offerType === "lend" && (
                 <div className="bg-white rounded-lg p-6 border border-gray-200">
-                  <h4 className="font-semibold text-gray-900 mb-4 text-sm">Mietkonditionen <span className="text-red-500">*</span></h4>
+                  <h4 className="font-semibold text-gray-900 mb-4 text-sm">Mietkonditionen</h4>
 
                   <div className="space-y-6">
                     {/* Mietdauer */}
                     <div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label className="text-xs mb-1 block">Mindestmietdauer (Tage)</Label>
+                          <Label className="text-xs mb-1 block">Mindestmietdauer (Tage) <span className="text-red-500">*</span></Label>
                           <Input
                             placeholder="z.B. 1"
                             value={minRentalDays}
@@ -1769,7 +1769,7 @@ export function CreateMarketplaceOfferForm({
                           )}
                         </div>
                         <div>
-                          <Label className="text-xs mb-1 block">Höchstmietdauer (Tage)</Label>
+                          <Label className="text-xs mb-1 block">Höchstmietdauer (Tage) <span className="text-red-500">*</span></Label>
                           <Input
                             placeholder="z.B. 30"
                             value={maxRentalDays}
@@ -1936,7 +1936,7 @@ export function CreateMarketplaceOfferForm({
               {/* Trading specific fields */}
               {offerType === "trade" && (
                 <div className="bg-white rounded-lg p-6 border border-gray-200">
-                  <h4 className="font-semibold text-gray-900 mb-4 text-sm">Tauschbedingung</h4>
+                  <h4 className="font-semibold text-gray-900 mb-4 text-sm">Tauschbedingung <span className="text-red-500">*</span></h4>
 
                   <div className="mb-4">
                     <div className="flex items-center space-x-3 text-xs">
