@@ -47,7 +47,6 @@ import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import Navigation from "@/components/navigation"
 import UserLink from "@/components/user-link"
-import { SkyscraperAd } from "@/components/advertising/ad-placements"
 import DateSelectionDialog from "@/components/date-selection-dialog"
 import { MessageComposerModal } from "@/components/message-composer-modal"
 // Removed LudoEventManagementDialog import
@@ -1943,12 +1942,6 @@ export default function LudoEventsPage() {
                   )
                 })
               )}
-            </div>
-          </div>
-
-          <div className="hidden lg:block w-40">
-            <div className="sticky top-8">
-              <SkyscraperAd />
             </div>
           </div>
         </div>
