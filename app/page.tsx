@@ -38,7 +38,7 @@ import "@/styles/font-handwritten.css"
 import "@/styles/font-body.css"
 import { motion } from "framer-motion"
 import { useInView } from "framer-motion"
-import { useRef, useState, useMemo, useEffect } from "react"
+import { useRef, useState, useMemo } from "react"
 import { useAuth } from "@/contexts/auth-context"
 
 // Floating Dice Component - 3D dice showing all faces
@@ -316,7 +316,7 @@ function AnimatedCounter({ value, suffix = "" }: { value: number; suffix?: strin
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true })
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isInView && !hasAnimated) {
       setHasAnimated(true)
       const duration = 2000
