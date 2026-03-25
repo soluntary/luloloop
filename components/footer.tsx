@@ -37,11 +37,6 @@ export function Footer() {
                   Hilfe & FAQ
                 </Link>
               </li>
-              <li>
-                <Link href="/werbung" className="text-gray-300 hover:text-teal-600 transition-colors text-xs">
-                  Werben auf Ludoloop
-                </Link>
-              </li>
             </ul>
           </div>
 

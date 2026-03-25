@@ -15,7 +15,6 @@ import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import Navigation from "@/components/navigation"
 import UserLink from "@/components/user-link"
-import { SkyscraperAd } from "@/components/advertising/ad-placements"
 import { ForumPostReactions } from "@/components/forum-post-reactions"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -442,12 +441,6 @@ export default function LudoForumPage() {
                   </Card>
                 ))
               )}
-            </div>
-          </div>
-
-          <div className="hidden lg:block w-40">
-            <div className="sticky top-8">
-              <SkyscraperAd />
             </div>
           </div>
         </div>

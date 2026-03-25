@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CreateMarketplaceOfferForm } from "@/components/create-marketplace-offer-form"
-import { CreateSearchAdForm } from "@/components/create-search-ad-form"
 import { useSearchParams } from "next/navigation"
 import {
   Search,
@@ -42,7 +41,6 @@ import { SimpleLocationSearch } from "@/components/simple-location-search"
 import { LocationPermissionBanner } from "@/components/location-permission-banner"
 import { DistanceBadge } from "@/components/distance-badge"
 import { useLocationSearch } from "@/contexts/location-search-context"
-import { WideSkyscraperAd } from "@/components/advertising/ad-placements"
 
 import { ShareButton } from "@/components/share-button"
 import { LocationMap } from "@/components/location-map"
@@ -111,8 +109,6 @@ export default function MarketplacePage() {
   const [preSelectedGameId, setPreSelectedGameId] = useState<string | null>(null)
   const [preSelectedOfferType, setPreSelectedOfferType] = useState<string | null>(null)
   const [preSelectedGame, setPreSelectedGame] = useState<any | null>(null)
-  const [searchAds, setSearchAds] = useState<any[]>([])
-  const [isCreateSearchAdOpen, setIsCreateSearchAdOpen] = useState(false)
   const [selectedOfferDetails, setSelectedOfferDetails] = useState<any>(null)
   const [isOfferDetailsOpen, setIsOfferDetailsOpen] = useState(false)
   const [selectedSearchAdDetails, setSelectedSearchAdDetails] = useState<any>(null)
@@ -804,25 +800,6 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
     }
   }, [isOfferDetailsOpen])
 
-  // Moved loadSearchAds here to comply with hook rules
-  const loadSearchAds = async () => {
-    try {
-      const supabase = createClient()
-      const { data, error } = await supabase.from("search_ads").select("*")
-      if (error) {
-        console.error("Error fetching search ads:", error)
-      } else {
-        setSearchAds(data || [])
-      }
-    } catch (error) {
-      console.error("Error fetching search ads:", error)
-    }
-  }
-
-  useEffect(() => {
-    loadSearchAds()
-  }, [])
-
   if (loading) {
     console.log("[v0] Marketplace showing loading state")
     return (
@@ -953,13 +930,6 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
               >
                 <Store className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Spiel inserieren
-              </Button>
-              <Button
-                onClick={() => setIsCreateSearchAdOpen(true)}
-                className="bg-amber-400 hover:bg-amber-500 text-white text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 transform hover:scale-105 hover:-rotate-1 transition-all"
-              >
-                <Search className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Suchanzeige erstellen
               </Button>
             </div>
           )}
@@ -1466,12 +1436,6 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
                   </p>
                 </div>
               )}
-            </div>
-          </div>
-
-          <div className="hidden lg:block w-48 flex-shrink-0">
-            <div className="sticky top-8">
-              <WideSkyscraperAd />
             </div>
           </div>
         </div>
@@ -2106,14 +2070,6 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
         </DialogContent>
       </Dialog>
 
-      {/* Create Search Ad Dialog */}
-      <CreateSearchAdForm
-        isOpen={isCreateSearchAdOpen}
-        onClose={() => setIsCreateSearchAdOpen(false)}
-        onSuccess={() => {
-          loadSearchAds()
-        }}
-      />
     </div>
   )
 }
