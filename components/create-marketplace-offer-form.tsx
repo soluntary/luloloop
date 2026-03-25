@@ -1685,10 +1685,10 @@ export function CreateMarketplaceOfferForm({
                           <div className="flex items-center gap-2 text-xs">Mietangebot</div>
                         </SelectItem>
                         <SelectItem value="trade" className="rounded-md">
-                          <div className="flex items-center gap-2">Tauschangebot</div>
+                          <div className="flex items-center gap-2 text-xs">Tauschangebot</div>
                         </SelectItem>
                         <SelectItem value="sell" className="rounded-md">
-                          <div className="flex items-center gap-2">Verkaufsangebot</div>
+                          <div className="flex items-center gap-2 text-xs">Verkaufsangebot</div>
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -1709,16 +1709,16 @@ export function CreateMarketplaceOfferForm({
                       </SelectTrigger>
                       <SelectContent className="rounded-lg">
                         <SelectItem value="Neu, ungeöffnet" className="rounded-md">
-                          <div className="flex items-center gap-2">Neu, ungeöffnet</div>
+                          <div className="flex items-center gap-2 text-xs">Neu, ungeöffnet</div>
                         </SelectItem>
                         <SelectItem value="Neuwertig" className="rounded-md">
-                          <div className="flex items-center gap-2">Neuwertig</div>
+                          <div className="flex items-center gap-2 text-xs">Neuwertig</div>
                         </SelectItem>
                         <SelectItem value="Gut" className="rounded-md">
-                          <div className="flex items-center gap-2">Gut</div>
+                          <div className="flex items-center gap-2 text-xs">Gut</div>
                         </SelectItem>
                         <SelectItem value="Gebraucht" className="rounded-md">
-                          <div className="flex items-center gap-2">Akzeptabel</div>
+                          <div className="flex items-center gap-2 text-xs">Akzeptabel</div>
                         </SelectItem>
                       </SelectContent>
                     </Select>
