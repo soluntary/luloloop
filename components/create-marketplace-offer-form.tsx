@@ -1800,7 +1800,7 @@ export function CreateMarketplaceOfferForm({
 
                     {/* Basispreis */}
                     <div>
-                      <Label className="text-xs mb-1 block">Basispreis pro Tag <span className="text-red-500">*</span></Label>
+                      <Label className="text-xs mb-1 block">Basispreis pro Tag (CHF) <span className="text-red-500">*</span></Label>
                       <div className="max-w-xs">
                         <div className="relative">
                           <Input
@@ -1812,7 +1812,6 @@ export function CreateMarketplaceOfferForm({
                             step="0.01"
                             min="0"
                           />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">CHF/Tag</span>
                         </div>
                         {errors.basePrice && (
                           <p className="text-red-600 text-xs mt-1">{errors.basePrice}</p>
