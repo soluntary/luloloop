@@ -468,16 +468,6 @@ export default function HomePage() {
               color: "pink",
               rotation: "rotate-1",
             },
-            {
-              icon: GiChoice,
-              title: "Ludo-O-Mat",
-              description:
-                "Beantworte ein paar Fragen und wir finden das perfekte Spiel, das deinen Vorlieben entspricht.",
-              link: "/brettspiel-o-mat",
-              linkText: "Zum Ludo-O-Mat",
-              color: "purple",
-              rotation: "-rotate-1",
-            },
           ].map((feature, index) => {
             const colors = getColorClasses(feature.color)
             return (
