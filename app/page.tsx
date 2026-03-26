@@ -495,11 +495,13 @@ export default function HomePage() {
                 >
                   <Card className={`transform ${feature.rotation} transition-all border-2 ${colors.border} h-full hover:shadow-lg hover:rotate-0 rounded-xl`}>
                     <CardContent className="p-5 text-center relative">
-                      <div
-                        className={`w-12 h-12 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-3 transform -rotate-6`}
+                      <motion.div
+                        className={`w-12 h-12 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-3`}
+                        whileHover={{ rotate: 360 }}
+                        transition={{ duration: 0.6, ease: "easeInOut" }}
                       >
                         <feature.icon className="w-6 h-6 text-white" />
-                      </div>
+                      </motion.div>
                       <h3 className="font-bold text-gray-800 mb-1.5 font-handwritten text-sm">{feature.title}</h3>
                       <p className="text-gray-600 font-body mb-3 text-xs leading-relaxed">{feature.description}</p>
                       <Button
