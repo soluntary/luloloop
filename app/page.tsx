@@ -38,7 +38,7 @@ import "@/styles/font-handwritten.css"
 import "@/styles/font-body.css"
 import { motion } from "framer-motion"
 import { useInView } from "framer-motion"
-import { useRef, useState, useMemo, useEffect } from "react"
+import { useRef, useState, useMemo } from "react"
 import { useAuth } from "@/contexts/auth-context"
 
 // Floating Dice Component - 3D dice showing all faces
@@ -309,40 +309,6 @@ function ConfettiBurst({ trigger }: { trigger: boolean }) {
   )
 }
 
-// Animated Counter Component
-function AnimatedCounter({ value, suffix = "" }: { value: number; suffix?: string }) {
-  const [count, setCount] = useState(0)
-  const [hasAnimated, setHasAnimated] = useState(false)
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true })
-
-  useEffect(() => {
-    if (isInView && !hasAnimated) {
-      setHasAnimated(true)
-      const duration = 2000
-      const steps = 60
-      const increment = value / steps
-      let current = 0
-      const timer = setInterval(() => {
-        current += increment
-        if (current >= value) {
-          setCount(value)
-          clearInterval(timer)
-        } else {
-          setCount(Math.floor(current))
-        }
-      }, duration / steps)
-      return () => clearInterval(timer)
-    }
-  }, [isInView, hasAnimated, value])
-
-  return (
-    <motion.div ref={ref} className="font-bold text-2xl text-gray-800 font-handwritten">
-      {count.toLocaleString()}{suffix}
-    </motion.div>
-  )
-}
-
 // Game Board Background Pattern
 function GameBoardPattern() {
   return (
@@ -454,26 +420,6 @@ export default function HomePage() {
             <span className="block">Entdecke und geniesse Brettspiele</span>
             <span className="block text-teal-600">wie nie zuvor</span>
           </motion.h2>
-          
-          {/* Interactive Dice */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex justify-center mb-6"
-          >
-            <div className="flex items-center gap-3">
-              <InteractiveDice />
-              <motion.p
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 }}
-                className="text-gray-500 text-sm font-body"
-              >
-                Klicke zum Wuerfeln!
-              </motion.p>
-            </div>
-          </motion.div>
         </div>
       </section>
 
@@ -549,11 +495,13 @@ export default function HomePage() {
                 >
                   <Card className={`transform ${feature.rotation} transition-all border-2 ${colors.border} h-full hover:shadow-lg hover:rotate-0 rounded-xl`}>
                     <CardContent className="p-5 text-center relative">
-                      <div
-                        className={`w-12 h-12 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-3 transform -rotate-6`}
+                      <motion.div
+                        className={`w-12 h-12 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-3`}
+                        whileHover={{ rotate: 360 }}
+                        transition={{ duration: 0.6, ease: "easeInOut" }}
                       >
                         <feature.icon className="w-6 h-6 text-white" />
-                      </div>
+                      </motion.div>
                       <h3 className="font-bold text-gray-800 mb-1.5 font-handwritten text-sm">{feature.title}</h3>
                       <p className="text-gray-600 font-body mb-3 text-xs leading-relaxed">{feature.description}</p>
                       <Button
@@ -574,41 +522,6 @@ export default function HomePage() {
                     </CardContent>
                   </Card>
                 </motion.div>
-              </motion.div>
-            )
-          })}
-        </div>
-      </AnimatedSection>
-
-      {/* Interactive Stats Section */}
-      <AnimatedSection className="container mx-auto px-4 py-12 mb-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-          {[
-            { value: 500, suffix: "+", label: "Spiele verfuegbar", icon: GiRollingDices, color: "teal" },
-            { value: 1000, suffix: "+", label: "Aktive Mitglieder", icon: LiaUsersSolid, color: "orange" },
-            { value: 200, suffix: "+", label: "Monatliche Trades", icon: TbExchange, color: "pink" },
-            { value: 50, suffix: "+", label: "Spieleabende/Monat", icon: FaCalendarAlt, color: "purple" },
-          ].map((stat, index) => {
-            const colors = getColorClasses(stat.color)
-            return (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                whileHover={{ scale: 1.05, y: -5 }}
-                className="text-center p-6 bg-white rounded-2xl shadow-sm border-2 border-gray-100 hover:shadow-lg transition-shadow cursor-pointer"
-              >
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.2 }}
-                  transition={{ duration: 0.6 }}
-                  className={`w-12 h-12 ${colors.icon} rounded-full flex items-center justify-center mx-auto mb-3`}
-                >
-                  <stat.icon className="w-6 h-6 text-white" />
-                </motion.div>
-                <AnimatedCounter value={stat.value} suffix={stat.suffix} />
-                <p className="text-gray-600 text-sm font-body mt-1">{stat.label}</p>
               </motion.div>
             )
           })}
@@ -683,14 +596,6 @@ export default function HomePage() {
               description:
                 "Mehr Kreislauf durch Tauschen und Vermieten - gut für Umwelt und Geldbeutel.",
               color: "green",
-              rotation: "rotate-1",
-              iconRotation: "-rotate-12",
-            },
-            {
-              icon: FaShieldAlt,
-              title: "Sicher & vertrauensvoll",
-              description: "Verifizierte Profile und Klare Abläufe für ein angenehmes und vertrauensvolles Erlebnis.",
-              color: "purple",
               rotation: "rotate-1",
               iconRotation: "-rotate-12",
             },
