@@ -597,14 +597,6 @@ export default function HomePage() {
               rotation: "rotate-1",
               iconRotation: "-rotate-12",
             },
-            {
-              icon: FaShieldAlt,
-              title: "Sicher & vertrauensvoll",
-              description: "Verifizierte Profile und Klare Abläufe für ein angenehmes und vertrauensvolles Erlebnis.",
-              color: "purple",
-              rotation: "rotate-1",
-              iconRotation: "-rotate-12",
-            },
           ].map((benefit, index) => {
             const colors = getColorClasses(benefit.color)
             return (
