@@ -83,7 +83,6 @@ function Navigation({ currentPage }: NavigationProps) {
       },
     },
     { href: "/marketplace", label: "Spielehandel", icon: FaStore, key: "spielemarkt" },
-    { href: "/brettspiel-o-mat", label: "Ludo-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
   ]
 
   const publicNavItems: NavItem[] = [
@@ -100,7 +99,6 @@ function Navigation({ currentPage }: NavigationProps) {
       },
     },
     { href: "/marketplace", label: "Spielehandel", icon: FaStore, key: "spielemarkt" },
-    { href: "/brettspiel-o-mat", label: "Ludo-O-Mat", icon: FaDice, key: "brettspiel-o-mat" },
   ]
 
   const navItems = user ? loggedInNavItems : publicNavItems
