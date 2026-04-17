@@ -11,7 +11,6 @@ import { Toaster } from "@/components/ui/custom-toaster"
 
 import { Toaster as SonnerToaster } from "sonner"
 import { ConfirmDialogProvider } from "@/hooks/use-confirm-dialog"
-import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 
 const galindo = Galindo({
@@ -79,7 +78,6 @@ export default function RootLayout({
               <LocationSearchProvider>
                 <ConfirmDialogProvider>
                   <ServiceWorkerRegistration />
-                  <PWAInstallPrompt />
                   <div className="flex flex-col min-h-screen">
                     <main className="flex-1">{children}</main>
                     <Footer />
