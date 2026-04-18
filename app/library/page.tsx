@@ -54,6 +54,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { FiFilter } from "react-icons/fi" // Import FiFilter
+import { BookshelfDisplay } from "@/components/bookshelf-display"
 
 function GameTrackingDialog({
   isOpen,
@@ -2128,32 +2129,25 @@ function LibraryContent() {
                 )}
               </div>
 
-              {/* Library Background Illustration */}
-              {/* Shelf Rows */}
-              <div className="space-y-8">
-                {databaseConnected ? (
-                  <>
-                    {/* Add Game Cover and First Row */}
-                    {filteredGames.length > 0 && (
-                      <div className="relative">
-                        {/* Shelf Board */}
-                        <div className="absolute bottom-3 left-0 right-0 bg-gradient-to-b from-amber-600 to-amber-700 rounded-lg shadow-md px-2 h-2.5 py-1.5"></div>
-
-                        {/* First row with Add Game Cover and up to 8 games */}
-                        <div className="flex gap-1 md:gap-2 overflow-x-auto pt-3 pl-1.5 pb-6 pr-1.5">
-                          {/* Add Game Cover - always first */}
-                          <div
-                            className="flex-shrink-0 cursor-pointer transform hover:scale-105 hover:-translate-y-2 transition-all duration-300"
-                            onClick={() => setIsAddGameDialogOpen(true)}
-                          >
-                            <div className="w-20 h-28 md:w-24 md:h-32 bg-gradient-to-br from-teal-100 to-teal-200 rounded-t-lg shadow-lg border-2 border-dashed border-teal-400 overflow-hidden relative flex items-center justify-center">
-                              <div className="text-center">
-                                <FaPlus className="w-6 md:w-8 md:h-8 text-teal-600 mx-auto mb-1" />
-                                <p className="text-xs text-teal-700 font-bold px-1">
-                                  <span className="hidden sm:inline text-xs font-normal">Spiel hinzufügen</span>
-                                  <span className="sm:hidden">Hinzufügen</span>
-                                </p>
-                              </div>
+              {/* Library Bookshelf Display */}
+              {databaseConnected ? (
+                <BookshelfDisplay
+                  games={filteredGames}
+                  isSelectionMode={isSelectionMode}
+                  selectedGames={selectedGames}
+                  onGameClick={(game) => setSelectedGame(game)}
+                  onToggleSelection={toggleGameSelection}
+                  onAddGameClick={() => setIsAddGameDialogOpen(true)}
+                />
+              ) : (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                  <FaDatabase className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
+                  <p className="text-yellow-700 text-sm font-semibold">Datenbank nicht verbunden</p>
+                  <p className="text-yellow-600 text-xs mt-1">
+                    Bitte führe die SQL-Skripte aus, um die Datenbank zu verbinden.
+                  </p>
+                </div>
+              )}
                             </div>
                             <div className="w-20 h-2 md:w-24 md:h-2 bg-gradient-to-b from-gray-300 to-gray-400 rounded-b-sm"></div>
                           </div>
