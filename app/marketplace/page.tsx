@@ -262,9 +262,14 @@ export default function MarketplacePage() {
         ...item,
         itemType: "offer",
       }))
-    : marketplaceOffers
+    : [
+      ...marketplaceOffers
         .filter((offer) => offer.active !== false && (!user || offer.user_id !== user.id))
-        .map((offer) => ({ ...offer, itemType: "offer" }))
+        .map((offer) => ({ ...offer, itemType: "offer" })),
+      ...searchAds
+        .filter((ad) => ad.active !== false && (!user || ad.user_id !== user.id))
+        .map((ad) => ({ ...ad, itemType: "search" })),
+    ]
 
   const filteredItems = allItems
     .filter((item) => {
@@ -768,7 +773,14 @@ Berechneter Gesamt-Mietgebühr: ${calculatedPrice}`
       }
     }
 
-  }, [searchParams, marketplaceOffers])
+    const searchAdId = searchParams.get("searchad")
+    if (searchAdId) {
+      const ad = searchAds.find((a) => a.id === searchAdId)
+      if (ad) {
+        handleOfferClick(ad)
+      }
+    }
+  }, [searchParams, marketplaceOffers, searchAds]) // Depend on searchParams, marketplaceOffers, and searchAds
 
   useEffect(() => {
     if (selectedOfferDetails?.type === "lend" && rentalStartDate && rentalEndDate) {
